@@ -3,17 +3,22 @@ from actors.api_flow_module import ApiFlowModule
 from actors.api_tank_module import ApiTankModule
 from actors.contract_handler import ContractHandler
 from actors.derived_generator import DerivedGenerator
+from actors.gpio_sensor import GpioSensor
+from actors.five_v_boss import FiveVBoss
 from actors.hp_boss import HpBoss
+from actors.hp_watch import HpWatch
+from actors.hydronic.cold import ColdWatch
 from actors.honeywell_thermostat import HoneywellThermostat
 from actors.hubitat import Hubitat
 from actors.hubitat_poller import HubitatPoller
-from actors.i2c_zero_ten_multiplexer import I2cZeroTenMultiplexer
-from actors.i2c_relay_multiplexer import I2cRelayMultiplexer
+from actors.i2c_bus import I2cBus
+from actors.i2c_thermistor_reader import I2cThermistorReader
 from actors.leaf_ally_loader import LeafAlly
 from actors.local_control_loader import LocalControl
 from actors.multipurpose_sensor import MultipurposeSensor
 from actors.secondary_scada import SecondaryScada
 from actors.pico_cycler import PicoCycler
+from actors.sim_sensor import SimSensorActor
 from actors.power_meter import PowerMeter
 from actors.relay import Relay
 from actors.scada import Scada
@@ -28,11 +33,15 @@ __all__ = [
     "ContractHandler",
     "DerivedGenerator",
     "HoneywellThermostat",
+    "FiveVBoss",
     "HpBoss",
+    "HpWatch",
+    "ColdWatch",
     "Hubitat",
     "HubitatPoller",
-    "I2cZeroTenMultiplexer",
-    "I2cRelayMultiplexer",
+    "GpioSensor",
+    "I2cBus",
+    "I2cThermistorReader",
     "LeafAlly",
     "LocalControl",
     "MultipurposeSensor",
@@ -43,5 +52,6 @@ __all__ = [
     "Scada",
     "ScadaInterface",
     "SiegLoop",
+    "SimSensorActor",
     "ZeroTenOutputer",
 ]

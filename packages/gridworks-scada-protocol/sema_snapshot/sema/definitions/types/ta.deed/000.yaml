@@ -1,0 +1,87 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/ta.deed/000"
+
+title: "ta.deed"
+type: object
+description: >
+  A TaValidator's attestation of what a terminal asset is. The deed binds
+  the asset's GNodeId to the alias it was validated under and carries the
+  validator's finding as a ValidationState that every reader consults; the
+  deed's existence alone says nothing. A simulated asset receives a deed
+  too, marked ValidatedSimulatedAsset. A scada reads its deed at boot and
+  holds UnValidated when it has none.
+
+properties:
+
+  TaId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      The terminal asset's GNodeId, the immutable anchor the deed binds to.
+
+  TaAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      The terminal asset's GNode alias at issue: the attested place in the
+      copper tree, with its universe as the first segment.
+
+  ValidationState:
+    $ref: "https://schemas.electricity.works/enums/ta.validation.state/000"
+
+  ValidatorAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      GNode alias of the TaValidator that made the finding.
+
+  IssuedS:
+    $ref: "https://schemas.electricity.works/formats/utc.seconds"
+    description: >
+      When the validator issued the deed.
+
+  TypeName:
+    const: "ta.deed"
+
+  Version:
+    const: "000"
+
+required:
+  - TaId
+  - TaAlias
+  - ValidationState
+  - ValidatorAlias
+  - IssuedS
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "TaId": "7b1e6f2a-4c3d-4e5f-8a9b-0c1d2e3f4a5b",
+      "TaAlias": "hw1.isone.me.versant.keene.beech.ta",
+      "ValidationState": "ValidatedRealAssetAndGps",
+      "ValidatorAlias": "hw1.validator.gridworks",
+      "IssuedS": 1757300400,
+      "TypeName": "ta.deed",
+      "Version": "000"
+    }
+  - |
+    {
+      "TaId": "2f6a9c4e-1b2d-4a3c-9e8f-5d4c3b2a1f0e",
+      "TaAlias": "d1.isone.me.versant.keene.simbeech.ta",
+      "ValidationState": "ValidatedSimulatedAsset",
+      "ValidatorAlias": "d1.validator.gridworks",
+      "IssuedS": 1757300400,
+      "TypeName": "ta.deed",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "SimulatedAssetNeverWorld"
+      statement: >
+        If ValidationState is ValidatedSimulatedAsset, the first segment of
+        TaAlias SHALL NOT be "w": a simulated asset holds no deed in the
+        world universe.

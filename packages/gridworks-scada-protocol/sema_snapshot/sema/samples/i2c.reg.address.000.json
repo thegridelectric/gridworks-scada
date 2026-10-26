@@ -1,0 +1,6 @@
+{
+  "TypeName": "i2c.reg.address",
+  "Version": "000",
+  "I2cAddress": 72,
+  "RegisterIndex": 0
+}

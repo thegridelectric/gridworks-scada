@@ -1,11 +1,9 @@
-# actors/procedural/dist_pump_monitor.py
 
 import time
 from typing import TYPE_CHECKING
 
-from gwsproto.data_classes.house_0_names import H0CN
 from gwsproto.enums import StoreFlowRelay, RelayClosedOrOpen
-from gwsproto.named_types import SingleMachineState
+from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 
 if TYPE_CHECKING:
     from actors.procedural.procedural_host import ProceduralHost
@@ -15,7 +13,7 @@ class StorePumpMonitor:
     Diagnostic monitor for the store pump.
 
     Decides whether a recovery procedure should run based on:
-      - store pump failsafe relay state
+      - store pump relay state
       - store flow
       - pump startup delay
 
@@ -53,11 +51,11 @@ class StorePumpMonitor:
             return False
 
         # --------------------------------------------------------
-        # Is the store pump failsafe relay closed?
+        # Is the store pump relay closed?
         # --------------------------------------------------------
 
-        charge_discharge_relay_state = h.data.latest_machine_state.get(h.store_charge_discharge_relay.name)
-        pump_relay_state = h.data.latest_machine_state.get(h.store_pump_failsafe.name)
+        charge_discharge_relay_state = h.data.latest_machine_state.get(h.layout.store_charge_discharge_relay.name)
+        pump_relay_state = h.data.latest_machine_state.get(h.layout.store_pump_relay.name)
 
         if pump_relay_state:
             if charge_discharge_relay_state:
@@ -79,7 +77,7 @@ class StorePumpMonitor:
         # --------------------------------------------------------
         # Do we have flow data?
         # --------------------------------------------------------
-        flow_gpm_x100 = h.data.latest_channel_values.get(H0CN.store_flow)
+        flow_gpm_x100 = h.data.latest_channel_values.get(HCN.store_flow)
         if flow_gpm_x100 is None:
             h.log("[StorePumpCheck] Store flow not found in latest channel values")
             return False

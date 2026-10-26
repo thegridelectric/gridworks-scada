@@ -1,0 +1,3723 @@
+metadata:
+  registry_version: "1.0"
+  last_updated: "2026-10-23T01:25:00Z"
+  maintainer: "gridworks-energy"
+
+formats:
+  decimal.digit:
+    owner: gridworks-energy
+    schema_url: "https://schemas.electricity.works/formats/decimal.digit"
+    created: "2025-03-03T20:40:00Z"
+    status: "published"
+    description: "Single decimal digit (integer 0 through 9) with non-coercive serialized validation"
+
+  git.commit:
+    owner: gridworks-energy
+    schema_url: "https://schemas.electricity.works/formats/git.commit"
+    created: "2026-10-08T21:00:00Z"
+    status: "published"
+    description: "A git commit identifying running code: a 40-character lowercase git hash, suffixed -dirty when the working tree had uncommitted changes"
+
+  handle.name:
+    owner: gridworks-energy
+    schema_url: "https://schemas.electricity.works/formats/handle.name"
+    created: "2024-09-02T15:00:00Z"
+    status: "published"
+    description: "Dot-separated hierarchical identifier with hyphen-friendly lowercase segments"
+
+  hh.mm:
+    owner: gridworks-energy
+    schema_url: "https://schemas.electricity.works/formats/hh.mm"
+    created: "2026-08-12T22:15:00Z"
+    status: "published"
+    description: "Wall-clock time of day at minute resolution, 24-hour zero-padded HH:MM (00:00 through 23:59); timezone-free"
+
+  iana.timezone.str:
+    owner: gridworks-energy
+    schema_url: "https://schemas.electricity.works/formats/iana.timezone.str"
+    created: "2026-09-17T20:10:00Z"
+    status: "published"
+    description: "Shape of an IANA tz-database identifier: one to three slash-separated segments of letters, digits, underscore, plus, or minus (e.g. America/New_York, Etc/GMT+5, UTC); validates shape only, not membership in the current tz database"
+
+  left.right.dot:
+    owner: gridworks-energy
+    schema_url: "https://schemas.electricity.works/formats/left.right.dot"
+    created: "2022-01-01T00:00:00Z"
+    status: "published"
+    description: "Dot-separated hierarchical identifier composed of lowercase alphanumeric segments"
+
+  lowercase.token:
+    owner: gridworks-energy
+    schema_url: "https://schemas.electricity.works/formats/lowercase.token"
+    created: "2026-10-18T15:30:00Z"
+    status: "published"
+    description: "One lowercase alphanumeric segment starting with a letter; exactly one segment of a dotted identifier, no separators"
+
+  mac.address:
+    owner: gridworks-energy
+    schema_url: "https://schemas.electricity.works/formats/mac.address"
+    created: "2026-06-15T02:10:00Z"
+    status: "published"
+    description: "MAC address as six lowercase hexadecimal octet pairs, colon-separated (e.g. 34:e1:d1:82:22:22)."
+
+  market.slot.name:
+    owner: gridworks-energy
+    schema_url: "https://schemas.electricity.works/formats/market.slot.name"
+    created: "2024-12-05T19:25:00Z"
+    status: "published"
+    description: "Dot-separated identifier for a specific market slot: commodity class, a market-product name token, the market-maker alias, and a 10-digit Unix slot-start timestamp"
+
+  non.empty.string:
+    owner: gridworks-energy
+    schema_url: "https://schemas.electricity.works/formats/non.empty.string"
+    created: "2024-09-02T15:00:00Z"
+    status: "published"
+    description: "String with at least one character"
+
+  non.negative.int:
+    owner: gridworks-energy
+    schema_url: "https://schemas.electricity.works/formats/non.negative.int"
+    created: "2024-09-02T15:00:00Z"
+    status: "published"
+    description: "Non-negative integer with non-coercive serialized validation"
+
+  pascal.case:
+    owner: gridworks-energy
+    schema_url: "https://schemas.electricity.works/formats/pascal.case"
+    created: "2026-05-05T11:40:39Z"
+    status: "published"
+    description: "PascalCase identifier composed of ASCII alphanumeric characters"
+
+  positive.float:
+    owner: gridworks-energy
+    schema_url: "https://schemas.electricity.works/formats/positive.float"
+    created: "2026-03-30T16:00:00Z"
+    status: "published"
+    description: "Floating-point number strictly greater than zero"
+
+  positive.int:
+    owner: gridworks-energy
+    schema_url: "https://schemas.electricity.works/formats/positive.int"
+    created: "2024-09-02T15:00:00Z"
+    status: "published"
+    description: "Positive integer with non-coercive serialized validation"
+
+  positive.int.as.str:
+    owner: gridworks-energy
+    schema_url: "https://schemas.electricity.works/formats/positive.int.as.str"
+    created: "2024-12-31T15:00:00Z"
+    status: "published"
+    description: "Canonical decimal string form of a positive integer; used as the propertyNames $ref for int-keyed Typed Maps"
+
+  sema.version:
+    owner: gridworks-energy
+    schema_url: "https://schemas.electricity.works/formats/sema.version"
+    created: "2026-10-22T20:00:00Z"
+    status: "published"
+    description: "Three-digit version string of a versioned Sema vocabulary word"
+
+  spaceheat.name:
+    owner: gridworks-energy
+    schema_url: "https://schemas.electricity.works/formats/spaceheat.name"
+    created: "2024-09-02T15:00:00Z"
+    status: "published"
+    description: "Single-segment lowercase identifier with optional internal hyphen-separated words"
+
+  utc.iso8601.seconds:
+    owner: gridworks-energy
+    schema_url: "https://schemas.electricity.works/formats/utc.iso8601.seconds"
+    created: "2026-02-22T16:43:00Z"
+    status: "published"
+    description: "UTC timestamp in ISO 8601 format with second precision and Z suffix"
+
+  utc.milliseconds:
+    owner: gridworks-energy
+    schema_url: "https://schemas.electricity.works/formats/utc.milliseconds"
+    created: "2024-09-02T15:00:00Z"
+    status: "published"
+    description: "UTC timestamp in whole milliseconds since Unix epoch (2000–3000 range)"
+
+  utc.seconds:
+    owner: gridworks-energy
+    schema_url: "https://schemas.electricity.works/formats/utc.seconds"
+    created: "2024-09-02T15:00:00Z"
+    status: "published"
+    description: "UTC timestamp in whole seconds since Unix epoch (2000–3000 range)"
+
+  uuid4.str:
+    owner: gridworks-energy
+    schema_url: "https://schemas.electricity.works/formats/uuid4.str"
+    created: "2024-09-02T15:00:00Z"
+    status: "published"
+    description: "Canonical lowercase UUIDv4 string (RFC 4122) in 8-4-4-4-12 format"
+
+enums:
+  aquastat.control.state:
+    owner: gridworks-energy
+    enum_type: "literal"
+    description: "Controller the aquastat relay hands the aquastat circuit to."
+    schema_url: "https://schemas.electricity.works/enums/aquastat.control.state/000"
+    created: "2026-10-23T00:15:00Z"
+    status: "published"
+
+  base.g.node.class:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Universal physical ontology classification for Grid Nodes"
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/base.g.node.class/000"
+        created: "2026-02-22T16:43:00Z"
+        status: "published"
+
+  change.relay.pin:
+    owner: gridworks-energy
+    enum_type: "literal"
+    description: "FSM events for actuating a single relay pin: energize or de-energize (the i2c relay multiplexer's atomic action)."
+    schema_url: "https://schemas.electricity.works/enums/change.relay.pin/000"
+    created: "2026-06-12T00:00:00Z"
+    status: "published"
+
+  change.relay.state:
+    owner: gridworks-energy
+    enum_type: "literal"
+    description: "FSM events for changing a simple relay between open and closed states."
+    schema_url: "https://schemas.electricity.works/enums/change.relay.state/000"
+    created: "2024-09-17T20:17:00Z"
+    status: "published"
+
+  change.valve.state:
+    owner: gridworks-energy
+    enum_type: "literal"
+    description: "FSM events for transitioning a two-position valve between open and closed."
+    schema_url: "https://schemas.electricity.works/enums/change.valve.state/000"
+    created: "2026-08-11T21:05:00Z"
+    status: "staging"
+
+  change.zone.call.source:
+    owner: gridworks-energy
+    enum_type: "literal"
+    description: "Events for switching a zone-call circuit's call authority between wall thermostat and scada, actuated by the circuit's failsafe relay."
+    schema_url: "https://schemas.electricity.works/enums/change.zone.call.source/000"
+    created: "2026-08-11T17:15:00Z"
+    status: "staging"
+
+  day.of.week:
+    owner: gridworks-energy
+    enum_type: "literal"
+    description: "Day of the civil week, for schedules that bind behavior to particular days (e.g. time-of-use windows)."
+    schema_url: "https://schemas.electricity.works/enums/day.of.week/000"
+    created: "2026-08-12T22:15:00Z"
+    status: "staging"
+
+  five.v.boss.state:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "States of the five-v-boss: who owns the vdc relay, the pico-cycler or the hold."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/five.v.boss.state/000"
+        created: "2026-09-08T21:20:00Z"
+        status: "published"
+
+  fsm.report.type:
+    owner: gridworks-energy
+    enum_type: "literal"
+    description: "Enumeration of atomic FSM report categories."
+    schema_url: "https://schemas.electricity.works/enums/fsm.report.type/000"
+    created: "2024-10-08T17:17:00Z"
+    status: "published"
+
+  g.node.status:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Lifecycle status of a Grid Node within the registry"
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/g.node.status/000"
+        created: "2026-02-22T16:43:00Z"
+        status: "published"
+
+  gpio.sense.mode:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "How a GPIO sensor input is read — by polling or by hardware edge detection."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/gpio.sense.mode/000"
+        created: "2026-06-12T19:14:40Z"
+        status: "staging"
+
+  gpm.from.hz.method:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Method used to convert measured pulse frequency into gallons per minute."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/gpm.from.hz.method/000"
+        created: "2024-10-23T19:32:00Z"
+        status: "published"
+
+  gw.dispatch.refusal.reason:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "The scada's one vocabulary for declining or ending dispatch: NoTaDeed, OperatorHold, ServiceContractBroken, ScadaBlind, InAdmin. Default OperatorHold so an unknown reason reads as the house held out."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/gw.dispatch.refusal.reason/000"
+        created: "2026-09-30T18:35:00Z"
+        status: "published"
+
+  gw.g.node.class:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "GridWorks-specific functional classification for GNodes"
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/gw.g.node.class/000"
+        created: "2026-02-23T17:08:00Z"
+        status: "published"
+
+  gw.primary.flow.source:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "How a hydronic layout's primary-loop flow is obtained: measured at the primary pump, or derived from other sensors (DerivedSiegSum: the Siegenthaler loop's send + flow)."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/gw.primary.flow.source/000"
+        created: "2026-09-17T23:55:00Z"
+        status: "staging"
+
+  gw.primary.pump.owner:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Who owns a hydronic layout's primary pump: the heat pump itself (HeatPump) or the scada through its own actuators (Scada); an install fact, distinct from the primary.pump.control relay state."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/gw.primary.pump.owner/000"
+        created: "2026-09-24T17:50:00Z"
+        status: "staging"
+
+  gw.refrigerant.cycle:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Refrigerant-cycle topology of a layout's heat pump: one compressor (Single) or two in series (Cascade, a flatter COP curve)."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/gw.refrigerant.cycle/000"
+        created: "2026-09-24T17:50:00Z"
+        status: "staging"
+
+  gw.scada.cmd.refusal.reason:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Why a scada command node refused a command from its boss, carried on gw.dispatch.nack."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/gw.scada.cmd.refusal.reason/000"
+        created: "2026-09-07T22:35:00Z"
+        status: "published"
+
+  gw.standby.posture:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "What a scada in Standby does to the plant: MonitorOnly (energizes nothing) or NoHeatingOrCooling (holds every heat source off); the intent behind the house's EnergizedStandbyRelays list. Default MonitorOnly so an unknown posture touches nothing."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/gw.standby.posture/000"
+        created: "2026-09-30T18:35:00Z"
+        status: "published"
+
+  gw.top.state:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Who holds the scada's command tree: Auto (the scada's own control) or Admin (an admin session)."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/gw.top.state/000"
+        created: "2026-09-29T22:05:00Z"
+        status: "published"
+
+  gw.weather.forecast.fidelity:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Degradation rung of a weather forecast emission: live product, stored-horizon drawdown, or seasonal-template fill."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/gw.weather.forecast.fidelity/000"
+        created: "2026-08-11T14:20:00Z"
+        status: "published"
+
+  gw.zone.emitter.type:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "The emitter a zone-call circuit drives, as far as GridWorks needs to know: FanCoil (can cool), RadiantSlab (needs a floor temperature), else Other."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/gw.zone.emitter.type/000"
+        created: "2026-09-23T22:25:00Z"
+        status: "staging"
+
+  gw1.actor.class:
+    latest_version: "014"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Classification of actors in the GridWorks SCADA system."
+
+    versions:
+      "014":
+        schema_url: "https://schemas.electricity.works/enums/gw1.actor.class/014"
+        created: "2026-09-08T21:20:00Z"
+        status: "published"
+        added_values:
+          - "FiveVBoss"
+          - "HpWatch"
+          - "ColdWatch"
+
+  gw1.device.type:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Device category (PascalCase) a component is built on; replaces make/model-as-CAC. Components carry DeviceType as an open pascal.case string; the hardware layout enforces membership here. Migrated from spaceheat.make.model (frozen)."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/gw1.device.type/000"
+        created: "2026-06-13T21:30:00Z"
+        status: "staging"
+
+  gw1.emission.method:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Method by which a derived or computed channel emits values."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/gw1.emission.method/000"
+        created: "2026-02-02T22:17:00Z"
+        status: "published"
+
+  gw1.heat.call.interpretation:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Defines how a source telemetry channel is interpreted to determine whether a zone is calling for heat."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/gw1.heat.call.interpretation/000"
+        created: "2026-03-16T14:14:00Z"
+        status: "published"
+
+  gw1.leaf.ally.all.tanks.state:
+    latest_version: "001"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "LTN sub-state of a GridWorks spaceheat system while using storage tanks"
+
+    versions:
+      "001":
+        schema_url: "https://schemas.electricity.works/enums/gw1.leaf.ally.all.tanks.state/001"
+        created: "2026-05-08T19:57:00Z"
+        status: "published"
+
+  gw1.leaf.ally.buffer.only.state:
+    latest_version: "001"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "LTN sub-state of a GridWorks spaceheat system while using a buffer tank only."
+
+    versions:
+      "001":
+        schema_url: "https://schemas.electricity.works/enums/gw1.leaf.ally.buffer.only.state/001"
+        created: "2026-05-08T19:57:00Z"
+        status: "published"
+
+  gw1.local.control.all.tanks.state:
+    latest_version: "001"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Local-Control sub-state of a GridWorks spaceheat system while using storage tanks."
+
+    versions:
+      "001":
+        schema_url: "https://schemas.electricity.works/enums/gw1.local.control.all.tanks.state/001"
+        created: "2026-05-08T19:57:00Z"
+        status: "published"
+
+  gw1.local.control.buffer.only.state:
+    latest_version: "001"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Local-Control sub-state of a GridWorks spaceheat system while using a buffer tank only."
+
+    versions:
+      "001":
+        schema_url: "https://schemas.electricity.works/enums/gw1.local.control.buffer.only.state/001"
+        created: "2026-05-08T19:57:00Z"
+        status: "published"
+
+  gw1.main.auto.state:
+    latest_version: "001"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Top-level state of a GridWorks spaceheat system."
+
+    versions:
+      "001":
+        schema_url: "https://schemas.electricity.works/enums/gw1.main.auto.state/001"
+        created: "2026-05-08T19:57:00Z"
+        status: "published"
+
+  gw1.nolan.lc.buffer.only.state:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "States of the Nolan buffer-only heating machine: Initializing, HpCallOn, HpCallOff, Dormant. The state names the heat-pump call decision; postures re-asserted each check are not states."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/gw1.nolan.lc.buffer.only.state/000"
+        created: "2026-09-30T18:35:00Z"
+        status: "published"
+
+  gw1.quantity:
+    latest_version: "003"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "High-level physical or semantic quantity classification for telemetry values."
+
+    versions:
+      "003":
+        schema_url: "https://schemas.electricity.works/enums/gw1.quantity/003"
+        created: "2026-10-15T11:35:00Z"
+        status: "published"
+        added_values:
+          - "Irradiance"
+          - "Currency"
+
+  gw1.seasonal.storage.mode:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Seasonal storage operating mode for layouts that distinguish all-tank from buffer-only operation."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/gw1.seasonal.storage.mode/000"
+        created: "2026-01-14T18:04:00Z"
+        status: "published"
+
+  gw1.service.mode:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Thermal service the system provides: Heating / Cooling. Selects the local control machine on a plant that can do both, and gates heating contracts at the LTN."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/gw1.service.mode/000"
+        created: "2026-08-13T11:55:00Z"
+        status: "published"
+
+  gw1.sim.device.type:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Simulated-device categories for components in simulated layouts; disjoint from gw1.device.type so a consumer tells simulated from real by vocabulary membership, not by name."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/gw1.sim.device.type/000"
+        created: "2026-09-02T21:15:00Z"
+        status: "staging"
+
+  gw1.slow.dispatch.contract.status:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Lifecycle status of a slow dispatch contract as stated on a heartbeat: Created, Received, Confirmed, Active, the two terminations, and the completion outcomes. Default Unknown so an unknown status is not acted on."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/gw1.slow.dispatch.contract.status/000"
+        created: "2026-01-14T16:15:00Z"
+        status: "published"
+
+  gw1.unit:
+    latest_version: "003"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Measurement-unit vocabulary used for derived channels."
+
+    versions:
+      "003":
+        schema_url: "https://schemas.electricity.works/enums/gw1.unit/003"
+        created: "2026-10-15T11:35:00Z"
+        status: "published"
+        added_values:
+          - "WattsPerSquareMeter"
+          - "MilesPerHourX10"
+          - "FahrenheitX10"
+
+  gw2.lc.top.state:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Top state of the local control node, reported by whichever local control machine the scada runs: Dormant, Normal, ScadaBlind, Standby, InBackup, ColdOverride."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/gw2.lc.top.state/000"
+        created: "2026-10-06T11:35:00Z"
+        status: "published"
+
+  heat.pump.control:
+    owner: gridworks-energy
+    enum_type: "literal"
+    description: "Controller the heat pump relay hands the heat pump call to."
+    schema_url: "https://schemas.electricity.works/enums/heat.pump.control/000"
+    created: "2026-10-23T00:15:00Z"
+    status: "published"
+
+  hp.boss.state:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "States of the heat pump command node's state machine, reported through single.machine.state."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/hp.boss.state/000"
+        created: "2026-09-07T23:30:00Z"
+        status: "published"
+
+  hp.loop.keep.send:
+    owner: gridworks-energy
+    enum_type: "literal"
+    description: "Position of the heat pump loop keep/send relay."
+    schema_url: "https://schemas.electricity.works/enums/hp.loop.keep.send/000"
+    created: "2026-10-23T00:15:00Z"
+    status: "published"
+
+  hz.calc.method:
+    latest_version: "001"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Method used to estimate signal frequency from pulse timing data."
+
+    versions:
+      "001":
+        schema_url: "https://schemas.electricity.works/enums/hz.calc.method/001"
+        created: "2024-10-23T19:32:00Z"
+        status: "published"
+
+  i2c.adc.channel:
+    owner: gridworks-energy
+    enum_type: "literal"
+    description: "ADC input pin identifier for I2C ADC devices."
+    schema_url: "https://schemas.electricity.works/enums/i2c.adc.channel/000"
+    created: "2026-03-04T19:00:00Z"
+    status: "staging"
+
+  i2c.adc.type:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "The model of the I²C analog-to-digital converter chipset used by a GridWorks SCADA board."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/i2c.adc.type/000"
+        created: "2026-06-17T14:20:00Z"
+        status: "staging"
+
+  i2c.dac.channel:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "DAC output channel identifier for I2C DAC devices."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/i2c.dac.channel/000"
+        created: "2026-08-10T20:40:00Z"
+        status: "staging"
+
+  i2c.dac.type:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "The model of the I²C digital-to-analog converter chipset used by a GridWorks SCADA board."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/i2c.dac.type/000"
+        created: "2026-06-17T14:20:00Z"
+        status: "staging"
+
+  i2c.expander.type:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "The model of the I²C GPIO expander chipset used by a GridWorks SCADA board; fixes the bus protocol a relay actor drives it with."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/i2c.expander.type/000"
+        created: "2026-09-10T21:25:00Z"
+        status: "staging"
+
+  i2c.mux.type:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "The model of the I²C bus multiplexer chipset used by a GridWorks SCADA board."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/i2c.mux.type/000"
+        created: "2026-08-10T20:40:00Z"
+        status: "staging"
+
+  i2c.operation:
+    latest_version: "001"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "The kind of I²C bus operation an i2c.result reports."
+
+    versions:
+      "001":
+        schema_url: "https://schemas.electricity.works/enums/i2c.operation/001"
+        created: "2026-08-12T16:50:00Z"
+        status: "staging"
+        added_values:
+          - "WriteByte"
+          - "ReadBytes"
+
+  log.level:
+    owner: gridworks-energy
+    enum_type: "literal"
+    description: "Logging level."
+    schema_url: "https://schemas.electricity.works/enums/log.level/000"
+    created: "2026-05-13T00:00:00Z"
+    status: "published"
+
+  market.price.unit:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Unit of the price axis for a market type."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/market.price.unit/000"
+        created: "2024-12-05T19:25:00Z"
+        status: "published"
+
+  market.quantity.unit:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Unit of the quantity axis for a market type."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/market.quantity.unit/000"
+        created: "2024-12-05T19:25:00Z"
+        status: "published"
+
+  market.type.name:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Categorizes different markets run by MarketMaker"
+    replaced_by:
+      - "gw.market.product.name"
+    frozen_at: "2026-06-08T00:00:00Z"
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/market.type.name/000"
+        created: "2022-10-17T16:55:39Z"
+        status: "published"
+
+  move.sieg.valve:
+    latest_version: "001"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "The sieg-loop's command vocabulary: send the heat pump's whole flow out of the Siegenthaler loop, or keep it all in, or stop where it is."
+
+    versions:
+      "001":
+        schema_url: "https://schemas.electricity.works/enums/move.sieg.valve/001"
+        created: "2026-09-28T17:30:00Z"
+        status: "staging"
+        added_values:
+          - "StopValve"
+
+  pico.board.variant:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "The physical microcontroller board a pico-based sensor module runs on: chip generation and wifi or wired ethernet. Default Unknown."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/pico.board.variant/000"
+        created: "2026-09-08T00:30:00Z"
+        status: "published"
+
+  pico.cycler.event:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Events that move the scada's pico-cycler state machine; the entering event of a cycle is what provoked it."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/pico.cycler.event/000"
+        created: "2026-09-07T22:35:00Z"
+        status: "published"
+
+  pico.cycler.state:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "States of the scada's pico-cycler state machine, reported through single.machine.state."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/pico.cycler.state/000"
+        created: "2026-09-07T23:30:00Z"
+        status: "published"
+
+  primary.pump.control:
+    owner: gridworks-energy
+    enum_type: "literal"
+    description: "Controller the primary pump relay hands the primary pump to."
+    schema_url: "https://schemas.electricity.works/enums/primary.pump.control/000"
+    created: "2026-10-23T00:15:00Z"
+    status: "published"
+
+  reboot.picos:
+    owner: gridworks-energy
+    enum_type: "literal"
+    description: "The pico-cycler's command vocabulary: a boss may ask it to power-cycle its picos."
+    schema_url: "https://schemas.electricity.works/enums/reboot.picos/000"
+    created: "2026-09-07T22:35:00Z"
+    status: "published"
+
+  relay.closed.or.open:
+    owner: gridworks-energy
+    enum_type: "literal"
+    description: "FSM states for a simple relay with open and closed positions."
+    schema_url: "https://schemas.electricity.works/enums/relay.closed.or.open/000"
+    created: "2024-09-17T20:17:00Z"
+    status: "published"
+
+  relay.energization.state:
+    owner: gridworks-energy
+    enum_type: "literal"
+    value_type: "integer"
+    description: "Two-state relay energization state."
+    schema_url: "https://schemas.electricity.works/enums/relay.energization.state/000"
+    created: "2024-03-06T22:07:00Z"
+    status: "published"
+
+  relay.wiring.config:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Defines how a relay’s COM, NO, and NC terminals are wired into a circuit."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/relay.wiring.config/000"
+        created: "2024-09-17T19:18:00Z"
+        status: "published"
+
+  setpoint.phase:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Epistemic phase of a learned setpoint belief: how the current belief about a thermostat's setpoint was obtained and how much to trust it."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/setpoint.phase/000"
+        created: "2026-08-11T15:55:00Z"
+        status: "staging"
+
+  sieg.loop.strategy:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "How the sieg-loop drives the Siegenthaler valve while the tree is in automatic hands: hold full send, protect stratification only, or control leaving-water temperature."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/sieg.loop.strategy/000"
+        created: "2026-09-25T17:10:00Z"
+        status: "staging"
+
+  sieg.valve.state:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Where the Siegenthaler valve is and whether it is moving, as sieg-loop reports it."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/sieg.valve.state/000"
+        created: "2026-09-24T21:45:00Z"
+        status: "published"
+
+  single.pico.state:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Health state of one Pico microcontroller as judged by the scada's pico-cycler: Alive, Flatlined, or Zombie."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/single.pico.state/000"
+        created: "2026-09-07T16:45:00Z"
+        status: "published"
+
+  spaceheat.telemetry.name:
+    latest_version: "007"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Legacy Spaceheat telemetry-name vocabulary for raw channels."
+
+    versions:
+      "007":
+        schema_url: "https://schemas.electricity.works/enums/spaceheat.telemetry.name/007"
+        created: "2024-12-06T00:00:00Z"
+        status: "published"
+        added_values:
+          - "BinaryState"
+
+  spaceheat.unit:
+    latest_version: "001"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Legacy Spaceheat measurement-unit vocabulary used in channel configuration and telemetry payloads."
+
+    versions:
+      "001":
+        schema_url: "https://schemas.electricity.works/enums/spaceheat.unit/001"
+        created: "2024-09-02T15:00:00Z"
+        status: "published"
+
+  spruce.hack.hp.state:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "The heat pump's running state sensed from outdoor-unit power on spruce's starter-script thresholds: Unknown, HpDetectedOn, HpDetectedOff, held between the on and off lines."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/spruce.hack.hp.state/000"
+        created: "2026-10-04T18:40:00Z"
+        status: "published"
+
+  store.flow.relay:
+    owner: gridworks-energy
+    enum_type: "literal"
+    description: "Direction the store flow relay sets for water through the thermal store."
+    schema_url: "https://schemas.electricity.works/enums/store.flow.relay/000"
+    created: "2026-10-23T00:15:00Z"
+    status: "published"
+
+  ta.validation.state:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "What a TaValidator has vouched for about a terminal asset; carried by ta.deed, UnValidated with no deed."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/ta.validation.state/000"
+        created: "2026-09-09T02:05:00Z"
+        status: "published"
+
+  temp.calc.method:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Method used to calculate temperature from thermistor voltage measurements."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/temp.calc.method/000"
+        created: "2024-10-21T23:19:00Z"
+        status: "published"
+
+  thermistor.data.method:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Method used to convert raw thermistor voltage readings into captured temperature readings."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/thermistor.data.method/000"
+        created: "2026-06-14T12:00:00Z"
+        status: "staging"
+
+  thermostat.kind:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Kind of wall thermostat driving a zone-call circuit."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/thermostat.kind/000"
+        created: "2026-08-11T15:55:00Z"
+        status: "staging"
+
+  turn.5v.on.off:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "The five-v-boss's hold vocabulary: hold the picos' 5 V off, or restore it."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/turn.5v.on.off/000"
+        created: "2026-09-08T21:20:00Z"
+        status: "published"
+
+  turn.hp.on.off:
+    owner: gridworks-energy
+    enum_type: "literal"
+    description: "The heat pump command node's command vocabulary: a boss may ask hp-boss to let the heat pump run or hold it off."
+    schema_url: "https://schemas.electricity.works/enums/turn.hp.on.off/000"
+    created: "2026-09-07T23:30:00Z"
+    status: "published"
+
+  valve.open.or.closed:
+    owner: gridworks-energy
+    enum_type: "literal"
+    description: "Binary position of a two-position valve: open (flow permitted) or closed (flow blocked)."
+    schema_url: "https://schemas.electricity.works/enums/valve.open.or.closed/000"
+    created: "2026-08-11T21:05:00Z"
+    status: "published"
+
+  zone.call.circuit.event:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Events for a zone-call-circuit actor's posture machine, which owns the circuit's failsafe and ops relay pair."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/zone.call.circuit.event/000"
+        created: "2026-08-11T15:55:00Z"
+        status: "staging"
+
+  zone.call.circuit.state:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "States of a zone-call-circuit actor's posture machine; Released is the hardware failsafe posture."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/zone.call.circuit.state/000"
+        created: "2026-08-11T15:55:00Z"
+        status: "staging"
+
+  zone.call.source:
+    owner: gridworks-energy
+    enum_type: "literal"
+    description: "Authority currently issuing a zone-call circuit's call signal: the wall thermostat or the scada."
+    schema_url: "https://schemas.electricity.works/enums/zone.call.source/000"
+    created: "2026-08-11T15:55:00Z"
+    status: "published"
+
+  zone.circuit.governance.event:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "Events for a zone-call-circuit actor's governance machine, selecting which authority rules the circuit."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/zone.circuit.governance.event/000"
+        created: "2026-08-11T15:55:00Z"
+        status: "staging"
+
+  zone.circuit.governance.state:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "States of a zone-call-circuit actor's governance machine: which authority rules the circuit."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/zone.circuit.governance.state/000"
+        created: "2026-08-11T15:55:00Z"
+        status: "staging"
+
+  zone.setpoint.source:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "How the scada knows a zone-call circuit's setpoint: read from a comms-capable thermostat or learned from call behavior."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/zone.setpoint.source/000"
+        created: "2026-08-11T15:55:00Z"
+        status: "staging"
+
+types:
+  ads.channel.config:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Per-channel configuration for one thermistor read through an ADS111x ADC terminal block (the TSnap path)."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/ads.channel.config/000"
+        created: "2026-06-14T12:00:00Z"
+        status: "staging"
+        summary: "Initial Sema version (flattened from the scada AdsChannelConfig runtime; ThermistorMakeModel -> ThermistorDeviceType). Carries only the per-channel hardware binding; capture/report tuning lives in operational-params (capture.tuning), not the static layout — no Unit/Exponent (redundant; carried by channel identity) or PollPeriodMs/CapturePeriodS/AsyncCapture/AsyncCaptureDelta."
+        direct_dependencies:
+          structural:
+            - "pascal.case"
+            - "positive.int"
+            - "spaceheat.name"
+            - "thermistor.data.method:000"
+
+  ads111x.based.component.gt:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "An ADS111x-based multipurpose-sensor component instance: thermistor inputs read through ADS111x ADC terminal blocks (the TSnap path)."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/ads111x.based.component.gt/000"
+        created: "2026-06-26T03:40:00Z"
+        status: "staging"
+        summary: "Initial Sema version (flattened from the scada Ads111xBasedComponentGt runtime)."
+        direct_dependencies:
+          structural:
+            - "ads.channel.config:000"
+            - "pascal.case"
+            - "uuid4.str"
+
+  ads111x.based.device.type.gt:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Specialized device-type record for an ADS111x-based analog temperature sensor category (used by beech/oak/maple/fir/elm); keyed by DeviceType."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/ads111x.based.device.type.gt/000"
+        created: "2026-06-13T22:10:00Z"
+        status: "staging"
+        summary: "Initial draft (specialized device-type record; per-family successor to the field ads111x.based.cac.gt, keyed by DeviceType)."
+        direct_dependencies:
+          structural:
+            - "pascal.case"
+            - "positive.int"
+            - "spaceheat.telemetry.name:007"
+
+  analog.dispatch:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A command from a boss to a node that drives a level rather than a state; the counterpart of fsm.event for analog actuators."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/analog.dispatch/000"
+        created: "2026-09-07T22:35:00Z"
+        status: "published"
+        summary: "Initial Sema version"
+        direct_dependencies:
+          structural:
+            - "handle.name"
+            - "left.right.dot"
+            - "spaceheat.name"
+            - "utc.milliseconds"
+            - "uuid4.str"
+
+  async.btu.params:
+    latest_version: "100"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "The params handshake between an async-btu pico and its scada: the pico posts its parameters at boot and the scada answers with the values to run with."
+
+    versions:
+      "100":
+        schema_url: "https://schemas.electricity.works/types/async.btu.params/100"
+        created: "2026-09-11T00:30:00Z"
+        status: "published"
+        summary: "- PicoBoardVariant: add - MicropythonVersion: add"
+        direct_dependencies:
+          structural:
+            - "pico.board.variant:000"
+            - "positive.float"
+            - "positive.int"
+            - "spaceheat.name"
+
+  baseurl.failure.alert:
+    latest_version: "100"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A pico's report that its primary scada base URL stopped answering and it has failed over to its backup URL."
+
+    versions:
+      "100":
+        schema_url: "https://schemas.electricity.works/types/baseurl.failure.alert/100"
+        created: "2026-09-12T12:30:00Z"
+        status: "published"
+        summary: "Initial Sema version (registered from the shipped pico wire shape, version 100)."
+        direct_dependencies:
+          structural:
+            - "spaceheat.name"
+
+  bid:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Market-normalized, slot-specific price-quantity schedule submitted by a market participant."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/bid/000"
+        created: "2026-01-15T15:45:08Z"
+        status: "published"
+        summary: "Initial Sema version"
+        direct_dependencies:
+          structural:
+            - "left.right.dot"
+            - "market.price.unit:000"
+            - "market.quantity.unit:000"
+            - "market.slot.name"
+            - "price.quantity.unitless:001"
+
+  capture.tuning:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Per-channel telemetry capture/report tuning (operational-params), authored apart from the static hardware layout."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/capture.tuning/000"
+        created: "2026-06-29T19:40:00Z"
+        status: "staging"
+        summary: "Initial Sema version — the per-channel capture params (CapturePeriodS, AsyncCapture, AsyncCaptureDelta, PollPeriodMs) extracted from the channel-config family into operational-params."
+        direct_dependencies:
+          structural:
+            - "positive.int"
+            - "spaceheat.name"
+
+  channel.readings:
+    latest_version: "002"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Timestamped integer readings for one channel within a SCADA reporting context."
+
+    versions:
+      "002":
+        schema_url: "https://schemas.electricity.works/types/channel.readings/002"
+        created: "2024-10-12T17:43:44Z"
+        status: "published"
+        summary: "- ChannelId: remove - additionalProperties: true -> false"
+        direct_dependencies:
+          structural:
+            - "spaceheat.name"
+            - "utc.milliseconds"
+
+  cop.curve:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A heat pump's coefficient-of-performance model: COP = Intercept + OatCoeff * OatF + LwtCoeff * LwtF, floored at Min below MinOatF."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/cop.curve/000"
+        created: "2026-07-09T21:30:00Z"
+        status: "staging"
+        summary: "Initial version (Intercept, OatCoeff, LwtCoeff, Min, MinOatF) — the COP model migrated out of scada deployment config into operational params."
+        direct_dependencies:
+          structural: []
+
+  dac.output.config:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Control config for one 0-10V output: reporting channel, commanding actor, DAC channel, — the relay.control.config analog for an analog actuator. The power-on level lives in operational-params (zero.ten.power.on)."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/dac.output.config/000"
+        created: "2026-09-02T21:15:00Z"
+        status: "staging"
+        summary: "Initial version (ChannelName, ActorName, DacChannel). The EEPROM power-on fields and their axiom left in place for zero.ten.power.on in operational-params; chip and board facts are scada driver tables."
+        direct_dependencies:
+          structural:
+            - "i2c.dac.channel:000"
+            - "spaceheat.name"
+
+  data.channel.gt:
+    latest_version: "004"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Canonical definition of a telemetry channel representing directly captured measurements"
+
+    versions:
+      "004":
+        schema_url: "https://schemas.electricity.works/types/data.channel.gt/004"
+        created: "2026-10-15T16:00:00Z"
+        status: "published"
+        summary: "- Quantity: gw1.quantity 000 -> 003 - TelemetryQuantityConsistency axiom: spaceheat.telemetry.quantity.projection 000 -> 001"
+        direct_dependencies:
+          structural:
+            - "gw1.quantity:003"
+            - "left.right.dot"
+            - "spaceheat.name"
+            - "spaceheat.telemetry.name:007"
+            - "utc.seconds"
+            - "uuid4.str"
+          axiom:
+            - "spaceheat.telemetry.quantity.projection:001"
+
+  derived.channel.gt:
+    latest_version: "003"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Canonical definition of computed telemetry channels within a GridWorks system."
+
+    versions:
+      "003":
+        schema_url: "https://schemas.electricity.works/types/derived.channel.gt/003"
+        created: "2026-10-15T11:35:00Z"
+        status: "published"
+        summary: "- OutputUnit: gw1.unit 001 -> 003 - OutputQuantity: gw1.quantity 001 -> 003 - OutputUnitQuantityConsistency axiom: gw1.unit.quantity.projection 000 -> 001"
+        direct_dependencies:
+          structural:
+            - "gw1.emission.method:000"
+            - "gw1.quantity:003"
+            - "gw1.unit:003"
+            - "left.right.dot"
+            - "positive.int"
+            - "spaceheat.name"
+            - "uuid4.str"
+          axiom:
+            - "gw1.unit.quantity.projection:001"
+
+  device.component.gt:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Generic deployed-device component: identity (DeviceType, HwUid serial, Description) with no channel configuration; for plant equipment tracked but not driven."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/device.component.gt/000"
+        created: "2026-08-31T22:45:00Z"
+        status: "staging"
+        summary: "Initial: ComponentId + DeviceType (pascal.case) + optional DisplayName / HwUid / Description."
+        direct_dependencies:
+          structural:
+            - "pascal.case"
+            - "uuid4.str"
+
+  dfr.config:
+    latest_version: "000"
+    owner: gridworks-energy
+    replaced_by:
+      - "dac.output.config"
+    versioning_strategy: "literal"
+    description: "Per-output channel configuration for one DFRobot DFR0971 analog output (0-10V DAC)."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/dfr.config/000"
+        created: "2026-06-14T12:00:00Z"
+        status: "staging"
+        summary: "Initial Sema version (flattened from the scada DfrConfig runtime). Carries only the per-channel hardware binding; capture/report tuning lives in operational-params (capture.tuning), not the static layout — no Unit/Exponent (redundant; carried by channel identity) or PollPeriodMs/CapturePeriodS/AsyncCapture/AsyncCaptureDelta."
+        direct_dependencies:
+          structural:
+            - "positive.int"
+            - "spaceheat.name"
+
+  egauge.register.config:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Configuration for one EGauge modbus register mapped to a telemetry channel."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/egauge.register.config/000"
+        created: "2026-06-12T19:14:25Z"
+        status: "staging"
+        summary: "Initial Sema version (flattened from the scada EgaugeRegisterConfig runtime)."
+        direct_dependencies:
+          structural: []
+
+  electric.meter.channel.config:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Per-channel configuration for one telemetry channel read from an electric meter (with optional EGauge modbus register mapping)."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/electric.meter.channel.config/000"
+        created: "2026-06-12T19:14:30Z"
+        status: "staging"
+        summary: "Initial Sema version (flattened from the scada ElectricMeterChannelConfig runtime). Carries only the per-channel hardware binding; capture/report tuning lives in operational-params (capture.tuning), not the static layout — no Unit/Exponent (redundant; carried by channel identity) or PollPeriodMs/CapturePeriodS/AsyncCapture/AsyncCaptureDelta."
+        direct_dependencies:
+          structural:
+            - "egauge.register.config:000"
+            - "spaceheat.name"
+
+  electric.meter.component.gt:
+    latest_version: "001"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A specific electric-meter component instance with its per-channel telemetry configs and optional modbus connection."
+
+    versions:
+      "001":
+        schema_url: "https://schemas.electricity.works/types/electric.meter.component.gt/001"
+        created: "2026-06-12T19:14:35Z"
+        status: "staging"
+        summary: "Initial Sema version (flattened from the scada ElectricMeterComponentGt runtime). ComponentAttributeClassId (cac UUID) -> DeviceType (gw1.device.type value, pascal.case): the device type lived on the referenced cac, not the component."
+        direct_dependencies:
+          structural:
+            - "electric.meter.channel.config:000"
+            - "pascal.case"
+            - "positive.int"
+            - "uuid4.str"
+
+  electric.meter.device.type.gt:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Specialized device-type record for an electric-meter category; the per-family successor to electric.meter.cac.gt, keyed by DeviceType."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/electric.meter.device.type.gt/000"
+        created: "2026-06-13T22:11:00Z"
+        status: "staging"
+        summary: "Initial draft (specialized device-type record; replaces electric.meter.cac.gt category data, keyed by DeviceType)."
+        direct_dependencies:
+          structural:
+            - "pascal.case"
+            - "positive.int"
+            - "spaceheat.telemetry.name:007"
+
+  energy.instruction:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Energy dispatch instruction sent to a terminal asset for a specific market slot."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/energy.instruction/000"
+        created: "2026-05-13T00:00:00Z"
+        status: "published"
+        summary: "Initial Sema version"
+        direct_dependencies:
+          structural:
+            - "left.right.dot"
+            - "positive.int"
+            - "utc.milliseconds"
+            - "utc.seconds"
+
+  flo.params.house0:
+    latest_version: "007"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Parameters into the Forward-Looking-Optimization (FLO) algorithm for a House0 thermal model."
+
+    versions:
+      "007":
+        schema_url: "https://schemas.electricity.works/types/flo.params.house0/007"
+        created: "2026-05-14T00:00:06Z"
+        status: "published"
+        summary: "- FloGitCommit: add"
+        direct_dependencies:
+          structural:
+            - "left.right.dot"
+            - "market.price.unit:000"
+            - "positive.int"
+            - "utc.seconds"
+            - "uuid4.str"
+
+  flow.hall.params:
+    latest_version: "101"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "The params handshake between a hall-effect flow pico and its scada: the pico posts its parameters at boot and the scada answers with the values to run with."
+
+    versions:
+      "101":
+        schema_url: "https://schemas.electricity.works/types/flow.hall.params/101"
+        created: "2026-09-18T00:30:00Z"
+        status: "published"
+        summary: "Initial Sema version (registered from the shipped gwsproto FlowHallParams wire shape, version 101)."
+        direct_dependencies:
+          structural:
+            - "positive.int"
+            - "spaceheat.name"
+
+  fsm.atomic.report:
+    latest_version: "001"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Single atomic FSM report item representing either an event or an action."
+
+    versions:
+      "001":
+        schema_url: "https://schemas.electricity.works/types/fsm.atomic.report/001"
+        created: "2025-04-23T18:03:00Z"
+        status: "published"
+        summary: "- ActionType: remove - Action: scalar -> unconstrained object payload"
+        direct_dependencies:
+          structural:
+            - "fsm.report.type:000"
+            - "handle.name"
+            - "left.right.dot"
+            - "utc.milliseconds"
+            - "uuid4.str"
+          axiom:
+            - "relay.energization.state:000"
+
+  fsm.event:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Finite State Machine event command sent to a SpaceheatNode that implements a finite state machine."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/fsm.event/000"
+        created: "2026-05-13T00:00:00Z"
+        status: "published"
+        summary: "Initial Sema version"
+        direct_dependencies:
+          structural:
+            - "handle.name"
+            - "left.right.dot"
+            - "utc.milliseconds"
+            - "uuid4.str"
+
+  fsm.full.report:
+    latest_version: "001"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Full FSM report emitted for one trigger, including its ordered atomic report items."
+
+    versions:
+      "001":
+        schema_url: "https://schemas.electricity.works/types/fsm.full.report/001"
+        created: "2025-04-23T18:03:00Z"
+        status: "published"
+        summary: "- AtomicList[]: fsm.atomic.report:000 -> 001"
+        direct_dependencies:
+          structural:
+            - "fsm.atomic.report:001"
+            - "spaceheat.name"
+            - "uuid4.str"
+
+  g.node.gt:
+    latest_version: "006"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Fundamental identity object representing physical and logical grid nodes"
+
+    versions:
+      "006":
+        schema_url: "https://schemas.electricity.works/types/g.node.gt/006"
+        created: "2026-08-06T13:25:00Z"
+        status: "published"
+        summary: "- Axiom 2 (PhysicalGNodeLocations) becomes activation-conditioned: PositionPointId is mandatory only when Status is Active — a Pending physical GNode may be locationless"
+        direct_dependencies:
+          structural:
+            - "base.g.node.class:000"
+            - "g.node.status:000"
+            - "left.right.dot"
+            - "uuid4.str"
+
+  glitch:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Report of an unexpected system event with logging level, source node, and detail."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/glitch/000"
+        created: "2026-05-13T00:00:00Z"
+        status: "published"
+        summary: "Initial Sema version"
+        direct_dependencies:
+          structural:
+            - "left.right.dot"
+            - "log.level:000"
+            - "spaceheat.name"
+            - "utc.milliseconds"
+
+  gpio.relay.component.gt:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A single board-resident relay driven by a native GPIO pin, as one Spaceheat component; board-generic, identified by GpioName against the board's NativeGpioOutputs."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gpio.relay.component.gt/000"
+        created: "2026-07-03T19:45:00Z"
+        status: "staging"
+        summary: "- Initial version. Board-resident per-relay GPIO component: required BoardComponentId (-> scada.board.component.gt), GpioName (-> the board record's NativeGpioOutputs), ConfigList of exactly one relay.control.config; no DeviceType (TypeName is the kind, the board component carries the board identity)."
+        direct_dependencies:
+          structural:
+            - "pascal.case"
+            - "relay.control.config:000"
+            - "uuid4.str"
+
+  gpio.sensor.component.gt:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A single board-resident digital sensor read on a native GPIO pin, as one Spaceheat component; board-generic, identified by GpioName against the board's NativeGpioInputs."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gpio.sensor.component.gt/000"
+        created: "2026-07-27T16:15:00Z"
+        status: "staging"
+        summary: "- Initial version. Board-resident per-sensor GPIO component, the input sibling of gpio.relay.component.gt: required BoardComponentId (-> scada.board.component.gt), GpioName (-> the board record's NativeGpioInputs), SenseMode; binary 1/0 sense; no DeviceType (TypeName is the kind, the board component carries the board identity); no SendToDerived (derived routing is computed from DerivedChannel InputChannelNames); no ConfigList (channel binds via DataChannel, capture tuning in operational params). Replaces gw108.gpio.sensor.component.gt."
+        direct_dependencies:
+          structural:
+            - "gpio.sense.mode:000"
+            - "pascal.case"
+            - "uuid4.str"
+
+  gw.boiler.backup:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A boiler held by its aquastat as backup heat: its failsafe and aquastat-control relays, and whether it is in service."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.boiler.backup/000"
+        created: "2026-10-06T18:10:00Z"
+        status: "staging"
+        summary: "FailsafeRelayName and AquastatCtrlRelayName (spaceheat.name), InService (boolean). Axiom DistinctRelays. Carried by gw.hydronic as one kind of the optional Backup."
+        direct_dependencies:
+          structural:
+            - "spaceheat.name"
+
+  gw.command.interface:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "The commands one Spaceheat node takes and the states it reports back: event vocabulary, state vocabulary, and the transitions a command asks for."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.command.interface/000"
+        created: "2026-09-07T23:30:00Z"
+        status: "published"
+        summary: "Initial version."
+        direct_dependencies:
+          structural:
+            - "gw.command.transition:000"
+            - "left.right.dot"
+            - "spaceheat.name"
+          axiom:
+            - "change.relay.state:000"
+            - "hp.boss.state:000"
+            - "pico.cycler.state:000"
+            - "reboot.picos:000"
+            - "relay.closed.or.open:000"
+            - "turn.hp.on.off:000"
+
+  gw.command.transition:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "One command a node takes paired with the state it leads to; the vocabulary is named by the containing command interface."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.command.transition/000"
+        created: "2026-09-07T23:30:00Z"
+        status: "published"
+        summary: "Initial version."
+        direct_dependencies:
+          structural:
+            - "non.empty.string"
+
+  gw.dispatch.ack:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A scada node's reply to its boss that a command was taken; correlated by the command's TriggerId, refusal twin gw.dispatch.nack."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.dispatch.ack/000"
+        created: "2026-09-07T22:35:00Z"
+        status: "published"
+        summary: "Initial Sema version"
+        direct_dependencies:
+          structural:
+            - "handle.name"
+            - "utc.milliseconds"
+            - "uuid4.str"
+
+  gw.dispatch.hold:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "The hold a house's operational params place on dispatch: OperatorHold (a person) and ServiceContractBroken (the cold latch). One of three authorities over dispatch, beside the deed and the running scada."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.dispatch.hold/000"
+        created: "2026-10-13T12:00:00Z"
+        status: "staging"
+        summary: "Initial version. OperatorHold + ServiceContractBroken, both required."
+        direct_dependencies:
+          structural: []
+
+  gw.dispatch.nack:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A scada node's reply to the sender of a command that it was refused, with the reason; correlated by the command's TriggerId, success twin gw.dispatch.ack."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.dispatch.nack/000"
+        created: "2026-09-07T22:35:00Z"
+        status: "published"
+        summary: "Initial Sema version"
+        direct_dependencies:
+          structural:
+            - "gw.scada.cmd.refusal.reason:000"
+            - "handle.name"
+            - "utc.milliseconds"
+            - "uuid4.str"
+
+  gw.element.backup:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Resistive elements as backup heat: their relays, and whether they are in service."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.element.backup/000"
+        created: "2026-10-06T18:10:00Z"
+        status: "staging"
+        summary: "ElementRelayNames (spaceheat.name list), InService (boolean). Axioms NonEmptyElements, DistinctElements. Carried by gw.hydronic as one kind of the optional Backup."
+        direct_dependencies:
+          structural:
+            - "spaceheat.name"
+
+  gw.house.operating.status:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "How a house is operating in one record: validation state, standby and its posture, storage mode, service mode, whether it accepts dispatch and why not, who holds the command tree, whether the scada is blind, and whether the LTN is dispatching. Sent once at startup and on change."
+
+    versions:
+      "000":
+        status: "published"
+        schema_url: "https://schemas.electricity.works/types/gw.house.operating.status/000"
+        created: "2026-09-30T18:35:00Z"
+        summary: "Initial version. ScadaAlias + ValidationState (from the deed) + Standby x StandbyPosture + SeasonalStorageMode + ServiceMode + AcceptsDispatch x DispatchRefusalReason (the derived answer, present iff refusing, axiom 1; Standby refuses as OperatorHold, axiom 2) + TopState + ScadaBlind + LtnDispatching + CreatedMs. The slow facts of the LTN-scada agreement; nothing that cycles inside a healthy hour."
+        direct_dependencies:
+          structural:
+            - "gw.dispatch.refusal.reason:000"
+            - "gw.standby.posture:000"
+            - "gw.top.state:000"
+            - "gw1.seasonal.storage.mode:000"
+            - "gw1.service.mode:000"
+            - "left.right.dot"
+            - "ta.validation.state:000"
+            - "utc.milliseconds"
+
+  gw.house0.family.params:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "The House0-family block of gw.operational.params: the knobs that presume a gw.house0.layout (Siegenthaler loop, buffer, store tanks)."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.house0.family.params/000"
+        created: "2026-09-25T17:10:00Z"
+        status: "staging"
+        summary: "Initial version: SiegLoopStrategy, KeepBufferFull, SeasonalStorageMode. All required."
+        direct_dependencies:
+          structural:
+            - "gw1.seasonal.storage.mode:000"
+            - "sieg.loop.strategy:000"
+
+  gw.house0.layout:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "House0-fleet (gw108-era hand-built) hydronic layout schema."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.house0.layout/000"
+        created: "2026-10-15T16:00:00Z"
+        status: "staging"
+        summary: "The complete deployable artifact for a House0-fleet home: every collection and Hydronic required. The word MEANS has-a-siegenthaler-loop (beech, maple); sieg-less homes are gw.house0.no.sieg. Components: eGauge, ADS111x thermistor snaps, the House0 board record (Krida expanders and GP8403 DACs) with per-relay and per-output components, pico flow and BTU meters, tank modules real and sim, Hubitat with poller, web-server, all over the DeviceType record model. The axioms carry the layout invariants; wording is identical across layout words where the axiom name is shared. The cold-override command node is required; the backup command node exists if and only if Hydronic.Backup is present, and the relays a backup names are Relay ShNodes (axiom BackupRelays)."
+        direct_dependencies:
+          structural:
+            - "ads111x.based.component.gt:000"
+            - "ads111x.based.device.type.gt:000"
+            - "data.channel.gt:004"
+            - "derived.channel.gt:003"
+            - "device.component.gt:000"
+            - "electric.meter.component.gt:001"
+            - "electric.meter.device.type.gt:000"
+            - "g.node.gt:006"
+            - "gpio.relay.component.gt:000"
+            - "gpio.sensor.component.gt:000"
+            - "gw.hydronic:000"
+            - "gw1.scada.device.type.gt:000"
+            - "hp.device.type.gt:000"
+            - "hubitat.component.gt:000"
+            - "hubitat.poller.component.gt:000"
+            - "i2c.dac.output.component.gt:000"
+            - "i2c.relay.component.gt:000"
+            - "i2c.thermistor.reader.component.gt:000"
+            - "pico.btu.meter.component.gt:000"
+            - "pico.flow.module.component.gt:001"
+            - "pico.tank.module.component.gt:012"
+            - "scada.board.component.gt:000"
+            - "sim.pico.btu.meter.component.gt:000"
+            - "sim.pico.flow.module.component.gt:000"
+            - "sim.pico.tank.module.component.gt:001"
+            - "sim.sensor.component.gt:000"
+            - "spaceheat.name"
+            - "spaceheat.node.gt:303"
+            - "web.server.component.gt:001"
+          axiom:
+            - "gw.boiler.backup:000"
+            - "gw.element.backup:000"
+            - "gw.zone.emitter.type:000"
+            - "gw0.required.energy.layered:000"
+            - "gw0.usable.energy.layered:000"
+            - "gw1.actor.class:014"
+            - "gw1.quantity:003"
+            - "gw2.lc.top.state:000"
+            - "zone.setpoint.source:000"
+
+  gw.hydronic:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Hydronic / flow-topology config: zones, zone-call circuits, water store, backup heat, primary-flow source, primary-pump owner, refrigerant cycle."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.hydronic/000"
+        created: "2026-10-06T18:10:00Z"
+        status: "staging"
+        summary: "- Typed hydronic block promoted out of gw.house0.layout's freeform Hydronic: Zones (gw1.hvac.zone list), ZoneCallCircuits (gw1.zone.call.circuit list, required), PrimaryFlowSource (gw.primary.flow.source), Strategy. Axioms: Cardinality, CircuitResolution. The Siegenthaler-loop flags left this word: plumbed-ness is what a has-sieg layout word means, and use is operational (gw.house0.family.params SiegLoopStrategy). - HpCommandNodeName (optional spaceheat.name): the node that takes heat-pump commands under hp-boss; absent = nothing commands the heat pump. The layout words' CommandableHeatPump axiom governs it. - Strategy dropped: the control family is the layout word's own TypeName (invariant per word, so not a data field; the same rule that retired SiegLoopPlumbed). - WaterStore (optional gw.water.store): the water store tanks; absent for a layout whose store is not water tanks. Cardinality bounds the zones. - PrimaryPumpOwner (gw.primary.pump.owner, required): who runs the primary pump, the heat pump or the scada; the layout words' PrimaryPumpActuators axiom ties the actuator nodes to it. RefrigerantCycle (gw.refrigerant.cycle, required): single compressor or two-compressor cascade, for the optimizer's COP model. - Backup (optional, one of gw.boiler.backup or gw.element.backup): the backup heat; absent for a layout with no backup. - CircuitResolution b: a circuit's CircuitPosition is its 1-based place in ZoneCallCircuits. PrimaryCircuit axiom: each zone's PrimaryCircuitPosition names a circuit serving that zone, and that circuit carries a setpoint channel. CircuitDistinctness axiom: no two circuits share a Name, a whitewire channel, a setpoint channel, a temperature channel or a relay node. CircuitResolution d is dropped: PrimaryCircuit implies every zone is served."
+        direct_dependencies:
+          structural:
+            - "gw.boiler.backup:000"
+            - "gw.element.backup:000"
+            - "gw.primary.flow.source:000"
+            - "gw.primary.pump.owner:000"
+            - "gw.refrigerant.cycle:000"
+            - "gw.water.store:000"
+            - "gw1.hvac.zone:000"
+            - "gw1.zone.call.circuit:000"
+            - "spaceheat.name"
+
+  gw.native.gpio.pin:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "One named native (on-board) GPIO pin of a GridWorks SCADA board, with its BCM pin number."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.native.gpio.pin/000"
+        created: "2026-06-17T14:20:00Z"
+        status: "staging"
+        summary: "Initial draft (Name, BcmPin)."
+        direct_dependencies:
+          structural:
+            - "non.negative.int"
+            - "pascal.case"
+
+  gw.nolan.family.params:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "The Nolan-family block of gw.operational.params: the knobs that presume a gw.nolan.layout (buffer, one store tank)."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.nolan.family.params/000"
+        created: "2026-09-17T23:45:00Z"
+        status: "staging"
+        summary: "Initial version: KeepBufferFull, SeasonalStorageMode, BufferFullF, BufferChargeF. All required. Axiom 1: BufferChargeF below BufferFullF."
+        direct_dependencies:
+          structural:
+            - "gw1.seasonal.storage.mode:000"
+            - "positive.int"
+
+  gw.nolan.layout:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Nolan-specific (gw108) hydronic layout schema."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.nolan.layout/000"
+        created: "2026-10-15T16:00:00Z"
+        status: "staging"
+        summary: "The complete deployable artifact for a Nolan home: monobloc heat pump, one store tank, the gw108 board. Components are the cac-free DeviceType versions; DeviceTypes holds the per-family device-type records; every relay is a per-relay component against the board record. The axioms carry the layout invariants; wording is identical across layout words where the axiom name is shared. The cold-override command node is required; the backup command node exists if and only if Hydronic.Backup is present, and the relays a backup names are Relay ShNodes (axiom BackupRelays)."
+        direct_dependencies:
+          structural:
+            - "ads111x.based.device.type.gt:000"
+            - "data.channel.gt:004"
+            - "derived.channel.gt:003"
+            - "device.component.gt:000"
+            - "electric.meter.component.gt:001"
+            - "electric.meter.device.type.gt:000"
+            - "g.node.gt:006"
+            - "gpio.relay.component.gt:000"
+            - "gpio.sensor.component.gt:000"
+            - "gw.hydronic:000"
+            - "gw1.scada.device.type.gt:000"
+            - "hp.control.box.device.type.gt:000"
+            - "hp.device.type.gt:000"
+            - "i2c.dac.output.component.gt:000"
+            - "i2c.relay.component.gt:000"
+            - "i2c.thermistor.reader.component.gt:000"
+            - "pico.btu.meter.component.gt:000"
+            - "pico.tank.module.component.gt:012"
+            - "scada.board.component.gt:000"
+            - "sim.pico.btu.meter.component.gt:000"
+            - "sim.pico.flow.module.component.gt:000"
+            - "sim.pico.tank.module.component.gt:001"
+            - "sim.sensor.component.gt:000"
+            - "spaceheat.name"
+            - "spaceheat.node.gt:303"
+            - "web.server.component.gt:001"
+          axiom:
+            - "gw.boiler.backup:000"
+            - "gw.element.backup:000"
+            - "gw.zone.emitter.type:000"
+            - "gw1.actor.class:014"
+            - "gw1.quantity:003"
+            - "gw2.lc.top.state:000"
+            - "zone.setpoint.source:000"
+
+  gw.operational.params:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Operational/optimization parameters for one home: the fields every layout family tunes, plus a FamilyParams block (oneOf the <family>.family.params words) for the knobs that presume a layout feature."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.operational.params/000"
+        created: "2026-10-13T12:00:00Z"
+        status: "staging"
+        summary: "Initial version. ScadaAlias (the applying Scada's identity — stored/emitted instances self-identify; the layout holds the full GNodes) + FamilyParams (oneOf gw.house0.family.params / gw.nolan.family.params, discriminated by TypeName; the family TypeName pairs the instance with its layout family, so a mismatched pair fails at decode) + CaptureTuningList + ZeroTenPowerOnList + Standby x StandbyPosture x EnergizedStandbyRelays (the standby machine energizes the listed relays and nothing else; the posture names what the list achieves) + ServiceMode + DispatchHold (gw.dispatch.hold: the operator's hold and the cold latch; one of three authorities over dispatch) + CopCurve + HeatingCurve + HpTurnOnMinutes + HpMaxKwEl + LoadOverestimationPercent + UsesBackupWhenCold + HorizonHours + WeatherBundleName (the gw.weather.forecast.bundle.gt the LTN relays and the scada pulls) + Tariff (gw.tou.tariff). All required — no assumed defaults. Axioms 1-2: ChannelName unique across CaptureTuningList, NodeName unique across ZeroTenPowerOnList. Axiom 3: Standby implies DispatchHold.OperatorHold. Axiom 4: the posture fixes the relay list (MonitorOnly empty; House0 NoHeatingOrCooling = hp-failsafe-relay + aquastat-ctrl-relay; Nolan NoHeatingOrCooling empty). Axiom 5: Standby holds a House0 loop at full send (SiegLoopStrategy HoldFullSend)."
+        direct_dependencies:
+          structural:
+            - "capture.tuning:000"
+            - "cop.curve:000"
+            - "gw.dispatch.hold:000"
+            - "gw.house0.family.params:000"
+            - "gw.nolan.family.params:000"
+            - "gw.standby.posture:000"
+            - "gw.tou.tariff:000"
+            - "gw1.service.mode:000"
+            - "heating.curve:000"
+            - "left.right.dot"
+            - "non.negative.int"
+            - "positive.float"
+            - "positive.int"
+            - "spaceheat.name"
+            - "zero.ten.power.on:000"
+          axiom:
+            - "sieg.loop.strategy:000"
+
+  gw.recorded.setpoints:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "The last reading each learned zone setpoint channel carried, kept by a scada across restarts."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.recorded.setpoints/000"
+        created: "2026-10-05T11:20:00Z"
+        status: "staging"
+        summary: "Initial version: ScadaAlias and SetpointList of single.reading. Axiom 1: ChannelName unique across SetpointList."
+        direct_dependencies:
+          structural:
+            - "left.right.dot"
+            - "single.reading:000"
+
+  gw.scada.commit:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "The git commit a scada is running, announced once per run at boot so every message of the run can be tied to the code that produced it."
+
+    versions:
+      "000":
+        status: "published"
+        schema_url: "https://schemas.electricity.works/types/gw.scada.commit/000"
+        created: "2026-10-08T21:00:00Z"
+        summary: "Initial version. ScadaAlias + GitCommit + MessageCreatedMs."
+        direct_dependencies:
+          structural:
+            - "git.commit"
+            - "left.right.dot"
+            - "utc.milliseconds"
+
+  gw.state.machine:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Declaration of one state machine a running SCADA hosts: hosting node Name, state enum and its version."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.state.machine/000"
+        created: "2026-10-22T20:00:00Z"
+        status: "published"
+        summary: "Initial version."
+        direct_dependencies:
+          structural:
+            - "left.right.dot"
+            - "sema.version"
+            - "spaceheat.name"
+
+  gw.tou.tariff:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A time-of-use tariff as the heating system sees it: Alias, DisplayName, TimezoneStr (iana.timezone.str) and the recurring on-peak windows; every other hour is off-peak."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.tou.tariff/000"
+        created: "2026-09-17T20:10:00Z"
+        status: "staging"
+        summary: "Initial version: Alias (left.right.dot), DisplayName, TimezoneStr (iana.timezone.str, the new format word replacing a bare string), OnPeakWindows (gw.tou.window list). Axiom 1: per-day window non-overlap (moved here from the two operational-params words)."
+        direct_dependencies:
+          structural:
+            - "gw.tou.window:000"
+            - "iana.timezone.str"
+            - "left.right.dot"
+
+  gw.tou.window:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "One recurring time-of-use window: a same-day wall-clock interval (hh.mm Start/End) bound to an explicit set of weekdays."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.tou.window/000"
+        created: "2026-08-12T22:15:00Z"
+        status: "staging"
+        summary: "Initial version: Start (inclusive) and End (exclusive) hh.mm plus Days (day.of.week list). Axioms: Start strictly before End (no midnight wrap); Days non-empty and duplicate-free."
+        direct_dependencies:
+          structural:
+            - "day.of.week:000"
+            - "hh.mm"
+
+  gw.water.store:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "The water store tanks of a hydronic space-heating layout (buffer excluded)."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.water.store/000"
+        created: "2026-10-05T15:30:00Z"
+        status: "staging"
+        summary: "TotalStoreTanks (positive.int), at most 6 (axiom TankCount). Carried by gw.hydronic as the optional WaterStore."
+        direct_dependencies:
+          structural:
+            - "positive.int"
+
+  gw.weather.channel.gt:
+    latest_version: "002"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "An observed weather series: one quantity measured by one station, the ground-truth series forecasters are scored against."
+
+    versions:
+      "002":
+        schema_url: "https://schemas.electricity.works/types/gw.weather.channel.gt/002"
+        created: "2026-10-18T15:30:00Z"
+        status: "published"
+        summary: "- LocationAlias: removed; StationAlias: add (the gw.weather.station.gt whose readings this series is) - Name: derived from StationAlias and Quantity"
+        direct_dependencies:
+          structural:
+            - "gw1.quantity:003"
+            - "gw1.unit:003"
+            - "left.right.dot"
+            - "lowercase.token"
+            - "non.empty.string"
+            - "non.negative.int"
+            - "positive.int"
+            - "utc.iso8601.seconds"
+            - "uuid4.str"
+
+  gw.weather.forecast:
+    latest_version: "001"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Weather series over a shared slice grid for a location, emitted per bundle by the GridWorks weather forecast service for flexible-load optimization; the bundle declares which series, each with its own fidelity."
+
+    versions:
+      "001":
+        schema_url: "https://schemas.electricity.works/types/gw.weather.forecast/001"
+        created: "2026-10-17T16:00:00Z"
+        status: "published"
+        summary: "- SourceUpdatedTime, Fidelity, TempChannelName, TempValues, WindSpeedChannelName, WindSpeedValues: removed - SeriesList: add (gw.weather.forecast.series 000, one per bound channel)"
+        direct_dependencies:
+          structural:
+            - "gw.weather.forecast.series:000"
+            - "left.right.dot"
+            - "utc.iso8601.seconds"
+            - "utc.milliseconds"
+
+  gw.weather.forecast.binding:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "One forecast channel with the observed channel it targets, as a bundle embeds it; the bundle's membership, not a record of its own."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.weather.forecast.binding/000"
+        created: "2026-10-18T15:30:00Z"
+        status: "published"
+        summary: "Initial version."
+        direct_dependencies:
+          structural:
+            - "gw.weather.channel.gt:002"
+            - "gw.weather.forecast.channel.gt:000"
+
+  gw.weather.forecast.bundle.gt:
+    latest_version: "002"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "The subscribable curated set of forecast channels sharing one slice grid and emission schedule; embeds each forecast channel with its observed target and declares which series its broadcasts hold."
+
+    versions:
+      "002":
+        schema_url: "https://schemas.electricity.works/types/gw.weather.forecast.bundle.gt/002"
+        created: "2026-10-18T15:30:00Z"
+        status: "published"
+        summary: "- TempForecastChannel, TempObservationChannel, WindSpeedForecastChannel, WindSpeedObservationChannel: removed - BindingList: add (gw.weather.forecast.binding 000, one per quantity)"
+        direct_dependencies:
+          structural:
+            - "gw.weather.forecast.binding:000"
+            - "left.right.dot"
+            - "non.empty.string"
+            - "non.negative.int"
+            - "positive.int"
+            - "utc.iso8601.seconds"
+            - "uuid4.str"
+
+  gw.weather.forecast.channel.gt:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A named predictor of one observed weather series; slice structure declared on the record, not the wire."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.weather.forecast.channel.gt/000"
+        created: "2026-08-11T14:20:00Z"
+        status: "published"
+        summary: "Initial version."
+        direct_dependencies:
+          structural:
+            - "left.right.dot"
+            - "non.empty.string"
+            - "positive.int"
+            - "utc.iso8601.seconds"
+            - "uuid4.str"
+
+  gw.weather.forecast.series:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "One forecast series inside a gw.weather.forecast: a channel's values over the message's slice grid with its own fidelity and source revision time."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.weather.forecast.series/000"
+        created: "2026-10-17T16:00:00Z"
+        status: "published"
+        summary: "Initial version."
+        direct_dependencies:
+          structural:
+            - "gw.weather.forecast.fidelity:000"
+            - "gw1.quantity:003"
+            - "left.right.dot"
+            - "utc.iso8601.seconds"
+
+  gw.weather.seasonal.template.gt:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "The design-cold temperature of each month at a weather location: the forecast fidelity ladder's last rung, one record per location."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.weather.seasonal.template.gt/000"
+        created: "2026-10-07T22:15:00Z"
+        status: "published"
+        summary: "Initial version."
+        direct_dependencies:
+          structural:
+            - "left.right.dot"
+            - "utc.iso8601.seconds"
+            - "uuid4.str"
+
+  gw0.required.energy.layered:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Identifies the layered-storage model for required thermal energy: the minimum that must be in storage to carry the house through the coming on-peak period."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw0.required.energy.layered/000"
+        created: "2026-08-16T16:30:00Z"
+        status: "published"
+        summary: "Initial version. A parameterless marker: the word names the computation, so a consumer states which model produced a value rather than agreeing on one out of band."
+        direct_dependencies:
+          structural: []
+
+  gw0.usable.energy.layered:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Identifies the layered-storage model for usable thermal energy: the energy currently in storage that can still be delivered to the house."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw0.usable.energy.layered/000"
+        created: "2026-08-16T16:30:00Z"
+        status: "published"
+        summary: "Initial version. A parameterless marker: the word names the computation, so a consumer states which model produced a value rather than agreeing on one out of band."
+        direct_dependencies:
+          structural: []
+
+  gw1.hvac.zone:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "One thermal zone: label, critical flag, kWh-per-degF thermal weight, and primary circuit."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw1.hvac.zone/000"
+        created: "2026-06-15T17:30:00Z"
+        status: "staging"
+        summary: "- New shared zone type (Name, Critical, KwhPerDegF, TempChannelName) replacing the former parallel ZoneList / CriticalZoneList / ZoneKwhPerDegFList in the hydronic block. - PrimaryCircuitPosition (required positive.int) names the zone's primary circuit; TempChannelName dropped: the zone's air temperature is its primary circuit's."
+        direct_dependencies:
+          structural:
+            - "positive.int"
+            - "spaceheat.name"
+
+  gw1.scada.device.type.gt:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Device-type record for a GridWorks SCADA board: what the board offers — buses, expanders, relays (named by the device's physical markings), native GPIO, ADCs and DACs."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw1.scada.device.type.gt/000"
+        created: "2026-09-10T21:25:00Z"
+        status: "staging"
+        summary: "Board descriptor (DeviceType, DisplayName, MinPollPeriodMs, TelemetryNameList, NativeGpio, Expanders, Muxes, I2cRelays, SupportsPinReadback, RelayEnergizedLevel, CtAdc, ThermistorAdcs, Dacs; axioms BusMembership / ExpanderMembership / BoardIdentifierUniqueness / MuxConsistency / RelayEnergizedLevelRange / SingleBus). The record describes what is allowed; deployment choices (DIP-selected expander address, chosen wiring) live on the component and layout."
+        direct_dependencies:
+          structural:
+            - "gw.native.gpio.pin:000"
+            - "i2c.bus:000"
+            - "i2c.ct.interface.capability:000"
+            - "i2c.dac.capability:000"
+            - "i2c.expander:000"
+            - "i2c.mux:000"
+            - "i2c.relay.capability:000"
+            - "i2c.thermistor.interface.capability:000"
+            - "non.negative.int"
+            - "pascal.case"
+            - "positive.int"
+            - "spaceheat.telemetry.name:007"
+
+  gw1.simple.sim.layout:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Simple simulated-test-environment hydronic layout schema (1 storage tank, 360-gallon store)."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw1.simple.sim.layout/000"
+        created: "2026-06-15T03:35:00Z"
+        status: "staging"
+        summary: "Minimal baseline stub (TypeName + Version only) to seed the layout round-trip loop; built up bit by bit toward the simulated plant's needs."
+        direct_dependencies:
+          structural: []
+
+  gw1.tank.temp.calibration:
+    latest_version: "001"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Linear calibration coefficients for converting raw tank probe readings into calibrated temperatures."
+
+    versions:
+      "001":
+        schema_url: "https://schemas.electricity.works/types/gw1.tank.temp.calibration/001"
+        created: "2026-06-15T15:10:00Z"
+        status: "staging"
+        summary: "- Depth{1,2,3}B: number -> integer (offset in the OutputUnit/FahrenheitX100 scaling
+  domain, mirroring linear.one.dimensional.calibration/000)"
+        direct_dependencies:
+          structural: []
+
+  gw1.tank.temp.calibration.map:
+    latest_version: "001"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Buffer and per-tank calibration map for converting raw probe readings into calibrated temperatures."
+
+    versions:
+      "001":
+        schema_url: "https://schemas.electricity.works/types/gw1.tank.temp.calibration.map/001"
+        created: "2026-06-15T15:10:00Z"
+        status: "staging"
+        summary: "- Buffer/Tank now reference gw1.tank.temp.calibration:001 (integer B)"
+        direct_dependencies:
+          structural:
+            - "gw1.tank.temp.calibration:001"
+            - "positive.int.as.str"
+
+  gw1.unit.quantity.projection:
+    latest_version: "001"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Canonical projection from gw1.unit to gw1.quantity."
+
+    versions:
+      "001":
+        schema_url: "https://schemas.electricity.works/types/gw1.unit.quantity.projection/001"
+        created: "2026-10-15T11:35:00Z"
+        status: "published"
+        summary: "- Unit: gw1.unit 001 -> 003 - Quantity: gw1.quantity 001 -> 003 - projection.table: add DollarsX1000 -> Currency, MilesPerHourX1000 -> WindSpeed, KilowattHoursX1000 -> Energy, WattsPerSquareMeter -> Irradiance"
+        direct_dependencies:
+          structural:
+            - "gw1.quantity:003"
+            - "gw1.unit:003"
+
+  gw1.zone.call.circuit:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "One zone-call circuit: the chain from wall thermostat through call wire and relay pair to an emitter, serving one zone."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw1.zone.call.circuit/000"
+        created: "2026-09-23T22:25:00Z"
+        status: "staging"
+        summary: "Circuit record (CircuitPosition as the place in the layout's circuit list, Name, ServesZone, EmitterType, CanCool, SetpointSource, Thermostat, WhitewireChannelName, optional SetpointChannelName, optional TempChannelName for the air temperature sensed at the circuit's thermostat, optional FloorTempChannelName, FailsafeRelayNode, OpsRelayNode); OnlyFanCoilsCool, ReadSetpointNeedsCommsStat and SetpointNeedsTemp axioms."
+        direct_dependencies:
+          structural:
+            - "gw.zone.emitter.type:000"
+            - "gw1.zone.thermostat:000"
+            - "positive.int"
+            - "spaceheat.name"
+            - "zone.setpoint.source:000"
+          axiom:
+            - "thermostat.kind:000"
+
+  gw1.zone.thermostat:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A wall thermostat: its kind, and for a comms-capable kind, the component it is read through."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw1.zone.thermostat/000"
+        created: "2026-08-11T15:55:00Z"
+        status: "staging"
+        summary: "Thermostat record (Kind, optional ComponentId); NoComponentOnDumbStat axiom."
+        direct_dependencies:
+          structural:
+            - "thermostat.kind:000"
+            - "uuid4.str"
+
+  ha1.params:
+    latest_version: "006"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Parameter set used by Spaceheat SCADA and LTN runtime logic for the HA1 heating model."
+
+    versions:
+      "006":
+        schema_url: "https://schemas.electricity.works/types/ha1.params/006"
+        created: "2026-02-25T14:23:00Z"
+        status: "published"
+        summary: "HpMaxKwEl replaces HpMaxKwTh, required; the five Cop fields required; HpTurnOnMinutes added, required (the shape every scada has published at this version)"
+        direct_dependencies:
+          structural: []
+
+  heating.curve:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A house's thermal / required-source-water-temperature model: quadratic heat-loss coefficients (scaled integers) + the intermediate and design-day anchor points + the max entering water temperature."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/heating.curve/000"
+        created: "2026-07-09T21:30:00Z"
+        status: "staging"
+        summary: "Initial version (AlphaTimes10, BetaTimes100, GammaEx6, IntermediatePowerKw, IntermediateRswtF, DdPowerKw, DdRswtF, DdDeltaTF, MaxEwtF) — the house thermal model migrated out of scada deployment config into operational params."
+        direct_dependencies:
+          structural:
+            - "positive.float"
+            - "positive.int"
+
+  heating.forecast:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Heating demand forecast providing projected average power, required source water temperature, and delta T per interval."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/heating.forecast/000"
+        created: "2026-05-13T00:00:00Z"
+        status: "published"
+        summary: "Initial Sema version"
+        direct_dependencies:
+          structural:
+            - "left.right.dot"
+            - "utc.seconds"
+            - "uuid4.str"
+
+  hp.control.box.device.type.gt:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Specialized device-type record for a heat pump control box category (the monobloc's indoor unit: hydraulics, control electronics, local touch-screen, ODU comms — no compressor); keyed by DeviceType; carries the three primary-pump facts."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/hp.control.box.device.type.gt/000"
+        created: "2026-07-19T14:50:00Z"
+        status: "staging"
+        summary: "Initial Sema version (retires the HpModel enum-plus-settings pattern; per-family device-type record keyed by DeviceType)."
+        direct_dependencies:
+          structural:
+            - "pascal.case"
+            - "positive.float"
+
+  hp.device.type.gt:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Specialized device-type record for a compressor-bearing heat pump unit category (monobloc ODUs, hydro-kit ODUs and IDUs); keyed by DeviceType; capacity, electrical limits, and the three primary-pump facts."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/hp.device.type.gt/000"
+        created: "2026-07-19T14:50:00Z"
+        status: "staging"
+        summary: "Initial Sema version (retires the HpModel enum-plus-settings pattern; per-family device-type record keyed by DeviceType; absorbs HpMaxKwEl as MaxKwEl)."
+        direct_dependencies:
+          structural:
+            - "non.empty.string"
+            - "pascal.case"
+            - "positive.float"
+            - "positive.int"
+
+  hubitat.component.gt:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A Hubitat hub component instance: the MakerAPI connection settings for one installed hub."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/hubitat.component.gt/000"
+        created: "2026-06-26T03:40:00Z"
+        status: "staging"
+        summary: "Initial Sema version (flattened from the scada HubitatComponentGt runtime)."
+        direct_dependencies:
+          structural:
+            - "hubitat.gt:000"
+            - "pascal.case"
+            - "uuid4.str"
+
+  hubitat.gt:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Connection settings for one Hubitat hub reached through its MakerAPI (host, app id, access token, MAC, web-listen flag)."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/hubitat.gt/000"
+        created: "2026-06-15T02:10:00Z"
+        status: "published"
+        summary: "Flattened from the scada HubitatGt runtime; derived URL helpers excluded. MacAddress moved type:string -> $ref formats/mac.address (lowercase-hex constraint; edited in place, not yet web-published)."
+        direct_dependencies:
+          structural:
+            - "mac.address"
+
+  hubitat.poller.component.gt:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A Hubitat poller component instance: poller settings mapping one Hubitat device's attributes onto SCADA channels."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/hubitat.poller.component.gt/000"
+        created: "2026-09-24T22:45:00Z"
+        status: "staging"
+        summary: "Initial Sema version (flattened from the scada HubitatPollerComponentGt runtime)."
+        direct_dependencies:
+          structural:
+            - "hubitat.poller.gt:001"
+            - "pascal.case"
+            - "uuid4.str"
+
+  hubitat.poller.gt:
+    latest_version: "001"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Poller settings for one Hubitat device (target component + device, mapped attributes, poll cadence)."
+
+    versions:
+      "001":
+        schema_url: "https://schemas.electricity.works/types/hubitat.poller.gt/001"
+        created: "2026-09-24T22:45:00Z"
+        status: "staging"
+        summary: "Enabled dropped: whether a device is polled is the layout's DisabledNodeNames, not a per-poller flag; Attributes are maker.api.attribute.gt:001. WebListenEnabled stays (it names the transport path)."
+        direct_dependencies:
+          structural:
+            - "maker.api.attribute.gt:001"
+            - "positive.int"
+            - "uuid4.str"
+
+  i2c.bit.address:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "The address of a single bit on an I²C GPIO expander (expander I²C address, register, bit index)."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/i2c.bit.address/000"
+        created: "2026-06-17T14:20:00Z"
+        status: "published"
+        summary: "Initial draft (I2cAddress, RegisterIndex, BitIndex)."
+        direct_dependencies:
+          structural:
+            - "non.negative.int"
+
+  i2c.bus:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "One physical I²C bus on a GridWorks SCADA board (board name + Linux i²c adapter number)."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/i2c.bus/000"
+        created: "2026-06-17T14:20:00Z"
+        status: "staging"
+        summary: "Initial draft (Name, BusNumber)."
+        direct_dependencies:
+          structural:
+            - "non.negative.int"
+            - "pascal.case"
+
+  i2c.ct.interface.capability:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A current-transformer-reading ADC interface on a GridWorks SCADA board: locator plus reference facts; the CT circuit facts (burden, expected CT kind) land as they are extracted from the schematic."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/i2c.ct.interface.capability/000"
+        created: "2026-07-27T16:15:00Z"
+        status: "staging"
+        summary: "- Initial version. CT sibling of i2c.thermistor.interface.capability: Name, I2cBus, I2cAddress, AdcType, AdcReferenceVolts, Channels. Replaces the generic i2c.adc.capability (deleted; staging-only, single referrer)."
+        direct_dependencies:
+          structural:
+            - "i2c.adc.type:000"
+            - "non.negative.int"
+            - "pascal.case"
+            - "positive.float"
+            - "positive.int"
+
+  i2c.dac.capability:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A digital-to-analog converter on a GridWorks SCADA board."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/i2c.dac.capability/000"
+        created: "2026-07-27T16:15:00Z"
+        status: "staging"
+        summary: "Initial version (DacName, I2cBus, I2cAddress, optional MuxName/MuxChannel naming the board mux the DAC sits behind, DacType, Channels; MuxPairing axiom); renames i2c.dac.config — the record describes what the board offers, not a chosen configuration."
+        direct_dependencies:
+          structural:
+            - "i2c.dac.type:000"
+            - "non.negative.int"
+            - "pascal.case"
+            - "positive.int"
+
+  i2c.dac.output.component.gt:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A single board-resident 0-10V output (one channel of a board DAC) as one Spaceheat component, driven as an actuator; board-generic, identified by DacName against the board record."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/i2c.dac.output.component.gt/000"
+        created: "2026-09-02T21:15:00Z"
+        status: "staging"
+        summary: "Initial version. Per-output component on the i2c.relay.component.gt pattern: BoardComponentId (-> scada.board.component.gt), DacName (-> the board record's DAC list), ConfigList of exactly one dac.output.config. Replaces the chip-level i2c.dac.writer.component.gt."
+        direct_dependencies:
+          structural:
+            - "dac.output.config:000"
+            - "pascal.case"
+            - "uuid4.str"
+
+  i2c.expander:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "One I²C GPIO expander on a GridWorks SCADA board: index within the board, board bus, and fixed (soldered) or field-selectable (DIP switch) addressing."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/i2c.expander/000"
+        created: "2026-09-10T21:25:00Z"
+        status: "staging"
+        summary: "Initial version (ExpanderIdx, I2cBus, ExpanderType, I2cAddress, AllowedI2cAddressList; Axiom 1 AddressSpecification: exactly one of the two address fields)."
+        direct_dependencies:
+          structural:
+            - "i2c.expander.type:000"
+            - "non.negative.int"
+            - "pascal.case"
+            - "positive.int"
+
+  i2c.mux:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "An I²C bus multiplexer on a GridWorks SCADA board."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/i2c.mux/000"
+        created: "2026-08-10T20:40:00Z"
+        status: "staging"
+        summary: "Initial version (MuxName, I2cBus, I2cAddress, MuxType, Channels)."
+        direct_dependencies:
+          structural:
+            - "i2c.mux.type:000"
+            - "non.negative.int"
+            - "pascal.case"
+            - "positive.int"
+
+  i2c.read.bit:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A request to read a single bit from a device register on a named I²C bus."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/i2c.read.bit/000"
+        created: "2026-06-22T16:35:00Z"
+        status: "published"
+        summary: "Initial draft (Bus, Address, TriggerId)."
+        direct_dependencies:
+          structural:
+            - "i2c.bit.address:000"
+            - "spaceheat.name"
+            - "uuid4.str"
+
+  i2c.read.bytes:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A request to receive a run of bytes from a device on a named I²C bus with no register addressing (a bare sequential read)."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/i2c.read.bytes/000"
+        created: "2026-08-12T16:50:00Z"
+        status: "staging"
+        summary: "Initial version (Bus, I2cAddress, NumBytes, TriggerId)."
+        direct_dependencies:
+          structural:
+            - "non.negative.int"
+            - "positive.int"
+            - "spaceheat.name"
+            - "uuid4.str"
+
+  i2c.read.reg:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A request to read a 1- or 2-byte register from a device on a named I²C bus."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/i2c.read.reg/000"
+        created: "2026-06-22T16:35:00Z"
+        status: "published"
+        summary: "Initial draft (Bus, Address, NumBytes, TriggerId)."
+        direct_dependencies:
+          structural:
+            - "i2c.reg.address:000"
+            - "positive.int"
+            - "spaceheat.name"
+            - "uuid4.str"
+
+  i2c.reg.address:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "The address of a register on an I²C device (device I²C address + register index)."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/i2c.reg.address/000"
+        created: "2026-06-22T16:35:00Z"
+        status: "published"
+        summary: "Initial draft (I2cAddress, RegisterIndex)."
+        direct_dependencies:
+          structural:
+            - "non.negative.int"
+
+  i2c.relay.capability:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "One relay a GridWorks SCADA board offers: board-level name matching the device's physical markings, driving expander + register bit, and supported wiring configurations."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/i2c.relay.capability/000"
+        created: "2026-07-27T16:15:00Z"
+        status: "staging"
+        summary: "Initial version (RelayName, ExpanderIdx, RegisterIndex, BitIndex, SupportedWiringConfigs, Notes). Replaces i2c.relay.config: 'capability' says what is possible, not a chosen configuration; the expander I²C address moves to the board's i2c.expander entry (fixed or DIP-selectable), the chosen address to the component."
+        direct_dependencies:
+          structural:
+            - "non.negative.int"
+            - "pascal.case"
+            - "positive.int"
+            - "relay.wiring.config:000"
+
+  i2c.relay.component.gt:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A single board-resident I²C-driven relay, as one Spaceheat component; board-generic, identified by RelayName against the board's I2cRelays map."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/i2c.relay.component.gt/000"
+        created: "2026-07-03T19:45:00Z"
+        status: "staging"
+        summary: "- Initial version. Board-resident per-relay expander component: required BoardComponentId (-> scada.board.component.gt), RelayName (-> the board record's I2cRelays), ConfigList of exactly one relay.control.config; no DeviceType (TypeName is the kind, the board component carries the board identity)."
+        direct_dependencies:
+          structural:
+            - "pascal.case"
+            - "relay.control.config:000"
+            - "uuid4.str"
+
+  i2c.result:
+    latest_version: "001"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "The result of an I²C bus operation, correlated to its request by TriggerId."
+
+    versions:
+      "001":
+        schema_url: "https://schemas.electricity.works/types/i2c.result/001"
+        created: "2026-08-12T16:50:00Z"
+        status: "staging"
+        summary: "Operation ref moves to i2c.operation/001; optional Bytes list for multi-byte (ReadBytes) results."
+        direct_dependencies:
+          structural:
+            - "i2c.operation:001"
+            - "non.negative.int"
+            - "spaceheat.name"
+            - "utc.milliseconds"
+            - "uuid4.str"
+
+  i2c.thermistor.channel.config:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Per-channel configuration for a thermistor input read through an I2C ADC."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/i2c.thermistor.channel.config/000"
+        created: "2026-03-30T16:00:00Z"
+        status: "staging"
+        summary: "Initial Sema version. Unit: drop (redundant; unit and scaling are carried by channel identity). Exponent: drop (redundant; unit and scaling are carried by channel identity). CapturePeriodS / AsyncCapture / AsyncCaptureDelta / PollPeriodMs: drop (capture/report tuning moved to operational-params capture.tuning). SendToDerived: drop (derived routing is computed from DerivedChannel InputChannelNames)."
+        direct_dependencies:
+          structural:
+            - "i2c.adc.channel:000"
+            - "positive.int"
+            - "spaceheat.name"
+
+  i2c.thermistor.interface.capability:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A thermistor-reading ADC interface on a GridWorks SCADA board."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/i2c.thermistor.interface.capability/000"
+        created: "2026-08-10T20:40:00Z"
+        status: "staging"
+        summary: "Initial version (Name, I2cBus, I2cAddress, AdcType, SupportedDataRatesSps — the conversion-rate menu the reader's DataRateSps must come from, AdcReferenceVolts, SeriesResistanceKOhms); renames i2c.thermistor.interface.config — the record describes what the board offers, not a chosen configuration."
+        direct_dependencies:
+          structural:
+            - "i2c.adc.type:000"
+            - "non.negative.int"
+            - "pascal.case"
+            - "positive.float"
+            - "positive.int"
+
+  i2c.thermistor.reader.component.gt:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Configuration for an I2C thermistor reader component that samples one board-resident ADC (named by AdcName against the board record) and publishes one or more thermistor-backed temperature channels."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/i2c.thermistor.reader.component.gt/000"
+        created: "2026-08-10T20:40:00Z"
+        status: "staging"
+        summary: "Initial Sema version. ComponentAttributeClassId (cac UUID) -> DeviceType (gw1.device.type value, pascal.case) -> dropped (TypeName is the kind; board identity lives on the board component). Bus, AdcAddress, AdcReferenceVolts, SeriesResistanceKOhms dropped (facts on the board's thermistor-interface capability entry); AdcName added, naming that entry in the board record's ThermistorAdcs; DataRateSps added (the per-conversion data rate the reader writes in the ADC config word — a member of the board ADC's SupportedDataRatesSps); BoardComponentId added, anchoring the reader to its scada.board.component.gt. Context-dependent: AdcName and BoardComponentId are derived from the source layout, which the standalone component does not carry."
+        direct_dependencies:
+          structural:
+            - "i2c.thermistor.channel.config:000"
+            - "pascal.case"
+            - "positive.int"
+            - "temp.calc.method:000"
+            - "uuid4.str"
+
+  i2c.write.bit:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A request to write a single bit to a device register on a named I²C bus."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/i2c.write.bit/000"
+        created: "2026-06-22T16:35:00Z"
+        status: "published"
+        summary: "Initial draft (Bus, Address, Value, TriggerId)."
+        direct_dependencies:
+          structural:
+            - "i2c.bit.address:000"
+            - "non.negative.int"
+            - "spaceheat.name"
+            - "uuid4.str"
+
+  i2c.write.byte:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A request to write a single byte to a device on a named I²C bus with no register addressing (e.g. a bus-multiplexer channel select)."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/i2c.write.byte/000"
+        created: "2026-08-12T16:50:00Z"
+        status: "staging"
+        summary: "Initial version (Bus, I2cAddress, Value, TriggerId)."
+        direct_dependencies:
+          structural:
+            - "non.negative.int"
+            - "spaceheat.name"
+            - "uuid4.str"
+
+  i2c.write.reg:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A request to write a 1- or 2-byte register to a device on a named I²C bus."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/i2c.write.reg/000"
+        created: "2026-06-22T16:35:00Z"
+        status: "published"
+        summary: "Initial draft (Bus, Address, NumBytes, Value, TriggerId)."
+        direct_dependencies:
+          structural:
+            - "i2c.reg.address:000"
+            - "non.negative.int"
+            - "positive.int"
+            - "spaceheat.name"
+            - "uuid4.str"
+
+  latest.price:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Latest cleared market price for a market slot, published by the MarketMaker (currently by the LeafTransactiveNode, pre-MarketMaker)."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/latest.price/000"
+        created: "2026-05-13T00:00:00Z"
+        status: "published"
+        summary: "Initial Sema version"
+        direct_dependencies:
+          structural:
+            - "left.right.dot"
+            - "market.price.unit:000"
+            - "market.slot.name"
+            - "uuid4.str"
+
+  layout.lite:
+    latest_version: "013"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Runtime projection of the active SCADA context used to interpret reports, snapshots, and control-adjacent messages."
+
+    versions:
+      "013":
+        schema_url: "https://schemas.electricity.works/types/layout.lite/013"
+        created: "2026-10-22T20:10:00Z"
+        status: "published"
+        summary: "- ShNodes: spaceheat.node.gt:301 -> 303 - DataChannels: data.channel.gt:002 -> 004 - TankModuleComponents, FlowModuleComponents and TMap leave: no consumer reads the pico components or the calibration map off the projection; the hardware layout is their source. - I2cRelayComponent leaves: the relay component is read off the hardware layout, and the projection has no reader for it. - SystemMode and SeasonalStorageMode leave: the posture facts (Standby, StandbyPosture, SeasonalStorageMode, ServiceMode, AcceptsDispatch, DispatchRefusalReason) ride gw.house.operating.status, sent after the startup announcements and on change, so the LTN has one source for them. - Strategy (free manifold-variant string) -> HardwareLayoutTypeName (left.right.dot): the loaded layout word's TypeName is the family; a format, not an enum of layout words, so this word publishes independently of the layout words' status. - BufferShortCycling, Ha1Params and TotalStoreTanks leave: operational parameters are not layout; the LTN gets them from its own settings and its own hardware layout until it holds the ops word, and a layout with no store tanks cannot fill a positive tank count. - MessageCreatedMs -> CreatedMs: the sender-clock name every word takes by default. - StateMachines: one gw.state.machine per machine the running scada hosts (hosting node Name, state enum, enum version), so a report's MachineHandle resolves by its last dotted segment to a declared, versioned enum."
+        direct_dependencies:
+          structural:
+            - "data.channel.gt:004"
+            - "derived.channel.gt:003"
+            - "gw.state.machine:000"
+            - "left.right.dot"
+            - "spaceheat.node.gt:303"
+            - "utc.milliseconds"
+            - "uuid4.str"
+
+  linear.one.dimensional.calibration:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Affine calibration mapping a scalar measurement to a corrected scalar value using a linear transformation (M * x + B), with semantics defined relative to the measurement domain of the referencing context."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/linear.one.dimensional.calibration/000"
+        created: "2026-02-06T17:06:00Z"
+        status: "staging"
+        summary: "Initial Sema version. B: number -> integer. Semantics: clarify OutputUnit scaling domain."
+        direct_dependencies:
+          structural: []
+
+  machine.states:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Sequence of machine states observed for one state machine during a reporting interval."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/machine.states/000"
+        created: "2024-11-09T16:36:00Z"
+        status: "published"
+        summary: "Initial Sema version"
+        direct_dependencies:
+          structural:
+            - "handle.name"
+            - "left.right.dot"
+            - "utc.milliseconds"
+          axiom:
+            - "relay.closed.or.open:000"
+
+  maker.api.attribute.gt:
+    latest_version: "001"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "One Hubitat MakerAPI device attribute mapped onto a SCADA channel (telemetry name, unit, exponent, reporting flags)."
+
+    versions:
+      "001":
+        schema_url: "https://schemas.electricity.works/types/maker.api.attribute.gt/001"
+        created: "2026-09-24T22:45:00Z"
+        status: "staging"
+        summary: "Enabled dropped: whether a channel is read is the layout's DisabledChannelNames, not a per-attribute flag. WebPollEnabled and WebListenEnabled stay (they name the transport path)."
+        direct_dependencies:
+          structural:
+            - "spaceheat.name"
+            - "spaceheat.telemetry.name:007"
+            - "spaceheat.unit:001"
+
+  new.command.tree:
+    latest_version: "003"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Full set of SpaceheatNodes describing a SCADA node's actor command hierarchy, sent to its LeafTransactiveNode."
+
+    versions:
+      "003":
+        schema_url: "https://schemas.electricity.works/types/new.command.tree/003"
+        created: "2026-09-08T21:20:00Z"
+        status: "published"
+        summary: "- ShNodes: spaceheat.node.gt:302 -> 303 - Axiom 2 ActuatorLeaves: FiveVBoss joins the command-node classes"
+        direct_dependencies:
+          structural:
+            - "left.right.dot"
+            - "spaceheat.node.gt:303"
+            - "utc.milliseconds"
+          axiom:
+            - "gw1.actor.class:014"
+
+  pico.btu.meter.component.gt:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A Pico BTU-meter component instance: flow meter plus hot/cold thermistors (and optional CT voltage) sampled by a Pico to compute thermal power."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/pico.btu.meter.component.gt/000"
+        created: "2026-09-21T19:50:00Z"
+        status: "staging"
+        summary: "Initial Sema version (flattened from the scada PicoBtuMeterComponentGt runtime). ComponentAttributeClassId (cac UUID) -> DeviceType (gw1.device.type value, pascal.case): the device type lived on the referenced cac, not the component. FlowMeterType: spaceheat.make.model enum value -> gw1.device.type value (pascal.case); the device-type enum is articulated by the hardware layout. ConfigList dropped."
+        direct_dependencies:
+          structural:
+            - "gpm.from.hz.method:000"
+            - "hz.calc.method:001"
+            - "pascal.case"
+            - "pico.board.variant:000"
+            - "positive.float"
+            - "spaceheat.name"
+            - "temp.calc.method:000"
+            - "uuid4.str"
+
+  pico.flow.module.component.gt:
+    latest_version: "001"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Configuration for a Pico-based flow module component."
+
+    versions:
+      "001":
+        schema_url: "https://schemas.electricity.works/types/pico.flow.module.component.gt/001"
+        created: "2026-09-21T19:50:00Z"
+        status: "staging"
+        summary: "- ComponentAttributeClassId (cac UUID) -> DeviceType (gw1.device.type value, pascal.case). Context-dependent: the device type lived on the referenced cac, not the component. - FlowMeterType: spaceheat.make.model enum value -> gw1.device.type value (pascal.case); the device-type enum is articulated by the hardware layout."
+        direct_dependencies:
+          structural:
+            - "gpm.from.hz.method:000"
+            - "hz.calc.method:001"
+            - "pascal.case"
+            - "pico.board.variant:000"
+            - "spaceheat.name"
+            - "uuid4.str"
+
+  pico.tank.module.component.gt:
+    latest_version: "012"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Configuration for a Pico-based tank temperature module component."
+
+    versions:
+      "012":
+        schema_url: "https://schemas.electricity.works/types/pico.tank.module.component.gt/012"
+        created: "2026-09-21T19:50:00Z"
+        status: "staging"
+        summary: "- ComponentAttributeClassId (cac UUID) -> DeviceType (gw1.device.type value, pascal.case). Context-dependent: the device type lived on the referenced cac, not the component."
+        direct_dependencies:
+          structural:
+            - "pascal.case"
+            - "pico.board.variant:000"
+            - "positive.int"
+            - "temp.calc.method:000"
+            - "uuid4.str"
+
+  power.watts:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Immediate real-time power measurement message for instantaneous transmission."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/power.watts/000"
+        created: "2022-10-17T16:55:39Z"
+        status: "published"
+        summary: "Initial Sema version"
+        direct_dependencies:
+          structural: []
+
+  price.quantity.unitless:
+    latest_version: "001"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Integer price and quantity pair for market bidding and dispatch curves, with both values serialized at x1000 scaling."
+
+    versions:
+      "001":
+        schema_url: "https://schemas.electricity.works/types/price.quantity.unitless/001"
+        created: "2025-10-30T17:29:00Z"
+        status: "published"
+        summary: "Rename PriceTimes1000/QuantityTimes1000 to PriceX1000/QuantityX1000."
+        direct_dependencies:
+          structural: []
+
+  relay.control.config:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Board-resident control config for a relay-backed actor; the relay.actor.config successor with the positional RelayIdx dropped (the relay is identified by name against its board)."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/relay.control.config/000"
+        created: "2026-07-03T19:45:00Z"
+        status: "staging"
+        summary: "- Initial version. relay.actor.config minus RelayIdx: board-resident relays are identified by name against the board (gw1.scada.device.type.gt), not by a positional index."
+        direct_dependencies:
+          structural:
+            - "left.right.dot"
+            - "non.empty.string"
+            - "relay.wiring.config:000"
+            - "spaceheat.name"
+          axiom:
+            - "change.relay.state:000"
+            - "relay.closed.or.open:000"
+
+  report:
+    latest_version: "003"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Primary telemetry and state reporting message produced by a SCADA node for a specific reporting slot."
+
+    versions:
+      "003":
+        schema_url: "https://schemas.electricity.works/types/report/003"
+        created: "2026-03-30T19:01:47Z"
+        status: "published"
+        summary: "- FsmReportList[]: fsm.full.report:000 -> 001"
+        direct_dependencies:
+          structural:
+            - "channel.readings:002"
+            - "fsm.full.report:001"
+            - "left.right.dot"
+            - "machine.states:000"
+            - "positive.int"
+            - "utc.milliseconds"
+            - "utc.seconds"
+            - "uuid4.str"
+
+  report.event:
+    latest_version: "004"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Event wrapper for a report payload with message tracking metadata."
+
+    versions:
+      "004":
+        status: "published"
+        schema_url: "https://schemas.electricity.works/types/report.event/004"
+        created: "2026-05-06T00:00:00Z"
+        summary: "- Axioms: reinstate ReportIdentityPropagation, ReportCreatedTimePropagation and ReportSourcePropagation"
+        direct_dependencies:
+          structural:
+            - "left.right.dot"
+            - "report:003"
+            - "utc.milliseconds"
+            - "uuid4.str"
+
+  scada.board.component.gt:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "One physical scada control board in a deployment: the anchor board-resident device components reference via BoardComponentId; DeviceType names the board kind whose gw1.scada.device.type.gt record carries the physical facts."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/scada.board.component.gt/000"
+        created: "2026-07-27T16:15:00Z"
+        status: "staging"
+        summary: "- Initial version. ComponentId, DeviceType (gw1.device.type board kind), optional I2cAddressList (field-chosen addresses, index-aligned with the record's Expanders), DisplayName, HwUid."
+        direct_dependencies:
+          structural:
+            - "non.negative.int"
+            - "pascal.case"
+            - "uuid4.str"
+
+  scada.control.capabilities:
+    latest_version: "002"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Projection of the SCADA control surface: the nodes the tree root commands, their state channels, and each node's command interface; the cover of the live command tree."
+
+    versions:
+      "002":
+        schema_url: "https://schemas.electricity.works/types/scada.control.capabilities/002"
+        created: "2026-10-15T16:00:00Z"
+        status: "published"
+        summary: "- ControlChannels[]: data.channel.gt 003 -> 004 - RelayNodes[], DacNodes[], CommandNodes[]: spaceheat.node.gt:302 -> 303 - A node may carry more than one CommandInterfaces entry, one per
+  command vocabulary (five-v-boss: turn.5v.on.off and reboot.picos)"
+        direct_dependencies:
+          structural:
+            - "data.channel.gt:004"
+            - "gw.command.interface:000"
+            - "left.right.dot"
+            - "spaceheat.node.gt:303"
+            - "utc.milliseconds"
+          axiom:
+            - "gw1.actor.class:014"
+
+  send.control.capabilities:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Request message asking a SCADA actor to publish its scada.control.capabilities projection."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/send.control.capabilities/000"
+        created: "2026-03-02T18:15:00Z"
+        status: "published"
+        summary: "Initial Sema version"
+        direct_dependencies:
+          structural:
+            - "left.right.dot"
+            - "utc.milliseconds"
+
+  send.layout:
+    latest_version: "001"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Request message asking a SCADA actor to send its current layout.lite."
+
+    versions:
+      "001":
+        schema_url: "https://schemas.electricity.works/types/send.layout/001"
+        created: "2026-03-02T17:00:00Z"
+        status: "published"
+        summary: "- FromName: remove - ToName: remove - MessageCreatedMs: add"
+        direct_dependencies:
+          structural:
+            - "left.right.dot"
+            - "utc.milliseconds"
+
+  setpoint.belief:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A belief about a thermostat's setpoint: an epistemic phase and a value in degrees Fahrenheit."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/setpoint.belief/000"
+        created: "2026-08-11T15:55:00Z"
+        status: "staging"
+        summary: "Belief pair (Phase, optional ValueF); UnknownIsValueless axiom ties value presence to phase."
+        direct_dependencies:
+          structural:
+            - "setpoint.phase:000"
+
+  sim.pico.btu.meter.component.gt:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Simulation configuration corresponding to pico.btu.meter.component.gt (the component-faithful simulation facet)."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/sim.pico.btu.meter.component.gt/000"
+        created: "2026-09-17T12:55:00Z"
+        status: "staging"
+        summary: "Initial version: the pico.btu.meter.component.gt/000 field set plus SimLifeS / SimRebootS; SimulatesTypeName / SimulatesVersion pin the mirrored word."
+        direct_dependencies:
+          structural:
+            - "gpm.from.hz.method:000"
+            - "hz.calc.method:001"
+            - "pascal.case"
+            - "positive.float"
+            - "positive.int"
+            - "spaceheat.name"
+            - "temp.calc.method:000"
+            - "uuid4.str"
+
+  sim.pico.flow.module.component.gt:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Simulation configuration corresponding to pico.flow.module.component.gt (the component-faithful simulation facet)."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/sim.pico.flow.module.component.gt/000"
+        created: "2026-09-17T12:55:00Z"
+        status: "staging"
+        summary: "Initial version: the pico.flow.module.component.gt/001 field set plus SimLifeS / SimRebootS; SimulatesTypeName / SimulatesVersion pin the mirrored word. Axiom 1 HwUidPattern as on the real word."
+        direct_dependencies:
+          structural:
+            - "gpm.from.hz.method:000"
+            - "hz.calc.method:001"
+            - "pascal.case"
+            - "positive.int"
+            - "spaceheat.name"
+            - "uuid4.str"
+
+  sim.pico.tank.module.component.gt:
+    latest_version: "001"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Simulation configuration corresponding to pico.tank.module.component.gt (the component-faithful simulation facet)."
+
+    versions:
+      "001":
+        schema_url: "https://schemas.electricity.works/types/sim.pico.tank.module.component.gt/001"
+        created: "2026-06-26T03:40:00Z"
+        status: "staging"
+        summary: "- ComponentAttributeClassId (cac UUID) -> DeviceType (gw1.device.type value, pascal.case); SimulatesVersion 011 -> 012. Context-dependent: the device type lived on the referenced cac, not the component. Optional SimLifeS / SimRebootS (positive.int seconds) script the simulated pico's liveness."
+        direct_dependencies:
+          structural:
+            - "pascal.case"
+            - "positive.int"
+            - "temp.calc.method:000"
+            - "uuid4.str"
+
+  sim.sensor.component.gt:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A simulated sensor component (what a SimSensorActor uses): structurally a generic component, but a distinct sim.* type so simulated layouts are visibly simulated by construction."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/sim.sensor.component.gt/000"
+        created: "2026-06-26T03:40:00Z"
+        status: "staging"
+        summary: "Initial Sema version (new sim-marker component for simulated layouts; structurally component.gt)."
+        direct_dependencies:
+          structural:
+            - "pascal.case"
+            - "uuid4.str"
+
+  single.machine.state:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Latest known state for a single state machine at a specific timestamp."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/single.machine.state/000"
+        created: "2026-03-30T19:01:47Z"
+        status: "published"
+        summary: "Initial Sema version"
+        direct_dependencies:
+          structural:
+            - "handle.name"
+            - "left.right.dot"
+            - "utc.milliseconds"
+          axiom:
+            - "relay.closed.or.open:000"
+
+  single.reading:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Latest known reading for a single channel at a specific SCADA read time."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/single.reading/000"
+        created: "2024-11-08T00:00:00Z"
+        status: "published"
+        summary: "Initial Sema version"
+        direct_dependencies:
+          structural:
+            - "spaceheat.name"
+            - "utc.milliseconds"
+
+  slow.contract.heartbeat:
+    latest_version: "002"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "One party's statement about a slow dispatch contract: the contract, its status as that party sees it, and the chained digits and proof tying it to the counterparty's last heartbeat."
+
+    versions:
+      "002":
+        schema_url: "https://schemas.electricity.works/types/slow.contract.heartbeat/002"
+        created: "2026-10-13T11:00:00Z"
+        status: "published"
+        summary: "Reason (gw.dispatch.refusal.reason) beside the free Cause, present iff Status is TerminatedByScada (axiom 6), so a terminating heartbeat names why in the scada's one refusal vocabulary."
+        direct_dependencies:
+          structural:
+            - "decimal.digit"
+            - "gw.dispatch.refusal.reason:000"
+            - "gw1.slow.dispatch.contract.status:000"
+            - "slow.dispatch.contract:000"
+            - "spaceheat.name"
+            - "utc.milliseconds"
+
+  slow.contract.rejection:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A scada's refusal of an LTN slow dispatch contract offer: the offered ContractId and the reason."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/slow.contract.rejection/000"
+        created: "2026-10-13T11:00:00Z"
+        status: "staging"
+        summary: "Initial Sema version. FromGNodeAlias + ContractId + Reason (gw.dispatch.refusal.reason) + MessageCreatedMs."
+        direct_dependencies:
+          structural:
+            - "gw.dispatch.refusal.reason:000"
+            - "left.right.dot"
+            - "utc.milliseconds"
+            - "uuid4.str"
+
+  slow.dispatch.contract:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A slow dispatch contract between an LTN and a scada: one window from a five-minute boundary over which the scada holds average electrical power to AvgPowerWatts, or runs the oil boiler instead."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/slow.dispatch.contract/000"
+        created: "2025-03-03T20:40:00Z"
+        status: "published"
+        summary: "The wire form gridworks-scada has sent since f38e1e4a (2025-03-03): ScadaAlias + StartS + DurationMinutes + AvgPowerWatts + OilBoilerOn + ContractId. Axiom 1: StartS on a five-minute boundary. Axiom 2: OilBoilerOn means AvgPowerWatts 0."
+        direct_dependencies:
+          structural:
+            - "left.right.dot"
+            - "positive.int"
+            - "utc.seconds"
+            - "uuid4.str"
+
+  snapshot.spaceheat:
+    latest_version: "003"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Point-in-time snapshot containing the latest known readings and machine states captured by a Spaceheat SCADA."
+
+    versions:
+      "003":
+        schema_url: "https://schemas.electricity.works/types/snapshot.spaceheat/003"
+        created: "2026-03-30T19:01:47Z"
+        status: "published"
+        summary: "LatestStateList element: machine.states -> single.machine.state (one state per entry, adds Cause; drops the parallel StateList/UnixMsList arrays). Type moved from gwproto to scada."
+        direct_dependencies:
+          structural:
+            - "left.right.dot"
+            - "single.machine.state:000"
+            - "single.reading:000"
+            - "utc.milliseconds"
+            - "uuid4.str"
+
+  spaceheat.node.gt:
+    latest_version: "303"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A Spaceheat node representing a named element in the SCADA system."
+
+    versions:
+      "303":
+        schema_url: "https://schemas.electricity.works/types/spaceheat.node.gt/303"
+        created: "2026-09-08T21:20:00Z"
+        status: "published"
+        summary: "- ActorClass: gw1.actor.class:013 -> 014 (adds FiveVBoss)"
+        direct_dependencies:
+          structural:
+            - "gw1.actor.class:014"
+            - "handle.name"
+            - "positive.int"
+            - "spaceheat.name"
+            - "uuid4.str"
+
+  spaceheat.telemetry.quantity.projection:
+    latest_version: "001"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Canonical projection from legacy TelemetryName encodings to gw1.quantity."
+
+    versions:
+      "001":
+        schema_url: "https://schemas.electricity.works/types/spaceheat.telemetry.quantity.projection/001"
+        created: "2026-10-15T16:00:00Z"
+        status: "published"
+        summary: "- Quantity: gw1.quantity 000 -> 003"
+        direct_dependencies:
+          structural:
+            - "gw1.quantity:003"
+            - "spaceheat.telemetry.name:007"
+
+  synced.readings:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Compact synchronized reading payload consisting of a single SCADA read time and parallel channel and value lists."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/synced.readings/000"
+        created: "2026-03-30T00:00:00Z"
+        status: "published"
+        summary: "Initial Sema version"
+        direct_dependencies:
+          structural:
+            - "spaceheat.name"
+            - "utc.milliseconds"
+
+  ta.deed:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A TaValidator's attestation of a terminal asset: its GNodeId, the alias at issue, and the ValidationState every reader consults."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/ta.deed/000"
+        created: "2026-09-09T02:05:00Z"
+        status: "published"
+        summary: "Initial Sema version"
+        direct_dependencies:
+          structural:
+            - "left.right.dot"
+            - "ta.validation.state:000"
+            - "utc.seconds"
+            - "uuid4.str"
+
+  tank.module.params:
+    latest_version: "200"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "The params handshake between a tank-module pico and its scada: the pico posts its parameters at boot and the scada answers with the values to run with."
+
+    versions:
+      "200":
+        schema_url: "https://schemas.electricity.works/types/tank.module.params/200"
+        created: "2026-09-08T00:30:00Z"
+        status: "published"
+        summary: "- PicoBoardVariant: add - MicropythonVersion: add"
+        direct_dependencies:
+          structural:
+            - "pico.board.variant:000"
+            - "positive.int"
+            - "spaceheat.name"
+
+  ticklist.hall:
+    latest_version: "101"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "List of hall-effect flow meter tick timestamps captured by a pico flow module."
+
+    versions:
+      "101":
+        schema_url: "https://schemas.electricity.works/types/ticklist.hall/101"
+        created: "2026-05-13T00:00:00Z"
+        status: "published"
+        summary: "Initial Sema version"
+        direct_dependencies:
+          structural: []
+
+  ticklist.hall.report:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Report wrapping a ticklist.hall payload with channel and terminal asset context."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/ticklist.hall.report/000"
+        created: "2026-05-13T00:00:00Z"
+        status: "published"
+        summary: "Initial Sema version"
+        direct_dependencies:
+          structural:
+            - "left.right.dot"
+            - "spaceheat.name"
+            - "ticklist.hall:101"
+            - "utc.milliseconds"
+
+  ticklist.reed:
+    latest_version: "101"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "List of reed-switch flow meter tick timestamps captured by a pico flow module."
+
+    versions:
+      "101":
+        schema_url: "https://schemas.electricity.works/types/ticklist.reed/101"
+        created: "2026-05-13T00:00:00Z"
+        status: "published"
+        summary: "Initial Sema version"
+        direct_dependencies:
+          structural: []
+
+  ticklist.reed.report:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Report wrapping a ticklist.reed payload with channel and terminal asset context."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/ticklist.reed.report/000"
+        created: "2026-05-13T00:00:00Z"
+        status: "published"
+        summary: "Initial Sema version"
+        direct_dependencies:
+          structural:
+            - "left.right.dot"
+            - "spaceheat.name"
+            - "ticklist.reed:101"
+            - "utc.milliseconds"
+
+  web.server.component.gt:
+    latest_version: "001"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A web-server component instance exposing a local HTTP server (e.g. for Pico devices to POST to)."
+
+    versions:
+      "001":
+        schema_url: "https://schemas.electricity.works/types/web.server.component.gt/001"
+        created: "2026-06-12T19:14:55Z"
+        status: "staging"
+        summary: "Initial Sema version (flattened from the scada WebServerComponentGt runtime; WebServer is an inline object). ComponentAttributeClassId (cac UUID) -> DeviceType (gw1.device.type value, pascal.case): the device type lived on the referenced cac, not the component. ConfigList dropped."
+        direct_dependencies:
+          structural:
+            - "pascal.case"
+            - "uuid4.str"
+
+  zero.ten.power.on:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "The power-on level of one 0-10V output (volts times ten), named by its node; the operational-params home for what was the DAC channel's EEPROM power-on code."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/zero.ten.power.on/000"
+        created: "2026-09-12T22:45:00Z"
+        status: "staging"
+        summary: "Initial version (NodeName, PowerOnVoltsTimesTen; TenVoltCeiling axiom). Carried per output in ZeroTenPowerOnList on both operational-params words."
+        direct_dependencies:
+          structural:
+            - "non.negative.int"
+            - "spaceheat.name"
+
+  zone.circuit.governance.cmd:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "Command from a boss to a zone-call-circuit actor's governance machine, setting which authority rules the circuit."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/zone.circuit.governance.cmd/000"
+        created: "2026-08-11T15:55:00Z"
+        status: "staging"
+        summary: "Governance command (FromHandle, ToHandle, Event, optional SetpointF, TriggerId, SendTimeUnixMs); SetpointIffThermostatic axiom."
+        direct_dependencies:
+          structural:
+            - "handle.name"
+            - "utc.milliseconds"
+            - "uuid4.str"
+            - "zone.circuit.governance.event:000"

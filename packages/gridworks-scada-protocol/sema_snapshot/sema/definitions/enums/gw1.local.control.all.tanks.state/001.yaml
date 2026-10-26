@@ -1,0 +1,24 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/gw1.local.control.all.tanks.state/001"
+
+title: "gw1.local.control.all.tanks.state"
+type: "string"
+description: >
+  Local-Control sub-state of a GridWorks spaceheat system in standby mode.
+
+enum:
+  - "Initializing"
+  - "HpOnStoreOff"
+  - "HpOnStoreCharge"
+  - "HpOffStoreOff"
+  - "HpOffStoreDischarge"
+  - "Dormant"
+
+default: "Initializing"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "001"
+  value_descriptions:   
+  extended_description:
+    

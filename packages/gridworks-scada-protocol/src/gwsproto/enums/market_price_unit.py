@@ -1,18 +1,11 @@
 from enum import auto
 from typing import List
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class MarketPriceUnit(AslEnum):
-    """
-    Price unit assigned to MarketMaker MarketType
-    Values:
-      - USDPerMWh
-
-    For more information:
-      - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
-      - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#marketpriceunit)
+class MarketPriceUnit(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/market.price.unit/000
     """
 
     USDPerMWh = auto()

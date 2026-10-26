@@ -1,0 +1,140 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/relay.control.config/000"
+
+title: "relay.control.config"
+type: object
+description: >
+  Control configuration for a relay-backed Spaceheat actor on a board-resident relay.
+
+  A control config binds one named relay to a controlling actor and declares the
+  event/state semantics associated with energizing and de-energizing it. The relay it
+  controls is identified by name against the board (the containing component's board
+  reference), NOT by a positional index — this is the board-resident successor to
+  relay actor config, which carried a positional RelayIdx. It carries only the actor-level
+  hardware binding and relay semantics; the physical address lives on the board
+  (the board's device-type record), and capture/report tuning lives in operational-params
+  (capture.tuning), not here.
+
+properties:
+  ChannelName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      Name of the telemetry channel associated with this relay actor.
+
+  ActorName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      Canonical Spaceheat node name of the actor controlled by this relay.
+
+  WiringConfig:
+    $ref: "https://schemas.electricity.works/enums/relay.wiring.config/000"
+    description: >
+      Wiring configuration of the relay contact arrangement used by this actor.
+
+  EventType:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      Semantic event category emitted when the relay changes the controlled
+      actor's state.
+
+  DeEnergizingEvent:
+    $ref: "https://schemas.electricity.works/formats/non.empty.string"
+    description: >
+      Event value associated with transition caused by relay de-energization.
+
+  EnergizingEvent:
+    $ref: "https://schemas.electricity.works/formats/non.empty.string"
+    description: >
+      Event value associated with transition caused by relay energization.
+
+  StateType:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      Semantic state category controlled by this relay.
+
+  DeEnergizedState:
+    $ref: "https://schemas.electricity.works/formats/non.empty.string"
+    description: >
+      State value associated with the de-energized relay position.
+
+  EnergizedState:
+    $ref: "https://schemas.electricity.works/formats/non.empty.string"
+    description: >
+      State value associated with the energized relay position.
+
+  TypeName:
+    const: "relay.control.config"
+
+  Version:
+    const: "000"
+
+required:
+  - ChannelName
+  - ActorName
+  - WiringConfig
+  - EventType
+  - DeEnergizingEvent
+  - EnergizingEvent
+  - StateType
+  - DeEnergizedState
+  - EnergizedState
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "ActorName": "relay17",
+      "ChannelName": "zone1-down-failsafe-relay17",
+      "DeEnergizedState": "RelayClosed",
+      "DeEnergizingEvent": "CloseRelay",
+      "EnergizedState": "RelayOpen",
+      "EnergizingEvent": "OpenRelay",
+      "EventType": "change.relay.state",
+      "StateType": "relay.closed.or.open",
+      "TypeName": "relay.control.config",
+      "Version": "000",
+      "WiringConfig": "NormallyClosed"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "RelayEventEnumConsistency"
+      statement: >
+        If EventType equals "change.relay.state", then DeEnergizingEvent and
+        EnergizingEvent SHALL both be valid values of
+        change.relay.state:000.
+
+    - number: 2
+      name: "RelayStateEnumConsistency"
+      statement: >
+        If StateType equals "relay.closed.or.open", then DeEnergizedState and
+        EnergizedState SHALL both be valid values of
+        relay.closed.or.open:000.
+
+    - number: 3
+      name: "RelayEventStateMatch"
+      statement: >
+        If EventType equals "change.relay.state" and StateType equals
+        "relay.closed.or.open", then:
+
+          - DeEnergizingEvent "CloseRelay" SHALL imply DeEnergizedState "RelayClosed"
+          - DeEnergizingEvent "OpenRelay" SHALL imply DeEnergizedState "RelayOpen"
+          - EnergizingEvent "CloseRelay" SHALL imply EnergizedState "RelayClosed"
+          - EnergizingEvent "OpenRelay" SHALL imply EnergizedState "RelayOpen"
+
+  extended_description: >
+    relay.control.config is the board-resident successor to relay.actor.config: same
+    actor-level relay semantics (event/state binding), but the relay is identified by
+    name against its board rather than by the positional RelayIdx that relay.actor.config
+    carried. It is composed (exactly one) by the board-resident per-relay component types
+    (i2c.relay.component.gt, gpio.relay.component.gt), which name the relay against the
+    board's I2cRelays / NativeGpioOutputs map on gw1.scada.device.type.gt.
+
+    The declared relay event/state semantics are based on change.relay.state and
+    relay.closed.or.open.

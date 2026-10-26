@@ -1,0 +1,83 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/i2c.thermistor.interface.capability/000"
+
+title: "i2c.thermistor.interface.capability"
+type: object
+description: >
+  A thermistor-reading ADC interface on a GridWorks SCADA board.
+
+properties:
+
+  Name:
+    $ref: "https://schemas.electricity.works/formats/pascal.case"
+    description: >
+      The name of this ADC on the board.
+
+  I2cBus:
+    $ref: "https://schemas.electricity.works/formats/pascal.case"
+    description: >
+      The name of the board bus this ADC is attached to.
+
+  I2cAddress:
+    $ref: "https://schemas.electricity.works/formats/non.negative.int"
+    description: >
+      The I²C bus address of the thermistor-reading ADC.
+
+  AdcType:
+    $ref: "https://schemas.electricity.works/enums/i2c.adc.type/000"
+    description: >
+      The ADC model.
+
+  SupportedDataRatesSps:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      The conversion data rates, in samples per second, this ADC supports.
+
+  AdcReferenceVolts:
+    $ref: "https://schemas.electricity.works/formats/positive.float"
+    description: >
+      Reference voltage used by the ADC when converting measured voltage to a
+      serialized reading.
+
+  SeriesResistanceKOhms:
+    $ref: "https://schemas.electricity.works/formats/positive.float"
+    description: >
+      Series resistance, in kilo-ohms, in the thermistor divider circuit.
+
+  TypeName:
+    const: "i2c.thermistor.interface.capability"
+
+  Version:
+    const: "000"
+
+required:
+  - Name
+  - I2cBus
+  - I2cAddress
+  - AdcType
+  - SupportedDataRatesSps
+  - AdcReferenceVolts
+  - SeriesResistanceKOhms
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "Name": "ThermistorAdc",
+      "I2cBus": "DefaultBus",
+      "I2cAddress": 73,
+      "AdcType": "Ads1115",
+      "SupportedDataRatesSps": [8, 16, 32, 64, 128, 250, 475, 860],
+      "AdcReferenceVolts": 3.3,
+      "SeriesResistanceKOhms": 5.65,
+      "TypeName": "i2c.thermistor.interface.capability",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"

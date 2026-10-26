@@ -1,19 +1,11 @@
 from enum import auto
 from typing import List
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class TopEvent(AslEnum):
-    """
-    
-    Values:
-      - AdminWakesUp
-      - AdminTimesOut
-
-    For more information:
-      - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
-      - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#topevent)
+class TopEvent(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/top.event/000
     """
 
     AdminWakesUp = auto()

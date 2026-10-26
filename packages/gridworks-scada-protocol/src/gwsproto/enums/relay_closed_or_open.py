@@ -3,13 +3,11 @@
 #  - Sent as-is, not in hex symbol
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class RelayClosedOrOpen(AslEnum):
-    """
-    These are fsm states (as opposed to readings from a pin).
-    """
+class RelayClosedOrOpen(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/relay.closed.or.open/000"""
 
     RelayClosed = auto()
     RelayOpen = auto()
@@ -28,3 +26,7 @@ class RelayClosedOrOpen(AslEnum):
     @classmethod
     def enum_name(cls) -> str:
         return "relay.closed.or.open"
+
+    @classmethod
+    def enum_version(cls) -> str:
+        return "000"

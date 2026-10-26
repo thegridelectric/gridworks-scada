@@ -1,0 +1,109 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/electric.meter.component.gt/001"
+
+title: "electric.meter.component.gt"
+type: object
+description: >
+  A specific electric-meter component (one installed device instance) with its
+  per-channel telemetry configs and optional modbus connection. Flat — the shared
+  component fields are spelled out here; ConfigList references the meter channel
+  config type by $ref.
+
+properties:
+
+  ComponentId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      Globally unique identifier for this installed component instance.
+
+  DeviceType:
+    $ref: "https://schemas.electricity.works/formats/pascal.case"
+    description: >
+      The device category this component is built on, an open
+      pascal-case string.
+
+  ConfigList:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/electric.meter.channel.config/000"
+    description: >
+      Per-channel telemetry configurations read from this meter.
+
+  ModbusHost:
+    type: string
+    description: >
+      Hostname or IP of the meter's modbus interface, when read over modbus.
+
+  ModbusPort:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      TCP port of the meter's modbus interface, when read over modbus.
+
+  DisplayName:
+    type: string
+
+  HwUid:
+    type: string
+    description: >
+      Hardware unique id of the installed device, when known.
+
+  TypeName:
+    const: "electric.meter.component.gt"
+
+  Version:
+    const: "001"
+
+required:
+  - ComponentId
+  - DeviceType
+  - ConfigList
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "ComponentId": "6f74e8b9-4fc9-4b95-bd6f-2c150662b40e",
+      "DeviceType": "EgaugePowerMeter",
+      "ConfigList": [
+        {
+          "ChannelName": "hp-odu-pwr",
+          "EgaugeRegisterConfig": {
+            "Address": 9006,
+            "Denominator": 1,
+            "Description": "change in value",
+            "Name": "hp-odu",
+            "Type": "f32",
+            "TypeName": "egauge.register.config",
+            "Unit": "W",
+            "Version": "000"
+          },
+          "TypeName": "electric.meter.channel.config",
+          "Version": "000"
+        }
+      ],
+      "DisplayName": "EGauge Power Meter",
+      "HwUid": "BP01349",
+      "ModbusHost": "eGauge6069.local",
+      "ModbusPort": 502,
+      "TypeName": "electric.meter.component.gt",
+      "Version": "001"
+    }
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "ChannelNameUniqueness"
+      statement: >
+        Channel names SHALL be unique across the ConfigList.
+  extended_description: >
+    DeviceType holds a `gw1.device.type` value: the hardware layout enforces its
+    membership in `gw1.device.type` and, for an electric meter, that the matching
+    `electric.meter.device.type.gt` record is present.
+
+    The `.gt` suffix declares that this type is coupled bijectively with a table in
+    a canonical seed database (here, the terminalasset registry): the table's rows are
+    instances of this type. Sema is the authority over what a row means; the seed
+    table is the authority over which instances are currently asserted.

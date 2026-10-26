@@ -20,7 +20,7 @@ from gwadmin.config import CurrentAdminConfig
 from gwadmin.config import MAX_ADMIN_TIMEOUT
 from gwadmin.watch.clients.admin_client import AdminClient
 from gwadmin.watch.clients.dac_client import DACWatchClient
-from gwadmin.watch.clients.relay_client import RelayEnergized
+from gwadmin.watch.clients.dispatch_replies import DispatchReply
 from gwadmin.watch.clients.relay_client import RelayWatchClient
 from gwadmin.watch.widgets.dacs import Dacs
 from gwadmin.watch.widgets.keepalive import KeepAliveButton
@@ -185,9 +185,9 @@ class RelaysApp(App):
         self._admin_client.start()
 
     def on_relay_toggle_button_pressed(self, message: RelayToggleButton.Pressed):
-        self._relay_client.set_relay(
+        self._relay_client.send_command(
             message.about_node_name,
-            RelayEnergized.energized if message.energize else RelayEnergized.deenergized,
+            message.event,
             message.timeout_seconds
         )
 
@@ -200,7 +200,7 @@ class RelaysApp(App):
             path_dbg |= 0x00000001
             new_state = int(new_state)
             dac_table = self.query_one("#dacs_table", DataTable)
-            row = dac_table.get_row_at(dac_table.cursor_row)
+            dac_node_name = dac_table.coordinate_to_cell_key(dac_table.cursor_coordinate).row_key.value
             time_input_value = self.app.query_one(TimeInput).value
             try:
                 time_in_minutes = float(time_input_value) if time_input_value else int(self.settings.config.default_timeout_seconds/60)
@@ -209,7 +209,7 @@ class RelaysApp(App):
                 path_dbg |= 0x00000002
                 timeout_seconds = self.settings.config.default_timeout_seconds
             self._dac_client.set_dac(
-                dac_row_name=row[0],
+                dac_node_name=dac_node_name,
                 new_state=new_state,
                 timeout_seconds=timeout_seconds,
             )
@@ -240,13 +240,24 @@ class RelaysApp(App):
     def action_previous_theme(self) -> None:
         self._change_theme(-1)
 
+    def on_relays_dispatch_replied(self, message: Relays.DispatchReplied) -> None:
+        self.notify_dispatch_reply(message.reply)
+
+    def on_dacs_dispatch_replied(self, message: Dacs.DispatchReplied) -> None:
+        self.notify_dispatch_reply(message.reply)
+
+    def notify_dispatch_reply(self, reply: DispatchReply) -> None:
+        """One toast per reply to a command this panel sent; a reply to
+        someone else's command stays silent."""
+        line = reply.describe()
+        if line is None:
+            return
+        self.notify(line, severity="information" if reply.taken else "warning")
+
+
     def on_keep_alive_button_pressed(self, _: KeepAliveButton.Pressed):
-        if _.timeout_seconds is not None:
-            self.notify(f"Keeping admin alive for {int(_.timeout_seconds/60)} minutes")
-            self._relay_client.send_keepalive(_.timeout_seconds)
-        else:
-            self.notify(f"Keeping admin alive for maximum timeout ({int(MAX_ADMIN_TIMEOUT/60)} min)")
-            self._relay_client.send_keepalive(_.timeout_seconds)
+        self._relay_client.send_keepalive(_.timeout_seconds)
+        if _.timeout_seconds is None:
             timer_display = self.app.query_one(TimerDigits)
             timer_display.restart(MAX_ADMIN_TIMEOUT)
 

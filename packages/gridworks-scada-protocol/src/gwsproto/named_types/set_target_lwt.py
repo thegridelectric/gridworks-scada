@@ -2,11 +2,13 @@ import time
 from typing import Literal
 from typing_extensions import Self
 
-from pydantic import BaseModel, PositiveInt, Field, model_validator
+from pydantic import PositiveInt, Field, model_validator
 
 from gwsproto.property_format import HandleName, UTCMilliseconds
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
-class SetTargetLwt(BaseModel):
+
+class SetTargetLwt(GwsprotoSemaType):
     FromHandle: HandleName
     ToHandle: HandleName
     TargetLwtF: PositiveInt

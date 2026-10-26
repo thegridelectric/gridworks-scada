@@ -14,4 +14,4 @@ def test_main_auto_state() -> None:
 
     assert MainAutoState.default() == MainAutoState.LocalControl
     assert MainAutoState.enum_name() == "gw1.main.auto.state"
-    assert MainAutoState.enum_version() == "000"
+    assert MainAutoState.enum_version() == "001"

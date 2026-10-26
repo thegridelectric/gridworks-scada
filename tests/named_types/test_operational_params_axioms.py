@@ -1,0 +1,158 @@
+"""Rejecting tests for the operational-params axioms (on a fixture of each
+family), the tariff's window axiom, and zero.ten.power.on: each mutates a
+valid fixture into one violation."""
+
+import json
+from pathlib import Path
+
+import pytest
+
+from gwsproto.named_types import OperationalParams, TouTariff, ZeroTenPowerOn
+from tests.named_types.sema_oracle import assert_refused
+
+CONFIG = Path(__file__).parent.parent / "config"
+
+OPS_FIXTURES = [
+    "gw.house0.orange.operational.params.json",
+    "gw.nolan.operational.params.json",
+]
+
+
+def ops(name: str) -> dict:
+    return json.loads((CONFIG / name).read_text())
+
+
+@pytest.mark.parametrize("name", OPS_FIXTURES)
+def test_gw_operational_params_axiom_1_duplicate_channel(name: str) -> None:
+    d = ops(name)
+    d["CaptureTuningList"].append(dict(d["CaptureTuningList"][0]))
+    assert_refused(OperationalParams, d, match="Axiom 1 \\(CaptureTuningChannelUniqueness\\)")
+
+
+@pytest.mark.parametrize("name", OPS_FIXTURES)
+def test_gw_operational_params_axiom_2_duplicate_node(name: str) -> None:
+    d = ops(name)
+    d["ZeroTenPowerOnList"].append(dict(d["ZeroTenPowerOnList"][0]))
+    assert_refused(OperationalParams, d, match="Axiom 2 \\(ZeroTenPowerOnNodeUniqueness\\)")
+
+
+def test_gw_operational_params_family_block_is_discriminated() -> None:
+    d = ops("gw.nolan.operational.params.json")
+    d["FamilyParams"]["TypeName"] = "gw.house0.family.params"
+    assert_refused(OperationalParams, d, match="SiegLoopStrategy")
+
+
+def test_gw_tou_tariff_axiom_1_overlapping_windows() -> None:
+    d = ops("gw.house0.orange.operational.params.json")["Tariff"]
+    d["OnPeakWindows"] = [
+        {
+            "Start": "07:00",
+            "End": "12:00",
+            "Days": ["Monday"],
+            "TypeName": "gw.tou.window",
+            "Version": "000",
+        },
+        {
+            "Start": "11:00",
+            "End": "13:00",
+            "Days": ["Monday"],
+            "TypeName": "gw.tou.window",
+            "Version": "000",
+        },
+    ]
+    assert_refused(TouTariff, d, match="Axiom 1 \\(PerDayWindowNonOverlap\\)")
+
+
+def test_zero_ten_power_on_axiom_1_above_ten_volts() -> None:
+    with pytest.raises(ValueError, match="Axiom 1 \\(TenVoltCeiling\\)"):
+        ZeroTenPowerOn(NodeName="dist-010v", PowerOnVoltsTimesTen=101)
+
+
+@pytest.mark.parametrize("name", OPS_FIXTURES)
+def test_gw_operational_params_axiom_3_standby_without_operator_hold(name: str) -> None:
+    d = ops(name)
+    d["Standby"] = True
+    d["DispatchHold"]["OperatorHold"] = False
+    assert_refused(OperationalParams, d, match="Axiom 3 \\(StandbyImpliesOperatorHold\\)")
+
+
+@pytest.mark.parametrize("name", OPS_FIXTURES)
+def test_gw_operational_params_axiom_4_a_monitor_only_energizes_nothing(
+    name: str,
+) -> None:
+    d = ops(name)
+    d["StandbyPosture"] = "MonitorOnly"
+    d["EnergizedStandbyRelays"] = ["hp-failsafe-relay"]
+    assert_refused(OperationalParams, d, match="Axiom 4 \\(PostureRelaysPerFamily\\)")
+
+
+def test_gw_operational_params_axiom_4_b_house0_list_is_fixed() -> None:
+    d = ops("gw.house0.orange.operational.params.json")
+    assert d["EnergizedStandbyRelays"] == ["hp-failsafe-relay", "aquastat-ctrl-relay"]
+    for relays in (
+        [],
+        ["hp-failsafe-relay"],
+        ["hp-failsafe-relay", "aquastat-ctrl-relay", "store-pump-relay"],
+    ):
+        d["EnergizedStandbyRelays"] = relays
+        assert_refused(OperationalParams, d, match="Axiom 4 \\(PostureRelaysPerFamily\\)")
+
+
+def test_gw_operational_params_axiom_4_c_nolan_list_is_empty() -> None:
+    d = ops("gw.nolan.operational.params.json")
+    assert d["EnergizedStandbyRelays"] == []
+    d["EnergizedStandbyRelays"] = ["iso-valve-relay"]
+    assert_refused(OperationalParams, d, match="Axiom 4 \\(PostureRelaysPerFamily\\)")
+
+
+def test_gw_operational_params_axiom_5_house0_standby_holds_full_send() -> None:
+    d = ops("gw.house0.orange.operational.params.json")
+    d["Standby"] = True
+    d["DispatchHold"]["OperatorHold"] = True
+    d["FamilyParams"]["SiegLoopStrategy"] = "HoldFullSend"
+    OperationalParams.model_validate(d)
+    for strategy in ("StratProtect", "LwtControl"):
+        d["FamilyParams"]["SiegLoopStrategy"] = strategy
+        assert_refused(OperationalParams, d, match="Axiom 5 \\(StandbyHoldsFullSend\\)")
+
+
+def test_gw_operational_params_axiom_5_nolan_has_no_loop() -> None:
+    d = ops("gw.nolan.operational.params.json")
+    d["Standby"] = True
+    d["DispatchHold"]["OperatorHold"] = True
+    OperationalParams.model_validate(d)
+
+
+def test_gw_nolan_family_params_axiom_1_charge_not_below_full() -> None:
+    d = ops("gw.nolan.operational.params.json")
+    family = d["FamilyParams"]
+    assert family["BufferChargeF"] < family["BufferFullF"]
+    family["BufferChargeF"] = family["BufferFullF"]
+    assert_refused(OperationalParams, d, match="Axiom 1 \\(ChargeBelowFull\\)")
+
+
+def test_standby_relays_are_relays_the_normal_node_claims() -> None:
+    """Assembly refuses an EnergizedStandbyRelays name that is not a Relay
+    ShNode whose boot handle sits directly under the tree root (the relays
+    local control's normal node claims): a relay under a command node, a
+    non-relay node, and an unknown name each fail."""
+    from sema_to_dc import check_energized_standby_relays, decode_operational_params
+
+    layout = json.loads((CONFIG / "gw.house0.orange.layout.json").read_text())
+    d = ops("gw.house0.orange.operational.params.json")
+    d["StandbyPosture"] = "MonitorOnly"
+    d["EnergizedStandbyRelays"] = []
+    check_energized_standby_relays(decode_operational_params(d), layout)
+    for bad in (
+        "hp-scada-ops-relay",
+        "hp-loop-on-off-relay",
+        "vdc-relay",
+        "hp-boss",
+        "no-such-relay",
+    ):
+        d["StandbyPosture"] = "NoHeatingOrCooling"
+        d["EnergizedStandbyRelays"] = ["hp-failsafe-relay", "aquastat-ctrl-relay"]
+        good = decode_operational_params(d)
+        bad_ops = good.model_copy(update={"EnergizedStandbyRelays": [bad]})
+        with pytest.raises(ValueError, match=f"EnergizedStandbyRelays.*{bad}"):
+            check_energized_standby_relays(bad_ops, layout)

@@ -1,0 +1,264 @@
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
+
+
+class BufferChannelNames:
+    """
+    Constructs expected SpaceheatName names for buffer tank's channels
+    """
+    def __init__(self) -> None:
+        self.reader = "buffer"
+
+        # effective (Used in the system, derived)
+        self.depth1 = "buffer-depth1"
+        self.depth2 = "buffer-depth2"
+        self.depth3 = "buffer-depth3"
+
+        # Device-level temperature reports
+        self.depth1_device = "buffer-depth1-device"
+        self.depth2_device = "buffer-depth2-device"
+        self.depth3_device = "buffer-depth3-device"
+
+        # Electrical measurement
+        self.depth1_micro_v = "buffer-depth1-micro-v"
+        self.depth2_micro_v = "buffer-depth2-micro-v"
+        self.depth3_micro_v = "buffer-depth3-micro-v"
+
+    def device_depth(self, name: str) -> int:
+        if name == self.depth1_device:
+            return 1
+        elif name == self.depth2_device:
+            return 2
+        elif name == self.depth3_device:
+            return 3
+        raise ValueError(f"{name} is not a device channel for {self.reader}")
+
+    def device_to_effective(self, name: str) -> str:
+        if name == self.depth1_device:
+            return self.depth1
+        elif name == self.depth2_device:
+            return self.depth2
+        elif name == self.depth3_device:
+            return self.depth3
+        else:
+            return name
+
+    def effective_to_device(self, name: str) -> str:
+        if name == self.depth1:
+            return self.depth1_device
+        elif name == self.depth2:
+            return self.depth2_device
+        elif name == self.depth3:
+            return self.depth3_device
+        else:
+            return name
+
+    @property
+    def effective(self) -> set[str]:
+        """Effective (derived) channels:buffer-depth1, buffer-depth2, buffer-depth3"""
+        return {self.depth1, self.depth2, self.depth3}
+
+    @property
+    def devices(self) -> set[str]:
+        """Temperatures reported by device, e.g. TankModule3"""
+        return {self.depth1_device, self.depth2_device, self.depth3_device}
+
+    @property
+    def electrical(self) -> set[str]:
+        return {
+            self.depth1_micro_v,
+            self.depth2_micro_v,
+            self.depth3_micro_v,
+        }
+
+    def __repr__(self) -> str:
+        return (
+            f"Buffer channels | effective={sorted(self.effective)} "
+            f"| device={sorted(self.devices)}"
+            f"| electrical={sorted(self.electrical)}"
+        )
+
+
+class HydronicSpaceheatChannelNames:
+    hp_odu_pwr = f"{HSNN.hp_odu}-pwr"
+    hp_idu_pwr = f"{HSNN.hp_idu}-pwr"
+    # Metered circuit is the ctrl box's feed; that it ≈ primary-pump power on a
+    # monobloc is an interpretation, so the channel is NOT primary-pump-pwr.
+    hp_ctrl_box_pwr = f"{HSNN.hp_ctrl_box}-pwr"
+    dist_pump_pwr = f"{HSNN.dist_pump}-pwr"
+    secondary_pump_pwr = f"{HSNN.secondary_pump}-pwr"
+    primary_pump_pwr = f"{HSNN.primary_pump}-pwr"
+    store_pump_pwr = f"{HSNN.store_pump}-pwr"
+
+    # Temperature Channels
+    dist_swt = HSNN.dist_swt
+    dist_rwt = HSNN.dist_rwt
+    hp_lwt = HSNN.hp_lwt
+    hp_ewt = HSNN.hp_ewt
+    store_hot_pipe = HSNN.store_hot_pipe
+    store_cold_pipe = HSNN.store_cold_pipe
+    buffer_hot_pipe = HSNN.buffer_hot_pipe
+    buffer_cold_pipe = HSNN.buffer_cold_pipe
+    oat = HSNN.oat
+    buffer = BufferChannelNames()
+
+    dist_flow = HSNN.dist_flow
+    primary_flow = HSNN.primary_flow
+    store_flow = HSNN.store_flow
+
+    dist_flow_hz = f"{HSNN.dist_flow}-hz"
+    primary_flow_hz = f"{HSNN.primary_flow}-hz"
+    store_flow_hz = f"{HSNN.store_flow}-hz"
+
+    required_energy = "required-energy"
+    usable_energy = "usable-energy"
+
+    dist_010v = "dist-010v"
+    primary_010v = "primary-010v"
+    store_010v = "store-010v"
+
+    # relay state channels
+    vdc_relay_state = "vdc-relay"
+    hp_scada_ops_relay_state = "hp-scada-ops-relay"
+    buffer_top_elt_relay_state = "buffer-top-elt-relay"
+    buffer_bottom_elt_relay_state = "buffer-bottom-elt-relay"
+
+    # element power (buffer flat; store tanks per tank on TankChannelNames)
+    buffer_top_elt_pwr = "buffer-top-elt-pwr"
+    buffer_bottom_elt_pwr = "buffer-bottom-elt-pwr"
+
+    
+    hp_keep_seconds_x_10 = "hp-keep-seconds-x-10"
+
+
+
+class FlowChannelNames:
+    """
+    Constructs SpaceheatName names for a flow meter at a position
+    (dist/primary/store/sieg): the Gpm channel (which equals the flow node name)
+    and the raw `-hz` channel.
+
+    self.flow == f"{position}-flow", self.flow_hz == f"{position}-flow-hz" — the
+    same values as the fixed HydronicSpaceheatChannelNames.dist_flow / dist_flow_hz
+    (etc.) attributes, in parametric form for a config-supplied position.
+    """
+
+    def __init__(self, position: str) -> None:
+        self.position = position
+        self.flow = f"{position}-flow"
+        self.flow_hz = f"{self.flow}-hz"
+
+    def __repr__(self) -> str:
+        return f"Flow channels {self.flow}, {self.flow_hz}"
+
+
+class TankChannelNames:
+    """
+    Constructs expected SpaceheatName names for a store tank's channels
+    """
+    def __init__(self, idx: int) -> None:
+        """ idx should be between 1 and 6"""
+        if idx > 6 or idx < 1:
+            raise ValueError("Tank idx must be in between 1 and 6")
+        self.reader = f"tank{idx}"
+
+        # effective (Used in the system, derived)
+        self.depth1 = f"{self.reader}-depth1"
+        self.depth2 = f"{self.reader}-depth2"
+        self.depth3 = f"{self.reader}-depth3"
+
+         # Device-level temperature reports
+        self.depth1_device = f"{self.reader}-depth1-device"
+        self.depth2_device = f"{self.reader}-depth2-device"
+        self.depth3_device = f"{self.reader}-depth3-device"
+
+        # Electrical measurement
+        self.depth1_micro_v = f"{self.reader}-depth1-micro-v"
+        self.depth2_micro_v = f"{self.reader}-depth2-micro-v"
+        self.depth3_micro_v = f"{self.reader}-depth3-micro-v"
+
+        # The tank's two electric elements: power draw and relay state
+        self.top_elt_pwr = f"{self.reader}-top-elt-pwr"
+        self.bottom_elt_pwr = f"{self.reader}-bottom-elt-pwr"
+        self.top_elt_relay_state = f"{self.reader}-top-elt-relay"
+        self.bottom_elt_relay_state = f"{self.reader}-bottom-elt-relay"
+
+
+    @property
+    def effective(self) -> set[str]:
+        """Effective (derived) channels"""
+        return {self.depth1, self.depth2, self.depth3}
+
+    @property
+    def devices(self) -> set[str]:
+        """Temperatures reported by device, e.g. TankModule3"""
+        return {self.depth1_device, self.depth2_device, self.depth3_device}
+
+    @property
+    def electrical(self) -> set[str]:
+        return {
+            self.depth1_micro_v,
+            self.depth2_micro_v,
+            self.depth3_micro_v,
+        }
+
+    def effective_to_device(self, name: str) -> str:
+        if name == self.depth1:
+            return self.depth1_device
+        elif name == self.depth2:
+            return self.depth2_device
+        elif name == self.depth3:
+            return self.depth3_device
+        else:
+            return name
+
+    def device_depth(self, name: str) -> int:
+        if name == self.depth1_device:
+            return 1
+        elif name == self.depth2_device:
+            return 2
+        elif name == self.depth3_device:
+            return 3
+        raise ValueError(f"{name} is not a device channel for {self.reader}")
+
+    def device_to_effective(self, name: str) -> str:
+        if name == self.depth1_device:
+            return self.depth1
+        elif name == self.depth2_device:
+            return self.depth2
+        elif name == self.depth3_device:
+            return self.depth3
+        else:
+            return name
+
+    def __repr__(self) -> str:
+        return (
+            f"Tank channels | effective={sorted(self.effective)} "
+            f"| device={sorted(self.devices)}"
+            f"| electrical={sorted(self.electrical)}"
+        )
+
+
+class HydronicSpaceheatZoneChannelNames:
+    def __init__(self, zone_label: str, idx: int) -> None:
+        self.base = f"zone{idx}-{zone_label}".lower()
+
+        # core semantic channels (likely derived)
+        self.temp = f"{self.base}-temp"
+        self.set = f"{self.base}-set"
+        self.heat_call = f"{self.base}-heat-call"
+
+        # heat-call source (known-optional, per-zone): the raw input the heat-call
+        # derived channel is computed from. A zone is opto-sourced (a gw108 reads the
+        # thermostat opto-coupler) OR power-sourced (a power meter reads the whitewire).
+        # gw108 opto sensing is cross-family (nolan, sim, house0 going forward), so both
+        # sources live here on the shared hydronic zone, not per family.
+        self.opto_input = f"{self.base}-opto-input"
+        self.whitewire_pwr = f"{self.base}-whitewire-pwr"
+
+        # raw thermistor microvolts (optional; emitted by hardware
+        # implementations that report the raw ADC reading alongside temp)
+        self.gw_microvolts = f"{self.base}-gw-microvolts"
+
+        # relay states
+        self.failsafe_relay_state = f"{self.base}-failsafe-relay"
+        self.ops_relay_state = f"{self.base}-ops-relay"

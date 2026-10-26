@@ -3,7 +3,9 @@
 import time
 from typing import TYPE_CHECKING
 
-from gwsproto.data_classes.house_0_names import H0CN
+from gwsproto.names.hydronic_spaceheat.channel_names import (
+    HydronicSpaceheatChannelNames as HCN,
+)
 
 if TYPE_CHECKING:
     from actors.procedural.procedural_host import ProceduralHost
@@ -63,7 +65,7 @@ class DistPumpMonitor:
         # --------------------------------------------------------
         # Do we have flow data?
         # --------------------------------------------------------
-        flow_gpm_x100 = h.data.latest_channel_values.get(H0CN.dist_flow)
+        flow_gpm_x100 = h.data.latest_channel_values.get(HCN.dist_flow)
         if flow_gpm_x100 is None:
             h.log("[DistPumpCheck] Dist flow not found in latest channel values")
             return False
@@ -132,19 +134,25 @@ class DistPumpMonitor:
     # ------------------------------------------------------------
 
     def _any_zones_calling(self) -> bool:
+        """True when any zone-call circuit's heat-call channel reads calling.
+
+        The derived generator computes a circuit's heat-call channel from
+        whichever raw source the layout gives the circuit (opto input or
+        whitewire power), so this read is source-neutral.
+        """
         h = self.host
 
-        for i in h.h0cn.zone:
-            whitewire_name = h.h0cn.zone[i].whitewire_pwr
+        for circuit in h.layout.hydronic.ZoneCallCircuits:
+            heat_call_name = h.layout.heat_call_channel(circuit)
 
-            value = h.data.latest_channel_values.get(whitewire_name)
+            value = h.data.latest_channel_values.get(heat_call_name)
             if value is None:
                 h.log(
-                    f"[DistPumpCheck] {whitewire_name} missing from channel values"
+                    f"[DistPumpCheck] {heat_call_name} missing from channel values"
                 )
                 continue
 
-            if abs(value) > h.settings.whitewire_threshold_watts:
+            if value >= 1:
                 return True
 
         return False

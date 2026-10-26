@@ -1,18 +1,10 @@
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class GpmFromHzMethod(AslEnum):
-    """
-
-    Values:
-      - Constant
-
-    For more information:
-      - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
-      - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#gpmfromhzmethod)
-    """
+class GpmFromHzMethod(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/gpm.from.hz.method/000"""
 
     Constant = auto()
 

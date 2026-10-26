@@ -1,0 +1,55 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/energy.instruction/000"
+
+title: "energy.instruction"
+type: object
+description: >
+  Energy dispatch instruction sent to a terminal asset for a specific market slot.
+
+properties:
+
+  FromGNodeAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+
+  SlotStartS:
+    $ref: "https://schemas.electricity.works/formats/utc.seconds"
+    description: >
+      UTC start time of the dispatch slot in seconds. SHALL fall on the top of a minute.
+
+  SlotDurationMinutes:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+
+  SendTimeMs:
+    $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+
+  AvgPowerWatts:
+    type: integer
+
+  TypeName:
+    const: "energy.instruction"
+
+  Version:
+    const: "000"
+
+required:
+  - FromGNodeAlias
+  - SlotStartS
+  - SlotDurationMinutes
+  - SendTimeMs
+  - AvgPowerWatts
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "SlotStartOnMinuteBoundary"
+      statement: >
+        SlotStartS SHALL be divisible by 60.
+    - number: 2
+      name: "SendTimeProximityToSlotStart"
+      statement: >
+        SendTimeMs SHALL be no more than 10 seconds after SlotStartS * 1000.

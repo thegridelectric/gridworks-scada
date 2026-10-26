@@ -3,13 +3,11 @@
 #  - Sent as-is, not in hex symbol
 from enum import auto
 
-from gwproto.enums.relay_event_base import RelayEventBase
+from gwsproto.enums.relay_event_base import RelayEventBase
 
 
 class ChangeHeatPumpControl(RelayEventBase):
-    """
-    Change control between a fallback analog system and SCADA
-    """
+    """Sema: https://schemas.electricity.works/enums/change.heat.pump.control/000"""
 
     SwitchToTankAquastat = auto()
     SwitchToScada = auto()

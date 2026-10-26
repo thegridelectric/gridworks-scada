@@ -1,11 +1,11 @@
 
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class LocalControlBufferOnlyState(AslEnum):
-    """ASL: https://schemas.electricity.works/enums/gw1.local.control.buffer.only.state/000"""
+class LocalControlBufferOnlyState(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/gw1.local.control.buffer.only.state/001"""
 
     Initializing = auto()
     HpOn = auto()
@@ -15,6 +15,10 @@ class LocalControlBufferOnlyState(AslEnum):
     @classmethod
     def enum_name(cls) -> str:
         return "gw1.local.control.buffer.only.state"
+
+    @classmethod
+    def enum_version(cls) -> str:
+        return "001"
 
     @classmethod
     def values(cls) -> list[str]:

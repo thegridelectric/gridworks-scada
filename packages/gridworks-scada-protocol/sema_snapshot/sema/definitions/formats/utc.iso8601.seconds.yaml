@@ -1,0 +1,23 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/formats/utc.iso8601.seconds"
+
+title: "utc.iso8601.seconds"
+description: >
+  UTC timestamp in ISO 8601 format with second precision (no fractional
+  seconds) and a 'Z' suffix.
+
+type: string
+pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+
+examples:
+  - "2025-02-26T00:00:00Z"
+  - "2025-02-26T00:01:23Z"
+
+counterexamples:
+  - "2025-02-26T00:00:00.000Z"
+  - "2025-02-26T00:00:00.00Z"
+  - "2025-02-26T00:00:00.123Z"
+  - "2025-02-26T00:00:00+00:00"
+
+x-gridworks:
+  owner: "gridworks-energy"

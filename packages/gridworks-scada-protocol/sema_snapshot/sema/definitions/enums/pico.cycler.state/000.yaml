@@ -1,0 +1,41 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/pico.cycler.state/000"
+
+title: "pico.cycler.state"
+type: "string"
+description: >
+  States of the scada's pico-cycler state machine, reported through
+  single.machine.state. A power cycle walks RelayOpening, RelayOpen,
+  RelayClosing and PicosRebooting, and ends in PicosLive or AllZombies.
+
+enum:
+  - "Dormant"
+  - "PicosLive"
+  - "RelayOpening"
+  - "RelayOpen"
+  - "RelayClosing"
+  - "PicosRebooting"
+  - "AllZombies"
+
+default: "PicosLive"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "Dormant": >
+      The cycler is a leaf of the command tree and commands nothing.
+    "PicosLive": >
+      Every tended pico is posting; nothing to do.
+    "RelayOpening": >
+      The vdc relay has been told to open; waiting for it to report open.
+    "RelayOpen": >
+      The vdc relay is open and the hold is elapsing.
+    "RelayClosing": >
+      The vdc relay has been told to close; waiting for it to report closed.
+    "PicosRebooting": >
+      The vdc relay is closed; waiting for the picos the cycle was for to
+      post again.
+    "AllZombies": >
+      The reboot window passed with a pico still silent; the cycler waits
+      for the slow shake cadence.

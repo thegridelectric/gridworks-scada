@@ -1,7 +1,7 @@
 """Tests tank.module.params type, version 200"""
 
 import pytest
-from pydantic import ValidationError
+from tests.named_types.sema_oracle import assert_refused
 
 from gwsproto.enums import PicoBoardVariant
 from gwsproto.named_types import TankModuleParams
@@ -29,8 +29,7 @@ def test_tank_module_params_generated() -> None:
 
 def test_tank_module_params_axiom_1() -> None:
     d = dict(WIRE_200, PicoAB="c")
-    with pytest.raises(ValidationError, match="Axiom 1"):
-        TankModuleParams.model_validate(d)
+    assert_refused(TankModuleParams, d, "Axiom 1")
 
 
 def test_unknown_board_coerces_to_unknown() -> None:
@@ -48,5 +47,5 @@ def test_version_110_wire_shape_is_rejected() -> None:
         if k not in ("PicoBoardVariant", "MicropythonVersion")
     }
     d["Version"] = "110"
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValueError):  # twin-only: the scada decodes one version
         TankModuleParams.model_validate(d)

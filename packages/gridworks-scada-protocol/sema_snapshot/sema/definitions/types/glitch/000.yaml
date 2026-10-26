@@ -1,0 +1,80 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/glitch/000"
+
+title: "glitch"
+type: object
+description: >
+  An actor's report of an unexpected or noteworthy runtime event, tagged with
+  a logging severity. Glitches are raised by SCADA actors and forwarded up to
+  the LeafTransactiveNode.
+
+properties:
+
+  FromGNodeAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      Alias of the GNode on which the glitch has occurred.
+
+  Node:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      Subsystem identifier on which the glitch has occurred.
+
+  Type:
+    $ref: "https://schemas.electricity.works/enums/log.level/000"
+    description: >
+      Logging level of the glitch.
+
+  Summary:
+    type: string
+    description: >
+      Short, human-readable summary of the event.
+
+  Details:
+    type: string
+    description: >
+      Longer human-readable detail about the event, such as context or a
+      stack trace. May be empty.
+
+  CreatedMs:
+    $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+    description: >
+      Time at which the reporting node created this glitch.
+
+  TypeName:
+    const: "glitch"
+
+  Version:
+    const: "000"
+
+required:
+  - FromGNodeAlias
+  - Node
+  - Type
+  - Summary
+  - Details
+  - CreatedMs
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+x-gridworks:
+  owner: "gridworks-energy"
+  extended_description: >
+    glitch is the actor-level mechanism by which a SCADA deployment reports
+    unexpected or noteworthy runtime events. Actors call helpers such as
+    send_critical, send_error, send_warning, and send_info, each of which
+    builds a glitch tagged with the corresponding log.level Type and sends it
+    toward the LeafTransactiveNode. A SCADA node relays glitches it receives
+    from its actors onward to the LeafTransactiveNode, which broadcasts them.
+
+    glitch is fire-and-forget: it is neither persisted nor acknowledged, so a
+    glitch raised while the node is offline is lost.
+
+    gridworks.event.problem covers similar ground from a different lineage --
+    it is inherited from the gwproactor framework rather than originating in
+    GridWorks vocabulary. GridWorks expects to consolidate on glitch and
+    retire gridworks.event.problem, and to add a companion glitch.event type
+    for events that must be persisted and re-sent until acknowledged, so an
+    operator can recover the error history after an internet outage.

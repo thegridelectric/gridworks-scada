@@ -1,0 +1,1539 @@
+# GENERATED FILE - DO NOT EDIT
+# Generated from definitions/registry.yaml
+
+
+types:
+  ads.channel.config:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version (flattened from the scada AdsChannelConfig runtime; ThermistorMakeModel -> ThermistorDeviceType). Carries only the per-channel hardware binding; capture/report tuning lives in operational-params (capture.tuning), not the static layout — no Unit/Exponent (redundant; carried by channel identity) or PollPeriodMs/CapturePeriodS/AsyncCapture/AsyncCaptureDelta."
+
+  ads111x.based.component.gt:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version (flattened from the scada Ads111xBasedComponentGt runtime)."
+
+  ads111x.based.device.type.gt:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial draft (specialized device-type record; per-family successor to the field ads111x.based.cac.gt, keyed by DeviceType)."
+
+  analog.dispatch:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version"
+
+  async.btu.params:
+    latest_version: "100"
+    versioning_strategy: "literal"
+    versions:
+      "100":
+        summary: >
+          - PicoBoardVariant: add
+          - MicropythonVersion: add
+
+  baseurl.failure.alert:
+    latest_version: "100"
+    versioning_strategy: "literal"
+    versions:
+      "100":
+        summary: "Initial Sema version (registered from the shipped pico wire shape, version 100)."
+
+  bid:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version"
+
+  capture.tuning:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version — the per-channel capture params (CapturePeriodS, AsyncCapture, AsyncCaptureDelta, PollPeriodMs) extracted from the channel-config family into operational-params."
+
+  channel.readings:
+    latest_version: "002"
+    versioning_strategy: "literal"
+    versions:
+      "002":
+        summary: >
+          - ChannelId: remove
+          - additionalProperties: true -> false
+
+  cop.curve:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version (Intercept, OatCoeff, LwtCoeff, Min, MinOatF) — the COP model migrated out of scada deployment config into operational params."
+
+  dac.output.config:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version (ChannelName, ActorName, DacChannel). The EEPROM power-on fields and their axiom left in place for zero.ten.power.on in operational-params; chip and board facts are scada driver tables."
+
+  data.channel.gt:
+    latest_version: "004"
+    versioning_strategy: "literal"
+    versions:
+      "004":
+        summary: >
+          - Quantity: gw1.quantity 000 -> 003
+          - TelemetryQuantityConsistency axiom: spaceheat.telemetry.quantity.projection 000 -> 001
+
+  derived.channel.gt:
+    latest_version: "003"
+    versioning_strategy: "literal"
+    versions:
+      "003":
+        summary: >
+          - OutputUnit: gw1.unit 001 -> 003
+          - OutputQuantity: gw1.quantity 001 -> 003
+          - OutputUnitQuantityConsistency axiom: gw1.unit.quantity.projection 000 -> 001
+
+  device.component.gt:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial: ComponentId + DeviceType (pascal.case) + optional DisplayName / HwUid / Description."
+
+  dfr.config:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version (flattened from the scada DfrConfig runtime). Carries only the per-channel hardware binding; capture/report tuning lives in operational-params (capture.tuning), not the static layout — no Unit/Exponent (redundant; carried by channel identity) or PollPeriodMs/CapturePeriodS/AsyncCapture/AsyncCaptureDelta."
+
+  egauge.register.config:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version (flattened from the scada EgaugeRegisterConfig runtime)."
+
+  electric.meter.channel.config:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version (flattened from the scada ElectricMeterChannelConfig runtime). Carries only the per-channel hardware binding; capture/report tuning lives in operational-params (capture.tuning), not the static layout — no Unit/Exponent (redundant; carried by channel identity) or PollPeriodMs/CapturePeriodS/AsyncCapture/AsyncCaptureDelta."
+
+  electric.meter.component.gt:
+    latest_version: "001"
+    versioning_strategy: "literal"
+    versions:
+      "001":
+        summary: "Initial Sema version (flattened from the scada ElectricMeterComponentGt runtime). ComponentAttributeClassId (cac UUID) -> DeviceType (gw1.device.type value, pascal.case): the device type lived on the referenced cac, not the component."
+
+  electric.meter.device.type.gt:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial draft (specialized device-type record; replaces electric.meter.cac.gt category data, keyed by DeviceType)."
+
+  energy.instruction:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version"
+
+  flo.params.house0:
+    latest_version: "007"
+    versioning_strategy: "literal"
+    versions:
+      "007":
+        summary: "- FloGitCommit: add"
+
+  flow.hall.params:
+    latest_version: "101"
+    versioning_strategy: "literal"
+    versions:
+      "101":
+        summary: "Initial Sema version (registered from the shipped gwsproto FlowHallParams wire shape, version 101)."
+
+  fsm.atomic.report:
+    latest_version: "001"
+    versioning_strategy: "literal"
+    versions:
+      "001":
+        summary: >
+          - ActionType: remove
+          - Action: scalar -> unconstrained object payload
+
+  fsm.event:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version"
+
+  fsm.full.report:
+    latest_version: "001"
+    versioning_strategy: "literal"
+    versions:
+      "001":
+        summary: "- AtomicList[]: fsm.atomic.report:000 -> 001"
+
+  g.node.gt:
+    latest_version: "006"
+    versioning_strategy: "literal"
+    versions:
+      "006":
+        summary: "- Axiom 2 (PhysicalGNodeLocations) becomes activation-conditioned: PositionPointId is mandatory only when Status is Active — a Pending physical GNode may be locationless"
+
+  glitch:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version"
+
+  gpio.relay.component.gt:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "- Initial version. Board-resident per-relay GPIO component: required BoardComponentId (-> scada.board.component.gt), GpioName (-> the board record's NativeGpioOutputs), ConfigList of exactly one relay.control.config; no DeviceType (TypeName is the kind, the board component carries the board identity)."
+
+  gpio.sensor.component.gt:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "- Initial version. Board-resident per-sensor GPIO component, the input sibling of gpio.relay.component.gt: required BoardComponentId (-> scada.board.component.gt), GpioName (-> the board record's NativeGpioInputs), SenseMode; binary 1/0 sense; no DeviceType (TypeName is the kind, the board component carries the board identity); no SendToDerived (derived routing is computed from DerivedChannel InputChannelNames); no ConfigList (channel binds via DataChannel, capture tuning in operational params). Replaces gw108.gpio.sensor.component.gt."
+
+  gw.boiler.backup:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "FailsafeRelayName and AquastatCtrlRelayName (spaceheat.name), InService (boolean). Axiom DistinctRelays. Carried by gw.hydronic as one kind of the optional Backup."
+
+  gw.command.interface:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version."
+
+  gw.command.transition:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version."
+
+  gw.dispatch.ack:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version"
+
+  gw.dispatch.hold:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version. OperatorHold + ServiceContractBroken, both required."
+
+  gw.dispatch.nack:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version"
+
+  gw.element.backup:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "ElementRelayNames (spaceheat.name list), InService (boolean). Axioms NonEmptyElements, DistinctElements. Carried by gw.hydronic as one kind of the optional Backup."
+
+  gw.house.operating.status:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version. ScadaAlias + ValidationState (from the deed) + Standby x StandbyPosture + SeasonalStorageMode + ServiceMode + AcceptsDispatch x DispatchRefusalReason (the derived answer, present iff refusing, axiom 1; Standby refuses as OperatorHold, axiom 2) + TopState + ScadaBlind + LtnDispatching + CreatedMs. The slow facts of the LTN-scada agreement; nothing that cycles inside a healthy hour."
+
+  gw.house0.family.params:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version: SiegLoopStrategy, KeepBufferFull, SeasonalStorageMode. All required."
+
+  gw.house0.layout:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "The complete deployable artifact for a House0-fleet home: every collection and Hydronic required. The word MEANS has-a-siegenthaler-loop (beech, maple); sieg-less homes are gw.house0.no.sieg. Components: eGauge, ADS111x thermistor snaps, the House0 board record (Krida expanders and GP8403 DACs) with per-relay and per-output components, pico flow and BTU meters, tank modules real and sim, Hubitat with poller, web-server, all over the DeviceType record model. The axioms carry the layout invariants; wording is identical across layout words where the axiom name is shared. The cold-override command node is required; the backup command node exists if and only if Hydronic.Backup is present, and the relays a backup names are Relay ShNodes (axiom BackupRelays)."
+
+  gw.hydronic:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: >
+          - Typed hydronic block promoted out of gw.house0.layout's freeform Hydronic: Zones (gw1.hvac.zone list), ZoneCallCircuits (gw1.zone.call.circuit list, required), PrimaryFlowSource (gw.primary.flow.source), Strategy. Axioms: Cardinality, CircuitResolution. The Siegenthaler-loop flags left this word: plumbed-ness is what a has-sieg layout word means, and use is operational (gw.house0.family.params SiegLoopStrategy).
+          - HpCommandNodeName (optional spaceheat.name): the node that takes heat-pump commands under hp-boss; absent = nothing commands the heat pump. The layout words' CommandableHeatPump axiom governs it.
+          - Strategy dropped: the control family is the layout word's own TypeName (invariant per word, so not a data field; the same rule that retired SiegLoopPlumbed).
+          - WaterStore (optional gw.water.store): the water store tanks; absent for a layout whose store is not water tanks. Cardinality bounds the zones.
+          - PrimaryPumpOwner (gw.primary.pump.owner, required): who runs the primary pump, the heat pump or the scada; the layout words' PrimaryPumpActuators axiom ties the actuator nodes to it. RefrigerantCycle (gw.refrigerant.cycle, required): single compressor or two-compressor cascade, for the optimizer's COP model.
+          - Backup (optional, one of gw.boiler.backup or gw.element.backup): the backup heat; absent for a layout with no backup.
+          - CircuitResolution b: a circuit's CircuitPosition is its 1-based place in ZoneCallCircuits. PrimaryCircuit axiom: each zone's PrimaryCircuitPosition names a circuit serving that zone, and that circuit carries a setpoint channel. CircuitDistinctness axiom: no two circuits share a Name, a whitewire channel, a setpoint channel, a temperature channel or a relay node. CircuitResolution d is dropped: PrimaryCircuit implies every zone is served.
+
+  gw.native.gpio.pin:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial draft (Name, BcmPin)."
+
+  gw.nolan.family.params:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version: KeepBufferFull, SeasonalStorageMode, BufferFullF, BufferChargeF. All required. Axiom 1: BufferChargeF below BufferFullF."
+
+  gw.nolan.layout:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "The complete deployable artifact for a Nolan home: monobloc heat pump, one store tank, the gw108 board. Components are the cac-free DeviceType versions; DeviceTypes holds the per-family device-type records; every relay is a per-relay component against the board record. The axioms carry the layout invariants; wording is identical across layout words where the axiom name is shared. The cold-override command node is required; the backup command node exists if and only if Hydronic.Backup is present, and the relays a backup names are Relay ShNodes (axiom BackupRelays)."
+
+  gw.operational.params:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version. ScadaAlias (the applying Scada's identity — stored/emitted instances self-identify; the layout holds the full GNodes) + FamilyParams (oneOf gw.house0.family.params / gw.nolan.family.params, discriminated by TypeName; the family TypeName pairs the instance with its layout family, so a mismatched pair fails at decode) + CaptureTuningList + ZeroTenPowerOnList + Standby x StandbyPosture x EnergizedStandbyRelays (the standby machine energizes the listed relays and nothing else; the posture names what the list achieves) + ServiceMode + DispatchHold (gw.dispatch.hold: the operator's hold and the cold latch; one of three authorities over dispatch) + CopCurve + HeatingCurve + HpTurnOnMinutes + HpMaxKwEl + LoadOverestimationPercent + UsesBackupWhenCold + HorizonHours + WeatherBundleName (the gw.weather.forecast.bundle.gt the LTN relays and the scada pulls) + Tariff (gw.tou.tariff). All required — no assumed defaults. Axioms 1-2: ChannelName unique across CaptureTuningList, NodeName unique across ZeroTenPowerOnList. Axiom 3: Standby implies DispatchHold.OperatorHold. Axiom 4: the posture fixes the relay list (MonitorOnly empty; House0 NoHeatingOrCooling = hp-failsafe-relay + aquastat-ctrl-relay; Nolan NoHeatingOrCooling empty). Axiom 5: Standby holds a House0 loop at full send (SiegLoopStrategy HoldFullSend)."
+
+  gw.recorded.setpoints:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version: ScadaAlias and SetpointList of single.reading. Axiom 1: ChannelName unique across SetpointList."
+
+  gw.scada.commit:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version. ScadaAlias + GitCommit + MessageCreatedMs."
+
+  gw.state.machine:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version."
+
+  gw.tou.tariff:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version: Alias (left.right.dot), DisplayName, TimezoneStr (iana.timezone.str, the new format word replacing a bare string), OnPeakWindows (gw.tou.window list). Axiom 1: per-day window non-overlap (moved here from the two operational-params words)."
+
+  gw.tou.window:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version: Start (inclusive) and End (exclusive) hh.mm plus Days (day.of.week list). Axioms: Start strictly before End (no midnight wrap); Days non-empty and duplicate-free."
+
+  gw.water.store:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "TotalStoreTanks (positive.int), at most 6 (axiom TankCount). Carried by gw.hydronic as the optional WaterStore."
+
+  gw.weather.channel.gt:
+    latest_version: "002"
+    versioning_strategy: "literal"
+    versions:
+      "002":
+        summary: >
+          - LocationAlias: removed; StationAlias: add (the gw.weather.station.gt whose readings this series is)
+          - Name: derived from StationAlias and Quantity
+
+  gw.weather.forecast:
+    latest_version: "001"
+    versioning_strategy: "literal"
+    versions:
+      "001":
+        summary: >
+          - SourceUpdatedTime, Fidelity, TempChannelName, TempValues, WindSpeedChannelName, WindSpeedValues: removed
+          - SeriesList: add (gw.weather.forecast.series 000, one per bound channel)
+
+  gw.weather.forecast.binding:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version."
+
+  gw.weather.forecast.bundle.gt:
+    latest_version: "002"
+    versioning_strategy: "literal"
+    versions:
+      "002":
+        summary: >
+          - TempForecastChannel, TempObservationChannel, WindSpeedForecastChannel, WindSpeedObservationChannel: removed
+          - BindingList: add (gw.weather.forecast.binding 000, one per quantity)
+
+  gw.weather.forecast.channel.gt:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version."
+
+  gw.weather.forecast.series:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version."
+
+  gw.weather.seasonal.template.gt:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version."
+
+  gw0.required.energy.layered:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version. A parameterless marker: the word names the computation, so a consumer states which model produced a value rather than agreeing on one out of band."
+
+  gw0.usable.energy.layered:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version. A parameterless marker: the word names the computation, so a consumer states which model produced a value rather than agreeing on one out of band."
+
+  gw1.hvac.zone:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: >
+          - New shared zone type (Name, Critical, KwhPerDegF, TempChannelName) replacing the former parallel ZoneList / CriticalZoneList / ZoneKwhPerDegFList in the hydronic block.
+          - PrimaryCircuitPosition (required positive.int) names the zone's primary circuit; TempChannelName dropped: the zone's air temperature is its primary circuit's.
+
+  gw1.scada.device.type.gt:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Board descriptor (DeviceType, DisplayName, MinPollPeriodMs, TelemetryNameList, NativeGpio, Expanders, Muxes, I2cRelays, SupportsPinReadback, RelayEnergizedLevel, CtAdc, ThermistorAdcs, Dacs; axioms BusMembership / ExpanderMembership / BoardIdentifierUniqueness / MuxConsistency / RelayEnergizedLevelRange / SingleBus). The record describes what is allowed; deployment choices (DIP-selected expander address, chosen wiring) live on the component and layout."
+
+  gw1.simple.sim.layout:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Minimal baseline stub (TypeName + Version only) to seed the layout round-trip loop; built up bit by bit toward the simulated plant's needs."
+
+  gw1.tank.temp.calibration:
+    latest_version: "001"
+    versioning_strategy: "literal"
+    versions:
+      "001":
+        summary: >
+          - Depth{1,2,3}B: number -> integer (offset in the OutputUnit/FahrenheitX100 scaling
+            domain, mirroring linear.one.dimensional.calibration/000)
+
+  gw1.tank.temp.calibration.map:
+    latest_version: "001"
+    versioning_strategy: "literal"
+    versions:
+      "001":
+        summary: "- Buffer/Tank now reference gw1.tank.temp.calibration:001 (integer B)"
+
+  gw1.unit.quantity.projection:
+    latest_version: "001"
+    versioning_strategy: "literal"
+    versions:
+      "001":
+        summary: >
+          - Unit: gw1.unit 001 -> 003
+          - Quantity: gw1.quantity 001 -> 003
+          - projection.table: add DollarsX1000 -> Currency, MilesPerHourX1000 -> WindSpeed, KilowattHoursX1000 -> Energy, WattsPerSquareMeter -> Irradiance
+
+  gw1.zone.call.circuit:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Circuit record (CircuitPosition as the place in the layout's circuit list, Name, ServesZone, EmitterType, CanCool, SetpointSource, Thermostat, WhitewireChannelName, optional SetpointChannelName, optional TempChannelName for the air temperature sensed at the circuit's thermostat, optional FloorTempChannelName, FailsafeRelayNode, OpsRelayNode); OnlyFanCoilsCool, ReadSetpointNeedsCommsStat and SetpointNeedsTemp axioms."
+
+  gw1.zone.thermostat:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Thermostat record (Kind, optional ComponentId); NoComponentOnDumbStat axiom."
+
+  ha1.params:
+    latest_version: "006"
+    versioning_strategy: "literal"
+    versions:
+      "006":
+        summary: "HpMaxKwEl replaces HpMaxKwTh, required; the five Cop fields required; HpTurnOnMinutes added, required (the shape every scada has published at this version)"
+
+  heating.curve:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version (AlphaTimes10, BetaTimes100, GammaEx6, IntermediatePowerKw, IntermediateRswtF, DdPowerKw, DdRswtF, DdDeltaTF, MaxEwtF) — the house thermal model migrated out of scada deployment config into operational params."
+
+  heating.forecast:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version"
+
+  hp.control.box.device.type.gt:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version (retires the HpModel enum-plus-settings pattern; per-family device-type record keyed by DeviceType)."
+
+  hp.device.type.gt:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version (retires the HpModel enum-plus-settings pattern; per-family device-type record keyed by DeviceType; absorbs HpMaxKwEl as MaxKwEl)."
+
+  hubitat.component.gt:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version (flattened from the scada HubitatComponentGt runtime)."
+
+  hubitat.gt:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Flattened from the scada HubitatGt runtime; derived URL helpers excluded. MacAddress moved type:string -> $ref formats/mac.address (lowercase-hex constraint; edited in place, not yet web-published)."
+
+  hubitat.poller.component.gt:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version (flattened from the scada HubitatPollerComponentGt runtime)."
+
+  hubitat.poller.gt:
+    latest_version: "001"
+    versioning_strategy: "literal"
+    versions:
+      "001":
+        summary: "Enabled dropped: whether a device is polled is the layout's DisabledNodeNames, not a per-poller flag; Attributes are maker.api.attribute.gt:001. WebListenEnabled stays (it names the transport path)."
+
+  i2c.bit.address:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial draft (I2cAddress, RegisterIndex, BitIndex)."
+
+  i2c.bus:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial draft (Name, BusNumber)."
+
+  i2c.ct.interface.capability:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "- Initial version. CT sibling of i2c.thermistor.interface.capability: Name, I2cBus, I2cAddress, AdcType, AdcReferenceVolts, Channels. Replaces the generic i2c.adc.capability (deleted; staging-only, single referrer)."
+
+  i2c.dac.capability:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version (DacName, I2cBus, I2cAddress, optional MuxName/MuxChannel naming the board mux the DAC sits behind, DacType, Channels; MuxPairing axiom); renames i2c.dac.config — the record describes what the board offers, not a chosen configuration."
+
+  i2c.dac.output.component.gt:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version. Per-output component on the i2c.relay.component.gt pattern: BoardComponentId (-> scada.board.component.gt), DacName (-> the board record's DAC list), ConfigList of exactly one dac.output.config. Replaces the chip-level i2c.dac.writer.component.gt."
+
+  i2c.expander:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version (ExpanderIdx, I2cBus, ExpanderType, I2cAddress, AllowedI2cAddressList; Axiom 1 AddressSpecification: exactly one of the two address fields)."
+
+  i2c.mux:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version (MuxName, I2cBus, I2cAddress, MuxType, Channels)."
+
+  i2c.read.bit:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial draft (Bus, Address, TriggerId)."
+
+  i2c.read.bytes:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version (Bus, I2cAddress, NumBytes, TriggerId)."
+
+  i2c.read.reg:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial draft (Bus, Address, NumBytes, TriggerId)."
+
+  i2c.reg.address:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial draft (I2cAddress, RegisterIndex)."
+
+  i2c.relay.capability:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version (RelayName, ExpanderIdx, RegisterIndex, BitIndex, SupportedWiringConfigs, Notes). Replaces i2c.relay.config: 'capability' says what is possible, not a chosen configuration; the expander I²C address moves to the board's i2c.expander entry (fixed or DIP-selectable), the chosen address to the component."
+
+  i2c.relay.component.gt:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "- Initial version. Board-resident per-relay expander component: required BoardComponentId (-> scada.board.component.gt), RelayName (-> the board record's I2cRelays), ConfigList of exactly one relay.control.config; no DeviceType (TypeName is the kind, the board component carries the board identity)."
+
+  i2c.result:
+    latest_version: "001"
+    versioning_strategy: "literal"
+    versions:
+      "001":
+        summary: "Operation ref moves to i2c.operation/001; optional Bytes list for multi-byte (ReadBytes) results."
+
+  i2c.thermistor.channel.config:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version. Unit: drop (redundant; unit and scaling are carried by channel identity). Exponent: drop (redundant; unit and scaling are carried by channel identity). CapturePeriodS / AsyncCapture / AsyncCaptureDelta / PollPeriodMs: drop (capture/report tuning moved to operational-params capture.tuning). SendToDerived: drop (derived routing is computed from DerivedChannel InputChannelNames)."
+
+  i2c.thermistor.interface.capability:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version (Name, I2cBus, I2cAddress, AdcType, SupportedDataRatesSps — the conversion-rate menu the reader's DataRateSps must come from, AdcReferenceVolts, SeriesResistanceKOhms); renames i2c.thermistor.interface.config — the record describes what the board offers, not a chosen configuration."
+
+  i2c.thermistor.reader.component.gt:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version. ComponentAttributeClassId (cac UUID) -> DeviceType (gw1.device.type value, pascal.case) -> dropped (TypeName is the kind; board identity lives on the board component). Bus, AdcAddress, AdcReferenceVolts, SeriesResistanceKOhms dropped (facts on the board's thermistor-interface capability entry); AdcName added, naming that entry in the board record's ThermistorAdcs; DataRateSps added (the per-conversion data rate the reader writes in the ADC config word — a member of the board ADC's SupportedDataRatesSps); BoardComponentId added, anchoring the reader to its scada.board.component.gt. Context-dependent: AdcName and BoardComponentId are derived from the source layout, which the standalone component does not carry."
+
+  i2c.write.bit:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial draft (Bus, Address, Value, TriggerId)."
+
+  i2c.write.byte:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version (Bus, I2cAddress, Value, TriggerId)."
+
+  i2c.write.reg:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial draft (Bus, Address, NumBytes, Value, TriggerId)."
+
+  latest.price:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version"
+
+  layout.lite:
+    latest_version: "013"
+    versioning_strategy: "literal"
+    versions:
+      "013":
+        summary: >
+          - ShNodes: spaceheat.node.gt:301 -> 303
+          - DataChannels: data.channel.gt:002 -> 004
+          - TankModuleComponents, FlowModuleComponents and TMap leave: no consumer reads the pico components or the calibration map off the projection; the hardware layout is their source.
+          - I2cRelayComponent leaves: the relay component is read off the hardware layout, and the projection has no reader for it.
+          - SystemMode and SeasonalStorageMode leave: the posture facts (Standby, StandbyPosture, SeasonalStorageMode, ServiceMode, AcceptsDispatch, DispatchRefusalReason) ride gw.house.operating.status, sent after the startup announcements and on change, so the LTN has one source for them.
+          - Strategy (free manifold-variant string) -> HardwareLayoutTypeName (left.right.dot): the loaded layout word's TypeName is the family; a format, not an enum of layout words, so this word publishes independently of the layout words' status.
+          - BufferShortCycling, Ha1Params and TotalStoreTanks leave: operational parameters are not layout; the LTN gets them from its own settings and its own hardware layout until it holds the ops word, and a layout with no store tanks cannot fill a positive tank count.
+          - MessageCreatedMs -> CreatedMs: the sender-clock name every word takes by default.
+          - StateMachines: one gw.state.machine per machine the running scada hosts (hosting node Name, state enum, enum version), so a report's MachineHandle resolves by its last dotted segment to a declared, versioned enum.
+
+  linear.one.dimensional.calibration:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version. B: number -> integer. Semantics: clarify OutputUnit scaling domain."
+
+  machine.states:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version"
+
+  maker.api.attribute.gt:
+    latest_version: "001"
+    versioning_strategy: "literal"
+    versions:
+      "001":
+        summary: "Enabled dropped: whether a channel is read is the layout's DisabledChannelNames, not a per-attribute flag. WebPollEnabled and WebListenEnabled stay (they name the transport path)."
+
+  new.command.tree:
+    latest_version: "003"
+    versioning_strategy: "literal"
+    versions:
+      "003":
+        summary: >
+          - ShNodes: spaceheat.node.gt:302 -> 303
+          - Axiom 2 ActuatorLeaves: FiveVBoss joins the command-node classes
+
+  pico.btu.meter.component.gt:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version (flattened from the scada PicoBtuMeterComponentGt runtime). ComponentAttributeClassId (cac UUID) -> DeviceType (gw1.device.type value, pascal.case): the device type lived on the referenced cac, not the component. FlowMeterType: spaceheat.make.model enum value -> gw1.device.type value (pascal.case); the device-type enum is articulated by the hardware layout. ConfigList dropped."
+
+  pico.flow.module.component.gt:
+    latest_version: "001"
+    versioning_strategy: "literal"
+    versions:
+      "001":
+        summary: >
+          - ComponentAttributeClassId (cac UUID) -> DeviceType (gw1.device.type value, pascal.case). Context-dependent: the device type lived on the referenced cac, not the component.
+          - FlowMeterType: spaceheat.make.model enum value -> gw1.device.type value (pascal.case); the device-type enum is articulated by the hardware layout.
+
+  pico.tank.module.component.gt:
+    latest_version: "012"
+    versioning_strategy: "literal"
+    versions:
+      "012":
+        summary: "- ComponentAttributeClassId (cac UUID) -> DeviceType (gw1.device.type value, pascal.case). Context-dependent: the device type lived on the referenced cac, not the component."
+
+  power.watts:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version"
+
+  price.quantity.unitless:
+    latest_version: "001"
+    versioning_strategy: "literal"
+    versions:
+      "001":
+        summary: "Rename PriceTimes1000/QuantityTimes1000 to PriceX1000/QuantityX1000."
+
+  relay.control.config:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "- Initial version. relay.actor.config minus RelayIdx: board-resident relays are identified by name against the board (gw1.scada.device.type.gt), not by a positional index."
+
+  report:
+    latest_version: "003"
+    versioning_strategy: "literal"
+    versions:
+      "003":
+        summary: "- FsmReportList[]: fsm.full.report:000 -> 001"
+
+  report.event:
+    latest_version: "004"
+    versioning_strategy: "literal"
+    versions:
+      "004":
+        summary: "- Axioms: reinstate ReportIdentityPropagation, ReportCreatedTimePropagation and ReportSourcePropagation"
+
+  scada.board.component.gt:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "- Initial version. ComponentId, DeviceType (gw1.device.type board kind), optional I2cAddressList (field-chosen addresses, index-aligned with the record's Expanders), DisplayName, HwUid."
+
+  scada.control.capabilities:
+    latest_version: "002"
+    versioning_strategy: "literal"
+    versions:
+      "002":
+        summary: >
+          - ControlChannels[]: data.channel.gt 003 -> 004
+          - RelayNodes[], DacNodes[], CommandNodes[]: spaceheat.node.gt:302 -> 303
+          - A node may carry more than one CommandInterfaces entry, one per
+            command vocabulary (five-v-boss: turn.5v.on.off and reboot.picos)
+
+  send.control.capabilities:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version"
+
+  send.layout:
+    latest_version: "001"
+    versioning_strategy: "literal"
+    versions:
+      "001":
+        summary: >
+          - FromName: remove
+          - ToName: remove
+          - MessageCreatedMs: add
+
+  setpoint.belief:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Belief pair (Phase, optional ValueF); UnknownIsValueless axiom ties value presence to phase."
+
+  sim.pico.btu.meter.component.gt:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version: the pico.btu.meter.component.gt/000 field set plus SimLifeS / SimRebootS; SimulatesTypeName / SimulatesVersion pin the mirrored word."
+
+  sim.pico.flow.module.component.gt:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version: the pico.flow.module.component.gt/001 field set plus SimLifeS / SimRebootS; SimulatesTypeName / SimulatesVersion pin the mirrored word. Axiom 1 HwUidPattern as on the real word."
+
+  sim.pico.tank.module.component.gt:
+    latest_version: "001"
+    versioning_strategy: "literal"
+    versions:
+      "001":
+        summary: "- ComponentAttributeClassId (cac UUID) -> DeviceType (gw1.device.type value, pascal.case); SimulatesVersion 011 -> 012. Context-dependent: the device type lived on the referenced cac, not the component. Optional SimLifeS / SimRebootS (positive.int seconds) script the simulated pico's liveness."
+
+  sim.sensor.component.gt:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version (new sim-marker component for simulated layouts; structurally component.gt)."
+
+  single.machine.state:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version"
+
+  single.reading:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version"
+
+  slow.contract.heartbeat:
+    latest_version: "002"
+    versioning_strategy: "literal"
+    versions:
+      "002":
+        summary: "Reason (gw.dispatch.refusal.reason) beside the free Cause, present iff Status is TerminatedByScada (axiom 6), so a terminating heartbeat names why in the scada's one refusal vocabulary."
+
+  slow.contract.rejection:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version. FromGNodeAlias + ContractId + Reason (gw.dispatch.refusal.reason) + MessageCreatedMs."
+
+  slow.dispatch.contract:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "The wire form gridworks-scada has sent since f38e1e4a (2025-03-03): ScadaAlias + StartS + DurationMinutes + AvgPowerWatts + OilBoilerOn + ContractId. Axiom 1: StartS on a five-minute boundary. Axiom 2: OilBoilerOn means AvgPowerWatts 0."
+
+  snapshot.spaceheat:
+    latest_version: "003"
+    versioning_strategy: "literal"
+    versions:
+      "003":
+        summary: "LatestStateList element: machine.states -> single.machine.state (one state per entry, adds Cause; drops the parallel StateList/UnixMsList arrays). Type moved from gwproto to scada."
+
+  spaceheat.node.gt:
+    latest_version: "303"
+    versioning_strategy: "literal"
+    versions:
+      "303":
+        summary: "- ActorClass: gw1.actor.class:013 -> 014 (adds FiveVBoss)"
+
+  spaceheat.telemetry.quantity.projection:
+    latest_version: "001"
+    versioning_strategy: "literal"
+    versions:
+      "001":
+        summary: "- Quantity: gw1.quantity 000 -> 003"
+
+  synced.readings:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version"
+
+  ta.deed:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version"
+
+  tank.module.params:
+    latest_version: "200"
+    versioning_strategy: "literal"
+    versions:
+      "200":
+        summary: >
+          - PicoBoardVariant: add
+          - MicropythonVersion: add
+
+  ticklist.hall:
+    latest_version: "101"
+    versioning_strategy: "literal"
+    versions:
+      "101":
+        summary: "Initial Sema version"
+
+  ticklist.hall.report:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version"
+
+  ticklist.reed:
+    latest_version: "101"
+    versioning_strategy: "literal"
+    versions:
+      "101":
+        summary: "Initial Sema version"
+
+  ticklist.reed.report:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version"
+
+  web.server.component.gt:
+    latest_version: "001"
+    versioning_strategy: "literal"
+    versions:
+      "001":
+        summary: "Initial Sema version (flattened from the scada WebServerComponentGt runtime; WebServer is an inline object). ComponentAttributeClassId (cac UUID) -> DeviceType (gw1.device.type value, pascal.case): the device type lived on the referenced cac, not the component. ConfigList dropped."
+
+  zero.ten.power.on:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version (NodeName, PowerOnVoltsTimesTen; TenVoltCeiling axiom). Carried per output in ZeroTenPowerOnList on both operational-params words."
+
+  zone.circuit.governance.cmd:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Governance command (FromHandle, ToHandle, Event, optional SetpointF, TriggerId, SendTimeUnixMs); SetpointIffThermostatic axiom."
+
+enums:
+  aquastat.control.state:
+    enum_type: "literal"
+    note: "This enum is literal; version 000 is immutable and exclusive."
+    versions:
+      "000": {}
+
+  base.g.node.class:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  change.relay.pin:
+    enum_type: "literal"
+    note: "This enum is literal; version 000 is immutable and exclusive."
+    versions:
+      "000": {}
+
+  change.relay.state:
+    enum_type: "literal"
+    note: "This enum is literal; version 000 is immutable and exclusive."
+    versions:
+      "000": {}
+
+  change.valve.state:
+    enum_type: "literal"
+    note: "This enum is literal; version 000 is immutable and exclusive."
+    versions:
+      "000": {}
+
+  change.zone.call.source:
+    enum_type: "literal"
+    note: "This enum is literal; version 000 is immutable and exclusive."
+    versions:
+      "000": {}
+
+  day.of.week:
+    enum_type: "literal"
+    note: "This enum is literal; version 000 is immutable and exclusive."
+    versions:
+      "000": {}
+
+  five.v.boss.state:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  fsm.report.type:
+    enum_type: "literal"
+    note: "This enum is literal; version 000 is immutable and exclusive."
+    versions:
+      "000": {}
+
+  g.node.status:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  gpio.sense.mode:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  gpm.from.hz.method:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  gw.dispatch.refusal.reason:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  gw.g.node.class:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  gw.primary.flow.source:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  gw.primary.pump.owner:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  gw.refrigerant.cycle:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  gw.scada.cmd.refusal.reason:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  gw.standby.posture:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  gw.top.state:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  gw.weather.forecast.fidelity:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  gw.zone.emitter.type:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  gw1.actor.class:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "014":
+        added_values:
+          - "FiveVBoss"
+          - "HpWatch"
+          - "ColdWatch"
+
+  gw1.device.type:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  gw1.emission.method:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  gw1.heat.call.interpretation:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  gw1.leaf.ally.all.tanks.state:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "001": {}
+
+  gw1.leaf.ally.buffer.only.state:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "001": {}
+
+  gw1.local.control.all.tanks.state:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "001": {}
+
+  gw1.local.control.buffer.only.state:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "001": {}
+
+  gw1.main.auto.state:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "001": {}
+
+  gw1.nolan.lc.buffer.only.state:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  gw1.quantity:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "003":
+        added_values:
+          - "Irradiance"
+          - "Currency"
+
+  gw1.seasonal.storage.mode:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  gw1.service.mode:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  gw1.sim.device.type:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  gw1.slow.dispatch.contract.status:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  gw1.unit:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "003":
+        added_values:
+          - "WattsPerSquareMeter"
+          - "MilesPerHourX10"
+          - "FahrenheitX10"
+
+  gw2.lc.top.state:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  heat.pump.control:
+    enum_type: "literal"
+    note: "This enum is literal; version 000 is immutable and exclusive."
+    versions:
+      "000": {}
+
+  hp.boss.state:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  hp.loop.keep.send:
+    enum_type: "literal"
+    note: "This enum is literal; version 000 is immutable and exclusive."
+    versions:
+      "000": {}
+
+  hz.calc.method:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "001": {}
+
+  i2c.adc.channel:
+    enum_type: "literal"
+    note: "This enum is literal; version 000 is immutable and exclusive."
+    versions:
+      "000": {}
+
+  i2c.adc.type:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  i2c.dac.channel:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  i2c.dac.type:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  i2c.expander.type:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  i2c.mux.type:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  i2c.operation:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "001":
+        added_values:
+          - "WriteByte"
+          - "ReadBytes"
+
+  log.level:
+    enum_type: "literal"
+    note: "This enum is literal; version 000 is immutable and exclusive."
+    versions:
+      "000": {}
+
+  market.price.unit:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  market.quantity.unit:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  market.type.name:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  move.sieg.valve:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "001":
+        added_values:
+          - "StopValve"
+
+  pico.board.variant:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  pico.cycler.event:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  pico.cycler.state:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  primary.pump.control:
+    enum_type: "literal"
+    note: "This enum is literal; version 000 is immutable and exclusive."
+    versions:
+      "000": {}
+
+  reboot.picos:
+    enum_type: "literal"
+    note: "This enum is literal; version 000 is immutable and exclusive."
+    versions:
+      "000": {}
+
+  relay.closed.or.open:
+    enum_type: "literal"
+    note: "This enum is literal; version 000 is immutable and exclusive."
+    versions:
+      "000": {}
+
+  relay.energization.state:
+    enum_type: "literal"
+    note: "This enum is literal; version 000 is immutable and exclusive."
+    versions:
+      "000": {}
+
+  relay.wiring.config:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  setpoint.phase:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  sieg.loop.strategy:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  sieg.valve.state:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  single.pico.state:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  spaceheat.telemetry.name:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "007":
+        added_values:
+          - "BinaryState"
+
+  spaceheat.unit:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "001": {}
+
+  spruce.hack.hp.state:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  store.flow.relay:
+    enum_type: "literal"
+    note: "This enum is literal; version 000 is immutable and exclusive."
+    versions:
+      "000": {}
+
+  ta.validation.state:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  temp.calc.method:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  thermistor.data.method:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  thermostat.kind:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  turn.5v.on.off:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  turn.hp.on.off:
+    enum_type: "literal"
+    note: "This enum is literal; version 000 is immutable and exclusive."
+    versions:
+      "000": {}
+
+  valve.open.or.closed:
+    enum_type: "literal"
+    note: "This enum is literal; version 000 is immutable and exclusive."
+    versions:
+      "000": {}
+
+  zone.call.circuit.event:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  zone.call.circuit.state:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  zone.call.source:
+    enum_type: "literal"
+    note: "This enum is literal; version 000 is immutable and exclusive."
+    versions:
+      "000": {}
+
+  zone.circuit.governance.event:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  zone.circuit.governance.state:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  zone.setpoint.source:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}

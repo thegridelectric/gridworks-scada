@@ -1,22 +1,10 @@
 from enum import auto
 from typing import List, Optional
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class LogLevel(AslEnum):
-    """
-    
-    Values:
-      - Critical
-      - Error
-      - Warning
-      - Info
-      - Debug
-      - Trace
-
-    For more information:
-      - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
-      - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#loglevel)
+class LogLevel(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/log.level/000
     """
 
     Critical = auto()

@@ -1,0 +1,86 @@
+"""A GPIO relay on a simulated board has no pin to write, but its word to
+its boss is unchanged: the state report and the fsm.full.report under
+the command's TriggerId go out as on a real board. Without this the
+pico-cycler, which waits for the relay's confirmation before closing it
+again, never completes a cycle on a sim board."""
+
+import time
+import uuid
+from pathlib import Path
+
+import pytest
+
+from actors.relay import Relay
+from gwsproto.enums import ChangeRelayPin, ChangeRelayState, MainAutoEvent
+from gwsproto.named_types import FsmEvent, FsmFullReport
+from gwsproto.names.core.node_names import CoreNodeNames
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
+from scada_app import ScadaApp
+
+CONFIG = Path(__file__).parent.parent / "config"
+
+
+@pytest.fixture
+def app() -> ScadaApp:
+    settings = ScadaApp.get_settings()
+    settings.paths.hardware_layout = CONFIG / "gw.nolan.layout.json"
+    settings.paths.operational_params = CONFIG / "gw.nolan.operational.params.json"
+    settings.paths.mkdirs()
+    scada_app = ScadaApp(app_settings=settings)
+    scada_app.instantiate()
+    return scada_app
+
+
+def test_sim_gpio_relay_reports_to_its_boss(app: ScadaApp) -> None:
+    scada = app.scada
+    vdc = scada.layout.vdc_relay
+    relay = scada.get_communicator(vdc.name)
+    assert isinstance(relay, Relay)
+    assert relay.GPIO is None, "the fixture's board must be simulated"
+    sent: list = []
+    relay._send_to = lambda dst, payload, src=None: sent.append((dst.name, payload))
+    cycler = scada.layout.node(HSNN.pico_cycler)
+    event = FsmEvent(
+        FromHandle=cycler.handle,
+        ToHandle=vdc.handle,
+        EventType=ChangeRelayState.enum_name(),
+        EventName=ChangeRelayState.OpenRelay,
+        SendTimeUnixMs=int(time.time() * 1000),
+        TriggerId=str(uuid.uuid4()),
+    )
+
+    relay._process_event_message(cycler.name, event)
+
+    reports = [(dst, p) for dst, p in sent if isinstance(p, FsmFullReport)]
+    assert len(reports) == 1
+    dst, report = reports[0]
+    assert dst == cycler.name
+    assert report.TriggerId == event.TriggerId
+    assert [a.Event for a in report.AtomicList] == [ChangeRelayState.OpenRelay, ChangeRelayPin.Energize]
+
+
+def test_a_relay_commanded_by_admin_reports_to_the_scada(app: ScadaApp) -> None:
+    """Admin does not fold, so the relay's written record goes to the
+    journal, not the panel."""
+    scada = app.scada
+    scada._send_to = lambda dst, payload, src=None: None
+    scada.auto_trigger(MainAutoEvent.AutoGoesDormant)
+    node = scada.layout.vdc_relay
+    node.Handle = f"{CoreNodeNames.admin}.{node.name}"
+    relay = scada.get_communicator(node.name)
+    assert isinstance(relay, Relay)
+    assert relay.GPIO is None
+    sent: list = []
+    relay._send_to = lambda dst, payload, src=None: sent.append((dst.name, payload))
+    event = FsmEvent(
+        FromHandle=CoreNodeNames.admin,
+        ToHandle=node.handle,
+        EventType=relay.my_event_enum.enum_name(),
+        EventName=relay.relay_actor_config.EnergizingEvent,
+        SendTimeUnixMs=int(time.time() * 1000),
+        TriggerId=str(uuid.uuid4()),
+    )
+    relay._process_event_message(CoreNodeNames.admin, event)
+    [(dst, report)] = [(d, p) for d, p in sent if isinstance(p, FsmFullReport)]
+    assert dst == CoreNodeNames.primary_scada
+    assert report.TriggerId == event.TriggerId

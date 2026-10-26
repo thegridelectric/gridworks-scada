@@ -1,0 +1,8 @@
+{
+  "TypeName": "gpio.sensor.component.gt",
+  "Version": "000",
+  "ComponentId": "f49e721c-b510-418e-a6af-843de90b3032",
+  "BoardComponentId": "9b1c5e2a-77d4-4f6e-8c3a-5f2e9d101b44",
+  "GpioName": "Zone1Whitewire",
+  "SenseMode": "Polling"
+}

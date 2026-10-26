@@ -7,57 +7,47 @@ from typing import Dict, List, Optional
 
 from gwproactor.logger import LoggerOrAdapter
 from gwproto import Message
-from gwsproto.enums import TelemetryName
+from gwsproto.enums import LogLevel, TelemetryName
 
 from actors.config import ScadaSettings
-from gwsproto.data_classes.house_0_names import H0N
+from actors.glitch_limit import REPEAT_GLITCH_S, GlitchLimit
 from gwproactor import SyncThreadActor
 from gwsproto.data_classes.components.electric_meter_component import ElectricMeterComponent
 
 from gwsproto.data_classes.data_channel import DataChannel
+from gwsproto.data_classes.derived_channel import DerivedChannel
 from gwsproto.data_classes.sh_node import ShNode
-from drivers.exceptions import DriverWarning
 from drivers.power_meter.egauge_4030__power_meter_driver import EGuage4030_PowerMeterDriver
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
     GridworksSimPm1_PowerMeterDriver,
 )
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
-from drivers.power_meter.unknown_power_meter_driver import UnknownPowerMeterDriver
 from gwproactor.message import InternalShutdownMessage
 from gwproactor.sync_thread import SyncAsyncInteractionThread
-from gwproactor import Problems
-from gwsproto.enums import MakeModel
-from gwsproto.named_types import ElectricMeterChannelConfig, PowerWatts, SyncedReadings
+from gwsproto.enums import DeviceType, SimDeviceType
+from gwsproto.named_types import ChannelFlatlined, ElectricMeterChannelConfig, Glitch, PowerWatts, SingleReading, SyncedReadings
 
-from gwsproto.data_classes.hardware_layout import HardwareLayout
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
+from gwsproto.names.core.node_names import CoreNodeNames
 
 from scada_app_interface import ScadaAppInterface
 
 
-class HWUidMismatch(DriverWarning):
-    expected: str
-    got: str
+def transactive_power_channel(hardware_layout: HydronicLayout) -> DerivedChannel:
+    """The layout's single transactive-power DerivedChannel, the metered
+    power at the transactive boundary. The load-layout axiom guarantees
+    exactly one; the power meter creates it."""
+    for dc in hardware_layout.derived_channels.values():
+        if dc.Strategy == "transactive-power":
+            return dc
+    raise ValueError("No transactive-power DerivedChannel in the layout")
 
-    def __init__(
-            self,
-            expected: str,
-            got: str,
-            msg: str = "",
-    ):
-        super().__init__(msg)
-        self.expected = expected
-        self.got = got
 
-    def __str__(self):
-        s = self.__class__.__name__
-        super_str = super().__str__()
-        if super_str:
-            s += f" <{super_str}>"
-        s += (
-            f"  exp: {self.expected}\n"
-            f"  got: {self.got}"
-        )
-        return s
+def transactive_power_input_names(hardware_layout: HydronicLayout) -> List[str]:
+    """The metered channel names the power meter reads for its transactive
+    boundary: the inputs of the layout's transactive-power DerivedChannel,
+    not per-channel flags."""
+    return list(transactive_power_channel(hardware_layout).InputChannelNames)
 
 
 class DriverThreadSetupHelper:
@@ -68,7 +58,7 @@ class DriverThreadSetupHelper:
 
     node: ShNode
     settings: ScadaSettings
-    hardware_layout: HardwareLayout
+    hardware_layout: HydronicLayout
     component: ElectricMeterComponent
     logger: LoggerOrAdapter
 
@@ -76,7 +66,7 @@ class DriverThreadSetupHelper:
         self,
         node: ShNode,
         settings: ScadaSettings,
-        hardware_layout: HardwareLayout,
+        hardware_layout: HydronicLayout,
         logger: LoggerOrAdapter,
     ):
         if not isinstance(node.component, ElectricMeterComponent):
@@ -91,12 +81,10 @@ class DriverThreadSetupHelper:
         self.logger = logger
 
     def make_power_meter_driver(self) -> PowerMeterDriver:
-        cac = self.component.cac
-        if cac.MakeModel == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
-            driver = UnknownPowerMeterDriver(component=self.component, settings=self.settings)
-        elif cac.MakeModel == MakeModel.GRIDWORKS__SIMPM1:
+        cac = self.component.device_type
+        if cac.DeviceType == SimDeviceType.SimPowerMeter:
             driver = GridworksSimPm1_PowerMeterDriver(component=self.component, settings=self.settings)
-        elif cac.MakeModel == MakeModel.EGAUGE__4030:
+        elif cac.DeviceType == DeviceType.EgaugePowerMeter:
             driver = EGuage4030_PowerMeterDriver(
                 component=self.component,
                 settings=self.settings,
@@ -104,23 +92,28 @@ class DriverThreadSetupHelper:
             )
         else:
             raise NotImplementedError(
-                f"No ElectricMeter driver yet for {cac.MakeModel}"
+                f"No ElectricMeter driver yet for {cac.DeviceType}"
             )
         return driver
 
     def make_eq_reporting_config(self) -> Dict[DataChannel, ElectricMeterChannelConfig]:
         response_dict: Dict[DataChannel, ElectricMeterChannelConfig] = {}
         for config in self.component.gt.ConfigList:
+            if self.hardware_layout.channel_disabled(config.ChannelName):
+                continue
             ch = self.hardware_layout.data_channels[config.ChannelName]
             response_dict[ch] = config
         return response_dict
 
     def get_transactive_nameplate_watts(self) -> Dict[DataChannel, int]:
+        """The transactive boundary's per-channel nameplate, read from the
+        layout's single transactive-power DerivedChannel: its InputChannelNames
+        are the metered channels, and each input's about_node carries the
+        NameplatePowerW (the load-layout axiom guarantees both)."""
         response_dict: Dict[DataChannel, int] = {}
-        for config in self.component.gt.ConfigList:
-            ch = self.hardware_layout.data_channels[config.ChannelName]
-            if ch.InPowerMetering:
-                response_dict[ch] = ch.about_node.NameplatePowerW
+        for name in transactive_power_input_names(self.hardware_layout):
+            ch = self.hardware_layout.data_channels[name]
+            response_dict[ch] = ch.about_node.NameplatePowerW
         return response_dict
 
 
@@ -129,18 +122,24 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
     driver: PowerMeterDriver
     transactive_nameplate_watts: Dict[DataChannel, int]
     last_reported_agg_power_w: Optional[int] = None
+    last_reported_agg_s: Optional[float] = None
+    transactive_channel_name: str
+    transactive_period_s: int
     last_reported_telemetry_value: Dict[DataChannel, Optional[int]]
     latest_telemetry_value: Dict[DataChannel, Optional[int]]
     _last_sampled_s: Dict[DataChannel, Optional[int]]
     async_power_reporting_threshold: float
-    _hardware_layout: HardwareLayout
+    lost_after_s: float
+    last_value_monotonic_s: Dict[DataChannel, float]
+    lost_channels: set[DataChannel]
+    _hardware_layout: HydronicLayout
     _hw_uid: str = ""
 
     def __init__(
         self,
         node: ShNode,
         settings: ScadaSettings,
-        hardware_layout: HardwareLayout,
+        hardware_layout: HydronicLayout,
         responsive_sleep_step_seconds=0.01,
         daemon: bool = True,
         logger: Optional[LoggerOrAdapter] = None,
@@ -163,8 +162,30 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         self.transactive_nameplate_watts = setup_helper.get_transactive_nameplate_watts()
         self.last_reported_agg_power_w: Optional[int] = None
         component: ElectricMeterComponent = typing.cast(ElectricMeterComponent, node.component)
-        my_channel_names = [cfg.ChannelName for cfg in component.gt.ConfigList]
+        my_channel_names = hardware_layout.enabled_channel_names(
+            cfg.ChannelName for cfg in component.gt.ConfigList
+        )
+        if hardware_layout.node_disabled(node.name):
+            my_channel_names = []
         self.my_channels = [hardware_layout.data_channels[name] for name in my_channel_names]
+        self.transactive_channel_names = set(
+            transactive_power_input_names(hardware_layout)
+        )
+        self.transactive_channel_name = transactive_power_channel(hardware_layout).Name
+        periods = {
+            hardware_layout.capture_tuning_by_channel[name].CapturePeriodS
+            for name in self.transactive_channel_names
+        }
+        if len(periods) != 1:
+            raise ValueError(
+                f"{node.Name}: the transactive inputs carry {len(periods)} capture "
+                f"periods {sorted(periods)}; the aggregate posts on one boundary"
+            )
+        self.transactive_period_s = periods.pop()
+        self.last_reported_agg_s = None
+        self.derived_input_channels = {
+            ch for ch in self.my_channels if hardware_layout.feeds_derived([ch.Name])
+        }
         self._validate_channels_with_component(component)
         self.last_reported_telemetry_value = {
             ch: None for ch in self.my_channels
@@ -175,7 +196,17 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         self._last_sampled_s = {
             ch: None for ch in self.my_channels
         }
+        self.tuning_by_ch = {
+            ch: hardware_layout.capture_tuning_by_channel[ch.Name]
+            for ch in self.my_channels
+        }
         self.async_power_reporting_threshold = settings.async_power_reporting_threshold
+        self.lost_after_s = settings.power_meter_lost_after_s
+        self.last_value_monotonic_s = {
+            ch: time.monotonic() for ch in self.my_channels
+        }
+        self.lost_channels = set()
+        self.glitch_limit = GlitchLimit(REPEAT_GLITCH_S)
 
     def _validate_channels_with_component(self, component: ElectricMeterComponent) -> None:
         for channel in self.my_channels:
@@ -186,29 +217,40 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
                 raise Exception(f"Reading power for channel {channel.Name} but this is not in the ConfigList!")
             self.driver.validate_config(channel_config)
 
-    def _report_problems(self, problems: Problems, tag: str, log_event: bool = False):
-        event = problems.problem_event(
-            summary=f"Driver problems: {tag} for {self.driver.component}",
+    def send_glitch(self, level: LogLevel, summary: str, key: str, details: str) -> None:
+        """A glitch to the primary scada, at most once per key per REPEAT_GLITCH_S."""
+        if not self.glitch_limit.due(key):
+            return
+        self._put_to_async_queue(
+            Message(
+                Src=self.name,
+                Dst=CoreNodeNames.primary_scada,
+                Payload=Glitch(
+                    FromGNodeAlias=self._hardware_layout.scada_g_node_alias,
+                    Node=self.name,
+                    Type=level,
+                    Summary=summary,
+                    Details=details,
+                ),
+            )
         )
-        message = Message(Payload=event)
-        if log_event and self._logger.isEnabledFor(logging.DEBUG):
-            self._logger.info(
-                "PowerMeter event:\n"
-                f"{event}"
-            )
-            self._logger.info(
-                "PowerMeter message\n"
-                f"{message.model_dump_json(indent=2)}"
-            )
-        self._put_to_async_queue(message)
 
     def _preiterate(self) -> None:
+        self.last_value_monotonic_s = {
+            ch: time.monotonic() for ch in self.my_channels
+        }
         result = self.driver.start()
         if result.is_ok():
             if result.value.warnings:
-                self._report_problems(Problems(warnings=result.value.warnings), "startup warning")
+                self.send_glitch(
+                    LogLevel.Warning, "meter-start-warning", "meter-start-warning",
+                    f"{self.name}: {'; '.join(str(w) for w in result.value.warnings)}",
+                )
         else:
-            self._report_problems(Problems(errors=[result.err()]), "startup error")
+            self.send_glitch(
+                LogLevel.Warning, "meter-start-error", "meter-start-error",
+                f"{self.name} driver did not start: {result.err()}",
+            )
             self._put_to_async_queue(
                 InternalShutdownMessage(Src=self.name, Reason=f"Driver start error for {self.name}")
             )
@@ -223,16 +265,10 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
                         self.driver.component.gt.HwUid
                         and self._hw_uid != self.driver.component.gt.HwUid
                     ):
-                        self._report_problems(
-                            Problems(
-                                warnings=[
-                                    HWUidMismatch(
-                                        expected=self.driver.component.gt.HwUid,
-                                        got=self._hw_uid,
-                                    )
-                                ]
-                            ),
-                            "Hardware UID read"
+                        self.send_glitch(
+                            LogLevel.Warning, "meter-hw-uid-mismatch", "meter-hw-uid-mismatch",
+                            f"{self.name} reads HwUid {self._hw_uid}; the layout names "
+                            f"{self.driver.component.gt.HwUid}",
                         )
             else:
                 raise hw_uid_read_result.value
@@ -241,6 +277,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         start_s = time.time()
         self._ensure_hardware_uid()
         self.update_latest_value_dicts()
+        self.flush_lost_channels()
         if self.should_report_aggregated_power():
             self.report_aggregated_power_w()
         channel_report_list = [
@@ -250,7 +287,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         ]
         if channel_report_list:
             self.report_sampled_telemetry_values(channel_report_list)
-        sleep_time_ms = self.driver.component.cac.MinPollPeriodMs
+        sleep_time_ms = self.driver.component.device_type.MinPollPeriodMs
         delta_ms = 1000 * (time.time() - start_s)
         if delta_ms < sleep_time_ms:
             sleep_time_ms -= delta_ms
@@ -263,21 +300,43 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
             if read.is_ok():
                 if read.value.value is not None:
                     self.latest_telemetry_value[ch] = read.value.value
+                    self.last_value_monotonic_s[ch] = time.monotonic()
+                    self.lost_channels.discard(ch)
                 if read.value.warnings:
-                    log_event = False
                     if not logged_one and self._logger.isEnabledFor(logging.DEBUG):
                         logged_one = True
-                        log_event = True
                         self._logger.info(f"PowerMeter: TryConnectResult:\n{read.value}")
-                        problems = Problems(warnings=read.value.warnings)
-                        self._logger.info(f"PowerMeter: Problems:\n{problems}")
-                    self._report_problems(
-                        problems=Problems(warnings=read.value.warnings),
-                        tag="read warnings",
-                        log_event=log_event
-                    )
+                    for w in read.value.warnings:
+                        self.send_glitch(
+                            LogLevel.Warning, "meter-read-warning",
+                            f"meter-read-warning {ch.Name} {type(w).__name__}",
+                            f"{ch.Name}: {type(w).__name__}: {w}",
+                        )
             else:
                 raise read.value
+
+    def flush_lost_channels(self) -> None:
+        """A channel with no read that returned a value inside lost_after_s
+        is lost: its values go to None and the scada is told once. The age
+        is monotonic, so a stepped wall clock cannot hold it open."""
+        now = time.monotonic()
+        for ch in self.my_channels:
+            if ch in self.lost_channels:
+                continue
+            if now - self.last_value_monotonic_s[ch] <= self.lost_after_s:
+                continue
+            self.lost_channels.add(ch)
+            self.latest_telemetry_value[ch] = None
+            self.last_reported_telemetry_value[ch] = None
+            if ch.Name in self.transactive_channel_names:
+                self.last_reported_agg_power_w = None
+            self._put_to_async_queue(
+                Message(
+                    Src=self.name,
+                    Dst=CoreNodeNames.primary_scada,
+                    Payload=ChannelFlatlined(FromName=self.name, Channel=ch),
+                )
+            )
 
     def report_sampled_telemetry_values(
         self, channel_report_list: List[DataChannel]
@@ -285,7 +344,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         try:
             msg = Message(
                     Src=self.name,
-                    Dst= H0N.primary_scada,
+                    Dst= CoreNodeNames.primary_scada,
                     Payload=SyncedReadings(
                         ChannelNameList=[ch.Name for ch in channel_report_list],
                         ValueList=[self.latest_telemetry_value[ch] for ch in channel_report_list],
@@ -293,37 +352,55 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
                     )
                 )
             self._put_to_async_queue(msg)
+            derived_input_list = [
+                ch for ch in channel_report_list if ch in self.derived_input_channels
+            ]
+            if derived_input_list:
+                self._put_to_async_queue(
+                    Message(
+                        Src=self.name,
+                        Dst=CoreNodeNames.derived_generator,
+                        Payload=SyncedReadings(
+                            ChannelNameList=[ch.Name for ch in derived_input_list],
+                            ValueList=[self.latest_telemetry_value[ch] for ch in derived_input_list],
+                            ScadaReadTimeUnixMs=msg.Payload.ScadaReadTimeUnixMs,
+                        ),
+                    )
+                )
             for ch in channel_report_list:
                 self._last_sampled_s[ch] = int(time.time())
                 self.last_reported_telemetry_value[ch] = self.latest_telemetry_value[ch]
         except Exception as e:
-            self._report_problems(Problems(warnings=[e, [self.latest_telemetry_value[ch] for ch in channel_report_list]]), "synced reading generation failure")
+            self.send_glitch(
+                LogLevel.Error, "meter-synced-readings", "meter-synced-readings",
+                f"{type(e).__name__}: {e}; values "
+                f"{[self.latest_telemetry_value[ch] for ch in channel_report_list]}",
+            )
 
     def value_hits_async_threshold(self, ch: DataChannel) -> bool:
         """This telemetry tuple is supposed to report asynchronously on change, with
         the amount of change required (as a function of the absolute max value) determined
         in the EqConfig.
         """
-        config = self.eq_reporting_config[ch]
-        if config.AsyncCaptureDelta is None:
+        tuning = self.tuning_by_ch[ch]
+        if tuning.AsyncCaptureDelta is None:
             return False
         last_reported_value = self.last_reported_telemetry_value[ch]
         latest_telemetry_value = self.latest_telemetry_value[ch]
         telemetry_delta = abs(latest_telemetry_value - last_reported_value)
-        if telemetry_delta >= config.AsyncCaptureDelta:
+        if telemetry_delta >= tuning.AsyncCaptureDelta:
             return True
         return False
 
     def should_report_telemetry_reading(self, ch: DataChannel) -> bool:
-        """The telemetry data should get reported synchronously once every SamplePeriodS, and also asynchronously
-        on a big enough change - both configured in the eq_config (eq for electrical quantity) config for this
-        telemetry tuple.
-
-        Note that SamplePeriodS will often be 300 seconds, which will also match the duration of each status message
-        the Scada sends up to the cloud (GtShSimpleStatus.ReportingPeriodS).  The Scada will likely do this at the
-        top of every 5 minutes - but not the power meter.. The point of the synchronous reporting is to
-        get at least one reading for this telemetry tuple in the Scada's status report; it does not need to be
-        at the beginning or end of the status report time period.
+        """A channel reports on the period boundary and on change. The periodic
+        report is due once the wall clock crosses the next multiple of the
+        channel's CapturePeriodS since its last report, so every channel on one
+        period posts together at the top of that period (the 300 s channels at
+        the top of the five minutes, with the scada's report slot) and the
+        derived channels that ride on the meter's post, the zone heat-calls,
+        fire on the boundary too. The change report is the channel's
+        AsyncCaptureDelta. Both come from the channel's capture tuning.
         """
         if self.latest_telemetry_value[ch] is None:
             return False
@@ -332,10 +409,8 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
             or self.last_reported_telemetry_value[ch] is None
         ):
             return True
-        if (
-            time.time() - self._last_sampled_s[ch]
-            > self.eq_reporting_config[ch].CapturePeriodS
-        ):
+        period = self.tuning_by_ch[ch].CapturePeriodS
+        if int(time.time() // period) > int(self._last_sampled_s[ch] // period):
             return True
         if self.value_hits_async_threshold(ch):
             return True
@@ -347,7 +422,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         latest_power_list = [
             v
             for k, v in self.latest_telemetry_value.items()
-            if k in self.my_channels and k.InPowerMetering
+            if k in self.my_channels and k.Name in self.transactive_channel_names
         ]
         if None in latest_power_list:
             return None
@@ -358,23 +433,47 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         return int(sum(self.transactive_nameplate_watts.values()))
 
     def report_aggregated_power_w(self):
-        message = Message(
-            Src=self.name,
-            Dst=H0N.primary_scada,
-            Payload=PowerWatts(Watts=self.latest_agg_power_w)
+        """The aggregate leaves the meter two ways at once: a PowerWatts,
+        which the scada passes straight on to the LTN, and a SingleReading
+        on the layout's transactive-power channel, which is how the metered
+        power at the transactive boundary reaches the snapshot and the
+        report as a channel of its own."""
+        now_ms = int(1000 * time.time())
+        self._put_to_async_queue(
+            Message(
+                Src=self.name,
+                Dst=CoreNodeNames.primary_scada,
+                Payload=PowerWatts(Watts=self.latest_agg_power_w),
+            )
         )
-        self._put_to_async_queue(message)
+        self._put_to_async_queue(
+            Message(
+                Src=self.name,
+                Dst=CoreNodeNames.primary_scada,
+                Payload=SingleReading(
+                    ChannelName=self.transactive_channel_name,
+                    Value=self.latest_agg_power_w,
+                    ScadaReadTimeUnixMs=now_ms,
+                ),
+            )
+        )
         self.last_reported_agg_power_w = self.latest_agg_power_w
-
+        self.last_reported_agg_s = now_ms / 1000
 
     def should_report_aggregated_power(self) -> bool:
-        """Aggregated power is sent up asynchronously on change via a PowerWatts message, and the last aggregated
-        power sent up is recorded in self.last_reported_agg_power_w."""
+        """The aggregate reports on change and on the period boundary: on a
+        change above the nameplate ratio (async_power_reporting_threshold),
+        and once the wall clock crosses the next multiple of the transactive
+        inputs' CapturePeriodS since its last report, with the inputs' own
+        periodic post."""
         if self.latest_agg_power_w is None:
             return False
         if self.nameplate_agg_power_w == 0:
             return False
-        if self.last_reported_agg_power_w is None:
+        if self.last_reported_agg_power_w is None or self.last_reported_agg_s is None:
+            return True
+        period = self.transactive_period_s
+        if int(time.time() // period) > int(self.last_reported_agg_s // period):
             return True
         abs_power_delta = abs(self.latest_agg_power_w - self.last_reported_agg_power_w)
         change_ratio = abs_power_delta / self.nameplate_agg_power_w
@@ -382,8 +481,18 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
             return True
         return False
 
+    def derived_channels_created(self) -> set[str]:
+        """The derived channels this actor creates: the transactive-power
+        channel, and nothing else."""
+        return {self.transactive_channel_name}
+
 
 class PowerMeter(SyncThreadActor):
+    """Power metering is the scada's highest-priority job: this actor reads
+    the meter on its own thread and clock, and it, not the derived
+    generator, creates the layout's transactive-power channel, the metered
+    power at the transactive boundary."""
+
     POWER_METER_LOGGER_NAME: str = "PowerMeter"
 
     def __init__(
@@ -406,6 +515,9 @@ class PowerMeter(SyncThreadActor):
                 )
             ),
         )
+
+    def derived_channels_created(self) -> set[str]:
+        return self.sync_thread.derived_channels_created()
 
     @property
     def sync_thread(self) -> PowerMeterDriverThread:

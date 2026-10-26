@@ -1,0 +1,85 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/hubitat.poller.gt/001"
+
+title: "hubitat.poller.gt"
+type: object
+description: >
+  Poller settings for one Hubitat device: which Hubitat component and device to poll, the
+  attributes mapped onto SCADA channels, and the poll cadence.
+
+properties:
+
+  HubitatComponentId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      The ComponentId of the hubitat.component.gt this poller reads through.
+
+  DeviceId:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      The Hubitat device id this poller targets.
+
+  Attributes:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/maker.api.attribute.gt/001"
+    description: >
+      The device attributes mapped onto SCADA channels.
+
+  WebListenEnabled:
+    type: boolean
+    description: >
+      Whether this poller is updated via the MakerAPI web-listen (push) path.
+
+  PollPeriodSeconds:
+    type: number
+    description: >
+      How often the device is polled, in seconds.
+
+  TypeName:
+    const: "hubitat.poller.gt"
+
+  Version:
+    const: "001"
+
+required:
+  - HubitatComponentId
+  - DeviceId
+  - Attributes
+  - WebListenEnabled
+  - PollPeriodSeconds
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "HubitatComponentId": "448913a3-e9ef-4f28-9c72-c507daaf4df8",
+      "DeviceId": 1,
+      "Attributes": [
+        {
+          "AttributeName": "example",
+          "ChannelName": "scada",
+          "NodeName": "scada",
+          "TelemetryName": "Unknown",
+          "Unit": "Unknown",
+          "Exponent": 0,
+          "InterpretAsNumber": false,
+          "WebPollEnabled": false,
+          "WebListenEnabled": false,
+          "ReportMissing": false,
+          "ReportParseError": false,
+          "TypeName": "maker.api.attribute.gt",
+          "Version": "001"
+        }
+      ],
+      "WebListenEnabled": false,
+      "PollPeriodSeconds": 0.0,
+      "TypeName": "hubitat.poller.gt",
+      "Version": "001"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"

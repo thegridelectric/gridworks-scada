@@ -1,0 +1,17 @@
+{
+  "TypeName": "gw.weather.forecast.channel.gt",
+  "Version": "000",
+  "Name": "us.me.millinocket.temperature.forecast.nws",
+  "TargetChannelName": "us.me.millinocket.temperature",
+  "Forecaster": "us.nws.gridpoint",
+  "Method": "api.weather.gov.gridpoint.hourly",
+  "SourceLocator": "car.60.114",
+  "TotalSlices": 2,
+  "SliceDurationSList": [
+    3600,
+    3600
+  ],
+  "ForecastDurationMinutes": 120,
+  "Start": "2026-08-11T00:00:00Z",
+  "Id": "9b3e5d7a-2f8c-4c6b-8e1d-4a7f9c2b6e8d"
+}

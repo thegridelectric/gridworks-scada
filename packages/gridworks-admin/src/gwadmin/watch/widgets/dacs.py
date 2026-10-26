@@ -17,6 +17,7 @@ from textual.widgets._data_table import CellType  # noqa
 
 from gwadmin.watch.clients.dac_client import DACClientCallbacks
 from gwadmin.watch.clients.dac_client import DACConfigChange
+from gwadmin.watch.clients.dispatch_replies import DispatchReply
 from gwadmin.watch.clients.dac_client import ObservedDACStateChange
 from gwadmin.watch.widgets.dac_widget_info import DACWidgetConfig
 from gwadmin.watch.widgets.dac_widget_info import DACWidgetInfo
@@ -39,6 +40,11 @@ class Dacs(Widget):
     class ConfigChange(Message):
         def __init__(self, changes: dict[str, DACConfigChange]) -> None:
             self.changes = changes
+            super().__init__()
+
+    class DispatchReplied(Message):
+        def __init__(self, reply: DispatchReply) -> None:
+            self.reply = reply
             super().__init__()
 
     class Snapshot(Message):
@@ -217,6 +223,7 @@ class Dacs(Widget):
             mqtt_state_change_callback=None,
             dac_state_change_callback=self.dac_state_change_callback,
             dac_config_change_callback=self.dac_config_change_callback,
+            dispatch_reply_callback=self.dispatch_reply_callback,
             # disable these as defense against memroy leaks
             mqtt_message_received_callback=None,
             ctrl_capabilities_callback=None,
@@ -228,4 +235,7 @@ class Dacs(Widget):
 
     def dac_config_change_callback(self, changes: dict[str, DACConfigChange]) -> None:
         self.post_message(Dacs.ConfigChange(changes))
+
+    def dispatch_reply_callback(self, reply: DispatchReply) -> None:
+        self.post_message(Dacs.DispatchReplied(reply))
 

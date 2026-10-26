@@ -1,0 +1,54 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/machine.states/000"
+
+title: "machine.states"
+type: object
+description: >
+  Sequence of machine states observed for one state machine during a reporting
+  interval.
+
+properties:
+  MachineHandle:
+    $ref: "https://schemas.electricity.works/formats/handle.name"
+
+  StateEnum:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+
+  StateList:
+    type: array
+    items:
+      type: string
+
+  UnixMsList:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+
+  TypeName:
+    const: "machine.states"
+
+  Version:
+    const: "000"
+
+required:
+  - MachineHandle
+  - StateEnum
+  - StateList
+  - UnixMsList
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "ListLengthConsistency"
+      statement: >
+        len(StateList) SHALL equal len(UnixMsList).
+    - number: 2
+      name: "RecognizedStateEnumConsistency"
+      statement: >
+        If StateEnum is a recognized GridWorks enum, then all elements of
+        StateList SHALL be valid values of that enum.

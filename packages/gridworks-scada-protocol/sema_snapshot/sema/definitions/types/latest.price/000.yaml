@@ -1,0 +1,75 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/latest.price/000"
+
+title: "latest.price"
+type: object
+description: >
+  Latest cleared market price for a given market slot, published by the
+  MarketMaker responsible for that slot's market. It reports the most recent
+  real-time price observed for the identified slot so that downstream
+  consumers can value energy, validate dispatch contracts, and record price
+  history.
+
+properties:
+
+  FromGNodeAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      GNode alias of the node publishing this price.
+
+  PriceTimes1000:
+    type: integer
+    description: >
+      Cleared market price for the slot, expressed as an integer equal to the
+      price in PriceUnit multiplied by 1000. Integer scaling avoids floating
+      point representation at the serialization boundary.
+
+  PriceUnit:
+    $ref: "https://schemas.electricity.works/enums/market.price.unit/000"
+    description: >
+      Unit in which the unscaled price is expressed.
+
+  MarketSlotName:
+    $ref: "https://schemas.electricity.works/formats/market.slot.name"
+    description: >
+      Identifier of the market slot this price applies to. It encodes the
+      market service, MarketType, market maker, and slot start time.
+
+  MessageId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      Globally unique identifier for this price message.
+
+  TypeName:
+    const: "latest.price"
+
+  Version:
+    const: "000"
+
+required:
+  - FromGNodeAlias
+  - PriceTimes1000
+  - PriceUnit
+  - MarketSlotName
+  - MessageId
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+x-gridworks:
+  owner: "gridworks-energy"
+  extended_description: >
+    latest.price is the boundary message that announces a settled price for
+    one market slot. In the intended architecture it is emitted by the
+    MarketMaker that runs the market for that slot. Until a MarketMaker is
+    deployed, a LeafTransactiveNode emits latest.price itself: at the start of
+    each slot it resolves the real-time price and publishes it, and its
+    contract handler uses the value, together with the node's outstanding bid,
+    to determine the energy commitment implied by an active dispatch contract.
+    The message is also suitable for forwarding to a SCADA node so that the
+    price series can be persisted alongside telemetry.
+
+    latest.price is a point-in-time notification, not a forecast: it reports
+    one settled price for one slot. Forward-looking price expectations are
+    carried by separate forecast types consumed by the optimization layer.

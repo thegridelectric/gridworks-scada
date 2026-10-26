@@ -1,0 +1,9 @@
+{
+  "TypeName": "gw.element.backup",
+  "Version": "000",
+  "ElementRelayNames": [
+    "elt-buffer-top",
+    "elt-buffer-bottom"
+  ],
+  "InService": false
+}

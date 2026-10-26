@@ -1,0 +1,33 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/power.watts/000"
+
+title: "power.watts"
+type: object
+description: >
+  Immediate real-time power measurement message for instantaneous transmission.
+
+  Positive values indicate power withdrawal from the grid. Negative values
+  indicate power injection to the grid.
+
+properties:
+  Watts:
+    type: integer
+    description: >
+      Instantaneous power in watts. Positive means consuming from the grid and
+      negative means generating to the grid.
+
+  TypeName:
+    const: "power.watts"
+
+  Version:
+    const: "000"
+
+required:
+  - Watts
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+x-gridworks:
+  owner: "gridworks-energy"

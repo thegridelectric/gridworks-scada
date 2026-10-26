@@ -1,0 +1,21 @@
+{
+  "TypeName": "pico.btu.meter.component.gt",
+  "Version": "000",
+  "ComponentId": "7fc24a16-37e6-442b-83cb-9b5be5a3cce9",
+  "DeviceType": "Gw101",
+  "SerialNumber": "example",
+  "FlowChannelName": "scada",
+  "HotChannelName": "scada",
+  "ColdChannelName": "scada",
+  "ReadCtVoltage": false,
+  "SendHz": false,
+  "FlowMeterType": "MakeModel",
+  "HzCalcMethod": "BasicExpWeightedAvg",
+  "TempCalcMethod": "SimpleBeta",
+  "GpmFromHzMethod": "Constant",
+  "ThermistorBeta": 0,
+  "GallonsPerPulse": 1.0,
+  "AsyncCaptureDeltaGpmX100": 0,
+  "AsyncCaptureDeltaCelsiusX100": 0,
+  "PicoBoardVariant": "PicoRaspberryWifi2040"
+}

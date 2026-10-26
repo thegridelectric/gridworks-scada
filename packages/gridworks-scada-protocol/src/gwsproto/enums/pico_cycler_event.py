@@ -1,27 +1,11 @@
 from enum import auto
 from typing import List
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class PicoCyclerEvent(AslEnum):
-    """
-    
-    Values:
-      - WakeUp
-      - GoDormant
-      - PicoMissing
-      - ConfirmOpened
-      - StartClosing
-      - ConfirmClosed
-      - ConfirmRebooted
-      - ShakeZombies
-      - RebootDud
-
-    For more information:
-      - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
-      - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#picocyclerevent)
-    """
+class PicoCyclerEvent(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/pico.cycler.event/000"""
 
     WakeUp = auto()
     GoDormant = auto()
@@ -32,10 +16,11 @@ class PicoCyclerEvent(AslEnum):
     ConfirmRebooted = auto()
     ShakeZombies = auto()
     RebootDud = auto()
+    Startup = auto()
 
     @classmethod
     def default(cls) -> "PicoCyclerEvent":
-        return cls.ConfirmRebooted
+        return cls.WakeUp
 
     @classmethod
     def values(cls) -> List[str]:

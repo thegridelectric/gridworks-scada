@@ -1,0 +1,87 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/slow.dispatch.contract/000"
+
+title: "slow.dispatch.contract"
+type: object
+description: >
+  A slow dispatch contract between an LTN and a scada: for one window
+  starting on a five-minute boundary, the scada holds the house's
+  average electrical power to AvgPowerWatts, or runs the oil boiler
+  instead. The body a slow.contract.heartbeat refers to.
+
+properties:
+  ScadaAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      GNode alias of the scada the contract binds.
+
+  StartS:
+    $ref: "https://schemas.electricity.works/formats/utc.seconds"
+    description: >
+      When the contract window starts.
+
+  DurationMinutes:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      The length of the contract window.
+
+  AvgPowerWatts:
+    type: integer
+    description: >
+      The average electrical power the scada holds over the window.
+
+  OilBoilerOn:
+    type: boolean
+    description: >
+      Whether the scada runs the oil boiler for the window instead of
+      drawing electrical power.
+
+  ContractId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      The identity of the contract, shared by every heartbeat about it.
+
+  TypeName:
+    const: "slow.dispatch.contract"
+
+  Version:
+    const: "000"
+
+required:
+  - ScadaAlias
+  - StartS
+  - DurationMinutes
+  - AvgPowerWatts
+  - OilBoilerOn
+  - ContractId
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "ScadaAlias": "hw1.isone.me.versant.keene.beech.scada",
+      "StartS": 1757300400,
+      "DurationMinutes": 60,
+      "AvgPowerWatts": 3500,
+      "OilBoilerOn": false,
+      "ContractId": "9d3b2a1c-8e7f-4a6b-b5c4-d3e2f1a0b9c8",
+      "TypeName": "slow.dispatch.contract",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "StartOnFiveMinutes"
+      statement: >
+        StartS SHALL be a multiple of 300.
+
+    - number: 2
+      name: "OilBoilerDrawsNoPower"
+      statement: >
+        If OilBoilerOn is true, AvgPowerWatts SHALL be 0.

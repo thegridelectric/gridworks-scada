@@ -1,11 +1,12 @@
 import typing
-from typing import Optional
+from typing import Literal, Optional
 
 import yarl
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict
 from pydantic_extra_types.mac_address import MacAddress
 
 from gwsproto.named_types.rest_poller_gt import URLArgs, URLConfig
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
 class URLConfigWithUrlArgs(URLConfig):
@@ -15,7 +16,6 @@ class URLConfigWithUrlArgs(URLConfig):
 
     url_args: URLArgs
 
-
 class URLConfigForMakerAPI(URLConfigWithUrlArgs):
     """
     A URLConfig with non-None url_args and url_path_args suitable for creating
@@ -24,13 +24,28 @@ class URLConfigForMakerAPI(URLConfigWithUrlArgs):
 
     url_path_args: dict[str, str | int | float]
 
+class HubitatGt(GwsprotoSemaType):
+    """
+    Connection settings for one Hubitat hub reached through its MakerAPI.
 
-class HubitatGt(BaseModel):
+    Sema word: ``hubitat.gt``. Only the serialized fields below are part of the sema
+    contract. The MakerAPI URL machinery (``url_config`` / ``maker_api_url_config`` /
+    ``devices_url_config`` / ``refresh_url`` and friends) is NOT in the sema schema and
+    will NOT be generated when this type is regenerated from sema in the proactor port —
+    those are derived helpers that must continue to live in app code, computed from Host,
+    MakerApiId, AccessToken, and MacAddress.
+
+    This serves the five legacy House0 production homes (beech, elm, oak, fir, maple) and
+    is not expected to expand going forward.
+    """
+
     Host: str
     MakerApiId: int
     AccessToken: str
     MacAddress: MacAddress
-    WebListenEnabled: bool = True
+    WebListenEnabled: bool
+    TypeName: Literal["hubitat.gt"] = "hubitat.gt"
+    Version: Literal["000"] = "000"
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
     @property

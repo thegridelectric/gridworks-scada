@@ -1,14 +1,15 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, StrictInt
+from pydantic import ConfigDict, StrictInt
 
 from gwsproto.property_format import (
     SpaceheatName,
     UTCMilliseconds,
 )
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class SingleReading(BaseModel):
+class SingleReading(GwsprotoSemaType):
     ChannelName: SpaceheatName
     Value: StrictInt
     ScadaReadTimeUnixMs: UTCMilliseconds

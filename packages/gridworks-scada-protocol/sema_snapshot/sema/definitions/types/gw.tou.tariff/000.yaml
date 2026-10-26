@@ -1,0 +1,87 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw.tou.tariff/000"
+
+title: "gw.tou.tariff"
+type: object
+description: >
+  A time-of-use tariff as the heating system sees it: a named rate with its
+  clock and its recurring on-peak windows. Every hour a window does not cover
+  is off-peak. Prices, holidays and shoulder periods are not part of this
+  word.
+
+properties:
+  Alias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      The tariff's stable identifier, utility first.
+
+  DisplayName:
+    type: string
+    description: >
+      The tariff's name as the utility publishes it.
+
+  TimezoneStr:
+    $ref: "https://schemas.electricity.works/formats/iana.timezone.str"
+    description: >
+      The tz-database zone name (for example America/New_York) whose wall
+      clock the windows are read in.
+
+  OnPeakWindows:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/gw.tou.window/000"
+    description: >
+      The recurring on-peak windows. Each window names the days it binds; a
+      day no window names is off-peak throughout.
+
+  TypeName:
+    const: "gw.tou.tariff"
+
+  Version:
+    const: "000"
+
+required:
+  - Alias
+  - DisplayName
+  - TimezoneStr
+  - OnPeakWindows
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "Alias": "versant.a1.home.eco.bonus",
+      "DisplayName": "Home Eco Rate with Bonus Meter",
+      "TimezoneStr": "America/New_York",
+      "OnPeakWindows": [
+        {
+          "Start": "07:00",
+          "End": "12:00",
+          "Days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+          "TypeName": "gw.tou.window",
+          "Version": "000"
+        },
+        {
+          "Start": "16:00",
+          "End": "20:00",
+          "Days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+          "TypeName": "gw.tou.window",
+          "Version": "000"
+        }
+      ],
+      "TypeName": "gw.tou.tariff",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "PerDayWindowNonOverlap"
+      statement: >
+        For each day of the week, the windows in OnPeakWindows whose Days
+        include that day SHALL NOT overlap one another.

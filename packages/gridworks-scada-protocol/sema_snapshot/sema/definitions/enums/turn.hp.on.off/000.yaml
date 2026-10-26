@@ -1,0 +1,24 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/turn.hp.on.off/000"
+
+title: "turn.hp.on.off"
+type: "string"
+description: >
+  The heat pump command node's command vocabulary: what a boss may ask of
+  hp-boss. Named by EventType on an fsm.event addressed to it.
+
+enum:
+  - "TurnOn"
+  - "TurnOff"
+
+default: "TurnOn"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "TurnOn": >
+      Let the heat pump run, by whatever sequence the layout's strategy
+      needs first.
+    "TurnOff": >
+      Hold the heat pump off.

@@ -1,0 +1,6 @@
+{
+  "TypeName": "gw.command.transition",
+  "Version": "000",
+  "Event": "TurnOn",
+  "ToState": "HpOn"
+}

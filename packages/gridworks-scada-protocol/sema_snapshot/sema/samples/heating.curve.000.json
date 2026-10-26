@@ -1,0 +1,13 @@
+{
+  "TypeName": "heating.curve",
+  "Version": "000",
+  "AlphaTimes10": 55,
+  "BetaTimes100": -10,
+  "GammaEx6": 0,
+  "IntermediatePowerKw": 1.5,
+  "IntermediateRswtF": 100,
+  "DdPowerKw": 5.5,
+  "DdRswtF": 150,
+  "DdDeltaTF": 20,
+  "MaxEwtF": 170
+}

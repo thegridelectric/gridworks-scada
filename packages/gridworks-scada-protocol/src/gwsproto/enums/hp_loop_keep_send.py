@@ -4,12 +4,11 @@
 from enum import auto
 from typing import List
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class HpLoopKeepSend(AslEnum):
-    """
-    """
+class HpLoopKeepSend(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/hp.loop.keep.send/000"""
 
     SendLess = auto()
     SendMore = auto()
@@ -28,3 +27,7 @@ class HpLoopKeepSend(AslEnum):
     @classmethod
     def enum_name(cls) -> str:
         return "hp.loop.keep.send"
+
+    @classmethod
+    def enum_version(cls) -> str:
+        return "000"

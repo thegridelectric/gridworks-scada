@@ -1,0 +1,34 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/single.pico.state/000"
+
+title: "single.pico.state"
+type: "string"
+description: >
+  Health state of one Pico microcontroller as judged by the scada's
+  pico-cycler from the readings that pico sends. Reported per pico through
+  machine.states so the roster of live, silent, and given-up picos is
+  journaled over time, and a power cycle can be read against the pico that
+  provoked it.
+
+enum:
+  - "Alive"
+  - "Flatlined"
+  - "Zombie"
+
+default: "Flatlined"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "Alive": >
+      Readings are arriving within the expected interval.
+
+    "Flatlined": >
+      Readings have stopped; the cycler will power-cycle the picos to bring
+      it back. Also the default, so an out-of-vocabulary value reads as a
+      sick pico rather than a healthy one.
+
+    "Zombie": >
+      Repeated power cycles have not brought it back; the cycler stops
+      cycling for it and only shakes it on a slow cadence.

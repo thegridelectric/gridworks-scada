@@ -1,0 +1,31 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/gw1.service.mode/000"
+
+title: "gw1.service.mode"
+type: "string"
+
+description: >
+  The thermal service the system provides: heating or cooling. On a plant
+  that can do both it selects which local control machine runs, and the
+  LTN offers heating contracts only while it is Heating. The service axis
+  is what safety semantics key on (e.g. whether cold water may reach
+  heat-only emitters). Inert while the scada is in Standby.
+
+enum:
+  - "Heating"
+  - "Cooling"
+
+default: "Heating"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+
+  value_descriptions:
+    "Heating": >
+      The system provides space heating (and any configured storage
+      charging in service of it).
+
+    "Cooling": >
+      The system provides space cooling (e.g. a heat pump serving fan
+      coils), typically under a time-of-use schedule.

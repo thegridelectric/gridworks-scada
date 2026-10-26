@@ -1,0 +1,6 @@
+{
+  "TypeName": "gw.dispatch.hold",
+  "Version": "000",
+  "OperatorHold": false,
+  "ServiceContractBroken": false
+}

@@ -1,0 +1,112 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/maker.api.attribute.gt/001"
+
+title: "maker.api.attribute.gt"
+type: object
+description: >
+  One Hubitat MakerAPI device attribute mapped onto a SCADA channel: which attribute on
+  which Hubitat device is read, the spaceheat node and channel it feeds, and how its raw
+  value is interpreted (telemetry name, unit, exponent) and reported.
+
+properties:
+
+  AttributeName:
+    type: string
+    description: >
+      The Hubitat device attribute name to read (e.g. `temperature`, `heatingSetpoint`).
+      A Hubitat-defined identifier, not a spaceheat name.
+
+  ChannelName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      The spaceheat channel this attribute feeds.
+
+  NodeName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      The spaceheat node this attribute is associated with.
+
+  TelemetryName:
+    $ref: "https://schemas.electricity.works/enums/spaceheat.telemetry.name/007"
+    description: >
+      The telemetry name the read value is reported under.
+
+  Unit:
+    $ref: "https://schemas.electricity.works/enums/spaceheat.unit/001"
+    description: >
+      The unit of the reported value.
+
+  Exponent:
+    type: integer
+    description: >
+      Base-10 scaling exponent applied to the serialized integer reading in combination
+      with Unit.
+
+  InterpretAsNumber:
+    type: boolean
+    description: >
+      Whether the raw Hubitat attribute value is interpreted as a number.
+
+  WebPollEnabled:
+    type: boolean
+    description: >
+      Whether this attribute is read via the MakerAPI web-poll path.
+
+  WebListenEnabled:
+    type: boolean
+    description: >
+      Whether this attribute is updated via the MakerAPI web-listen (push) path.
+
+  ReportMissing:
+    type: boolean
+    description: >
+      Whether a missing attribute value is reported as a problem.
+
+  ReportParseError:
+    type: boolean
+    description: >
+      Whether a value that fails to parse is reported as a problem.
+
+  TypeName:
+    const: "maker.api.attribute.gt"
+
+  Version:
+    const: "001"
+
+required:
+  - AttributeName
+  - ChannelName
+  - NodeName
+  - TelemetryName
+  - Unit
+  - Exponent
+  - InterpretAsNumber
+  - WebPollEnabled
+  - WebListenEnabled
+  - ReportMissing
+  - ReportParseError
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "AttributeName": "example",
+      "ChannelName": "scada",
+      "NodeName": "scada",
+      "TelemetryName": "Unknown",
+      "Unit": "Unknown",
+      "Exponent": 0,
+      "InterpretAsNumber": false,
+      "WebPollEnabled": false,
+      "WebListenEnabled": false,
+      "ReportMissing": false,
+      "ReportParseError": false,
+      "TypeName": "maker.api.attribute.gt",
+      "Version": "001"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"

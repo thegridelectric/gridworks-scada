@@ -1,0 +1,21 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/gpm.from.hz.method/000"
+
+title: "gpm.from.hz.method"
+type: "string"
+description: >
+  Method used to convert measured pulse frequency into gallons per minute for
+  supported flow-meter components.
+
+enum:
+  - "Constant"
+
+default: "Constant"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "Constant": >
+      Apply a fixed conversion relationship from frequency to gallons per
+      minute.

@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, PositiveInt, field_validator
+from pydantic import PositiveInt, field_validator
 
 from gwsproto.named_types.channel_readings import ChannelReadings
 from gwsproto.named_types.fsm_full_report import FsmFullReport
@@ -11,9 +11,13 @@ from gwsproto.property_format import (
     UTCSeconds,
     UUID4Str,
 )
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class Report(BaseModel):
+class Report(GwsprotoSemaType):
+    """
+    Sema: https://schemas.electricity.works/types/report/003
+    """
 
     FromGNodeAlias: LeftRightDotStr
     FromGNodeInstanceId: UUID4Str
@@ -26,7 +30,7 @@ class Report(BaseModel):
     MessageCreatedMs: UTCMilliseconds
     Id: UUID4Str
     TypeName: Literal["report"] = "report"
-    Version: str = "002"
+    Version: Literal["003"] = "003"
 
     @field_validator("ChannelReadingList")
     @classmethod

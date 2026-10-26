@@ -1,17 +1,16 @@
 from typing import List, Literal
 
-from pydantic import BaseModel
-
+from gwsproto.named_types.single_machine_state import SingleMachineState
 from gwsproto.named_types.single_reading import SingleReading
 from gwsproto.property_format import (
     LeftRightDotStr,
     UTCMilliseconds,
     UUID4Str,
 )
-from gwsproto.named_types import SingleMachineState
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class SnapshotSpaceheat(BaseModel):
+class SnapshotSpaceheat(GwsprotoSemaType):
     """
     Snapshot.
 

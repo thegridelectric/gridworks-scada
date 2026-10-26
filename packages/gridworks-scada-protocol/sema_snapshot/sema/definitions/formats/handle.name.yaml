@@ -1,0 +1,39 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/formats/handle.name"
+
+title: "handle.name"
+description: |
+  Dot-separated hierarchical identifier composed of lowercase segments.
+  Each segment must begin with a lowercase alphabetic character and may
+  contain lowercase alphanumeric characters with optional internal
+  hyphen-separated words. Hierarchy is expressed from left to right,
+  with the most significant component appearing first.
+  
+type: string
+pattern: "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:\\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*)*$"
+
+examples:
+  - "main-tank"
+  - "sensor-1"
+  - "hp-odu.pump-relay"
+
+
+counterexamples:
+  - ""                # empty string invalid (minLength should also catch)
+  - "1st-floor"       # cannot start with a number
+  - "Main-Tank"       # uppercase not allowed
+  - "sensor_1"        # underscores not allowed
+  - "sensor 1"        # spaces not allowed
+  - "tank."           # cannot end with period
+  - ".tank"           # cannot start with period
+  - "a..b"            # empty segment (double periods) not allowed
+  - "a.-b"            # segment cannot start with hyphen
+  - "a.b-"            # segment cannot end with hyphen
+  - "a--b"            # consecutive hyphens not allowed
+  - "a.b--c"          # consecutive hyphens in a later segment not allowed
+  - "a.1b"            # each segment must start with a letter
+  - "a.b.c3-"         # trailing hyphen invalid even if prior chars ok
+  - "a.b.c#"          # illegal character (#)
+
+x-gridworks:
+  owner: "gridworks-energy"

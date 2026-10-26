@@ -1,0 +1,15 @@
+{
+  "TypeName": "maker.api.attribute.gt",
+  "Version": "001",
+  "AttributeName": "example",
+  "ChannelName": "scada",
+  "NodeName": "scada",
+  "TelemetryName": "Unknown",
+  "Unit": "Unknown",
+  "Exponent": 0,
+  "InterpretAsNumber": false,
+  "WebPollEnabled": false,
+  "WebListenEnabled": false,
+  "ReportMissing": false,
+  "ReportParseError": false
+}

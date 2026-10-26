@@ -1,15 +1,16 @@
 from typing import Literal, Optional
 
-from pydantic import BaseModel, PositiveInt, model_validator
+from pydantic import PositiveInt, model_validator
 from typing_extensions import Self
 
 from gwsproto.enums import PicoBoardVariant
 from gwsproto.property_format import (
     SpaceheatName,
 )
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class TankModuleParams(BaseModel):
+class TankModuleParams(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/tank.module.params/200"""
 
     HwUid: str

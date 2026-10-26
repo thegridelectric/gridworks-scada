@@ -14,8 +14,10 @@ from rich.text import Text
 from actors.config import ScadaSettings
 from command_line_utils import get_requested_names
 from gwsproto.errors import DcError
-from gwsproto.data_classes.hardware_layout import LoadError
-from gwsproto.data_classes.house_0_layout import House0Layout
+from gwsproto.data_classes.hydronic_layout import LoadError
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
+
+from sema_to_dc import load_layout
 
 from gwsproto.enums import ActorClass
 
@@ -48,6 +50,16 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "-o",
+        "--ops-file",
+        default=None,
+        help=(
+            "Name of the operational-params file. Same resolution rules as "
+            "--layout-file. If not specified default "
+            "settings.paths.operational_params will be used."
+        ),
+    )
+    parser.add_argument(
         "-n",
         "--nodes",
         default=None,
@@ -76,7 +88,7 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     return parser.parse_args(sys.argv[1:] if argv is None else argv)
 
 
-def print_component_dicts(layout: House0Layout):
+def print_component_dicts(layout: HydronicLayout):
     print("All Components:")
     print({
         component.gt.ComponentId: component.gt.DisplayName
@@ -84,13 +96,13 @@ def print_component_dicts(layout: House0Layout):
     })
     print("All Cacs:")
     print({
-        cac.ComponentAttributeClassId: cac.DisplayName
-        for cac in layout.cacs.values()
+        cac.DeviceType: cac.DisplayName
+        for cac in layout.device_types.values()
     })
     print("Nodes:")
     print(layout.nodes)
     print("Raw nodes:")
-    print([n["Name"] for n in layout.layout["ShNodes"]])
+    print([n.Name for n in layout.sema_layout.ShNodes])
     print("Node Component ids:")
     print({
         node.Name: node.component_id for node in layout.nodes.values()
@@ -102,7 +114,7 @@ def print_component_dicts(layout: House0Layout):
     })
     print("Node Cacs:")
     print({
-        node.Name: layout.cac(node.Name)
+        node.Name: layout.device_type(node.Name)
         for node in layout.nodes.values()
     })
     # unused components
@@ -113,9 +125,9 @@ def print_component_dicts(layout: House0Layout):
     if unused_components:
         print(unused_components)
     # unused cacs
-    unused_cacs = dict(layout.cacs)
+    unused_cacs = dict(layout.device_types)
     for component in layout.components.values():
-        unused_cacs.pop(component.gt.ComponentAttributeClassId, None)
+        unused_cacs.pop(getattr(component.gt, "DeviceType", None), None)
     print(f"Unused Cacs: {len(unused_cacs)}")
     if unused_cacs:
         print(unused_cacs)
@@ -130,15 +142,16 @@ def print_component_dicts(layout: House0Layout):
     # dangling cacs
     dangling_cac_components = set()
     for component in layout.components.values():
-        if component.gt.ComponentAttributeClassId and component.gt.ComponentAttributeClassId not in layout.cacs:
+        device_type = getattr(component.gt, "DeviceType", None)
+        if device_type and device_type not in layout.device_types:
             dangling_cac_components.add(component.gt.DisplayName)
-    print(f"Components with cac_id but no cac: {len(dangling_cac_components)}")
+    print(f"Components with DeviceType but no device-type record: {len(dangling_cac_components)}")
     if dangling_cac_components:
         print(sorted(dangling_cac_components))
 
 
 def print_layout_members(
-    layout: House0Layout,
+    layout: HydronicLayout,
     errors: Optional[list[LoadError]] = None,
 ) -> None:
     if errors is None:
@@ -169,7 +182,7 @@ def print_layout_members(
         errors.append(LoadError(attr, {}, e))
 
     try:
-        attr = "power_meter_cac"
+        attr = "power_meter_device_type"
         item = getattr(layout, attr)
         display = None if item is None else item.DisplayName
         print(f"  {attr}: <{display}>")
@@ -199,7 +212,7 @@ def print_layout_members(
         except Exception as e:
             errors.append(LoadError(attr, {}, e))
 
-def print_layout_urls(layout: House0Layout) -> None:
+def print_layout_urls(layout: HydronicLayout) -> None:
     url_dicts = {
         component.gt.DisplayName: component.urls()
         for component in [
@@ -240,7 +253,7 @@ def print_web_server_info(
             for route in routes:
                 print(f"  {route}")
 
-def print_channels(layout: House0Layout, *, raise_errors: bool = False) -> None:
+def print_channels(layout: HydronicLayout, *, raise_errors: bool = False) -> None:
     print()
     try:
         table = Table(
@@ -252,15 +265,21 @@ def print_channels(layout: House0Layout, *, raise_errors: bool = False) -> None:
         table.add_column("About", header_style="bold dark_orange", style="dark_orange")
         table.add_column("Capturer", header_style="bold dark_orange", style="dark_orange")
         table.add_column("Telemetry", header_style="bold green1", style="green1")
-        table.add_column("Power", header_style="bold red", style="red")
+        table.add_column("Transactive", header_style="bold red", style="red")
 
+        transactive_names = {
+            name
+            for dc in layout.derived_channels.values()
+            if dc.Strategy == "transactive-power"
+            for name in dc.InputChannelNames
+        }
         for channel in layout.data_channels.values():
             table.add_row(
                 Text(channel.Name),
                 Text(channel.AboutNodeName),
                 Text(channel.CapturedByNodeName),
                 Text(channel.TelemetryName),
-                Text("✔" if channel.InPowerMetering else ""),
+                Text("✔" if channel.Name in transactive_names else ""),
             )
         print(table)
     except Exception as e: # noqa
@@ -269,7 +288,7 @@ def print_channels(layout: House0Layout, *, raise_errors: bool = False) -> None:
         if raise_errors:
             raise
 
-def print_layout_table(layout: House0Layout):
+def print_layout_table(layout: HydronicLayout):
     print()
     table = Table(
         title="Nodes, Components, Cacs, Actors",
@@ -279,7 +298,7 @@ def print_layout_table(layout: House0Layout):
     table.add_column("Node", header_style="bold green", style="green")
     table.add_column("Component", header_style="bold dark_orange", style="dark_orange")
     table.add_column("Cac", header_style="bold dark_orange", style="dark_orange")
-    table.add_column("Make/Model", header_style="bold dark_orange", style="dark_orange")
+    table.add_column("DeviceType", header_style="bold dark_orange", style="dark_orange")
     table.add_column("Actor", header_style="bold green1", style="green1")
     none_text = Text("None", style="cyan")
     for node in layout.nodes.values():
@@ -292,12 +311,13 @@ def print_layout_table(layout: House0Layout):
                 component_txt = none_text
         else:
             component_txt = str(component.gt.DisplayName)
-        cac = layout.cac(node.Name)
+        cac = layout.device_type(node.Name)
         if cac is None:
-            make_model_text = none_text
-            if component is not None and component.gt.ComponentAttributeClassId:
+            device_type_text = none_text
+            component_device_type = getattr(component.gt, "DeviceType", None) if component is not None else None
+            if component_device_type:
                 cac_txt = Text("MISSING", style="red") + \
-                    Text(f" Cac {component.gt.ComponentAttributeClassId[:8]}", style=none_text.style)
+                    Text(f" record for {component_device_type}", style=none_text.style)
             else:
                 cac_txt = none_text
 
@@ -305,17 +325,17 @@ def print_layout_table(layout: House0Layout):
             if cac.DisplayName:
                 cac_txt = Text(cac.DisplayName, style=table.columns[2].style)
             else:
-                cac_txt = Text("Cac id: ") + Text(cac.ComponentAttributeClassId, style="light_coral")
-            if hasattr(cac, "MakeModel"):
-                make_model_text = Text(str(cac.MakeModel), style=table.columns[3].style)
+                cac_txt = Text("DeviceType: ") + Text(cac.DeviceType, style="light_coral")
+            if hasattr(cac, "DeviceType"):
+                device_type_text = Text(str(cac.DeviceType), style=table.columns[3].style)
             else:
-                make_model_text = none_text
+                device_type_text = none_text
         node = layout.node(node.Name)
         if node.actor_class and node.actor_class != ActorClass.NoActor:
             actor_text = Text(str(node.actor_class))
         else:
             actor_text = none_text
-        table.add_row(node.Name, component_txt, cac_txt, make_model_text, actor_text)
+        table.add_row(node.Name, component_txt, cac_txt, device_type_text, actor_text)
     print(table)
 
 def try_scada_load(settings: ScadaSettings, raise_errors: bool = False) -> Optional[ScadaApp]:
@@ -343,7 +363,7 @@ def try_scada_load(settings: ScadaSettings, raise_errors: bool = False) -> Optio
     return scada_app
 
 def show_layout(
-        layout: House0Layout,
+        layout: HydronicLayout,
         settings: ScadaSettings,
         raise_errors: bool = False,
         errors: Optional[list[LoadError]] = None,
@@ -376,11 +396,19 @@ def main(argv: Optional[Sequence[str]] = None) -> list[LoadError]:
         if not layout_path.suffix:
             layout_path = layout_path.with_suffix(".json")
         settings.paths.hardware_layout = layout_path
+    if args.ops_file:
+        ops_path = Path(args.ops_file)
+        if Path(ops_path.name) == ops_path:
+            ops_path = settings.paths.config_dir / ops_path
+        if not ops_path.suffix:
+            ops_path = ops_path.with_suffix(".json")
+        settings.paths.operational_params = ops_path
     requested_names = get_requested_names(args)
     print(f"Using layout file: <{settings.paths.hardware_layout}>, exists: {settings.paths.hardware_layout.exists()}")
     errors = []
-    layout = House0Layout.load(
+    layout = load_layout(
         settings.paths.hardware_layout,
+        Path(settings.paths.operational_params),
         included_node_names=requested_names,
         raise_errors=bool(args.raise_errors),
         errors=errors,

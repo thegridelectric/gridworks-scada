@@ -1,0 +1,55 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/fsm.event/000"
+
+title: "fsm.event"
+type: object
+description: >
+  Finite State Machine event command sent to a SpaceheatNode that implements
+  a finite state machine. The message triggers a state machine transition and
+  any associated side-effect actions.
+
+properties:
+
+  FromHandle:
+    $ref: "https://schemas.electricity.works/formats/handle.name"
+
+  ToHandle:
+    $ref: "https://schemas.electricity.works/formats/handle.name"
+
+  EventType:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+
+  EventName:
+    type: string
+
+  TriggerId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+
+  SendTimeUnixMs:
+    $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+
+  TypeName:
+    const: "fsm.event"
+
+  Version:
+    const: "000"
+
+required:
+  - FromHandle
+  - ToHandle
+  - EventType
+  - EventName
+  - TriggerId
+  - SendTimeUnixMs
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "EventNameBelongsToEventType"
+      statement: >
+        EventName SHALL be a valid value of the enum identified by EventType.

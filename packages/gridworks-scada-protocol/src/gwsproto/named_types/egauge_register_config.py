@@ -1,9 +1,12 @@
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class EgaugeRegisterConfig(BaseModel):
+
+class EgaugeRegisterConfig(GwsprotoSemaType):
     Address: int = Field(
         title="Address",
         description=(

@@ -1,0 +1,20 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/relay.energization.state/000"
+
+title: "relay.energization.state"
+type: integer
+description: >
+  Two-state relay energization state.
+
+enum:
+  - 0
+  - 1
+
+default: 0
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    0: "DeEnergized"
+    1: "Energized"

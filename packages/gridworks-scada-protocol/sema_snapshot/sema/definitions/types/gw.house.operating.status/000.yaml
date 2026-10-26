@@ -1,0 +1,166 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw.house.operating.status/000"
+
+title: "gw.house.operating.status"
+type: object
+description: >
+  How a house is operating, in one record: the standing and posture facts
+  that decide whether the LTN can dispatch it and which control machine
+  runs. A scada sends it once after its startup announcements and again
+  whenever a field changes; a healthy hour produces none.
+
+properties:
+  ScadaAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      GNodeAlias of the scada reporting.
+
+  ValidationState:
+    $ref: "https://schemas.electricity.works/enums/ta.validation.state/000"
+    description: >
+      What a TaValidator has attested about the asset, read from the
+      scada's ta.deed. UnValidated when it holds none; an UnValidated
+      scada refuses every dispatch contract.
+
+  Standby:
+    type: boolean
+    description: >
+      Whether the standby machine runs in place of the family's local
+      control.
+
+  StandbyPosture:
+    $ref: "https://schemas.electricity.works/enums/gw.standby.posture/000"
+    description: >
+      What standby does to the plant at this house.
+
+  SeasonalStorageMode:
+    $ref: "https://schemas.electricity.works/enums/gw1.seasonal.storage.mode/000"
+    description: >
+      Which thermal stores the running machines use.
+
+  ServiceMode:
+    $ref: "https://schemas.electricity.works/enums/gw1.service.mode/000"
+    description: >
+      The thermal service the house provides.
+
+  AcceptsDispatch:
+    type: boolean
+    description: >
+      Whether the scada takes slow dispatch contract offers now, derived
+      from its deed, its operational params and its running state.
+
+  DispatchRefusalReason:
+    $ref: "https://schemas.electricity.works/enums/gw.dispatch.refusal.reason/000"
+    description: >
+      Why AcceptsDispatch is false: the reason the scada's rejection
+      would state.
+
+  TopState:
+    $ref: "https://schemas.electricity.works/enums/gw.top.state/000"
+    description: >
+      Whether an admin session holds the command tree.
+
+  ScadaBlind:
+    type: boolean
+    description: >
+      Whether a channel the scada's control needs has no fresh reading,
+      so the scada cannot act as a leaf ally.
+
+  LtnDispatching:
+    type: boolean
+    description: >
+      True from the first dispatch-contract heartbeat that goes Active;
+      false once no contract has been active for longer than the scada's
+      settling window after a completion, so back-to-back hourly contracts
+      read as one continuous true.
+
+  CreatedMs:
+    $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+    description: >
+      The scada's clock when this record was produced.
+
+  TypeName:
+    const: "gw.house.operating.status"
+
+  Version:
+    const: "000"
+
+required:
+  - ScadaAlias
+  - ValidationState
+  - Standby
+  - StandbyPosture
+  - SeasonalStorageMode
+  - ServiceMode
+  - AcceptsDispatch
+  - TopState
+  - ScadaBlind
+  - LtnDispatching
+  - CreatedMs
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "ScadaAlias": "hw1.isone.me.versant.keene.spruce.scada",
+      "ValidationState": "ValidatedRealAssetAndGps",
+      "Standby": false,
+      "StandbyPosture": "NoHeatingOrCooling",
+      "SeasonalStorageMode": "BufferOnly",
+      "ServiceMode": "Heating",
+      "AcceptsDispatch": true,
+      "TopState": "Auto",
+      "ScadaBlind": false,
+      "LtnDispatching": true,
+      "CreatedMs": 1790000000000,
+      "TypeName": "gw.house.operating.status",
+      "Version": "000"
+    }
+  - |
+    {
+      "ScadaAlias": "hw1.isone.me.versant.keene.beech.scada",
+      "ValidationState": "ValidatedRealAssetAndGps",
+      "Standby": true,
+      "StandbyPosture": "NoHeatingOrCooling",
+      "SeasonalStorageMode": "AllTanks",
+      "ServiceMode": "Heating",
+      "AcceptsDispatch": false,
+      "DispatchRefusalReason": "OperatorHold",
+      "TopState": "Auto",
+      "ScadaBlind": false,
+      "LtnDispatching": false,
+      "CreatedMs": 1790000000000,
+      "TypeName": "gw.house.operating.status",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "RefusalReasonPresence"
+      statement: >
+        DispatchRefusalReason SHALL be present if and only if
+        AcceptsDispatch is false.
+
+    - number: 2
+      name: "StandbyRefusesDispatch"
+      statement: >
+        If Standby is true, AcceptsDispatch SHALL be false and
+        DispatchRefusalReason SHALL be OperatorHold.
+
+  extended_description: >
+    The LTN–scada agreement has layers, and this record shows each of them
+    so "not dispatching" reads as a reason: no standing (ValidationState),
+    an admin session holding the tree (TopState), sensing too stale to
+    act on (ScadaBlind), a posture that refuses contracts (AcceptsDispatch
+    and its reason, Standby, ServiceMode), or simply no offer this hour. No field names the running machine: the
+    loader derives it from Standby, the layout family, SeasonalStorageMode
+    and ServiceMode, and a reader does the same. It carries nothing that
+    cycles inside a healthy hour: the raw contract status and the running
+    machine's state are reported on their own transitions and are not
+    repeated here.

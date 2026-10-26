@@ -1,0 +1,12 @@
+{
+  "TypeName": "tank.module.params",
+  "Version": "200",
+  "HwUid": "pico_1a2b3c",
+  "ActorNodeName": "buffer",
+  "CapturePeriodS": 60,
+  "Samples": 1000,
+  "NumSampleAverages": 10,
+  "AsyncCaptureDeltaMicroVolts": 2000,
+  "PicoBoardVariant": "PicoRaspberryWifi2040",
+  "MicropythonVersion": "1.24.1"
+}

@@ -1,0 +1,68 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/flow.hall.params/101"
+
+title: "flow.hall.params"
+type: object
+description: >
+  The params handshake between a hall-effect flow pico and its scada. The
+  pico posts its current parameters at boot; the scada answers with the same
+  type carrying the values the pico should run with.
+
+properties:
+  HwUid:
+    type: string
+    description: >
+      The pico's hardware id, derived from the chip's unique id.
+
+  ActorNodeName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      The name of the scada node this pico reports as.
+
+  FlowNodeName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      The name of the flow node whose ticks this pico reports.
+
+  PublishTicklistPeriodS:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Seconds between ticklist posts while ticks are arriving.
+
+  PublishEmptyTicklistAfterS:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Seconds of no ticks after which the pico posts an empty ticklist,
+      so the scada can tell no flow from a silent pico.
+
+  TypeName:
+    const: "flow.hall.params"
+
+  Version:
+    const: "101"
+
+required:
+  - HwUid
+  - ActorNodeName
+  - FlowNodeName
+  - PublishTicklistPeriodS
+  - PublishEmptyTicklistAfterS
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "HwUid": "pico_1a2b3c",
+      "ActorNodeName": "dist-flow",
+      "FlowNodeName": "dist-flow",
+      "PublishTicklistPeriodS": 10,
+      "PublishEmptyTicklistAfterS": 60,
+      "TypeName": "flow.hall.params",
+      "Version": "101"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"

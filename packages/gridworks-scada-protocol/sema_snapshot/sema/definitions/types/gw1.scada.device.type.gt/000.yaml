@@ -1,0 +1,264 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw1.scada.device.type.gt/000"
+
+title: "gw1.scada.device.type.gt"
+type: object
+description: >
+  The device-type record for a GridWorks SCADA board: what the board offers.
+  Buses, I²C GPIO expanders, the relays with their board-level names and
+  supported wirings, native GPIO, ADCs and DACs. Deployment choices (a
+  DIP-selected expander address, a relay's chosen wiring) live on the
+  component and the layout, not here.
+
+properties:
+
+  DeviceType:
+    $ref: "https://schemas.electricity.works/formats/pascal.case"
+    description: >
+      The device category this record describes.
+
+  DisplayName:
+    type: string
+
+  MinPollPeriodMs:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Shortest polling period, in milliseconds, that this board supports.
+
+  BusList:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/i2c.bus/000"
+    description: >
+      The physical I²C buses this board exposes.
+
+  TelemetryNameList:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/enums/spaceheat.telemetry.name/007"
+    description: >
+      The telemetry names this board can produce.
+
+  NativeGpioInputs:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/gw.native.gpio.pin/000"
+    description: >
+      The board's native (on-board) GPIO input pins.
+
+  NativeGpioOutputs:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/gw.native.gpio.pin/000"
+    description: >
+      The board's native (on-board) GPIO output pins.
+
+  Expanders:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/i2c.expander/000"
+    description: >
+      The I²C GPIO expanders on the board, each with fixed or field-selectable
+      addressing.
+
+  Muxes:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/i2c.mux/000"
+    description: >
+      The I²C bus multiplexers on the board.
+
+  I2cRelays:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/i2c.relay.capability/000"
+    description: >
+      The relays the board offers, named by the device's physical markings and
+      driven through the board's expanders.
+
+  SupportsPinReadback:
+    type: boolean
+    description: >
+      True if the board's relay outputs can be read back at the pins; false
+      if relay state is known only by command.
+
+  RelayEnergizedLevel:
+    $ref: "https://schemas.electricity.works/formats/non.negative.int"
+    description: >
+      The expander pin level that energizes a relay's coil on this board: 1
+      on a board whose relay drivers switch on a high pin, 0 on an active-low
+      board, whose relays sit de-energized at the expander's power-on state.
+
+  CtAdc:
+    $ref: "https://schemas.electricity.works/types/i2c.ct.interface.capability/000"
+    description: >
+      The current-transformer ADC, when present.
+
+  ThermistorAdcs:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/i2c.thermistor.interface.capability/000"
+    description: >
+      The thermistor-reading ADC interfaces on the board.
+
+  Dacs:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/i2c.dac.capability/000"
+    description: >
+      The digital-to-analog converters on the board.
+
+  TypeName:
+    const: "gw1.scada.device.type.gt"
+
+  Version:
+    const: "000"
+
+required:
+  - DeviceType
+  - BusList
+  - TelemetryNameList
+  - NativeGpioInputs
+  - NativeGpioOutputs
+  - Expanders
+  - Muxes
+  - I2cRelays
+  - SupportsPinReadback
+  - RelayEnergizedLevel
+  - ThermistorAdcs
+  - Dacs
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "DeviceType": "KridaDoubleRelayBoard16",
+      "DisplayName": "GridWorks relay panel: two 16-channel Krida boards, markings Relay1-Relay32",
+      "MinPollPeriodMs": 200,
+      "SupportsPinReadback": false,
+      "RelayEnergizedLevel": 0,
+      "TelemetryNameList": [
+        "RelayState"
+      ],
+      "BusList": [
+        {
+          "Name": "DefaultBus",
+          "BusNumber": 1,
+          "TypeName": "i2c.bus",
+          "Version": "000"
+        }
+      ],
+      "Expanders": [
+        {
+          "ExpanderIdx": 1,
+          "I2cBus": "DefaultBus",
+          "ExpanderType": "Pcf8575",
+          "AllowedI2cAddressList": [32, 33, 34, 35, 36, 37, 38, 39],
+          "TypeName": "i2c.expander",
+          "Version": "000"
+        },
+        {
+          "ExpanderIdx": 2,
+          "I2cBus": "DefaultBus",
+          "ExpanderType": "Pcf8575",
+          "AllowedI2cAddressList": [32, 33, 34, 35, 36, 37, 38, 39],
+          "TypeName": "i2c.expander",
+          "Version": "000"
+        }
+      ],
+      "I2cRelays": [
+        {
+          "RelayName": "Relay1",
+          "ExpanderIdx": 1,
+          "RegisterIndex": 0,
+          "BitIndex": 7,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        },
+        {
+          "RelayName": "Relay17",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 0,
+          "BitIndex": 7,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ],
+          "TypeName": "i2c.relay.capability",
+          "Version": "000"
+        }
+      ],
+      "NativeGpioInputs": [],
+      "NativeGpioOutputs": [],
+      "Muxes": [],
+      "ThermistorAdcs": [],
+      "Dacs": [],
+      "TypeName": "gw1.scada.device.type.gt",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "BusMembership"
+      statement: >
+        Every I2cBus referenced by an entry in Expanders, Muxes, CtAdc,
+        ThermistorAdcs, or Dacs SHALL appear as a Name in BusList.
+    - number: 2
+      name: "ExpanderMembership"
+      statement: >
+        Every ExpanderIdx referenced by an entry in I2cRelays SHALL appear as
+        an ExpanderIdx in Expanders.
+    - number: 3
+      name: "BoardIdentifierUniqueness"
+      statement: >
+        The board's silk-screen namespace is one namespace: the union of every
+        RelayName in I2cRelays, the CtAdc Name, every Name in ThermistorAdcs,
+        every DacName in Dacs, every MuxName in Muxes, and every Name in
+        NativeGpioInputs and NativeGpioOutputs SHALL contain no duplicates
+        within the record.
+    - number: 4
+      name: "MuxConsistency"
+      statement: >
+        a. Every MuxName referenced by an entry in Dacs SHALL appear as a
+        MuxName in Muxes.
+        b. Every Dacs entry carrying MuxChannel SHALL satisfy MuxChannel less
+        than the Channels of the mux named by its MuxName.
+        c. Every Dacs entry carrying MuxName SHALL have an I2cBus equal to
+        that mux's I2cBus.
+    - number: 5
+      name: "RelayEnergizedLevelRange"
+      statement: >
+        RelayEnergizedLevel SHALL be 0 or 1.
+    - number: 6
+      name: "SingleBus"
+      statement: >
+        BusList SHALL have exactly one entry: a scada process drives one bus,
+        and the bus actor opens that entry's adapter. (Retired by the
+        multi-bus work, which replaces this axiom with per-bus binding.)
+  extended_description: >
+    Various hardware layouts enforce membership in `gw1.device.type` for the
+    DeviceType (e.g. `Gw108RevB`, `KridaDoubleRelayBoard16`). The relay drive
+    polarity is a fact of the board's driver circuit, not of its expander
+    chip, which is why RelayEnergizedLevel sits on the record beside the
+    expanders rather than on i2c.expander.type. The
+    record describes what is ALLOWED; per-deployment choices live outside it —
+    a DIP-selected expander address on the component's I2cAddressList
+    (index-aligned with Expanders), a relay's chosen wiring in the layout's
+    relay configuration. Relay names carry the device's physical markings so
+    field technicians can identify relays from the record.
+
+    The `.gt` suffix declares that this type is coupled bijectively with a table in
+    a canonical seed database (here, the terminalasset registry): the table's rows are
+    instances of this type. Sema is the authority over what a row means; the seed
+    table is the authority over which instances are currently asserted.

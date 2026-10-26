@@ -9,14 +9,15 @@ from gwproactor import Proactor
 from gwproactor import ProactorName
 from gwproactor.config import MQTTClient
 from gwproactor.config import Paths
-from gwsproto.data_classes.hardware_layout import HardwareLayout
+from gwproactor.links.mqtt import QOS
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
 
 import actors
 from actors.ltn import Ltn
 from actors.ltn.config import LtnSettings
-from gwsproto.data_classes import house_0_names
-from gwsproto.data_classes.house_0_layout import House0Layout
-from gwsproto.data_classes.house_0_names import H0N
+from sema_to_dc import load_layout
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
+from gwsproto.names.core.node_names import CoreNodeNames
 
 
 class LtnApp(App):
@@ -54,7 +55,7 @@ class LtnApp(App):
         Returns 'ltn' so paths use ~/.config/gridworks/ltn/ etc.
         This is the gwproactor framework's hook for setting paths.
         """
-        return H0N.ltn
+        return CoreNodeNames.ltn
 
     @classmethod
     def get_settings(
@@ -76,26 +77,33 @@ class LtnApp(App):
             )
         )
 
-    def _load_hardware_layout(self, layout_path: str | Path) -> House0Layout:
-        return House0Layout.load(layout_path)
+    def _load_hardware_layout(self, layout_path: str | Path) -> HydronicLayout:
+        """Load the runtime layout. A sema-authored static artifact (its
+        TypeName names a sema layout type) is assembled with the home's
+        operational-params artifact; a runtime-shaped layout file loads
+        directly."""
+        return load_layout(
+            layout_path,
+            Path(self.settings.paths.operational_params),
+        )
 
-    def _get_name(self, layout: HardwareLayout) -> ProactorName:
+    def _get_name(self, layout: HydronicLayout) -> ProactorName:
         return ProactorName(
             long_name=layout.ltn_g_node_alias,
-            short_name=house_0_names.H0N.ltn
+            short_name=CoreNodeNames.ltn
         )
 
     def _get_link_settings(
             self,
             name: ProactorName,
-            layout: HardwareLayout,
+            layout: HydronicLayout,
             brokers: dict[str, MQTTClient]
     ) -> dict[str, LinkSettings]:
         return {
             self.SCADA_MQTT: LinkSettings(
                 broker_name=self.SCADA_MQTT,
                 peer_long_name=layout.scada_g_node_alias,
-                peer_short_name=H0N.primary_scada,
+                peer_short_name=CoreNodeNames.primary_scada,
                 downstream=True,
             ),
         }
@@ -106,6 +114,16 @@ class LtnApp(App):
         #       in the hardware layout
         proactor._web_manager.disable()  # noqa
         return proactor
+
+    def _connect_links(self, proactor: Proactor) -> None:
+        super()._connect_links(proactor)
+        # The maker's latest.price broadcast reaches the scada broker over the
+        # rjb bridge; the link's own subscription hears only the scada.
+        proactor.links.subscribe(
+            client=self.SCADA_MQTT,
+            topic=Ltn.latest_price_topic(self.settings.market_maker_alias),
+            qos=QOS.AtMostOnce,
+        )
 
     @classmethod
     def get_repl_app(

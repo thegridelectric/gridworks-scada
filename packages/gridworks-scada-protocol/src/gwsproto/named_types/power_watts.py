@@ -1,10 +1,11 @@
+
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 from typing import Literal
 
-from pydantic import BaseModel
 
 
-class PowerWatts(BaseModel):
-    """ASL: https://schemas.electricity.works/types/power.watts/000"""
+class PowerWatts(GwsprotoSemaType):
+    """Sema: https://schemas.electricity.works/types/power.watts/000"""
 
     Watts: int
     TypeName: Literal["power.watts"] = "power.watts"

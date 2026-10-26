@@ -1,0 +1,86 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/i2c.ct.interface.capability/000"
+
+title: "i2c.ct.interface.capability"
+type: object
+description: >
+  A current-transformer-reading ADC interface on a GridWorks SCADA board: where the
+  CT ADC sits on the board and the reference facts needed to interpret its readings.
+  The current-sensing circuit differs from a thermistor divider — a CT input has its
+  own conditioning (burden and bias) — so this is a distinct capability from
+  the thermistor interface capability rather than a generic ADC locator.
+
+properties:
+
+  Name:
+    $ref: "https://schemas.electricity.works/formats/pascal.case"
+    description: >
+      The name of this CT ADC on the board.
+
+  I2cBus:
+    $ref: "https://schemas.electricity.works/formats/pascal.case"
+    description: >
+      The name of the board bus this ADC is attached to.
+
+  I2cAddress:
+    $ref: "https://schemas.electricity.works/formats/non.negative.int"
+    description: >
+      The I²C bus address of the CT-reading ADC.
+
+  AdcType:
+    $ref: "https://schemas.electricity.works/enums/i2c.adc.type/000"
+    description: >
+      The ADC model.
+
+  AdcReferenceVolts:
+    $ref: "https://schemas.electricity.works/formats/positive.float"
+    description: >
+      Reference voltage used by the ADC when converting measured voltage to a
+      serialized reading.
+
+  Channels:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      The number of CT input channels this ADC exposes.
+
+  TypeName:
+    const: "i2c.ct.interface.capability"
+
+  Version:
+    const: "000"
+
+required:
+  - Name
+  - I2cBus
+  - I2cAddress
+  - AdcType
+  - AdcReferenceVolts
+  - Channels
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "Name": "Ct",
+      "I2cBus": "DefaultBus",
+      "I2cAddress": 72,
+      "AdcType": "Ads1115",
+      "AdcReferenceVolts": 3.3,
+      "Channels": 4,
+      "TypeName": "i2c.ct.interface.capability",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  extended_description: >
+    The CT sibling of i2c.thermistor.interface.capability in the board-resident model.
+    Still to land here as the board's circuit facts are extracted from the schematic:
+    the per-channel burden/conditioning values and the CT the circuit expects (output
+    kind — current-output needing an external burden vs voltage-output with internal
+    burden — and rating), which pair with a future ct device-type word describing the
+    clamp itself. This word is staging and evolves in place as those facts arrive.

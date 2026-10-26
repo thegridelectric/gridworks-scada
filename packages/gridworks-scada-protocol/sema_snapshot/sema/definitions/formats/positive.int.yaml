@@ -1,0 +1,25 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/formats/positive.int"
+
+title: "positive.int"
+description: >
+  Positive integer validated non-coercively at the serialized boundary.
+  The serialized value must already be an integer greater than 0. Strings such
+  as "1" and numeric floats such as 1.0 are not accepted.
+
+type: integer
+minimum: 1
+
+examples:
+  - 1
+  - 7
+  - 432
+
+counterexamples:
+  - 0
+  - -1
+  - 1.0
+  - "1"
+
+x-gridworks:
+  owner: "gridworks-energy"

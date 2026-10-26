@@ -52,13 +52,14 @@ class PowerDisplay:
                     header_style="bold"
                 )
 
-        hp_pwr_w_str = f"{round(self.hack_hp_state_q[0].hp_pwr_w / 1000, 2)}"
-        if self.hack_hp_state_q[0].idu_pwr_w is None:
+        current = self.hack_hp_state_q[0] if self.hack_hp_state_q else HackHpStateCapture()
+        hp_pwr_w_str = f"{round(current.hp_pwr_w / 1000, 2)}"
+        if current.idu_pwr_w is None:
             idu_pwr_w_str = none_text
             odu_pwr_w_str = none_text
         else:
-            idu_pwr_w_str = f"{round(self.hack_hp_state_q[0].idu_pwr_w / 1000, 2)}"
-            odu_pwr_w_str = f"{round(self.hack_hp_state_q[0].odu_pwr_w / 1000, 2)}"
+            idu_pwr_w_str = f"{round(current.idu_pwr_w / 1000, 2)}"
+            odu_pwr_w_str = f"{round(current.odu_pwr_w / 1000, 2)}"
 
         row_1 = [
             "Hp Total", hp_pwr_w_str,

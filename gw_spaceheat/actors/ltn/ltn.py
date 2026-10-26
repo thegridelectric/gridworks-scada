@@ -20,6 +20,7 @@ import aiohttp
 import rich
 import httpx
 
+from gwproto.topic import MQTTTopic
 from gwproto.messages import (
     Ack,
     Ping,
@@ -39,6 +40,8 @@ from gwproactor import PrimeActor
 from gwproactor import ProactorLogger
 from gwproactor import ProactorName
 from gwproactor import AppInterface
+from scada_app_interface import ScadaAppInterface
+from weather_source import FORECAST_HOURS, ForecastPair, HourlyForecast
 from gwproto import HardwareLayout
 
 
@@ -57,26 +60,29 @@ from gwproactor.logger import LoggerOrAdapter
 from gwproactor.message import DBGCommands, DBGPayload, MQTTReceiptPayload, PatInternalWatchdogMessage
 
 from gwsproto.conversions.temperature import convert_temp_to_f
-from gwsproto.data_classes.house_0_layout import House0Layout
-from gwsproto.data_classes.house_0_names import H0CN, H0N
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
 
-from gwsproto.data_classes.house_0_names import House0RelayIdx
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
     LogLevel,
-    MarketPriceUnit, MarketQuantityUnit, MarketTypeName,
-    TelemetryName, RelayClosedOrOpen, SeasonalStorageMode, 
-    SlowDispatchContractStatus, SystemMode
+    MarketPriceUnit, MarketQuantityUnit,
+    TelemetryName, RelayClosedOrOpen, SeasonalStorageMode,
+    SlowDispatchContractStatus, ServiceMode
 )
 from gwsproto.named_types import PowerWatts, Report, ReportEvent
-from gwsproto.named_types import AnalogDispatch, SendSnap, MachineStates
+from gwsproto.named_types import SendSnap, MachineStates
+from actors.hydronic.store_temps import scrub_and_fill_store_temps
 from actors.ltn.contract_handler import LtnContractHandler
  
 from gwsproto.named_types import (
-    Bid, BidRecommendation, FloParamsHouse0, FloNextHourPlans, Glitch, Ha1Params, LatestPrice,
-    LayoutLite, NoNewContractWarning, ResetHpKeepValue, ScadaParams, SendLayout,
-    SetLwtControlParams, SiegLoopEndpointValveAdjustment, SlowContractHeartbeat, SnapshotSpaceheat,
+    Bid, BidRecommendation, FloParamsHouse0, FloNextHourPlans, Glitch, Ha1Params, HouseOperatingStatus, LatestPrice,
+    LayoutLite, NoNewContractWarning, SendLayout,
+    SlowContractHeartbeat, SlowContractRejection,
+    SnapshotSpaceheat,
 )
+from gwsproto.names.core.node_names import CoreNodeNames
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
+from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 
 from paho.mqtt.client import MQTTMessageInfo
 from pydantic import BaseModel
@@ -85,6 +91,7 @@ from pydantic import BaseModel
 from actors.ltn.config import LtnSettings, DashboardSettings
 from actors.ltn.dashboard.dashboard import Dashboard
 from actors.ltn.data import LtnData
+from actors.ltn import flo_tuning
 
 TANK_GALLONS = 120
 MAX_HORIZON_HOURS = 48
@@ -144,7 +151,7 @@ def _flo_plans_worker(
 
 
 def _get_flo_git_commit() -> str:
-    """Get gridworks-innovations HEAD commit when available; else FloParamsHouse0 default."""
+    """Get gridworks-innovations HEAD commit when available; else the Unknown marker."""
     candidates: list[Path] = []
     # Prefer: gridflo package location (editable install)
     try:
@@ -167,7 +174,7 @@ def _get_flo_git_commit() -> str:
             )
             if r.returncode == 0 and r.stdout.strip():
                 return r.stdout.strip()
-    return FloParamsHouse0.model_fields["FloGitCommit"].default
+    return flo_tuning.FLO_GIT_COMMIT_UNKNOWN
 
 
 class PriceForecast(BaseModel):
@@ -177,7 +184,7 @@ class PriceForecast(BaseModel):
 
     @property
     def total_energy(self) -> List[float]:
-        """Calculate the total price forecast by summing dp, lmp, and reg components."""
+        """Calculate the total price forecast by summing dp and lmp components."""
         return [dp + lmp for dp, lmp in zip(self.dp_usd_per_mwh, self.lmp_usd_per_mwh)]
 
 
@@ -395,9 +402,9 @@ class BidRunner(threading.Thread):
 
 class LtnMQTTCodec(MQTTCodec):
     exp_src: str
-    exp_dst: str = H0N.ltn
+    exp_dst: str = CoreNodeNames.ltn
 
-    def __init__(self, hardware_layout: House0Layout):
+    def __init__(self, hardware_layout: HydronicLayout):
         self.exp_src = hardware_layout.scada_g_node_alias
         super().__init__(
             create_message_model(
@@ -429,6 +436,21 @@ class LtnMQTTCodec(MQTTCodec):
                 f"  got: {src} -> {dst}"
             )
 
+    def decode(self, topic: str, payload: bytes) -> Message[Any]:
+        """A message on the maker's rjb broadcast topic is the bare
+        latest.price word; everything else is a gw-wrapped message from
+        the scada."""
+        if topic.split("/")[0] == Ltn.RJB:
+            decoded_topic = MQTTTopic.decode(topic)
+            if decoded_topic.remainder != ["mm", LatestPrice.model_fields["TypeName"].default]:
+                raise ValueError(f"Unexpected rjb topic [{topic}]")
+            return Message(
+                Src=decoded_topic.src,
+                Dst=self.exp_dst,
+                Payload=LatestPrice.model_validate_json(payload),
+            )
+        return super().decode(topic, payload)
+
 class LtnCodecFactory(CodecFactory):
     def get_codec(
         self,
@@ -437,10 +459,10 @@ class LtnCodecFactory(CodecFactory):
         proactor_name: ProactorName,
         layout: HardwareLayout,
     ) -> MQTTCodec:
-        if not isinstance(layout, House0Layout):
+        if not isinstance(layout, HydronicLayout):
             raise ValueError(
                 "ERROR. ScadaCodecFactory requires hardware layout "
-                "to be an instance of House0Layout but received layout type "
+                "to be an instance of HydronicLayout but received layout type "
                 f"<{type(layout)}>"
             )
         return LtnMQTTCodec(layout)
@@ -455,8 +477,14 @@ class Telemetry(BaseModel):
 class Ltn(PrimeActor):
     MAIN_LOOP_SLEEP_SECONDS = 61
     HEARTBEAT_INTERVAL_S = 60
-    P_NODE = "hw1.isone.ver.keene"
     SCADA_MQTT = "scada_mqtt"
+    RJB = "rjb"
+
+    @classmethod
+    def latest_price_topic(cls, market_maker_alias: str) -> str:
+        """The MQTT topic the maker's latest.price broadcast arrives on: its
+        rjb routing key with dots as slashes."""
+        return f"{cls.RJB}/{market_maker_alias.replace('.', '-')}/mm/latest-price"
     data: LtnData
     event_loop_thread: Optional[threading.Thread] = None
     dashboard: Optional[Dashboard]
@@ -467,21 +495,17 @@ class Ltn(PrimeActor):
         super().__init__(name, services)
         # self._web_manager.disable()
         self.data = LtnData()
-        self.is_simulated = self.settings.is_simulated
         self.latest_channel_values: Dict[str, int] = {}
         self.timezone = pytz.timezone(self.settings.timezone_str)
-        self.latitude = self.settings.latitude
-        self.longitude = self.settings.longitude
         self.flo_horizon_hours = self.settings.flo_horizon_hours
         self.sent_bid = False
         self.flo_params = None
         self.hp_is_off = False
-        self.weather_forecast = None
-        self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
+        self.weather_forecast: Optional[ForecastPair] = None
         self.price_forecast: Optional[PriceForecast] = None
         self.data_channels: List
         self.tank_temp_channel_names = None
-        self.ha1_params: Optional[Ha1Params] = None
+        self.ha1_params: Optional[Ha1Params] = self.settings.ha1_params
         self.latest_report: Optional[Report] = None
         self.report_output_dir = Path(f"{self.settings.paths.data_dir}/report")
         self.report_output_dir.mkdir(parents=True, exist_ok=True)
@@ -518,12 +542,16 @@ class Ltn(PrimeActor):
         self.create_graph_minute: int = self.settings.create_graph_minute
         # Gets strategy from scada sending LayoutLite
         self.layout_lite: Optional[LayoutLite] = None # Add this as a way of tracking if we've gotten the layout lite yet
-        self.total_store_tanks = 3 # will also get updated when LayoutLite arrives
+        self.total_store_tanks = len(self.layout.store_tanks)
         # TODO: read strategy from hardware layout: node = hardware_layout.node(...)
         self.buffer_flo = False
-        self.system_mode: SystemMode = SystemMode.Heating # will get updated when LayoutLite arrives from Scada
-        self.seasonal_storage_mode: SeasonalStorageMode = SeasonalStorageMode.AllTanks # will get updated when LayoutLite arrives from Scada
-        self.short_cycle_buffer: bool = False # will get updated when LayoutLite arrives from Scada
+        # The posture facts ride gw.house.operating.status, the LTN's one source;
+        # until the first one arrives the LTN refuses to dispatch.
+        self.operating_status: Optional[HouseOperatingStatus] = None
+        self.accepts_dispatch: bool = False
+        self.service_mode: ServiceMode = ServiceMode.Heating
+        self.seasonal_storage_mode: SeasonalStorageMode = SeasonalStorageMode.AllTanks
+        self.keep_buffer_full: bool = self.settings.keep_buffer_full
 
     @classmethod
     def get_codec_factory(cls) -> LtnCodecFactory:
@@ -543,7 +571,7 @@ class Ltn(PrimeActor):
 
     @property
     def scada(self) -> ShNode:
-        return self.layout.node(H0N.primary_scada)
+        return self.layout.node(CoreNodeNames.primary_scada)
 
     @property
     def publication_name(self) -> str:
@@ -558,8 +586,8 @@ class Ltn(PrimeActor):
         return cast(LtnSettings, self.services.settings)
 
     @property
-    def layout(self) -> House0Layout:
-        return cast(House0Layout, self.services.hardware_layout)
+    def layout(self) -> HydronicLayout:
+        return cast(HydronicLayout, self.services.hardware_layout)
 
     def _publish_to_scada(self, payload, qos: QOS = QOS.AtMostOnce) -> MQTTMessageInfo:
         return self.services.publish_message(
@@ -632,10 +660,6 @@ class Ltn(PrimeActor):
                     # (it leaves the scada lexicon); OPS-387.
                     Message(Src=self.publication_name, Dst=self.scada.name, Payload=message.Payload)
                 )
-            case LatestPrice():
-                path_dbg |= 0x00000004
-                self.process_latest_price(message.Payload)
-                # self._publish_to_scada(message.Payload) # so we can record in database
             case _:
                 path_dbg |= 0x00000008
         self.logger.path("--Ltn._derived_process_message  path:0x%08X", path_dbg)
@@ -656,6 +680,9 @@ class Ltn(PrimeActor):
             case LayoutLite():
                 path_dbg |= 0x00000001
                 self.process_layout_lite(decoded.Payload)
+            case HouseOperatingStatus():
+                path_dbg |= 0x00000001
+                self.process_house_operating_status(decoded.Payload)
             case NoNewContractWarning():
                 path_dbg |= 0x00000002
                 self.process_no_new_contract_warning(decoded.Payload)
@@ -665,14 +692,22 @@ class Ltn(PrimeActor):
             case Report():
                 path_dbg |= 0x00000008
                 self.process_report(decoded.Payload)
-            case ScadaParams():
-                path_dbg |= 0x00000010
-                self.process_scada_params(decoded.Payload)
             case SnapshotSpaceheat():
                 path_dbg |= 0x00000020
                 self.process_snapshot(decoded.Payload)
             case SlowContractHeartbeat():
                 self.contract_handler.process_slow_contract_heartbeat(decoded.Payload)
+            case SlowContractRejection():
+                self.contract_handler.process_slow_contract_rejection(decoded.Payload)
+            case LatestPrice():
+                path_dbg |= 0x00000400
+                if decoded.Header.Src == self.settings.market_maker_alias:
+                    self.process_latest_price(decoded.Payload)
+                else:
+                    self.log(
+                        f"Ignoring latest.price from {decoded.Header.Src}: "
+                        f"the market maker is {self.settings.market_maker_alias}"
+                    )
             case EventBase():
                 path_dbg |= 0x00000040
                 self._process_event(decoded.Payload)
@@ -723,27 +758,19 @@ class Ltn(PrimeActor):
         s = "\n\nSnapshot received:\n"
         for single_reading in snapshot.LatestReadingList:
             channel = self.layout.data_channels[single_reading.ChannelName]
-            telemetry_name = channel.TelemetryName
-            if (
-                telemetry_name == TelemetryName.WaterTempCTimes1000
-                or telemetry_name == TelemetryName.WaterTempCTimes1000.value
-            ):
-                centigrade = single_reading.Value / 1000
-                if self.settings.c_to_f:
-                    fahrenheit = (centigrade * 9 / 5) + 32
-                    extra = f"{fahrenheit:5.2f} F"
-                else:
-                    extra = f"{centigrade:5.2f} C"
+            try:
+                temperature = self.layout.channel_registry.temperature(
+                    channel.Name, single_reading.Value
+                )
+            except ValueError:
+                extra = f"{single_reading.Value} {channel.TelemetryName}"
             else:
-                extra = f"{single_reading.Value} " f"{telemetry_name}"
+                if self.settings.c_to_f:
+                    extra = f"{temperature.f:5.2f} F"
+                else:
+                    extra = f"{temperature.c:5.2f} C"
             s += f"  {channel.AboutNodeName}: {extra}\n"
         return s
-
-    def process_scada_params(self, params: ScadaParams) -> None:
-        if params.NewParams:
-            print(f"Old: {self.ha1_params}")
-            print(f"New: {params.NewParams}")
-            self.ha1_params = params.NewParams
 
     def process_snapshot(self, snapshot: SnapshotSpaceheat) -> None:
         self.data.latest_snapshot = snapshot
@@ -754,9 +781,17 @@ class Ltn(PrimeActor):
             self.logger.warning(self.snapshot_str(snapshot))
         for reading in snapshot.LatestReadingList:
             self.latest_channel_values[reading.ChannelName] = reading.Value
-        if self.is_simulated and self.tank_temp_channel_names is not None:
-            for channel in self.tank_temp_channel_names:
-                self.latest_channel_values[channel] = 60000
+
+    def process_house_operating_status(self, status: HouseOperatingStatus) -> None:
+        """The scada's slow operating facts: the LTN bids and runs FLOs only
+        while the house accepts dispatch and serves heat, and sizes the FLO
+        by the storage mode."""
+        self.log(f"Operating status: {status}")
+        self.operating_status = status
+        self.accepts_dispatch = status.AcceptsDispatch
+        self.service_mode = status.ServiceMode
+        self.seasonal_storage_mode = status.SeasonalStorageMode
+        self.log(f"FLO seasonal storage mode: {self.seasonal_storage_mode}")
 
     def process_layout_lite(self, layout: LayoutLite) -> None:
         """ ContractState: Initializing -> Ready if needed
@@ -764,16 +799,10 @@ class Ltn(PrimeActor):
         self.log("Processing layout lite")
         self.logger.info(f"Processing layout lite: {layout}")
         self.layout_lite = layout
-        self.system_mode = layout.SystemMode
-        self.ha1_params = layout.Ha1Params
-        self.seasonal_storage_mode = layout.SeasonalStorageMode
-        self.total_store_tanks = layout.TotalStoreTanks
-        self.short_cycle_buffer = layout.BufferShortCycling
-        self.log(f"FLO seasonal storage mode: {self.seasonal_storage_mode}")
 
-        self.tank_temp_channel_names = list(H0CN.buffer.effective)
-        for tank_idx in sorted(self.layout.h0cn.tank):
-            tank = self.layout.h0cn.tank[tank_idx]
+        self.tank_temp_channel_names = list(HCN.buffer.effective)
+        for tank_idx in sorted(self.layout.store_tanks):
+            tank = self.layout.store_tanks[tank_idx]
             self.tank_temp_channel_names.extend([tank.depth1, tank.depth2, tank.depth3])
 
         if self.contract_handler.layout_received is False:
@@ -785,7 +814,7 @@ class Ltn(PrimeActor):
         # Check if HP is on or off by looking at relay 6
         for machine_state in report.StateList:
             ms : MachineStates = machine_state
-            if f"relay{House0RelayIdx.hp_scada_ops}" in ms.MachineHandle:
+            if HSNN.hp_scada_ops_relay in ms.MachineHandle:
                 if ms.StateList[-1] == RelayClosedOrOpen.RelayOpen:
                     self.hp_is_off = True
                 else:
@@ -818,22 +847,6 @@ class Ltn(PrimeActor):
             )
         )
 
-    def send_new_params(self, new: Ha1Params) -> None:
-        self.services.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.scada.name,
-                Payload=ScadaParams(
-                    FromGNodeAlias=self.layout.ltn_g_node_alias,
-                    FromName=H0N.ltn,
-                    ToName=H0N.local_control,
-                    UnixTimeMs=int(time.time() * 1000),
-                    MessageId=str(uuid.uuid4()),
-                    NewParams=new,
-                ),
-            )
-        )
-
     def send_layout(self) -> None:
         self.services.send_threadsafe(
             Message(
@@ -854,7 +867,6 @@ class Ltn(PrimeActor):
                 self.contract_handler.contract_heartbeat_task(),
                 name="contract_heartbeat"
             ),
-            asyncio.create_task(self.fake_market_maker(), name="fake market maker")
         ]
 
     async def main(self):
@@ -871,7 +883,7 @@ class Ltn(PrimeActor):
                 await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
                 continue
 
-            if self.system_mode != SystemMode.Heating:
+            if not self.accepts_dispatch or self.service_mode != ServiceMode.Heating:
                 # SCADA-side: plant is not accepting heating intent
                 await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
                 continue
@@ -960,7 +972,7 @@ class Ltn(PrimeActor):
             self.log("Do not have layout lite from scada so not running dijkstra... must not be connected!!")
             return
 
-        if self.system_mode != SystemMode.Heating:
+        if not self.accepts_dispatch or self.service_mode != ServiceMode.Heating:
             self.log("Should not be running FLOs when Scada is in Summer!! Sent glitch")
             glitch = Glitch(
                 FromGNodeAlias=self.layout.ltn_g_node_alias,
@@ -1000,15 +1012,20 @@ class Ltn(PrimeActor):
         if self.flo_horizon_hours > MAX_HORIZON_HOURS:
             self.log(f"Horizon hours is greater than max allowed {MAX_HORIZON_HOURS}!")
             self.flo_horizon_hours = MAX_HORIZON_HOURS
-        if self.flo_horizon_hours > len(self.weather_forecast["oat"]):
-            self.log(f"Horizon hours is greater than weather forecast length {len(self.weather_forecast['oat'])}!")
-            self.flo_horizon_hours = self.weather_forecast["oat"]
+        assert isinstance(self.services, ScadaAppInterface)
+        weather = self.weather_forecast.next_hours(FORECAST_HOURS, self.services.clock.now())
+        if self.flo_horizon_hours > len(weather.time):
+            self.log(f"Horizon hours is greater than weather forecast length {len(weather.time)}!")
+            self.flo_horizon_hours = len(weather.time)
         if self.flo_horizon_hours > len(self.price_forecast.lmp_usd_per_mwh):
             self.log(f"Horizon hours is greater than price forecast length {len(self.price_forecast.lmp_usd_per_mwh)}!")
             self.flo_horizon_hours = len(self.price_forecast.lmp_usd_per_mwh)
         self.log(f"Using a {self.flo_horizon_hours} hour horizon")
-        self.weather_forecast["oat"] = self.weather_forecast["oat"][:self.flo_horizon_hours]
-        self.weather_forecast["ws"] = self.weather_forecast["ws"][:self.flo_horizon_hours]
+        weather = HourlyForecast(
+            time=weather.time[:self.flo_horizon_hours],
+            oat_f=weather.oat_f[:self.flo_horizon_hours],
+            wind_speed_mph=weather.wind_speed_mph[:self.flo_horizon_hours],
+        )
         self.price_forecast.lmp_usd_per_mwh = self.price_forecast.lmp_usd_per_mwh[:self.flo_horizon_hours]
         self.price_forecast.dp_usd_per_mwh = self.price_forecast.dp_usd_per_mwh[:self.flo_horizon_hours]
         self.price_forecast.reg_usd_per_mwh = self.price_forecast.reg_usd_per_mwh[:self.flo_horizon_hours]
@@ -1027,6 +1044,8 @@ class Ltn(PrimeActor):
 
         self.flo_params = FloParamsHouse0(
             GNodeAlias=self.layout.scada_g_node_alias,
+            FloParamsUid=str(uuid.uuid4()),
+            TimezoneStr=self.settings.timezone_str,
             StartUnixS=dijkstra_start_time,
             HorizonHours=self.flo_horizon_hours,
             NumLayers=int(3*num_tanks*3), # 3 sensors per tank, 3 layers per sensor
@@ -1036,11 +1055,19 @@ class Ltn(PrimeActor):
             InitialThermocline1= int(th1*3),
             InitialThermocline2= int(th2*3),
             StorageVolumeGallons = TANK_GALLONS*num_tanks,
+            StorageLossesPercent=flo_tuning.STORAGE_LOSSES_PERCENT,
+            HpMinElecKw=flo_tuning.HP_MIN_ELEC_KW,
+            HpMaxElecKw=self.ha1_params.HpMaxKwEl,
+            HpTurnOnMinutes=self.ha1_params.HpTurnOnMinutes,
+            MaxHpKwhTh=flo_tuning.MAX_HP_KWH_TH,
+            MaxLoadKwhTh=flo_tuning.MAX_LOAD_KWH_TH,
             LmpForecast=self.price_forecast.lmp_usd_per_mwh,
             DistPriceForecast=self.price_forecast.dp_usd_per_mwh,
             RegPriceForecast=self.price_forecast.reg_usd_per_mwh,
-            OatForecastF=self.weather_forecast["oat"],
-            WindSpeedForecastMph=self.weather_forecast["ws"],
+            PriceForecastUid=str(uuid.uuid4()),
+            OatForecastF=weather.oat_f,
+            WindSpeedForecastMph=weather.wind_speed_mph,
+            WeatherUid=str(uuid.uuid4()),
             AlphaTimes10=self.ha1_params.AlphaTimes10,
             BetaTimes100=self.ha1_params.BetaTimes100,
             GammaEx6=self.ha1_params.GammaEx6,
@@ -1060,6 +1087,19 @@ class Ltn(PrimeActor):
             HouseAvailableKwh=house_available_kwh,
             PreviousPlanHpKwhElList=previous_plan_hp_kwh_el_list,
             PreviousEstimateStorageKwhNow=previous_estimate_storage_kwh_now,
+            RswtPenaltyEnabled=flo_tuning.RSWT_PENALTY_ENABLED,
+            RswtPenaltyWeight=flo_tuning.RSWT_PENALTY_WEIGHT,
+            RswtPenaltyDecay=flo_tuning.RSWT_PENALTY_DECAY,
+            RswtPenaltyExponentRate=flo_tuning.RSWT_PENALTY_EXPONENT_RATE,
+            RswtPenaltyDecayMaxHour=flo_tuning.RSWT_PENALTY_DECAY_MAX_HOUR,
+            StabilityPenaltyEnabled=flo_tuning.STABILITY_PENALTY_ENABLED,
+            StabilityPenaltyWeight=flo_tuning.STABILITY_PENALTY_WEIGHT,
+            StabilityPenaltyDecay=flo_tuning.STABILITY_PENALTY_DECAY,
+            StabilityPenaltyThresholdKwh=flo_tuning.STABILITY_PENALTY_THRESHOLD_KWH,
+            StabilityPenaltyHorizonHours=flo_tuning.STABILITY_PENALTY_HORIZON_HOURS,
+            PriceUnit=flo_tuning.PRICE_UNIT,
+            ParamsGeneratedS=int(time.time()),
+            ConstantDeltaT=flo_tuning.CONSTANT_DELTA_T,
             FloGitCommit=flo_git_commit,
         )
         self.services.publish_message(
@@ -1223,25 +1263,14 @@ class Ltn(PrimeActor):
             price_usd_mwh = payload.PriceTimes1000 / 1000
             self.bid_runner.get_next_hour_plans(price_usd_mwh)
 
-    def fill_missing_store_temps(self):
+    def fill_missing_store_temps(self) -> None:
+        """Scrub implausible store layers and fill the missing ones from
+        below (`store_temps.scrub_and_fill_store_temps`, the pass the
+        scada runs too)."""
         all_store_layers = sorted(
             [x for x in self.tank_temp_channel_names if "tank" in x]
         )
-        for layer in all_store_layers:
-            if (
-                layer not in self.latest_temps_f
-                or self.latest_temps_f[layer] < 70
-                or self.latest_temps_f[layer] > 200
-            ):
-                self.latest_temps_f[layer] = None
-        if H0CN.store_cold_pipe in self.latest_temps_f:
-            value_below = self.latest_temps_f[H0CN.store_cold_pipe]
-        else:
-            value_below = 0
-        for layer in sorted(all_store_layers, reverse=True):
-            if self.latest_temps_f[layer] is None:
-                self.latest_temps_f[layer] = value_below
-            value_below = self.latest_temps_f[layer]
+        scrub_and_fill_store_temps(self.latest_temps_f, all_store_layers, HCN.store_cold_pipe)
         self.latest_temps_f = {
             k: self.latest_temps_f[k] for k in sorted(self.latest_temps_f)
         }
@@ -1251,47 +1280,30 @@ class Ltn(PrimeActor):
             self.temperatures_available = False
             self.log("Can't get latest temperatures, don't have temperature channel names!")
             return
-        if not self.settings.is_simulated:
-            temps = {}
-            for ch_name in self.tank_temp_channel_names:
-                raw = self.latest_channel_values.get(ch_name)
-                if raw is None:
-                    continue
-                try:
-                    unit = self.layout.channel_registry.unit(ch_name)
-                    if unit is None:
-                        raise Exception(
-                            f"temperature channels should have units! {ch_name}"
-                        )
-                    temp_f = convert_temp_to_f(
-                        raw=raw,
-                        encoding=unit
+        temps = {}
+        for ch_name in self.tank_temp_channel_names:
+            raw = self.latest_channel_values.get(ch_name)
+            if raw is None:
+                continue
+            try:
+                unit = self.layout.channel_registry.unit(ch_name)
+                if unit is None:
+                    raise Exception(
+                        f"temperature channels should have units! {ch_name}"
                     )
-                except Exception as e:
-                    note = f"Temperature conversion failed for {ch_name}: {e}"
-                    self.log(note)
-                    continue
-                temps[ch_name] = temp_f
+                temp_f = convert_temp_to_f(
+                    raw=raw,
+                    encoding=unit
+                )
+            except Exception as e:
+                note = f"Temperature conversion failed for {ch_name}: {e}"
+                self.log(note)
+                continue
+            temps[ch_name] = temp_f
 
-            self.latest_temps_f = temps.copy()
-        else:
-            self.log("IN SIMULATION - set all temperatures to 60 degC")
-            self.latest_temps_f = {}
-            for channel_name in self.tank_temp_channel_names:
-                self.latest_temps_f[channel_name] = 140.0
-        if list(self.latest_temps_f.keys()) == self.tank_temp_channel_names:
-            self.temperatures_available = True
-        else:
-            self.temperatures_available = False
-            all_buffer = [
-                x for x in self.tank_temp_channel_names if "buffer-depth" in x
-            ]
-            available_buffer = [
-                x for x in list(self.latest_temps_f.keys()) if "buffer-depth" in x
-            ]
-            if all_buffer == available_buffer:
-                self.fill_missing_store_temps()
-                self.temperatures_available = True
+        self.latest_temps_f = temps.copy()
+        self.fill_missing_store_temps()
+        self.temperatures_available = set(self.tank_temp_channel_names) <= self.latest_temps_f.keys()
 
     async def get_RSWT(self, minus_deltaT=False):
         if self.ha1_params is None:
@@ -1302,8 +1314,10 @@ class Ltn(PrimeActor):
             alpha = self.ha1_params.AlphaTimes10 / 10
             beta = self.ha1_params.BetaTimes100 / 100
             gamma = self.ha1_params.GammaEx6 / 1e6
-            oat = float(self.weather_forecast["oat"][0])
-            ws = float(self.weather_forecast["ws"][0])
+            assert isinstance(self.services, ScadaAppInterface)
+            weather = self.weather_forecast.next_hours(1, self.services.clock.now())
+            oat = weather.oat_f[0]
+            ws = weather.wind_speed_mph[0]
             r = alpha + beta*oat + gamma*ws*(65-oat)
             rhp= r if r>0 else 0
             intermediate_rswt = self.ha1_params.IntermediateRswtF
@@ -1322,7 +1336,7 @@ class Ltn(PrimeActor):
             if minus_deltaT:
                 return rswt - deltaT
             return rswt
-        except:
+        except Exception:
             self.log("Could not find RSWT!")
             return None
 
@@ -1365,9 +1379,9 @@ class Ltn(PrimeActor):
             return None
 
         if self.seasonal_storage_mode == SeasonalStorageMode.BufferOnly:
-            top_temp = round(tank_temps[H0CN.buffer.depth1],1)
-            middle_temp = round(tank_temps[H0CN.buffer.depth2],1)
-            bottom_temp = round(tank_temps[H0CN.buffer.depth3],1)
+            top_temp = round(tank_temps[HCN.buffer.depth1],1)
+            middle_temp = round(tank_temps[HCN.buffer.depth2],1)
+            bottom_temp = round(tank_temps[HCN.buffer.depth3],1)
             thermocline1 = 1
             thermocline2 = 2
             return top_temp, middle_temp, bottom_temp, thermocline1, thermocline2
@@ -1457,7 +1471,7 @@ class Ltn(PrimeActor):
                 return top_temp, top_temp, top_temp, thermocline1, thermocline1
     
     async def get_buffer_available_kwh(self):
-        if self.short_cycle_buffer:
+        if self.keep_buffer_full:
             return 0
         if self.seasonal_storage_mode == SeasonalStorageMode.BufferOnly:
             return 0
@@ -1526,140 +1540,9 @@ class Ltn(PrimeActor):
         return min(0, house_availale_kwh) # TODO: TEMPORARY only consider negative values
 
     async def get_weather(self, session: aiohttp.ClientSession) -> None:
-        config_dir = self.settings.paths.config_dir
-        weather_file = Path(f"{config_dir}/weather.json")
-        try:
-            url = f"https://api.weather.gov/points/{self.latitude},{self.longitude}"
-            response =  await session.get(url)
-            if response.status != 200:
-                self.log(f"Error fetching weather data: {response.status}")
-                return None
-            data = await response.json()
-            forecast_hourly_url = data["properties"]["forecastHourly"]
-            forecast_response = await session.get(forecast_hourly_url)
-            if forecast_response.status != 200:
-                self.log(
-                    f"Error fetching hourly weather forecast: {forecast_response.status}"
-                )
-                return None
-            forecast_data = await forecast_response.json()
-            forecasts = {}
-            periods = forecast_data["properties"]["periods"]
-            for period in periods:
-                if (
-                    "temperature" in period
-                    and "startTime" in period
-                    and datetime.fromisoformat(period["startTime"])
-                    > datetime.now(tz=self.timezone)
-                ):
-                    forecasts[datetime.fromisoformat(period["startTime"])] = [
-                        float(period["temperature"]), float(period["windSpeed"].replace(' mph',''))
-                    ]
-            forecasts = dict(list(forecasts.items())[:96])
-            cropped_forecast = dict(list(forecasts.items())[:48])
-            wf = {
-                "time": list(forecasts.keys()),
-                "oat": [x[0] for x in list(forecasts.values())],
-                "ws": [x[1] for x in list(forecasts.values())],
-            }
-            self.log(
-                f"Obtained a {len(forecasts)}-hour weather forecast starting at {wf['time'][0]}"
-            )
-            weather_long = {
-                "time": [x.timestamp() for x in list(forecasts.keys())],
-                "oat": [x[0] for x in list(forecasts.values())],
-                "ws": [x[1] for x in list(forecasts.values())],
-            }
-            with open(weather_file, "w") as f:
-                json.dump(weather_long, f, indent=4)
-
-        except Exception as e:
-            self.log(f"[!] Unable to get weather forecast from API: {e}")
-            try:
-                with open(weather_file, "r") as f:
-                    weather_long = json.load(f)
-                    weather_long["time"] = [
-                        datetime.fromtimestamp(x, tz=self.timezone)
-                        for x in weather_long["time"]
-                    ]
-                if weather_long["time"][-1] >= datetime.fromtimestamp(
-                    time.time(), tz=self.timezone
-                ) + timedelta(hours=48):
-                    self.log("A valid weather forecast is available locally.")
-                    time_late = weather_long["time"][0] - datetime.now(self.timezone)
-                    hours_late = int(time_late.total_seconds() / 3600)
-                    wf = weather_long
-                    for key in wf:
-                        wf[key] = wf[key][hours_late : hours_late + 48]
-                else:
-                    self.log(
-                        "No valid weather forecasts available locally. Using coldest of the current month."
-                    )
-                    current_month = datetime.now().month - 1
-                    wf = {
-                        "time": [
-                            datetime.now(tz=self.timezone) + timedelta(hours=1 + x)
-                            for x in range(48)
-                        ],
-                        "oat": [self.coldest_oat_by_month[current_month]] * 48,
-                        "ws": [0] * 48,
-                    }
-            except Exception as e:
-                self.log(
-                    "No valid weather forecasts available locally. Using coldest of the current month."
-                )
-                current_month = datetime.now().month - 1
-                wf = {
-                    "time": [
-                        datetime.now(tz=self.timezone) + timedelta(hours=1 + x)
-                        for x in range(48)
-                    ],
-                    "oat": [self.coldest_oat_by_month[current_month]] * 48,
-                    "ws": [0] * 48,
-                }
-
-        self.weather_forecast = {
-            "oat": wf["oat"],
-            "ws": wf["ws"],
-        }
-
-    async def get_real_time_price(self) -> float:
-        '''Returns current 5min real-time price (LMP+Dist) in USD/MWh'''
-        '''IMPORTANT: WE ARE NOT USING THE REAL-TIME PRICE YET, WE ARE USING PERFECT FORECASTED PRICE FOR NOW'''
-        try:
-            if datetime.now().minute < 55:
-                price = await self.read_forecasted_price_for_now()
-                return price
-            else:
-                top_of_hour_timestamp = int(time.time()//3600) * 3600 + 3600
-                time_until_top_of_hour = int(top_of_hour_timestamp - time.time())
-                await asyncio.sleep(min(time_until_top_of_hour, 5))
-                price = await self.read_forecasted_price_for_now()
-                return price
-        except Exception as e:
-            self.log(f"Error getting real-time price: {e}")
-            return 0
-        # try:
-        #     url = "https://price-service.electricity.works/hw1-isone-me-versant-keene-ps/gw0-realtime-price"
-        #     async with httpx.AsyncClient() as client:
-        #         response = await client.get(url)
-        #         if response.status_code == 200:
-        #             self.log("Successfully received prices from API")
-        #             data = response.json()
-        #             price = float(data['Energy'])
-        #             return price
-        #         else:
-        #             self.log(f"Failed to receive prices from API, status code: {response.status_code}")
-        #             raise Exception("Failed to receive prices.")
-        # except Exception as e:
-        #     self.log(f"Error getting current price: {e}")
-        #     try:
-        #         self.log("Attempt to use the forecast price instead of current price")
-        #         price = await self.read_forecasted_price_for_now()
-        #         return price
-        #     except Exception as e:
-        #         self.log(f"Error getting forecast price: {e}")
-        #         return 0
+        """The forecast pair from the scada's weather source."""
+        assert isinstance(self.services, ScadaAppInterface)
+        self.weather_forecast = await self.services.weather_source.forecast(session)
 
     async def get_price_forecast(self) -> None:
         '''Updates self.price_forecast for the start of next hour. All in USD/MWh'''
@@ -1687,7 +1570,7 @@ class Ltn(PrimeActor):
                         current_hour_timestamp = data['HourStartS'][0] - 3600
                         with open(prices_file, 'r', newline='') as f:
                             reader = csv.reader(f)
-                            header = next(reader)
+                            next(reader)  # skip the header row
                             for row in reader:
                                 if float(row[0]) == current_hour_timestamp:
                                     current_hour_row = row
@@ -1747,64 +1630,6 @@ class Ltn(PrimeActor):
                 self.log(f"Could not get a price forecast from the local CSV file: {e}.")
                 await self.send_glitch(f"Failed to read price forecast from local CSV file: {e}", log_level=LogLevel.Error)
 
-    async def read_forecasted_price_for_now(self) -> float:
-        """Returns the forecasted price for this hour (LMP + Dist) in USD/MWh"""
-        try:
-            prices_file = Path(f"{self.settings.paths.data_dir}/price_forecast.csv")
-            if prices_file.exists():
-                start_of_hour_timestamp = int(time.time()//3600) * 3600
-                with open(prices_file, 'r', newline='') as f:
-                    reader = csv.reader(f)
-                    next(reader)
-                    rows = list(reader)
-                # Find the row with matching timestamp
-                for row in rows:
-                    if float(row[0]) == start_of_hour_timestamp:
-                        self.log("A valid price forecast for this hour was available locally.")
-                        price = float(row[1]) + float(row[2])  # dist + lmp
-                        return price
-                raise Exception(f"{prices_file} does not have a price forecast for this hour.")
-            else:
-                raise Exception(f"{prices_file} does not exist.")
-        except Exception as e:
-            self.log(f"Failed: {e}")
-            await self.send_glitch(f"Error in read_forecasted_price_for_now: {e}", log_level=LogLevel.Error)
-            return 0
-
-    async def fake_market_maker(self):
-        while True:
-            # Calculate the time to the next top of the hour
-            now = time.time()
-            next_top_of_hour = (
-                int(now // 3600) + 1
-            ) * 3600  # next top of the hour in seconds
-            sleep_time = next_top_of_hour - now
-
-            # Sleep until the top of the hour
-            await asyncio.sleep(sleep_time)
-            await self.send_latest_price()
-
-    async def send_latest_price(self) -> None:
-        now = time.time()
-        slot_start_s = int(now) - int(now) % 3600
-        mtn = MarketTypeName.rt60gate5.value
-        market_slot_name = f"e.{mtn}.{Ltn.P_NODE}.{slot_start_s}"
-        usd_per_mwh = await self.get_real_time_price()
-        price = LatestPrice(
-                FromGNodeAlias=Ltn.P_NODE,
-                PriceTimes1000=int(usd_per_mwh * 1000),
-                PriceUnit=MarketPriceUnit.USDPerMWh,
-                MarketSlotName=market_slot_name,
-                MessageId=str(uuid.uuid4()),
-            )
-        self.log(f"Trying to Broadcasting price(x1000) {usd_per_mwh} at the top of the hour.")
-        try:
-            self.services.send_threadsafe(
-                Message(Src=self.name, Dst=self.name, Payload=price)
-            )
-        except Exception as e:
-            self.log(f"Problem generating or sending a LatestPrice: {e}")
-
     async def send_glitch(self, summary, details="", log_level=LogLevel.Info):
         glitch = Glitch(
             FromGNodeAlias=self.layout.ltn_g_node_alias,
@@ -1820,257 +1645,6 @@ class Ltn(PrimeActor):
     def log(self, note: str) -> None:
         log_str = f"[ltn] {note}"
         self.services.logger.error(log_str)
-
-    def set_alpha(self, alpha: float) -> None:
-        if self.ha1_params is None:
-            self.send_layout()
-        else:
-            try:
-                new = Ha1Params.model_validate(
-                    {**self.ha1_params.model_dump(), "AlphaTimes10": int(alpha * 10)}
-                )
-                self.send_new_params(new)
-            except Exception as e:
-                self.logger.error(f"Failed to set alpha! {e}")
-
-    def set_beta(self, beta: float) -> None:
-        if self.ha1_params is None:
-            self.send_layout()
-        else:
-            try:
-                new = Ha1Params.model_validate(
-                    {**self.ha1_params.model_dump(), "BetaTimes100": int(beta * 100)}
-                )
-                self.send_new_params(new)
-            except Exception as e:
-                self.logger.error(f"Failed to set beta! {e}")
-
-    def set_gamma(self, gamma: float) -> None:
-        if self.ha1_params is None:
-            self.send_layout()
-        else:
-            try:
-                new = Ha1Params.model_validate(
-                    {**self.ha1_params.model_dump(), "GammaEx6": int(gamma * 1e6)}
-                )
-                self.send_new_params(new)
-            except Exception as e:
-                self.logger.error(f"Failed to set gamma! {e}")
-
-    def set_intermediate_power(self, intermediate_power: float) -> None:
-        if self.ha1_params is None:
-            self.send_layout()
-        else:
-            try:
-                new = Ha1Params.model_validate(
-                    {
-                        **self.ha1_params.model_dump(),
-                        "IntermediatePowerKw": intermediate_power,
-                    }
-                )
-                self.send_new_params(new)
-            except Exception as e:
-                self.logger.error(f"Failed to set intermediate power! {e}")
-
-    def set_intermediate_rswt(self, intermediate_rswt: float) -> None:
-        if self.ha1_params is None:
-            self.send_layout()
-        else:
-            try:
-                new = Ha1Params.model_validate(
-                    {
-                        **self.ha1_params.model_dump(),
-                        "IntermediateRswtF": int(intermediate_rswt),
-                    }
-                )
-                self.send_new_params(new)
-            except Exception as e:
-                self.logger.error(f"Failed to set intermediate rswt! {e}")
-
-    def set_dd_power(self, dd_power: float) -> None:
-        if self.ha1_params is None:
-            self.send_layout()
-        else:
-            try:
-                new = Ha1Params.model_validate(
-                    {**self.ha1_params.model_dump(), "DdPowerKw": dd_power}
-                )
-                self.send_new_params(new)
-            except Exception as e:
-                self.logger.error(f"Failed to set DdPowerKw! {e}")
-
-    def set_dd_rswt(self, dd_rswt: float) -> None:
-        if self.ha1_params is None:
-            self.send_layout()
-        else:
-            try:
-                new = Ha1Params.model_validate(
-                    {**self.ha1_params.model_dump(), "DdRswtF": dd_rswt}
-                )
-                self.send_new_params(new)
-            except Exception as e:
-                self.logger.error(f"Failed to set DdRswt! {e}")
-
-    def set_dd_delta_t(self, dd_delta_t: float) -> None:
-        if self.ha1_params is None:
-            self.send_layout()
-        else:
-            try:
-                new = Ha1Params.model_validate(
-                    {**self.ha1_params.model_dump(), "DdDeltaTF": dd_delta_t}
-                )
-                self.send_new_params(new)
-            except Exception as e:
-                self.logger.error(f"Failed to set DdDeltaTF! {e}")
-    
-    def set_load_overestimation_percent(self, load_overestimation_percent: float) -> None:
-        if load_overestimation_percent < 0 or load_overestimation_percent > 100:
-            self.log("Invalid entry, load_overestimation_percent should be a value between 0 and 100")
-            return
-        if self.ha1_params is None:
-            self.send_layout()
-        else:
-            try:
-                new = Ha1Params.model_validate(
-                    {**self.ha1_params.model_dump(), "LoadOverestimationPercent": load_overestimation_percent}
-                )
-                self.send_new_params(new)
-            except Exception as e:
-                self.logger.error(f"Failed to set LoadOverestimationPercent! {e}")
-
-    def set_keep_seconds(self, val: int = 0) -> None:
-        self.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.scada.name,
-                Payload=AnalogDispatch(
-                    FromGNodeAlias=self.layout.ltn_g_node_alias,
-                    FromHandle=f"{H0N.ltn}",
-                    ToHandle=f"{H0N.ltn}.{H0N.leaf_ally}",
-                    AboutName=H0N.sieg_loop,
-                    Value=val,
-                    TriggerId=str(uuid.uuid4()),
-                    UnixTimeMs=int(time.time() * 1000),
-                ),
-            )
-        )
-
-    def reset_keep_seconds(self, new_seconds: float) -> None:
-        self.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.scada.name,
-                Payload=ResetHpKeepValue(
-                    FromHandle=f"{H0N.ltn}",
-                    ToHandle=f"{H0N.ltn}.{H0N.leaf_ally}",
-                    HpKeepSecondsTimes10=round(new_seconds * 10),
-                ),
-            )
-        )
-
-    def send_harder(self, seconds: int) -> None:
-        self.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.scada.name,
-                Payload=SiegLoopEndpointValveAdjustment(
-                    FromHandle=f"{H0N.ltn}",
-                    ToHandle=f"{H0N.ltn}.{H0N.leaf_ally}",
-                    HpKeepPercent=0,
-                    Seconds=seconds,
-                ),
-            )
-        )
-
-    def set_lwt_control_params(self,
-        proportional_gain: float = 5.0,
-        integral_gain: float = 2,
-        derivative_gain: float = 1,
-        control_interval_seconds: int = 5,
-        t1: int = 15,
-        t2: int = 65
-    ) -> None:
-        self.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.scada.name,
-                Payload=SetLwtControlParams(
-                    FromHandle=H0N.ltn,
-                    ToHandle=f"{H0N.ltn}.{H0N.leaf_ally}",
-                    ProportionalGain=proportional_gain,
-                    IntegralGain=integral_gain,
-                    DerivativeGain=derivative_gain,
-                    ControlIntervalSeconds=control_interval_seconds,
-                    T1=t1,
-                    T2=t2,
-                ),
-            )
-        )
-
-    def keep_harder(self, seconds: int) -> None:
-        self.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.scada.name,
-                Payload=SiegLoopEndpointValveAdjustment(
-                    FromHandle=f"{H0N.ltn}",
-                    ToHandle=f"{H0N.ltn}.{H0N.leaf_ally}",
-                    HpKeepPercent=100,
-                    Seconds=seconds,
-                ),
-            )
-        )
-
-    def set_dist_010(self, val: int = 30) -> None:
-        self.services.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.scada.name,
-                Payload=AnalogDispatch(
-                    FromGNodeAlias=self.layout.ltn_g_node_alias,
-                    FromHandle="auto",
-                    ToHandle="auto.dist-010v",
-                    AboutName="dist-010v",
-                    Value=val,
-                    TriggerId=str(uuid.uuid4()),
-                    UnixTimeMs=int(time.time() * 1000),
-                ),
-            )
-        )
-
-    def set_primary_010(self, val: int = 50) -> None:
-        self.services.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.scada.name,
-                Payload=AnalogDispatch(
-                    FromGNodeAlias=self.layout.ltn_g_node_alias,
-                    FromHandle="auto",
-                    ToHandle="auto.primary-010v",
-                    AboutName="primary-010v",
-                    Value=val,
-                    TriggerId=str(uuid.uuid4()),
-                    UnixTimeMs=int(time.time() * 1000),
-                ),
-            )
-        )
-
-    def set_store_010(self, val: int = 30) -> None:
-        self.services.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.scada.name,
-                Payload=AnalogDispatch(
-                    FromGNodeAlias=self.layout.ltn_g_node_alias,
-                    FromHandle="auto",
-                    ToHandle="auto.store-010v",
-                    AboutName="store-010v",
-                    Value=val,
-                    TriggerId=str(uuid.uuid4()),
-                    UnixTimeMs=int(time.time() * 1000),
-                ),
-            )
-        )
 
     def dbg(
         self,

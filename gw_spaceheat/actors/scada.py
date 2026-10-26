@@ -1,15 +1,25 @@
-"""Scada implementation"""
-import os
+"""
+Scada prime-actor implementation.
+
+This module does not hand-wire the full SCADA actor graph by itself. SCADA runs
+as the prime actor inside a gwproactor app, and the proactor/bootstrap path
+loads child actors from the hardware layout and actor registry.
+
+In practice, that means layout ActorClass values must match the actor exports in
+gw_spaceheat/actors/__init__.py. If an ActorClass is present in the layout but
+does not resolve through that registry, the proactor app will not be able to
+instantiate the expected actor at runtime.
+"""
+import subprocess
+from pathlib import Path
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
 import asyncio
-import enum
 import typing
 import uuid
 import time
 import pytz
-from typing import Any, List, Optional
-import dotenv
+from typing import Any, Optional
 from gwproactor import CommunicatorInterface
 from gwproactor import ProactorLogger
 
@@ -17,51 +27,96 @@ from gwproactor.actors.actor import PrimeActor
 from transitions import Machine
 from gwproto.message import Header, Message
 from gwproto.messages import EventBase
+from gwproto.messages import PingMessage
 
-from gwsproto.enums import ActorClass
+from clock import TimestepClock
+
+from gwsproto.enums import ActorClass, DispatchRefusalReason
 
 from actors.scada_interface import ScadaInterface
-from gwsproto.data_classes.house_0_layout import House0Layout
-from gwsproto.named_types import FsmFullReport, PowerWatts, SendSnap, ReportEvent
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
+from gwsproto.named_types import FsmFullReport, HouseOperatingStatus, PowerWatts, ScadaCommit, SendSnap, ReportEvent
+
+from actors import command_reply
 
 
 from gwsproto.named_types import (
-    AnalogDispatch, ChannelReadings, MachineStates, SingleReading, SyncedReadings,
+    ChannelReadings, MachineStates,
+    SingleReading, SyncedReadings,
 )
 
-from actors.scada_data import ScadaData
+from actors.command_node import build_command_tree
+from actors.five_v_boss import shape_five_v_subtree
+from actors.scada_data import ScadaData, load_operational_params, save_operational_params
+from actors.state_machines import declared_state_machines
 from actors.config import ScadaSettings
 from gwsproto.data_classes.sh_node import ShNode
-from gwsproto.enums import ChangeRelayState
+from gwsproto.property_format import SpaceheatName
 from gwproactor import QOS
 
 from gwproactor.links import Transition
 from gwproactor.message import MQTTReceiptPayload
 
-from actors.subscription_handler import ChannelSubscription, StateMachineSubscription
+from actors.in_process_messages import BreakServiceContract, ChannelSubscribe, MachineStateSubscribe
 from actors.local_control_loader import LocalControl
 from actors.leaf_ally_loader import LeafAlly
 from actors.codec_factories import ScadaCodecFactory
 from actors.contract_handler import ContractHandler
-from gwsproto.data_classes.house_0_names import H0N, ScadaWeb
 from gwsproto.data_classes.components.web_server_component import WebServerComponent
-from gwsproto.enums import (LeafAllyBufferOnlyState,  LeafAllyAllTanksState,
+from gwsproto.enums import (FiveVBossState, HpBossState, LeafAllyBufferOnlyState,  LeafAllyAllTanksState,
+                            LogLevel,
+                            MoveSiegValve, RebootPicos, SiegValveState, Turn5VOnOff,
                             SlowDispatchContractStatus, LocalControlTopState,
-                   MainAutoEvent, MainAutoState, SeasonalStorageMode,  TopState)
+                   MainAutoEvent, MainAutoState, SeasonalStorageMode,  TopState, TurnHpOnOff)
 
-from gwsproto.named_types.scada_control_capabilities import ControlNode, ControlChannel
-from gwsproto.named_types import ( ActuatorsReady, FsmEvent,
+from gwsproto.named_types import ( ActuatorsReady,
     AdminDispatch, AdminAnalogDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
-    Glitch, GoDormant, LayoutLite, NewCommandTree, NoNewContractWarning, ResetHpKeepValue, ScadaControlCapabilities,
-    ScadaParams, SendControlCapabilities, SendLayout, SetLwtControlParams, SetTargetLwt, SiegLoopEndpointValveAdjustment,
-    SiegTargetTooLow, SingleMachineState,SlowContractHeartbeat, SuitUp, WakeUp,
+    Glitch, GoDormant, CommandInterface, CommandTransition, LayoutLite, NoNewContractWarning,
+    ResetHpKeepValue, ScadaControlCapabilities,
+    SendControlCapabilities, SendLayout, SetLwtControlParams, SetTargetLwt, SiegLoopEndpointValveAdjustment,
+    SiegTargetTooLow, SingleMachineState, SlowContractHeartbeat, SlowContractRejection, SlowDispatchContract, SuitUp, WakeUp,
 )
+from gwsproto.names.core.node_names import CoreNodeNames, ScadaWeb
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
+from gwsproto.names.house0.node_names import House0NodeNames
+from gwsproto.type_helpers.command_tree_axioms import LOCAL_CONTROL_STATE_NODES
 
 
+from sema_to_dc import OperationalParams, deed_grants_dispatch
+from actors.hydronic.shared import buffer_fresh, dispatch_channels
 from scada_app_interface import ScadaAppInterface
+
+UNKNOWN_CHANNEL_LOG_PERIOD_S = 15
+DISABLED_ROSTER_PERIOD_S = 24 * 3600
+
+
+# gw_spaceheat/actors/scada.py -> actors -> gw_spaceheat -> gridworks-scada
+SCADA_REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def git_commit_of(repo_root: Path) -> Optional[str]:
+    """The full HEAD hash of the checkout at repo_root, suffixed -dirty when
+    its tracked files differ from HEAD; None when repo_root is not a git
+    checkout or git is unavailable."""
+    if not (repo_root / ".git").exists():
+        return None
+    try:
+        head = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=repo_root, capture_output=True, text=True, check=True,
+        ).stdout.strip()
+        clean = subprocess.run(
+            ["git", "diff-index", "--quiet", "HEAD", "--"],
+            cwd=repo_root, capture_output=True,
+        ).returncode == 0
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None
+    return head if clean else f"{head}-dirty"
+
 
 class Scada(PrimeActor, ScadaInterface):
     ASYNC_POWER_REPORT_THRESHOLD = 0.05
+    STARTUP_ANNOUNCE_POLL_S = 1
     DEFAULT_ACTORS_MODULE = "actors"
     LTN_MQTT = "gridworks_mqtt"
     LOCAL_MQTT = "local_mqtt"
@@ -72,6 +127,7 @@ class Scada(PrimeActor, ScadaInterface):
     _last_snap_s: int
     _channels_reported: bool
     _admin_timeout_task: Optional[asyncio.Task] = None
+    resume_task: Optional[asyncio.Task] = None
     _stop_requested: bool = False
     _contract_handler: ContractHandler
 
@@ -93,31 +149,44 @@ class Scada(PrimeActor, ScadaInterface):
         {"trigger": "AutoWakesUp", "source": "Dormant", "dest": "LocalControl"},
     ]
 
+    @property
+    def services(self) -> ScadaAppInterface:
+        return typing.cast(ScadaAppInterface, self._services)
+
     def __init__(self, name: str, services: ScadaAppInterface) -> None:
-        print("PrimeActor slots:", getattr(PrimeActor, "__slots__", None))
-        print("Scada slots:", getattr(Scada, "__slots__", None))
-        print("MRO:", Scada.__mro__)
         super().__init__(name, services)
-        if not isinstance(services.hardware_layout, House0Layout):
-            raise Exception("Make sure to pass House0Layout object as hardware_layout!")
+        if not isinstance(services.hardware_layout, HydronicLayout):
+            raise Exception("Make sure to pass HydronicLayout object as hardware_layout!")
         self.got_first_buffer_reading = False
-        self.is_simulated = self.settings.is_simulated
-        if self.settings.is_simulated:
+        self.is_simulated = self.services.is_simulated
+        if self.services.is_simulated:
             self.log("SIMULATED")
-        self._layout: House0Layout = typing.cast(House0Layout, services.hardware_layout)
-        self._data = ScadaData(self.settings, self._layout)
+        self.log(f"clock: {type(self.services.clock).__name__}")
+        if isinstance(self.services.clock, TimestepClock):
+            # Each coordinator step pings upstream so harness pacing keeps
+            # the link active.
+            self.services.clock.on_step = self._on_sim_timestep
+        self._layout: HydronicLayout = typing.cast(HydronicLayout, services.hardware_layout)
+        self._data = ScadaData(
+            self.settings, self._layout, load_operational_params(self.settings)
+        )
         # super().__init__(name=name, settings=settings, hardware_layout=hardware_layout)
         now = int(time.time())
         self._channels_reported = False
         self._last_report_second = int(now - (now % self.settings.seconds_per_report))
         self._last_snap_s = int(now - (now % self.settings.seconds_per_snapshot))
-        self.pending_dispatch: Optional[AnalogDispatch] = None
 
-        local_control_normal = self.layout.node(H0N.local_control_normal)
-        if local_control_normal is None:
-            raise Exception(f"Must have {H0N.local_control_normal} node")
-        self.set_command_tree(local_control_normal)
+        boot_boss = (
+            self.layout.local_control_standby_node
+            if self.ops.Standby
+            else self.layout.local_control_normal_node
+        )
+        self.set_command_tree(boot_boss)
         self.top_state: TopState = TopState.Auto
+        # The slow facts of the LTN-scada agreement, sent once after the startup
+        # announcements and then only when one changes.
+        self.ltn_dispatching: bool = False
+        self.last_operating_status: Optional[HouseOperatingStatus] = None
         self.top_machine = Machine(
             model=self,
             states=Scada.top_states,
@@ -135,11 +204,12 @@ class Scada(PrimeActor, ScadaInterface):
             send_event=False,
             model_attribute="auto_state",
         )
-        self.timezone =  pytz.timezone(self.settings.timezone_str)
+        self.timezone = pytz.timezone(self.ops.Tariff.TimezoneStr)
         self._contract_handler: ContractHandler = ContractHandler(
             settings=self.settings,
             layout=self.layout,
             node=self.node,
+            timezone=self.timezone,
             logger=self.logger.add_category_logger(
                 ContractHandler.LOGGER_NAME,
                 level=self.settings.contract_rep_logging_level,
@@ -147,30 +217,26 @@ class Scada(PrimeActor, ScadaInterface):
         )
         self.initialize_hierarchical_state_data()
 
-        self.state_machine_subscriptions: List[StateMachineSubscription] = []
-        if self.layout.use_sieg_loop:
-            self.state_machine_subscriptions.append(StateMachineSubscription(
-                subscriber_name=self.sieg_loop.name,
-                publisher_name=self.hp_boss.name
-            ))
-
-
-        self.channel_subscriptions: typing.Dict[str, ChannelSubscription] = {}
+        self.channel_subscribers: dict[SpaceheatName, list[SpaceheatName]] = {}
+        self.machine_state_subscribers: dict[SpaceheatName, list[SpaceheatName]] = {}
 
         # Initialize actuator tracking
         self.ready_actuators = set()
         self.all_actuators_ready = False
 
-        # Define which actuators must report ready
+        # Define which actuators must report ready: every 0-10V output
+        # (each reports once its heartbeat task is up)
         self.required_actuators = {
-            self.relay_multiplexer, 
-            self.zero_ten_out_multiplexer,
+            node
+            for node in self.layout.nodes.values()
+            if node.ActorClass == ActorClass.ZeroTenOutputer
         }
 
         # Define which actors depend on actuator readiness
         self.actuator_dependents = {self.local_control}
-        if self.layout.use_sieg_loop:
-            self.actuator_dependents |= {self.sieg_loop,self.hp_boss}
+        sieg_loop = self.layout.node(House0NodeNames.sieg_loop)
+        if sieg_loop is not None:
+            self.actuator_dependents.add(sieg_loop)
 
         # configure web APIs
         for ws in self.layout.get_components_by_type(WebServerComponent):
@@ -179,7 +245,7 @@ class Scada(PrimeActor, ScadaInterface):
                 name=cfg.Name,
                 host=cfg.Host,
                 port=cfg.Port,
-                enabled=cfg.Enabled,
+                enabled=cfg.Serve,
                 server_kwargs=cfg.Kwargs,
             )
 
@@ -197,6 +263,21 @@ class Scada(PrimeActor, ScadaInterface):
 
     def stop(self):
         self._stop_requested = True
+        if isinstance(self.services.clock, TimestepClock):
+            self.services.clock.stop()
+
+    def _on_sim_timestep(self, time_unix_s: int) -> None:
+        """Bridge keepalive: ping upstream on each received timestep so the
+        link stays active under harness pacing. Runs on the paho thread;
+        paho's publish is thread-safe. The LTN's own keepalive covers the
+        other direction."""
+        try:
+            self.services.publish_message(
+                self.services.upstream_client,
+                PingMessage(Src=self.services.publication_name),
+            )
+        except Exception as e:  # noqa: BLE001
+            self.logger.warning(f"sim-time ping failed: {e}")
 
     @property
     def logger(self) -> ProactorLogger:
@@ -210,11 +291,40 @@ class Scada(PrimeActor, ScadaInterface):
     def data(self) -> ScadaData:
         return self._data
 
+    @property
+    def ops(self) -> OperationalParams:
+        """The home's authored operational params, of this home's family
+        (House0 or Nolan — see sema_to_dc.APPROVED_PAIRS)."""
+        return self._data.ops
+
     def start_tasks(self) -> typing.Sequence[asyncio.Task]:
+        # The timestep clock's paho thread starts with the scada's tasks,
+        # not at construction: an instantiated-but-never-run scada (the
+        # in-process tests) has no use for it and would leak the thread.
+        if isinstance(self.services.clock, TimestepClock):
+            self.services.clock.start()
+        # The stored contract is loaded before any message is processed, so
+        # an offer never meets a contract still waiting in the store.
+        loaded_contract_hb = self.contract_handler.initialize()
+        self.resume_task = asyncio.create_task(
+            self.resume_at_first_forecast(loaded_contract_hb), name="contract_resumer"
+        )
         return [
             asyncio.create_task(self.report_sending_task(), name="report_sender"),
             asyncio.create_task(self.snap_sending_task(), name="snap_sender"),
-            asyncio.create_task(self.state_tracker(), name="scada top_state_tracker"),
+            asyncio.create_task(
+                self.unknown_channel_logging_task(), name="unknown_channel_logger"
+            ),
+            asyncio.create_task(
+                self.disabled_roster_task(), name="disabled_roster"
+            ),
+            asyncio.create_task(
+                self.state_tracker(), name="scada top_state_tracker"
+            ),
+            asyncio.create_task(
+                self.announce_at_first_broker_link(), name="startup_announcer"
+            ),
+            self.resume_task,
         ]
 
     @classmethod
@@ -260,24 +370,23 @@ class Scada(PrimeActor, ScadaInterface):
                     self.process_ally_gives_up(from_node, payload)
                 except Exception as e:
                     self.log(f"Trouble with process_ally_gives_up: \n {e}")
-            case AnalogDispatch():
-                if payload.FromGNodeAlias != self._layout.ltn_g_node_alias:
-                    self.logger.error("IGNORING DISPATCH - NOT FROM MY LTN")
-                    return
-                try:
-                    self.process_analog_dispatch(payload)
-                except Exception as e:
-                    self.log(f"Trouble with proces_analog_dispatch: \n {e}")
             case ChannelFlatlined():
                 try:
                     self.data.flush_channel_from_latest(payload.Channel.Name)
+                    self.forward_to_channel_subscribers(from_node, payload.Channel.Name, payload)
                 except Exception as e:
                     self.log(f"Trouble with ChannelFlatlined: \n {e}")
+            case BreakServiceContract():
+                self.process_break_service_contract(from_node, payload)
+            case ChannelSubscribe():
+                self.process_channel_subscribe(from_node, payload)
             case ChannelReadings():
                 try:
                     self.process_channel_readings(from_node, payload)
                 except Exception as e:
                     self.logger.error(f"problem with process_channel_readings: \n {e}")
+            case MachineStateSubscribe():
+                self.process_machine_state_subscribe(from_node, payload)
             case FsmFullReport():
                 try:
                     self.process_fsm_full_report(from_node, payload)
@@ -308,17 +417,11 @@ class Scada(PrimeActor, ScadaInterface):
                     self.process_reset_hp_keep_value(from_node, payload)
                 except Exception as e:
                     self.log(f"Trouble with process_reset_hp_keep_value: \n {e}")
-            case ScadaParams():
-                try:
-                    self.process_scada_params(from_node, payload)
-                    self._send_to(self.derived_generator, payload)
-                except Exception as e:
-                    self.log(f"Trouble with process_scada_params: \n {e}")
             case SendControlCapabilities():
                 try:
                     self._send_to(from_node, self.control_capabilities)
                 except Exception as e:
-                    self.log(f"Trouble with SendLayout: {e}")
+                    self.log(f"Trouble with SendControlCapabilities: {e}")
             case SendLayout():
                 try:
                     self._send_to(from_node, self.layout_lite)
@@ -404,43 +507,22 @@ class Scada(PrimeActor, ScadaInterface):
     ) -> None:
         if from_node != self.admin:
             self.log(f"Ignoring AdminDispatch from {from_node.name}. Expected admin!")
+            return
 
         if not self.top_state == TopState.Admin:
             self.admin_wakes_up()
             self.log("Admin Wakes Up")
         self._renew_admin_timeout(timeout_seconds=payload.TimeoutSeconds)
         event = payload.DispatchTrigger
-        self.log(f"AdminDispatch event is {event.EventName}")
+        self.log(f"AdminDispatch {event.EventName} to {event.ToHandle}")
 
         to_name = event.ToHandle.split(".")[-1]
-        if to_name == "hp-boss":
-            if payload.DispatchTrigger.EventName == "TurnOn":
-                event = FsmEvent(
-                    FromHandle="admin",
-                    ToHandle="admin.relay6",
-                    EventType=ChangeRelayState.enum_name(),
-                    EventName=ChangeRelayState.CloseRelay,
-                    SendTimeUnixMs=int(time.time() * 1000),
-                    TriggerId=str(uuid.uuid4()),
-                )
-            else:
-                event = FsmEvent(
-                    FromHandle="admin",
-                    ToHandle="admin.relay6",
-                    EventType=ChangeRelayState.enum_name(),
-                    EventName=ChangeRelayState.OpenRelay,
-                    SendTimeUnixMs=int(time.time() * 1000),
-                    TriggerId=str(uuid.uuid4()),
-                )
-
-            to_name = "relay6"
-
         # TODO: change this to work if relays etc are NOT on primary scada
         if communicator := self.get_communicator(to_name):
             communicator.process_message(
                 Message(
                     header=Header(
-                        Src=H0N.admin,
+                        Src=CoreNodeNames.admin,
                         Dst=communicator.name,
                         MessageType=event.TypeName,
                     ),
@@ -453,11 +535,25 @@ class Scada(PrimeActor, ScadaInterface):
     ) -> None:
         if from_node != self.admin:
             self.log(f"Ignoring AdminAnalogDispatch from {from_node.name}. Expected admin!")
+            return
         if not self.top_state == TopState.Admin:
             self.admin_wakes_up()
             self.log("Admin Wakes Up")
         self._renew_admin_timeout(timeout_seconds=payload.TimeoutSeconds)
-        self.process_analog_dispatch(payload.Dispatch)
+        dispatch = payload.Dispatch
+        self.log(f"AdminAnalogDispatch {dispatch.Value} to {dispatch.ToHandle}")
+        to_name = dispatch.ToHandle.split(".")[-1]
+        if communicator := self.get_communicator(to_name):
+            communicator.process_message(
+                Message(
+                    header=Header(
+                        Src=CoreNodeNames.admin,
+                        Dst=communicator.name,
+                        MessageType=dispatch.TypeName,
+                    ),
+                    Payload=dispatch,
+                )
+            )
 
     def process_admin_release_control(
         self, from_node: ShNode, payload: AdminReleaseControl
@@ -473,6 +569,7 @@ class Scada(PrimeActor, ScadaInterface):
         # AdminReleasesControl:  Admin => Auto
         self.AdminReleasesControl()
         self.log(f"Admin releases control: {self.top_state}")
+        self.report_operating_status()
         # cancel the timeout
         if self._admin_timeout_task is not None:
             if not self._admin_timeout_task.cancelled():
@@ -487,6 +584,7 @@ class Scada(PrimeActor, ScadaInterface):
     ) -> None:
         if from_node != self.admin:
             self.log(f"Ignoring AdminKeepAlive from {from_node.name}. Expected admin!")
+            return
 
         self._renew_admin_timeout(timeout_seconds=payload.AdminTimeoutSeconds)
         self.log(f"Admin timeout renewed: {payload.AdminTimeoutSeconds} seconds")
@@ -495,58 +593,44 @@ class Scada(PrimeActor, ScadaInterface):
             self.log("Admin Wakes Up")
 
     def process_ally_gives_up(self, from_node: ShNode, payload: AllyGivesUp) -> None:
-        """Handle LeafAlly relinquishing supervisory authority.
+        """The scada ends its part in dispatch, whoever decided it: the
+        leaf ally relinquishing the tree, the cold watch breaking the
+        contract, or the scada itself refusing dispatch at a restart. The
+        Reason is the decider's, carried to the LTN as given.
 
         Effects:
         - Transitions auto_state from LeafTransactiveNode -> LocalControl
+          when the ally held the tree
         - If an active contract exists, sends a terminating heartbeat to the Ltn
         - Cancels any outstanding contract timing task
 
         Note:
-        LeafAlly may give up authority even when no active contract heartbeat
-        exists (for example during grace period or after contract completion).
-        In that case we still transition to LocalControl but do not send a
-        terminating heartbeat.
+        A give-up may arrive with no active contract heartbeat (for example
+        during grace period or after contract completion). In that case the
+        auto state still moves but no terminating heartbeat is sent.
         """
         self.auto_trigger(MainAutoEvent.AllyGivesUp)
+        self.log(f"Ending dispatch: {payload.Reason}: {payload.Cause}")
+        self.end_contract(payload.Reason, payload.Cause)
 
-        self.log(f"LeafAlly giving up: {payload.Reason}")
-    
+    def end_contract(self, reason: DispatchRefusalReason, cause: str) -> None:
+        """End the held contract, whoever decided it: the terminating
+        heartbeat with the reason goes to the LTN, is stored so a restart
+        finds a finished contract, and is flushed so the scada holds none;
+        the contract timing task is cancelled. Does nothing to the auto
+        state. A call with no held contract (a give-up in the grace period,
+        or after completion) only logs."""
         if self.contract_handler.latest_scada_hb:
-            self.log("Sending termination hb to Scada. State: LeafTransactiveNode -> LocalControl")
-            hb = self.contract_handler.scada_terminates_contract_hb(cause=f"Ally Gives up: {payload.Reason}")
-        
+            self.log("Sending termination hb to the LTN")
+            hb = self.contract_handler.scada_terminates_contract_hb(reason=reason, cause=cause)
             self.contract_handler.latest_scada_hb = hb
             self.contract_handler.store_heartbeat()
             self.contract_handler.flush_latest_scada_hb()
-    
             self._send_to(self.ltn, hb)
         else:
-            self.log(
-                "No active contract heartbeat while processing AllyGivesUp"
-            )
-
+            self.log("No held contract to end")
         if hasattr(self, 'contract_task'):
             self.contract_task.cancel()
-
-    def process_analog_dispatch(
-        self, payload: AnalogDispatch
-    ) -> None:
-        # HUGE HACK -
-        to_node = self.layout.node(payload.AboutName)
-        boss_handle = '.'.join(to_node.handle.split('.')[:-1])
-        self.log(f"About name is {payload.AboutName}")
-        self._send_to(to_node, AnalogDispatch(FromGNodeAlias=payload.FromGNodeAlias,
-                                              FromHandle=boss_handle,
-                                              ToHandle=to_node.handle,
-                                              AboutName=to_node.name,
-                                              Value=payload.Value,
-                                              TriggerId=payload.TriggerId,
-                                              UnixTimeMs=payload.UnixTimeMs))
-        # to_node = self.layout.node_by_handle(payload.ToHandle)
-        # if to_node:gi
-        #     self.log(f"Sending to {to_node.Name}")
-        #     self._send_to(to_node.Name, payload)
 
     def process_channel_readings(
         self, from_node: ShNode, payload: ChannelReadings
@@ -568,6 +652,87 @@ class Scada(PrimeActor, ScadaInterface):
             self._data.latest_channel_unix_ms[
                 ch.Name
             ] = payload.ScadaReadTimeUnixMsList[-1]
+
+    def process_break_service_contract(
+        self, from_node: ShNode, payload: BreakServiceContract
+    ) -> None:
+        """The cold watch reports the house cold through the latch with the
+        stores empty. A scada holding a dispatch contract has broken it: it
+        refuses dispatch from here on with ServiceContractBroken, in the
+        params it runs and in its operational-params file, reports the
+        refusal on its operating status, and ends the contract. A scada
+        holding no contract has broken none and changes nothing. A scada
+        that already refuses dispatch keeps its params and its reason. Only
+        a params file that accepts dispatch again, read at a restart,
+        clears the refusal."""
+        if not (
+            self.contract_handler.latest_scada_hb
+            or self.auto_state == MainAutoState.LeafTransactiveNode
+        ):
+            self.log(f"Cold house ({payload.Cause}); no dispatch contract to break")
+            return
+        if self.ops.DispatchHold.OperatorHold or self.ops.DispatchHold.ServiceContractBroken:
+            self.log(f"Cold house ({payload.Cause}); the ops word already holds dispatch")
+            return
+        self.log(f"Cold house ({payload.Cause}): refusing dispatch, ServiceContractBroken")
+        self._data.ops = OperationalParams.model_validate(
+            {
+                **self.ops.model_dump(by_alias=True, exclude_none=True),
+                "DispatchHold": {
+                    **self.ops.DispatchHold.model_dump(by_alias=True),
+                    "ServiceContractBroken": True,
+                },
+            }
+        )
+        save_operational_params(self.settings, self.ops)
+        self.report_operating_status()
+        self.process_ally_gives_up(
+            from_node,
+            AllyGivesUp(Reason=DispatchRefusalReason.ServiceContractBroken, Cause=payload.Cause),
+        )
+
+    def process_channel_subscribe(
+        self, from_node: ShNode, payload: ChannelSubscribe
+    ) -> None:
+        """The sender becomes a subscriber of the channel. Raises on a
+        channel the layout does not have."""
+        if payload.ChannelName not in self._layout.data_channels:
+            raise ValueError(
+                f"{from_node.name} subscribed to {payload.ChannelName}, "
+                "which is not a data channel of this layout"
+            )
+        subscribers = self.channel_subscribers.setdefault(payload.ChannelName, [])
+        if from_node.name not in subscribers:
+            subscribers.append(from_node.name)
+
+    def forward_to_channel_subscribers(
+        self,
+        from_node: ShNode,
+        channel_name: SpaceheatName,
+        payload: SingleReading | ChannelFlatlined,
+    ) -> None:
+        for subscriber in self.channel_subscribers.get(channel_name, []):
+            self._send_to(self._layout.node(subscriber), payload, from_node)
+
+    def process_machine_state_subscribe(
+        self, from_node: ShNode, payload: MachineStateSubscribe
+    ) -> None:
+        """The sender becomes a subscriber of the node's machine states and
+        is sent the latest one held. Raises on a node the layout does not
+        have."""
+        publisher = self._layout.node(payload.NodeName, None)
+        if publisher is None:
+            raise ValueError(
+                f"{from_node.name} subscribed to the machine states of "
+                f"{payload.NodeName}, which is not a node of this layout"
+            )
+        subscribers = self.machine_state_subscribers.setdefault(payload.NodeName, [])
+        if from_node.name in subscribers:
+            return
+        subscribers.append(from_node.name)
+        latest = self._data.latest_machine_state.get(payload.NodeName)
+        if latest is not None:
+            self._send_to(from_node, latest, publisher)
 
     def process_fsm_full_report(
         self, from_node: ShNode, payload: FsmFullReport
@@ -616,12 +781,14 @@ class Scada(PrimeActor, ScadaInterface):
         else:
             self._data.recent_machine_states[node_name] = payload
        
-        self._data.latest_machine_state[node_name] = SingleMachineState(
+        latest = SingleMachineState(
             MachineHandle=payload.MachineHandle,
             StateEnum=payload.StateEnum,
             State=payload.StateList[-1],
             UnixMs=payload.UnixMsList[-1]
         )
+        self._data.latest_machine_state[node_name] = latest
+        self._forward_single_machine_state(from_node, latest)
 
 
     def process_power_watts(self, from_node: ShNode, payload: PowerWatts):
@@ -629,7 +796,6 @@ class Scada(PrimeActor, ScadaInterface):
 
         also updates its data.latest_power_w
         calls contract_handler.update_energy_usage
-        #TODO: add channel for aggregated transactive power?
         """
         self._send_to(self.ltn, payload)
         self._data.latest_power_w = payload.Watts
@@ -637,60 +803,6 @@ class Scada(PrimeActor, ScadaInterface):
         # Update contract energy tracking if contract is active
         if self.contract_handler.latest_scada_hb:
             self.contract_handler.update_energy_usage(payload.Watts)
-
-    def process_scada_params(
-        self, from_node: ShNode, payload: ScadaParams, testing: bool = False
-    ) -> None:
-        if from_node != self.ltn:
-            self.log(f"ScadaParams from {from_node.Name}; expect Ltn!")
-            return
-        if payload.FromGNodeAlias != self.hardware_layout.ltn_g_node_alias:
-            self.log(
-                f"ScadaParams from {payload.FromGNodeAlias}; expect {self.hardware_layout.ltn_g_node_alias}!"
-            )
-            return
-        new = payload.NewParams
-        if new:
-            old = self.data.ha1_params
-            self.data.ha1_params = new
-            if new.AlphaTimes10 != old.AlphaTimes10:
-                self.update_env_variable("SCADA_ALPHA", new.AlphaTimes10 / 10)
-            if new.BetaTimes100 != old.BetaTimes100:
-                self.update_env_variable("SCADA_BETA", new.BetaTimes100 / 100)
-            if new.GammaEx6 != old.GammaEx6:
-                self.update_env_variable("SCADA_GAMMA", new.GammaEx6 / 1e6)
-            if new.IntermediatePowerKw != old.IntermediatePowerKw:
-                self.update_env_variable(
-                    "SCADA_INTERMEDIATE_POWER", new.IntermediatePowerKw
-                )
-            if new.IntermediateRswtF != old.IntermediateRswtF:
-                self.update_env_variable(
-                    "SCADA_INTERMEDIATE_RSWT", new.IntermediateRswtF
-                )
-            if new.DdPowerKw != old.DdPowerKw:
-                self.update_env_variable(
-                    "SCADA_DD_POWER", new.DdPowerKw, testing=testing
-                )
-            if new.DdRswtF != old.DdRswtF:
-                self.update_env_variable("SCADA_DD_RSWT", new.DdRswtF)
-            if new.DdDeltaTF != old.DdDeltaTF:
-                self.update_env_variable("SCADA_DD_DELTA_T", new.DdDeltaTF)
-            if new.LoadOverestimationPercent != old.LoadOverestimationPercent:
-                self.update_env_variable(
-                    "SCADA_LOAD_OVERESTIMATION_PERCENT", new.LoadOverestimationPercent
-                )
-
-            response = ScadaParams(
-                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
-                FromName=self.name,
-                ToName=payload.FromName,
-                UnixTimeMs=int(time.time() * 1000),
-                MessageId=payload.MessageId,
-                NewParams=self.data.ha1_params,
-                OldParams=old,
-            )
-            self.logger.error(f"Sending back {response}")
-            self._send_to(self.ltn, response)
 
     def process_set_lwt_control_params(
             self, from_node: ShNode, payload: SetLwtControlParams
@@ -753,48 +865,34 @@ class Scada(PrimeActor, ScadaInterface):
     def process_single_machine_state(
         self, from_node: ShNode, payload: SingleMachineState
     ) -> None:
-        # TODO: compare MachineHandle last word with from_node.Name
-        if payload.MachineHandle in self._data.recent_machine_states:
-            prev: MachineStates = self._data.recent_machine_states[
-                payload.MachineHandle
-            ]
+        # Keyed by the hosting node, the handle's last segment: a command-tree
+        # change rewrites the handle, and the states before and after it are
+        # one machine, one row per report.
+        node_name = payload.MachineHandle.split('.')[-1]
+        if node_name in self._data.recent_machine_states:
+            prev: MachineStates = self._data.recent_machine_states[node_name]
             if payload.StateEnum != prev.StateEnum:
                 raise Exception(
                     f"{payload.MachineHandle} has conflicting state machines!"
                     f"{payload.StateEnum} and {prev.StateEnum}"
                 )
-            self._data.recent_machine_states[payload.MachineHandle] = MachineStates(
+            self._data.recent_machine_states[node_name] = MachineStates(
                 MachineHandle=payload.MachineHandle,
                 StateEnum=payload.StateEnum,
                 UnixMsList=prev.UnixMsList + [payload.UnixMs],
                 StateList=prev.StateList + [payload.State],
             )
         else:
-            self._data.recent_machine_states[payload.MachineHandle] = MachineStates(
+            self._data.recent_machine_states[node_name] = MachineStates(
                 MachineHandle=payload.MachineHandle,
                 StateEnum=payload.StateEnum,
                 StateList=[payload.State],
                 UnixMsList=[payload.UnixMs],
             )
-        node_name = payload.MachineHandle.split('.')[-1]
         self._data.latest_machine_state[node_name] = payload
-        self.handle_state_change_subscriptions(from_node, payload)
-
-    def handle_state_change_subscriptions(self, from_node: ShNode, sms: SingleMachineState) -> None:
-        # Find all subscriptions for this publisher (from_node)
-        for subscription in self.state_machine_subscriptions:
-            if subscription.publisher_name == from_node.Name:
-                # Get the subscriber node
-                subscriber_node = self._layout.node(subscription.subscriber_name)
-                if subscriber_node is not None:
-                    self.log(f"Sending {sms.MachineHandle} state to {subscriber_node.name}")
-                    self._send_to(
-                        to_node=subscriber_node,
-                        payload=sms,
-                        from_node=from_node
-                    )
-                else:
-                    self.log(f"Subscriber {subscription.subscriber_name} not found for state change from {from_node.Name}")
+        for subscriber in self.machine_state_subscribers.get(node_name, []):
+            self._send_to(self._layout.node(subscriber), payload, from_node)
+        self._forward_single_machine_state(from_node, payload)
 
 
     def process_single_reading(
@@ -810,10 +908,12 @@ class Scada(PrimeActor, ScadaInterface):
         self._data.recent_channel_unix_ms[ch.Name].append(payload.ScadaReadTimeUnixMs)
         self._data.latest_channel_values[ch.Name] = payload.Value
         self._data.latest_channel_unix_ms[ch.Name] = payload.ScadaReadTimeUnixMs
+        self.note_reading_for_buffer_fresh_once()
         self._forward_single_reading(payload)
+        self.forward_to_channel_subscribers(from_node, ch.Name, payload)
 
     def process_suit_up(self, from_node: ShNode, payload: SuitUp) -> None:
-        if from_node.Name != H0N.leaf_ally:
+        if from_node.Name != CoreNodeNames.leaf_ally:
             self.log(
                 f"Ignoring AllySuitsUp from {from_node.Name} - expect LeafAlly (aa)"
             )
@@ -842,15 +942,23 @@ class Scada(PrimeActor, ScadaInterface):
             )
             self._data.latest_channel_values[ch.Name] = payload.ValueList[idx]
             self._data.latest_channel_unix_ms[ch.Name] = payload.ScadaReadTimeUnixMs
+            if ch.Name in self.channel_subscribers:
+                self.forward_to_channel_subscribers(
+                    from_node,
+                    ch.Name,
+                    SingleReading(
+                        ChannelName=ch.Name,
+                        Value=payload.ValueList[idx],
+                        ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs,
+                    ),
+                )
+        self.note_reading_for_buffer_fresh_once()
 
         # Hack for moving out of Initializing rapidly when restarting Scada
-        if from_node.Name ==H0N.buffer.reader and not self.got_first_buffer_reading:
+        if from_node.Name ==HSNN.buffer.reader and not self.got_first_buffer_reading:
             self.got_first_buffer_reading = True
-            if self.auto_state == MainAutoState.LeafTransactiveNode:
-                self.log("First Buffer temps arrived! Sending to LeafAlly")
-                self._send_to(self.leaf_ally, payload)
-            else:
-                self.log("First Buffer temps arrived! Sending to LeafTransactiveNode")
+            if self.auto_state != MainAutoState.LeafTransactiveNode:
+                self.log("First Buffer temps arrived! Sending to LocalControl")
                 self._send_to(self.local_control, payload)
 
     
@@ -862,10 +970,8 @@ class Scada(PrimeActor, ScadaInterface):
     # Top Events: AdminWakesUp, AdminTimesOut, AdminReleasesControl
 
     def initialize_hierarchical_state_data(self) -> None:
-        """ Scada TopState: Auto, Scada Auto: LeafTransactiveNode
-          LeafTransactiveNode: Normal, LeafAlly: Dormant
-
-        """
+        """Seed the scada's own TopState. Every other machine (LeafAlly,
+        LocalControl, relays) announces its own state when it starts."""
         now_ms = int(time.time() * 1000)
         self.data.latest_machine_state[self.name] = SingleMachineState(
                 MachineHandle=self.node.handle,
@@ -874,33 +980,6 @@ class Scada(PrimeActor, ScadaInterface):
                 UnixMs=now_ms,
             )
         
-        # LeafAlly is Dormant
-
-        if self.settings.seasonal_storage_mode == SeasonalStorageMode.AllTanks:
-            self.data.latest_machine_state[self.leaf_ally.name] = SingleMachineState(
-                    MachineHandle=self.leaf_ally.handle,
-                    StateEnum=LeafAllyAllTanksState.enum_name(),
-                    State=LeafAllyAllTanksState.Dormant,
-                    UnixMs=now_ms,
-                )
-        elif self.settings.seasonal_storage_mode == SeasonalStorageMode.BufferOnly:
-            self.data.latest_machine_state[self.leaf_ally.name] = SingleMachineState(
-                    MachineHandle=self.leaf_ally.handle,
-                    StateEnum=LeafAllyBufferOnlyState.enum_name(),
-                    State=LeafAllyBufferOnlyState.Dormant,
-                    UnixMs=now_ms,
-                )
-        else:
-            raise Exception(f"Does not handle seasonal stoarge mode {self.settings.seasonal_storage_mode}")
-        
-        # LocalControlTopState is Normal
-        self.data.latest_machine_state[self.local_control.name] = SingleMachineState(
-                MachineHandle=self.node.handle,
-                StateEnum=LocalControlTopState.enum_name(),
-                State=LocalControlTopState.Normal,
-                UnixMs=now_ms,
-            )
-
         # TODO: Add auto state and pico cylcer
 
 
@@ -911,9 +990,13 @@ class Scada(PrimeActor, ScadaInterface):
         # Trigger the AdminWakesUp event for top state:  Auto => Admin
         self.AdminWakesUp()
         self.log(f"Message from Admin! top_state {self.top_state}")
+        self.report_operating_status()
         if self.auto_state == MainAutoState.Dormant:
             self.log("AdminWakesUp called when auto state was dormant!!")
             return
+        # A held contract ends here: the LTN never believes it holds
+        # dispatch while admin runs the house.
+        self.end_contract(DispatchRefusalReason.InAdmin, "admin took the house")
         # This will set auto_state and update the actuator forest to Admin
         self.auto_trigger(MainAutoEvent.AutoGoesDormant)
 
@@ -925,6 +1008,7 @@ class Scada(PrimeActor, ScadaInterface):
         # AdminTimesOut: Admin => Auto
         self.AdminTimesOut()
         self.log(f"Admin timed out! {self.top_state}")
+        self.report_operating_status()
         # cancel the timeout
         if self._admin_timeout_task is not None:
             if not self._admin_timeout_task.cancelled():
@@ -952,7 +1036,7 @@ class Scada(PrimeActor, ScadaInterface):
             self.log("DispatchContractLive: LocalControl -> Ltn")
             self.set_command_tree(self.leaf_ally)
             # Wake up ltn, tell home alone to go dormant
-            self._send_to(self.leaf_ally, contract)
+            self.send_contract_to_ally(contract, "refusing dispatch as the contract goes live")
             self._send_to(self.local_control, GoDormant(ToName=self.local_control.name)
             )
         elif trigger == MainAutoEvent.ContractGracePeriodEnds:
@@ -962,8 +1046,8 @@ class Scada(PrimeActor, ScadaInterface):
             self.ContractGracePeriodEnds()
             self.log("ContractGracePeriodEnds: Ltn -> LocalControl")
             self.set_command_tree(self.local_control)
-            self._send_to(self.layout.local_control, WakeUp(ToName=H0N.local_control))
-            self._send_to(self.leaf_ally, GoDormant(ToName=H0N.leaf_ally))
+            self._send_to(self.layout.local_control, WakeUp(ToName=CoreNodeNames.local_control))
+            self._send_to(self.leaf_ally, GoDormant(ToName=CoreNodeNames.leaf_ally))
         elif trigger == MainAutoEvent.LtnReleasesControl:
             if self.auto_state != MainAutoState.LeafTransactiveNode:
                 self.log(f"Ignoring LtnReleasesControl trigger in auto_state {self.auto_state}")
@@ -972,8 +1056,8 @@ class Scada(PrimeActor, ScadaInterface):
             self.log("LtnReleasesControls: LeafTransactiveNode -> LocalControl"
             "")
             self.set_command_tree(self.local_control)
-            self._send_to(self.layout.local_control, WakeUp(ToName=H0N.local_control))
-            self._send_to(self.leaf_ally, GoDormant(ToName=H0N.leaf_ally))
+            self._send_to(self.layout.local_control, WakeUp(ToName=CoreNodeNames.local_control))
+            self._send_to(self.leaf_ally, GoDormant(ToName=CoreNodeNames.leaf_ally))
         elif trigger == MainAutoEvent.AllyGivesUp:
             if self.auto_state != MainAutoState.LeafTransactiveNode:
                 self.log(f"Ignoring AllyGivesUp trigger in auto_state {self.auto_state}")
@@ -981,8 +1065,8 @@ class Scada(PrimeActor, ScadaInterface):
             self.AllyGivesUp()
             self.log("AllyGivesUp: LeafTransactiveNode -> LocalControl")
             self.set_command_tree(self.local_control)
-            self._send_to(self.layout.local_control, WakeUp(ToName=H0N.local_control))
-            self._send_to(self.leaf_ally, GoDormant(ToName=H0N.leaf_ally))
+            self._send_to(self.layout.local_control, WakeUp(ToName=CoreNodeNames.local_control))
+            self._send_to(self.leaf_ally, GoDormant(ToName=CoreNodeNames.leaf_ally))
         elif trigger == MainAutoEvent.AutoGoesDormant:
             if self.auto_state == MainAutoState.Dormant:
                 self.log(f"Ignoring AutoWakesUp trigger in auto_state {self.auto_state}")
@@ -993,8 +1077,10 @@ class Scada(PrimeActor, ScadaInterface):
             # ADMIN CONTROL FOREST: a single tree, controlling all actuators
             self.set_command_tree(self.admin)
 
-            # Let the active nodes know they've lost control of their actuators
-            for direct_report in [self.leaf_ally,self.local_control,self.layout.pico_cycler]:
+            # Let the active nodes know they've lost control of their actuators.
+            # Not the pico-cycler: it runs in every top state (admin's tree
+            # carries it as an interior node with its relay).
+            for direct_report in [self.leaf_ally, self.local_control]:
                 self._send_to(
                     direct_report, GoDormant(ToName=direct_report.Name)
                 )
@@ -1005,35 +1091,50 @@ class Scada(PrimeActor, ScadaInterface):
             self.AutoWakesUp()
             self.log("AutoWakesUp: Dormant -> LocalControl")
             self.set_command_tree(self.local_control)
-            self._send_to(self.local_control, WakeUp(ToName=H0N.local_control))
-            self._send_to(self.layout.pico_cycler, WakeUp(ToName=H0N.pico_cycler))
-            
+            self._send_to(self.local_control, WakeUp(ToName=CoreNodeNames.local_control))
+            # LocalControl never inherits a dark fleet: five-v-boss restores
+            # the 5 V if admin left it held off.
+            five_v_boss = self.layout.node(HSNN.five_v_boss)
+            if five_v_boss is not None:
+                self._send_to(five_v_boss, WakeUp(ToName=five_v_boss.Name))
+
     def auto_wakes_up(self) -> None:
-        """
-        Goes to LeafTransactiveNode. Then if in grace period, triggers DispatchContractLive
-        """
+        """Dormant -> LocalControl. The scada holds no contract here: admin
+        ended it on the way in."""
         if self.auto_state != MainAutoState.Dormant:
             self.log(f"STRANGE!! auto state is already{self.auto_state}")
             return
         # Trigger AutoWakesUp for auto state: Dormant -> LocalControl
         self.auto_trigger(MainAutoEvent.AutoWakesUp)
-        if self.contract_handler.latest_scada_hb:
-            self.auto_trigger(MainAutoEvent.DispatchContractLive)
 
     def process_slow_contract_heartbeat(self, from_node: ShNode, ltn_hb: SlowContractHeartbeat) -> None:
 
         self.log(f"{self.contract_handler.formatted_contract(ltn_hb)}")
         return_hb = None
         if ltn_hb.Status == SlowDispatchContractStatus.Created:
-            if self.top_state == TopState.Admin:
-                self.log("Ignoring new contract, in Admin")
+            refusal = self.dispatch_refusal
+            if refusal is not None:
+                # Answered at the offer: nothing else moves.
+                self.log(f"Refusing contract {ltn_hb.Contract.ContractId}: {refusal}")
+                self._send_to(
+                    self.ltn,
+                    SlowContractRejection(
+                        FromGNodeAlias=self.layout.scada_g_node_alias,
+                        ContractId=ltn_hb.Contract.ContractId,
+                        Reason=refusal,
+                        MessageCreatedMs=int(time.time() * 1000),
+                    ),
+                )
                 return
             if self.contract_handler.latest_scada_hb is None: # contract already wrapped up
                 return_hb = self.contract_handler.start_new_contract_hb(ltn_hb) #sets up matching latest_scada_hb
+                self.process_new_contract()
                 if self.auto_state == MainAutoState.LocalControl:
                     self.dispatch_contract_live() # sets up the trees, changes state, let's aa and h know
                 elif self.auto_state == MainAutoState.LeafTransactiveNode:
-                    self._send_to(self.leaf_ally, self.contract_handler.latest_scada_hb.Contract)
+                    self.send_contract_to_ally(
+                        self.contract_handler.latest_scada_hb.Contract, "refusing dispatch at the offer"
+                    )
             elif self.contract_handler.active_contract_has_expired(): # wrap up existing
                 completion_hb = self.contract_handler.scada_contract_completion_hb(
                     "Wrapping up existing contract"
@@ -1045,8 +1146,11 @@ class Scada(PrimeActor, ScadaInterface):
                 self._send_to(self.ltn, completion_hb)
 
                 self.contract_handler.start_new_contract_hb(ltn_hb)
+                self.process_new_contract()
 
-                self._send_to(self.leaf_ally, self.contract_handler.latest_scada_hb.Contract)
+                self.send_contract_to_ally(
+                    self.contract_handler.latest_scada_hb.Contract, "refusing dispatch at the offer"
+                )
                 # will send hb in process_suit_up, after leaf ally acknowledges
         elif ltn_hb.Status == SlowDispatchContractStatus.TerminatedByLtn:
             raise Exception("Ack! Haven't thought through termination by Ltn ...")
@@ -1058,14 +1162,31 @@ class Scada(PrimeActor, ScadaInterface):
                 self.log(f"Got inbound hb with contract mismatch! \n inbound: {ltn_hb}"
                 f"existing: {self.contract_handler.latest_scada_hb}")
                 return
+            if self.resume_task is not None and not self.resume_task.done():
+                self.log("Dropping continuation hb: the loaded contract is not resumed yet")
+                return
+            refusal = self.dispatch_refusal
+            if refusal is not None:
+                # The deed and the sensing are re-read at each heartbeat.
+                self.process_ally_gives_up(
+                    self.node,
+                    AllyGivesUp(Reason=refusal, Cause="refusing dispatch under a held contract"),
+                )
+                return
             return_hb = self.contract_handler.update_existing_contract_hb(ltn_hb)
 
         if return_hb:
             self._send_to(self.ltn, return_hb) # on completion, will send back a completion
             # hb with final energy_used_wh
+        latest = self.contract_handler.latest_scada_hb
+        if latest is not None and latest.Status == SlowDispatchContractStatus.Active:
+            self.note_ltn_dispatching(True)
 
     def process_new_contract(self) -> None:
-        """Called after contract is confirmed (SuitUp received)"""
+        """Start the end-of-contract timing for the latest contract: when
+        the scada starts one, and again when the ally suits up (the ally
+        suits up once per wake, so a contract that follows another back to
+        back never brings a SuitUp of its own)."""
         # Cancel any existing timers
         if hasattr(self, 'contract_task'):
             self.contract_task.cancel()
@@ -1130,6 +1251,7 @@ class Scada(PrimeActor, ScadaInterface):
                 ContractId=hb.Contract.ContractId,
                 GraceEndTimeS=grace_end_s
             ))
+            self.note_ltn_dispatching(False)
             return
          # Case 2: We have a different contract after the wait - this is the normal
          # case where the old contract expired and Ltn sent a new one
@@ -1156,6 +1278,19 @@ class Scada(PrimeActor, ScadaInterface):
         if not self.in_grace_period():
             self.log(f"Grace period expired for contract {hb.Contract.ContractId} - transitioning to home alone")
             self.auto_trigger(MainAutoEvent.ContractGracePeriodEnds)
+            self.note_ltn_dispatching(False)
+
+    def send_contract_to_ally(self, contract: SlowDispatchContract, cause: str) -> bool:
+        """Every contract the ally gets goes through here, the refusal
+        checked first: a scada that refuses dispatch gives the contract up
+        for the reason instead of sending it. Returns whether it was
+        sent."""
+        refusal = self.dispatch_refusal
+        if refusal is not None:
+            self.process_ally_gives_up(self.node, AllyGivesUp(Reason=refusal, Cause=cause))
+            return False
+        self._send_to(self.leaf_ally, contract)
+        return True
 
     def dispatch_contract_live(self) -> None:
         """ DispatchContractLive: LeafAlly -> LeafTransactiveNode
@@ -1173,12 +1308,11 @@ class Scada(PrimeActor, ScadaInterface):
         self.log("New Dispatch Contract!")
 
         if self.auto_state == MainAutoState.LocalControl:
+            # The transition sends the leaf ally the contract.
             self.auto_trigger(MainAutoEvent.DispatchContractLive)
-        # Regardless of auto state
-        if self.contract_handler.latest_scada_hb is None:
-            self.log("That's strange! There should be a latest_scada_hb!")
             return
-        self._send_to(self.leaf_ally, self.contract_handler.latest_scada_hb.Contract
+        self.send_contract_to_ally(
+            self.contract_handler.latest_scada_hb.Contract, "refusing dispatch as the contract goes live"
         )
 
     def recv_activated(
@@ -1195,85 +1329,93 @@ class Scada(PrimeActor, ScadaInterface):
 
     def set_command_tree(self, boss: ShNode) -> None:
         """ Command Tree
-        If FlowManifoldVariant is House0Sieg:
         ```
-        boss                                                 pico-flow
-        ├───────────────────────────────────────── hp-boss      └── relay1 (VDC)
-        ├──────────────────────────────sieg-loop     └── relay6 (hp_scada_ops_relay)
-        ├── relay2 (tstat_common)        ├─ relay14 (hp_loop_on_off)
-        └── all other relays and 0-10s   └─ relay15 (hp_loop_keep_send)
-
-
+        root (admin | auto)
+        ├── five-v-boss
+        │     └── pico-cycler          (PicoCycler: the cycler owns the relay)
+        │           └── vdc-relay
+        └── boss (admin, or an auto node: local-control, leaf-ally)
+              ├── hp-boss
+              │     ├── hp-scada-ops-relay
+              │     └── secondary-pump-relay   (where the plant has one)
+              ├── sieg-loop        (only when the scada runs the loop)
+              │     ├── hp-loop-on-off
+              │     └── hp-loop-keep-send
+              └── every other relay and 0-10V output
         ```
-        If FlowManifoldVariant is House0, all actuators other than relay1 report
-        directly to boss.
-
+        An interior node keeps its subtree: a rewrite reparents each owner
+        the layout's `fixed_subtrees` names (hp-boss with the call relay
+        and, where the plant has one, the secondary pump; sieg-loop with
+        the loop pair) and never reaches through it to its relays.
+        five-v-boss hangs under the tree's root, not the boss: no auto
+        node commands it, and it runs in every top state, so admin taking
+        the tree moves it to `admin.five-v-boss` with its subtree. Its
+        subtree's shape is its own (while it holds the 5 V off it owns
+        vdc-relay directly and the cycler is a leaf), read off its last
+        reported state.
         """
+        under_fsm: set[str] = set()
+        for owner, relays in self.layout.fixed_subtrees:
+            owner.Handle = f"{boss.handle}.{owner.Name}"
+            for relay in relays:
+                relay.Handle = f"{owner.Handle}.{relay.Name}"
+                under_fsm.add(relay.Name)
+        five_v_boss = self.layout.node(HSNN.five_v_boss)
+        if five_v_boss is not None:
+            root = boss.handle.split(".")[0]
+            five_v_boss.Handle = f"{root}.{five_v_boss.Name}"
+            shape_five_v_subtree(self.layout, self.five_v_boss_state)
+            under_fsm.add(self.layout.vdc_relay.Name)
+        for node in self.layout.actuators:
+            if node.Name not in under_fsm:
+                node.Handle = f"{boss.handle}.{node.Name}"
 
-        if self.layout.use_sieg_loop:
-            hp_boss = self.layout.node(H0N.hp_boss)
-            hp_boss.Handle = f"{boss.handle}.{hp_boss.Name}"
-
-            sieg_loop = self.layout.node(H0N.sieg_loop)
-            sieg_loop.Handle = f"{boss.handle}.{H0N.sieg_loop}"
-
-            for node in self.layout.actuators:
-                if node.Name == H0N.vdc_relay and boss != self.admin:
-                    node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
-                elif node.Name == H0N.hp_scada_ops_relay:
-                    node.Handle = f"{boss.handle}.{hp_boss.Name}.{node.Name}"
-                elif node.Name in [H0N.hp_loop_keep_send, H0N.hp_loop_on_off]:
-                    node.Handle = f"{boss.handle}.{H0N.sieg_loop}.{node.Name}"
-                else:
-                    node.Handle = (f"{boss.handle}.{node.Name}")
-        else:
-            # For no sieg loop, everybody but the vdc relay reports directly to boss
-            for node in self.layout.actuators:
-                if node.Name == H0N.vdc_relay and boss != self.admin:
-                    node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
-                else:
-                    node.Handle = (f"{boss.handle}.{node.Name}")
-
-        self._send_to(
-            self.ltn,
-            NewCommandTree(
-                FromGNodeAlias=self.layout.scada_g_node_alias,
-                ShNodes=list(self.layout.nodes.values()),
-                UnixMs=int(time.time() * 1000),
-            ),
-        )
+        self._send_to(self.ltn, build_command_tree(self.layout))
 
     #######################################
     # Contract management
     #######################################
 
-    def initialize_contracts(self) -> None:
-        """Called during Scada startup to load any persisted contracts"""
-
-        # loads state and contract from persistent store
-        hb = self.contract_handler.initialize()
-
-        # Re-establish Ltn mode if contract is live
-        if self.contract_handler.latest_scada_hb:
+    def resume_loaded_contract(self, loaded: Optional[SlowContractHeartbeat]) -> None:
+        """Speak of the heartbeat the contract handler loaded at start: a
+        live contract puts the leaf ally back in charge, and the LTN and
+        the leaf ally get the heartbeat. Nothing is sent when a contract
+        offered since the load has taken the loaded one's place, or when
+        the loaded contract is no longer the live one. A scada that does
+        not accept dispatch ends the live contract instead: the LTN gets
+        the terminating heartbeat and the leaf ally hears nothing."""
+        if loaded is None:
+            return
+        latest = self.contract_handler.latest_scada_hb
+        if loaded.Status in ContractHandler.DONE_STATES:
+            if latest is not None:
+                return
+        elif latest is None or latest.Contract.ContractId != loaded.Contract.ContractId:
+            return
+        elif (refusal := self.dispatch_refusal) is not None:
+            self.process_ally_gives_up(
+                self.node,
+                AllyGivesUp(Reason=refusal, Cause="not resuming the stored contract"),
+            )
+            return
+        else:
             self.dispatch_contract_live()
-
-        if hb:
-            self._send_to(self.ltn, hb)
-            self._send_to(self.leaf_ally, hb)
+        self._send_to(self.ltn, loaded)
+        self._send_to(self.leaf_ally, loaded)
     
     def enforce_auto_state_consistency(self) -> None:
         """ Enforces that auto_state [LocalControl, LeafTransactiveNode, Dormant] is consistent
-        with the top_state reported by `h` [Dormant v anything else] and `aa` [Dormant v anything else]
+        with the top_state reported by `h` [Dormant v anything else] and `aa` [Dormant v anything else].
         """
 
-        lc: LocalControl = self.services.get_communicator_as_type(H0N.local_control, LocalControl)
-        la: LeafAlly = self.services.get_communicator_as_type(H0N.leaf_ally, LeafAlly)
+        lc: LocalControl = self.services.get_communicator_as_type(CoreNodeNames.local_control, LocalControl)
+        la: LeafAlly = self.services.get_communicator_as_type(CoreNodeNames.leaf_ally, LeafAlly)
 
         ally_state = la.state
         local_control_state = lc.top_state
         dormant_state = (
             LeafAllyAllTanksState.Dormant 
-            if self.settings.seasonal_storage_mode == SeasonalStorageMode.AllTanks 
+            if self.ops.FamilyParams.SeasonalStorageMode == SeasonalStorageMode.AllTanks 
             else LeafAllyBufferOnlyState.Dormant
         )
 
@@ -1293,7 +1435,7 @@ class Scada(PrimeActor, ScadaInterface):
                 self.log("Noticed auto_state Ltn but LeafAlly Dormant!")
                 if self.contract_handler.latest_scada_hb:
                     contract = self.contract_handler.latest_scada_hb.Contract
-                    self._send_to(self.leaf_ally, contract)  # This is how the Ltn wakes up
+                    self.send_contract_to_ally(contract, "refusing dispatch with the ally found Dormant")
                 else: # we might be in the grace period of an expired contract ... this check will 
                     self.log("No contract but in grace period. This will correct in 5 minutes")
             if local_control_state != LocalControlTopState.Dormant:
@@ -1307,16 +1449,152 @@ class Scada(PrimeActor, ScadaInterface):
                 self.log("Noticed auto_state LocalControl but LocalControl is Dormant! Sending WakeUp")
                 self._send_to(self.local_control, WakeUp(ToName=self.local_control.name))
 
+    async def announce_at_first_broker_link(self) -> None:
+        """Once per scada run: wait until the upstream link can carry a
+        publish and the first heating forecast is held, then send the
+        startup announcements. The LTN cannot offer before it has the
+        layout.lite, so the order keeps an offer from reaching a scada
+        whose ally has no forecast to judge with."""
+        while not self.services.upstream_is_send_capable():
+            await asyncio.sleep(self.STARTUP_ANNOUNCE_POLL_S)
+        await self._data.first_forecast.wait()
+        self.send_startup_announcements()
+
+    async def resume_at_first_forecast(self, loaded: Optional[SlowContractHeartbeat]) -> None:
+        """The stored-contract resume, its own task: a few seconds in (an
+        offer in the first seconds takes the loaded contract's place; the
+        buffer readings arrive) and once the first heating forecast is
+        held. Until it has run, LTN continuation heartbeats for the loaded
+        contract are dropped."""
+        if loaded is None:
+            return
+        await asyncio.sleep(4)
+        await self._data.first_forecast.wait()
+        self.resume_loaded_contract(loaded)
+
+    def send_startup_announcements(self) -> None:
+        """What the scada says about itself once per run: its layout.lite,
+        its ta.deed or a Warning glitch when it holds none (no file, or a
+        file whose deed names another terminal asset), and its operating
+        status. None of them asks for an ack."""
+        self._send_to(self.ltn, self.layout_lite)
+        deed = self.services.ta_deed
+        if deed is None:
+            on_file = self.services.deed_on_file
+            if on_file is None:
+                summary = "no-ta-deed"
+                details = f"No ta.deed at {self.settings.paths.tadeed}"
+                note = str(self.settings.paths.tadeed)
+            else:
+                summary = "ta-deed-wrong-asset"
+                details = (
+                    f"The ta.deed at {self.settings.paths.tadeed} has TaId "
+                    f"{on_file.TaId} ({on_file.TaAlias}); the layout's "
+                    f"TerminalAsset is {self.layout.terminal_asset_g_node_id} "
+                    f"({self.layout.terminal_asset_g_node_alias})"
+                )
+                note = details
+            self._send_to(
+                self.ltn,
+                Glitch(
+                    FromGNodeAlias=self.layout.scada_g_node_alias,
+                    Node=self.node.name,
+                    Type=LogLevel.Warning,
+                    Summary=summary,
+                    Details=details,
+                ),
+            )
+            self.log(f"Warning Glitch: {summary} ({note})")
+        else:
+            self._send_to(self.ltn, deed)
+        self.report_operating_status()
+        commit = git_commit_of(SCADA_REPO_ROOT)
+        if commit is None:
+            self.log(f"No gw.scada.commit: {SCADA_REPO_ROOT} is not a git checkout")
+        else:
+            self._send_to(
+                self.ltn,
+                ScadaCommit(
+                    ScadaAlias=self.layout.scada_g_node_alias,
+                    GitCommit=commit,
+                    MessageCreatedMs=int(time.time() * 1000),
+                ),
+            )
+
+    def buffer_fresh(self) -> bool:
+        """The channels the family's control needs to judge the buffer are
+        enabled and fresh; false blinds the scada to dispatch."""
+        return buffer_fresh(self._data, self.layout)
+
+    def note_reading_for_buffer_fresh_once(self) -> None:
+        """Set the one-shot the first time the buffer is fresh; nothing after."""
+        if not self._data.buffer_fresh_once.is_set() and self.buffer_fresh():
+            self._data.buffer_fresh_once.set()
+
+    @property
+    def dispatch_refusal(self) -> Optional[DispatchRefusalReason]:
+        """Why this scada will not take or keep a dispatch contract, asked
+        now, or None when it takes one. Ordered by permanence: the deed on
+        file, the ops word's hold (the operator's, then the broken service
+        contract), the sensing, then an admin session."""
+        if not deed_grants_dispatch(self.services.deed_on_file, self.layout):
+            return DispatchRefusalReason.NoTaDeed
+        if self.ops.DispatchHold.OperatorHold:
+            return DispatchRefusalReason.OperatorHold
+        if self.ops.DispatchHold.ServiceContractBroken:
+            return DispatchRefusalReason.ServiceContractBroken
+        if not self.buffer_fresh():
+            return DispatchRefusalReason.ScadaBlind
+        if self.top_state == TopState.Admin:
+            return DispatchRefusalReason.InAdmin
+        return None
+
+    @property
+    def house_operating_status(self) -> HouseOperatingStatus:
+        """The slow facts of the LTN-scada agreement: the authored facts
+        copied from the ops word, the rest derived now."""
+        refusal = self.dispatch_refusal
+        return HouseOperatingStatus(
+            ScadaAlias=self.layout.scada_g_node_alias,
+            ValidationState=self.services.validation_state,
+            Standby=self.ops.Standby,
+            StandbyPosture=self.ops.StandbyPosture,
+            SeasonalStorageMode=self.ops.FamilyParams.SeasonalStorageMode,
+            ServiceMode=self.ops.ServiceMode,
+            AcceptsDispatch=refusal is None,
+            DispatchRefusalReason=refusal,
+            TopState=self.top_state,
+            ScadaBlind=not self.buffer_fresh(),
+            LtnDispatching=self.ltn_dispatching,
+            CreatedMs=int(time.time() * 1000),
+        )
+
+    def report_operating_status(self) -> None:
+        """Send the operating status to the LTN when a field has changed
+        since the last one sent (the first send always goes)."""
+        status = self.house_operating_status
+        if self.last_operating_status is not None and (
+            status.model_dump(exclude={"CreatedMs"})
+            == self.last_operating_status.model_dump(exclude={"CreatedMs"})
+        ):
+            return
+        self.last_operating_status = status
+        self._send_to(self.ltn, status)
+
+    def note_ltn_dispatching(self, dispatching: bool) -> None:
+        if dispatching != self.ltn_dispatching:
+            self.ltn_dispatching = dispatching
+            self.report_operating_status()
+
     async def state_tracker(self) -> None:
         loop_s = self.settings.seconds_per_report
         await asyncio.sleep(4)
-        self.log("About to initialize contracts")
-        self.initialize_contracts()
         while True:
             hiccup = 1.5
             sleep_s = max(hiccup, loop_s - (time.time() % loop_s) - 1.2)
             await asyncio.sleep(sleep_s)
             self.enforce_auto_state_consistency() # e.g. if self.auto_state is Ltn, then LeafAlly is NOT Dormant
+            self.report_operating_status()  # derived facts (ScadaBlind) move with the sensing
             # report the state
             if sleep_s != hiccup:
                 self._send_to(
@@ -1375,7 +1653,14 @@ class Scada(PrimeActor, ScadaInterface):
     def send_report(self):
         report = self._data.make_report(self._last_report_second)
         self._data.reports_to_store[report.Id] = report
-        self.services.generate_event(ReportEvent(Report=report))  # noqa
+        self.services.generate_event(
+            ReportEvent(
+                MessageId=report.Id,
+                TimeCreatedMs=report.MessageCreatedMs,
+                Src=self.layout.scada_g_node_alias,
+                Report=report,
+            )
+        )
         self._data.flush_recent_readings()
 
     def send_snap(self):
@@ -1404,6 +1689,48 @@ class Scada(PrimeActor, ScadaInterface):
             except Exception as e:
                 self.log(e)
 
+    def disabled_roster_glitch(self) -> Glitch | None:
+        """One Warning naming the layout's disabled nodes and channels, so a
+        reader of the journal can tell an expected silence from an unreported
+        one. None when the layout disables nothing."""
+        nodes = sorted(self.layout.disabled_node_names)
+        channels = sorted(self.layout.disabled_channel_names)
+        if not nodes and not channels:
+            return None
+        needed = sorted(set(channels) & set(dispatch_channels(self.layout)))
+        dispatch_clause = (
+            f" | {', '.join(needed)} are required for dispatch: the scada refuses every offer"
+            if needed else ""
+        )
+        return Glitch(
+            FromGNodeAlias=self.layout.scada_g_node_alias,
+            Node=self.node.name,
+            Type=LogLevel.Warning,
+            Summary="disabled-roster",
+            Details=(
+                f"nodes: {', '.join(nodes) or '-'} | channels: {', '.join(channels) or '-'}"
+                + dispatch_clause
+            ),
+        )
+
+    async def disabled_roster_task(self):
+        """The disabled roster, once a day: the set is static for a run and a
+        field window is short, so once at start and then daily."""
+        while not self._stop_requested:
+            glitch = self.disabled_roster_glitch()
+            if glitch is not None:
+                self._send_to(self.ltn, glitch)
+            await asyncio.sleep(DISABLED_ROSTER_PERIOD_S)
+
+    async def unknown_channel_logging_task(self):
+        while self.settings.unknown_channel_logging and not self._stop_requested:
+            unknown = self._data.unknown_channels()
+            self.services.logger.error(
+                f"[UnknownChannels] no value: {','.join(unknown.no_value) or '-'}"
+                f" | stale: {','.join(unknown.stale) or '-'}"
+            )
+            await asyncio.sleep(UNKNOWN_CHANNEL_LOG_PERIOD_S)
+
     #####################################################################
     # Basic plumbing - mostly about messages
     #####################################################################
@@ -1417,7 +1744,8 @@ class Scada(PrimeActor, ScadaInterface):
 
         # HACK FOR nodes whose 'actors' are handled by their parent's communicator
         communicator_by_name = {to_node.Name: to_node.Name}
-        communicator_by_name[H0N.local_control_normal] = H0N.local_control
+        for state_node in LOCAL_CONTROL_STATE_NODES:
+            communicator_by_name[state_node] = CoreNodeNames.local_control
     
         # if the message is meant for primary_scada, process here
         if to_node.name == self.name:
@@ -1426,10 +1754,26 @@ class Scada(PrimeActor, ScadaInterface):
         # if its meant for an actor spawned by primary_scada (aka communicator)
         # call its process_message
         elif communicator_by_name[to_node.Name] in self.services.get_communicator_names():
-            self.get_communicator(communicator_by_name[to_node.Name]).process_message(
-                Message(Src=from_node.Name, Dst=to_node.Name, Payload=payload)
-            )
-        elif to_node.Name == H0N.admin:
+            # An actor that raises on a message must not take the scada's
+            # own handler down with it: log it, report it, and continue.
+            try:
+                self.get_communicator(communicator_by_name[to_node.Name]).process_message(
+                    Message(Src=from_node.Name, Dst=to_node.Name, Payload=payload)
+                )
+            except Exception as e:  # noqa: BLE001
+                summary = f"{to_node.Name} raised on {type(payload).__name__}"
+                self.log(f"{summary}: {e!r}")
+                self._send_to(
+                    self.ltn,
+                    Glitch(
+                        FromGNodeAlias=self.layout.scada_g_node_alias,
+                        Node=to_node.Name,
+                        Type=LogLevel.Error,
+                        Summary="actor-raised",
+                        Details=f"{summary}: {e!r}",
+                    ),
+                )
+        elif to_node.Name == CoreNodeNames.admin:
             self.services.publish_message(
                 link_name=self.ADMIN_MQTT,
                 message=Message(
@@ -1437,7 +1781,7 @@ class Scada(PrimeActor, ScadaInterface):
                 ),
                 qos=QOS.AtMostOnce,
             )
-        elif to_node.Name == H0N.ltn:
+        elif to_node.Name == CoreNodeNames.ltn:
             #self._links.publish_upstream(payload)
             self.services.publish_message(
                 link_name=self.LTN_MQTT,
@@ -1494,11 +1838,11 @@ class Scada(PrimeActor, ScadaInterface):
                     f"IGNORING message from upstream. Expected {self.layout.ltn_g_node_alias} but got {src}"
                 )
                 return
-            src = H0N.ltn
+            src = CoreNodeNames.ltn
         elif message.Payload.client_name == self.ADMIN_MQTT:
             if not self.settings.admin.enabled:
                 return
-            src = H0N.admin
+            src = CoreNodeNames.admin
             # TODO: make admin conversation less hacky?
         else:
             raise ValueError(
@@ -1549,6 +1893,24 @@ class Scada(PrimeActor, ScadaInterface):
             if src_actor_class in (ActorClass.Relay, ActorClass.ZeroTenOutputer):
                 self._send_to(self.admin, reading)
 
+    def _forward_single_machine_state(
+        self, from_node: ShNode, sms: SingleMachineState
+    ) -> None:
+        """A commandable node's own state reaches the admin panel live: the
+        panel's rows, relays and interior command nodes alike, follow the
+        node's own state machine rather than a reading's 0/1. A state a node
+        reports about another node (the cycler's per-pico roster) is not
+        forwarded; the panel reads those from the snapshot."""
+        if (
+            self.settings.admin.enabled
+            and sms.MachineHandle.split(".")[-1] == from_node.Name
+            and (
+                from_node.ActorClass == ActorClass.Relay
+                or from_node.ActorClass in self.COMMAND_NODE_CLASSES
+            )
+        ):
+            self._send_to(self.admin, sms)
+
     #################################################
     # Various properties
     #################################################
@@ -1571,167 +1933,179 @@ class Scada(PrimeActor, ScadaInterface):
 
 
     @property
-    def hardware_layout(self) -> House0Layout:
+    def hardware_layout(self) -> HydronicLayout:
         return self._layout
 
     @property
-    def layout(self) -> House0Layout:
+    def layout(self) -> HydronicLayout:
         return self._layout
 
     @property
     def admin(self) -> ShNode:
-        return self.layout.node(H0N.admin)
+        return self.layout.node(CoreNodeNames.admin)
 
     @property
     def ltn(self) -> ShNode:
-        return self.layout.node(H0N.ltn)
+        return self.layout.node(CoreNodeNames.ltn)
 
     @property
     def leaf_ally(self) -> ShNode:
-        return self.layout.node(H0N.leaf_ally)
+        return self.layout.node(CoreNodeNames.leaf_ally)
 
     @property
     def local_control(self) -> ShNode:
-        return self.layout.node(H0N.local_control)
-
-    @property
-    def relay_multiplexer(self) -> ShNode:
-        return self.layout.node(H0N.relay_multiplexer)
-
-    @property
-    def zero_ten_out_multiplexer(self) -> ShNode:
-        return self.layout.node(H0N.zero_ten_out_multiplexer)
+        return self.layout.node(CoreNodeNames.local_control)
 
     @property
     def derived_generator(self) -> ShNode:
-        return self.layout.node(H0N.derived_generator)
+        return self.layout.node(CoreNodeNames.derived_generator)
 
     @property
     def hp_boss(self) -> ShNode:
-        if not self.layout.use_sieg_loop:
-            raise Exception("Should not call for hp_boss unless layout uses sieg loop!")
-        return self.layout.node(H0N.hp_boss)
+        return self.layout.hp_boss
 
     @property
     def sieg_loop(self) -> ShNode:
-        if not self.layout.use_sieg_loop:
-            raise Exception("Should not call for sieg_loop unless layout uses sieg loop!")
-        return self.layout.node(H0N.sieg_loop)
+        return self.required_node(House0NodeNames.sieg_loop)
 
     @property
     def pico_cycler(self) -> ShNode:
-        return self.layout.node(H0N.pico_cycler)
+        return self.layout.node(HSNN.pico_cycler)
+
+    # The interior command nodes an operator sees as rows: their own state
+    # reaches the panel live and they are listed in the capabilities.
+    COMMAND_NODE_CLASSES = command_reply.COMMAND_NODE_CLASSES
+
+    # The interior command nodes' vocabularies, by ActorClass: one entry per
+    # vocabulary (event type, state type, the commands and the state each
+    # leads to). The layout word does not yet carry a per-node command
+    # interface, so the nodes that take event commands without a relay
+    # config declare theirs here; the relays' come from their own config.
+    # The pico-cycler has none: it is commanded through five-v-boss.
+    COMMAND_NODE_INTERFACES: dict[ActorClass, list[tuple[str, str, list[tuple[str, str]]]]] = {
+        ActorClass.HpBoss: [(
+            TurnHpOnOff.enum_name(),
+            HpBossState.enum_name(),
+            [(TurnHpOnOff.TurnOn, HpBossState.HpOn), (TurnHpOnOff.TurnOff, HpBossState.HpOff)],
+        )],
+        ActorClass.FiveVBoss: [
+            (
+                Turn5VOnOff.enum_name(),
+                FiveVBossState.enum_name(),
+                [(Turn5VOnOff.TurnOff, FiveVBossState.FiveVOff), (Turn5VOnOff.TurnOn, FiveVBossState.PicoCycler)],
+            ),
+            (
+                RebootPicos.enum_name(),
+                FiveVBossState.enum_name(),
+                [(RebootPicos.RebootPicos, FiveVBossState.PicoCycler)],
+            ),
+        ],
+        ActorClass.SiegLoop: [(
+            MoveSiegValve.enum_name(),
+            SiegValveState.enum_name(),
+            [
+                (MoveSiegValve.MoveToFullSend, SiegValveState.FullySend),
+                (MoveSiegValve.MoveToFullKeep, SiegValveState.FullyKeep),
+                (MoveSiegValve.StopValve, SiegValveState.SteadyBlend),
+            ],
+        )],
+    }
 
     @property
-    def data(self) -> ScadaData:
-        return self._data
+    def five_v_boss_state(self) -> FiveVBossState:
+        """five-v-boss's last reported state, PicoCycler until it reports."""
+        latest = self._data.latest_machine_state.get(HSNN.five_v_boss)
+        if latest is None or latest.StateEnum != FiveVBossState.enum_name():
+            return FiveVBossState.PicoCycler
+        return FiveVBossState(latest.State)
+
+    def command_interfaces(self, node: ShNode) -> list[CommandInterface]:
+        """What a boss may ask of this node and the state each command
+        leads to: a relay's two events from its own config, an interior
+        command node's vocabularies from COMMAND_NODE_INTERFACES."""
+        if node.ActorClass in self.COMMAND_NODE_CLASSES:
+            vocabularies = self.COMMAND_NODE_INTERFACES.get(node.ActorClass, [])
+        else:
+            config = next(
+                x for x in node.component.gt.ConfigList if x.ActorName == node.name
+            )
+            vocabularies = [(
+                config.EventType,
+                config.StateType,
+                [
+                    (config.EnergizingEvent, config.EnergizedState),
+                    (config.DeEnergizingEvent, config.DeEnergizedState),
+                ],
+            )]
+        return [
+            CommandInterface(
+                ActorName=node.name,
+                EventType=event_type,
+                StateType=state_type,
+                Commands=[
+                    CommandTransition(Event=event, ToState=to_state)
+                    for event, to_state in commands
+                ],
+            )
+            for event_type, state_type, commands in vocabularies
+        ]
 
     @property
     def control_capabilities(self) -> ScadaControlCapabilities:
-        relay_nodes = [ 
-            ControlNode(
-                Name=node.Name,
-                ActorClass=node.ActorClass,
-                DisplayName=node.DisplayName
-            )
-            for node in self.layout.nodes.values()
+        """The cover of the live command tree: the nodes an operator may
+        address, their state channels, and an interface for every relay or
+        command node not under an interior command node (a relay under
+        hp-boss, or the cycler and its relay under five-v-boss, is
+        commanded through its owner)."""
+        relay_nodes = [
+            node for node in self.layout.nodes.values()
             if node.ActorClass == ActorClass.Relay
         ]
         dac_nodes = [
-            ControlNode(
-                Name=node.Name,
-                ActorClass=node.ActorClass,
-                DisplayName=node.DisplayName
-            )
-            for node in self.layout.nodes.values()
+            node for node in self.layout.nodes.values()
             if node.ActorClass == ActorClass.ZeroTenOutputer
         ]
-
-        relay_node_names = {n.Name for n in relay_nodes}
-        dac_node_names = {n.Name for n in dac_nodes}
-        control_node_names = relay_node_names | dac_node_names
-
+        command_nodes = [
+            node for node in self.layout.nodes.values()
+            if node.ActorClass in self.COMMAND_NODE_CLASSES
+        ]
+        control_node_names = {n.name for n in relay_nodes + dac_nodes}
         ctrl_channels = [
-            ControlChannel(
-                Name=channel.Name,
-                AboutNodeName=channel.AboutNodeName,
-            )
+            channel.to_gt()
             for channel in self.layout.data_channels.values()
             if channel.AboutNodeName in control_node_names
+        ]
+        owner_prefixes = [f"{node.handle}." for node in command_nodes]
+        interfaces = [
+            interface
+            for node in relay_nodes + command_nodes
+            if not any(node.handle.startswith(p) for p in owner_prefixes)
+            for interface in self.command_interfaces(node)
         ]
         return ScadaControlCapabilities(
             FromGNodeAlias=self.layout.scada_g_node_alias,
             MessageCreatedMs=int(time.time() * 1000),
-            RelayNodes = relay_nodes,
-            DacNodes=dac_nodes,
-            ControlChannels= ctrl_channels,
-            I2cRelayComponent=self.layout.node(H0N.relay_multiplexer).component.gt
+            RelayNodes=[node.to_gt() for node in relay_nodes],
+            DacNodes=[node.to_gt() for node in dac_nodes],
+            CommandNodes=[node.to_gt() for node in command_nodes],
+            ControlChannels=ctrl_channels,
+            CommandInterfaces=interfaces,
         )
 
     @property
     def layout_lite(self) -> LayoutLite:
-        tank_nodes = [
-            node
-            for node in self.layout.nodes.values()
-            if node.ActorClass == ActorClass.ApiTankModule
-        ]
-        flow_nodes = [
-            node
-            for node in self.layout.nodes.values()
-            if node.ActorClass == ActorClass.ApiFlowModule
-        ]
         return LayoutLite(
             FromGNodeAlias=self.layout.scada_g_node_alias,
-            Strategy=self.layout.flow_manifold_variant,
-            SystemMode=self.settings.system_mode,
-            SeasonalStorageMode=self.settings.seasonal_storage_mode,
-            BufferShortCycling=self.settings.short_cycle_buffer,
+            HardwareLayoutTypeName=self.layout.layout_type_name,
             ZoneList=self.layout.zone_list,
             CriticalZoneList=self.layout.critical_zone_list,
-            TotalStoreTanks=self.layout.total_store_tanks,
-            TankModuleComponents=[node.component.gt for node in tank_nodes],
-            FlowModuleComponents=[node.component.gt for node in flow_nodes],
             ShNodes=[node.to_gt() for node in self.layout.nodes.values()],
             DataChannels=[ch.to_gt() for ch in self.layout.data_channels.values()],
             DerivedChannels=[ch.to_gt() for ch in self.layout.derived_channels.values()],
-            Ha1Params=self.data.ha1_params,
-            I2cRelayComponent=self.layout.node(H0N.relay_multiplexer).component.gt,
-            MessageCreatedMs=int(time.time() * 1000),
+            StateMachines=declared_state_machines(self.layout, self.ops),
+            CreatedMs=int(time.time() * 1000),
             MessageId=str(uuid.uuid4()),
-            TMap=self.layout.tank_temp_calibration_map,
         )
-
-    ################################################
-    # Hacky stuff
-    ###############################################
-
-    def update_env_variable(self, variable, new_value, testing: bool = False) -> None:
-        """
-        Updates .env with new Scada Params.
-        TODO: move this somewhere else, like a local sqlite db
-        """
-        if testing:
-            dotenv_filepath = dotenv.find_dotenv(usecwd=True)
-            if not dotenv_filepath:
-                self.logger.error("Couldn't find a .env file - perhaps because in CI?")
-                return
-        else:
-            dotenv_filepath = "/home/pi/gridworks-scada/.env"
-            if not os.path.isfile(dotenv_filepath):
-                self.log("Did not find .env file")
-                return
-        with open(dotenv_filepath, "r") as file:
-            lines = file.readlines()
-        with open(dotenv_filepath, "w") as file:
-            line_exists = False
-            for line in lines:
-                if line.replace(" ", "").startswith(f"{variable}="):
-                    file.write(f"{variable}={new_value}\n")
-                    line_exists = True
-                else:
-                    file.write(line)
-            if not line_exists:
-                file.write(f"\n{variable}={new_value}\n")
 
     def log(self, note: str) -> None:
         log_str = f"[scada] {note}"

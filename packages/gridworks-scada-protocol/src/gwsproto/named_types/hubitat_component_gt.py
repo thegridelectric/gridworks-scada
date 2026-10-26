@@ -3,15 +3,23 @@ from typing import Literal, Optional
 import yarl
 from pydantic_extra_types.mac_address import MacAddress
 
-from gwsproto.named_types.component_gt import ComponentGt
+from gwsproto.type_helpers.component_base import DeviceComponentBase
 from gwsproto.named_types.hubitat_gt import HubitatGt
 from gwsproto.named_types.rest_poller_gt import URLConfig
 
 
-class HubitatComponentGt(ComponentGt):
+class HubitatComponentGt(DeviceComponentBase):
+    """Sema: https://schemas.electricity.works/types/hubitat.component.gt/000"""
+
     Hubitat: HubitatGt
     TypeName: Literal["hubitat.component.gt"] = "hubitat.component.gt"
+    Version: Literal["000"] = "000"
 
+    # The MakerAPI URL helpers below (url_config / maker_api_url_config / urls /
+    # refresh_url ...) are NOT part of the sema contract and will NOT be generated from
+    # sema in the proactor port -- they delegate to HubitatGt and must remain in app code.
+    # See HubitatGt; this serves the five legacy House0 production homes with no forward
+    # expansion.
     def url_config(self) -> URLConfig:
         return self.Hubitat.url_config()
 
@@ -31,14 +39,14 @@ class HubitatComponentGt(ComponentGt):
     def make_stub(cls, component_id: str) -> "HubitatComponentGt":
         return HubitatComponentGt(
             ComponentId=component_id,
-            ComponentAttributeClassId="00000000-0000-4000-8000-000000000000",
+            DeviceType="HubitatC7Hub",
             Hubitat=HubitatGt(
                 Host="",
                 MakerApiId=-1,
                 AccessToken="",
                 MacAddress=MacAddress("00:00:00:00:00:00"),
+                WebListenEnabled=True,
             ),
-            ConfigList=[],
         )
 
 

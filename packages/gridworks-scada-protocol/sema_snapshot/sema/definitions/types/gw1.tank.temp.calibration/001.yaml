@@ -1,0 +1,60 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw1.tank.temp.calibration/001"
+
+title: "gw1.tank.temp.calibration"
+type: object
+description: >
+  Linear calibration coefficients for converting three raw tank probe readings
+  into calibrated temperatures.
+
+  Each depth's correction is `calibrated = M * x + B`, applied in the consuming
+  derived channel's OutputUnit scaling domain (FahrenheitX100): `M` is
+  dimensionless and `B` is an integer offset in the same scaling as the output
+  (e.g. `B = -430` is a -4.30 F offset). This mirrors
+  `linear.one.dimensional.calibration/000`.
+
+properties:
+  Depth1M:
+    type: number
+    default: 1.0
+
+  Depth1B:
+    type: integer
+    default: 0
+
+  Depth2M:
+    type: number
+    default: 1.0
+
+  Depth2B:
+    type: integer
+    default: 0
+
+  Depth3M:
+    type: number
+    default: 1.0
+
+  Depth3B:
+    type: integer
+    default: 0
+
+  TypeName:
+    const: "gw1.tank.temp.calibration"
+
+  Version:
+    const: "001"
+
+required:
+  - Depth1M
+  - Depth1B
+  - Depth2M
+  - Depth2B
+  - Depth3M
+  - Depth3B
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+x-gridworks:
+  owner: "gridworks-energy"

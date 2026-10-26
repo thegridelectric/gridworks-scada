@@ -1,0 +1,30 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/gw.primary.flow.source/000"
+
+title: "gw.primary.flow.source"
+type: "string"
+description: >
+  How a hydronic layout's primary-loop flow ("primary-flow") is obtained.
+  This is a physical-topology fact: whether a flow meter sits at the primary
+  pump (measured) or the primary flow is reconstructed from other sensors
+  (derived). It selects whether "primary-flow" is a measured DataChannel or a
+  derived DerivedChannel.
+
+enum:
+  - "Measured"
+  - "DerivedSiegSum"
+
+default: "Measured"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "Measured": >
+      A flow meter is plumbed at/next to the primary pump; "primary-flow" is a
+      measured DataChannel read straight from that meter (e.g. the primary BTU
+      meter on beech).
+    "DerivedSiegSum": >
+      No flow meter sits at the primary pump; "primary-flow" is a derived
+      DerivedChannel computed as the sum of the Siegenthaler loop's send and
+      flow sensors (sieg-send + sieg-flow), as on maple.

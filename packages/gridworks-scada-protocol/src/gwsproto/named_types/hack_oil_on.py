@@ -2,9 +2,10 @@
 
 from typing import Literal
 
-from pydantic import BaseModel
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class HackOilOn(BaseModel):
+
+class HackOilOn(GwsprotoSemaType):
     TypeName: Literal["hack.oil.on"] = "hack.oil.on"
     Version: str = "000"

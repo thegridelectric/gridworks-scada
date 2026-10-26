@@ -1,14 +1,15 @@
 from typing import List, Literal
 from typing_extensions import Self
-from pydantic import BaseModel, model_validator
+from pydantic import model_validator
 
 from gwsproto.enums import MarketPriceUnit, MarketQuantityUnit
 from gwsproto.property_format import LeftRightDotStr, MarketSlotName
 from gwsproto.named_types.price_quantity_unitless import PriceQuantityUnitless
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class Bid(BaseModel):
-    """ASL: https://schemas.electricity.works/types/bid/000"""
+class Bid(GwsprotoSemaType):
+    """Sema: https://schemas.electricity.works/types/bid/000"""
 
     BidderAlias: LeftRightDotStr
     MarketSlotName: MarketSlotName

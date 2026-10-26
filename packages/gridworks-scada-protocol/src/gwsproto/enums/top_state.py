@@ -1,20 +1,11 @@
 from enum import auto
 from typing import List
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class TopState(AslEnum):
-    """
-    
-    Values:
-      - Auto
-      - Admin
-
-    For more information:
-      - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
-      - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#topstate)
-    """
+class TopState(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/gw.top.state/000"""
 
     Auto = auto()
     Admin = auto()
@@ -29,7 +20,7 @@ class TopState(AslEnum):
 
     @classmethod
     def enum_name(cls) -> str:
-        return "top.state"
+        return "gw.top.state"
 
     @classmethod
     def enum_version(cls) -> str:

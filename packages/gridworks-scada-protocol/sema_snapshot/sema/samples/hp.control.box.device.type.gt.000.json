@@ -1,0 +1,15 @@
+{
+  "TypeName": "hp.control.box.device.type.gt",
+  "Version": "000",
+  "DeviceType": "SamsungAE055FEYMCG",
+  "DisplayName": "Samsung AE055 EHS mono control box",
+  "PrimaryPumpFactoryInstalled": true,
+  "PrimaryPumpOverridable": false,
+  "PrimaryPumpAlwaysOn": false,
+  "WaterPumpRatedAmps": 0.9,
+  "BackupHeaterKwList": [
+    2.0,
+    4.0
+  ],
+  "ProductInfoUrl": "https://drive.google.com/drive/folders/1XV80QPgqpyYvMaoQIR9PpGWmu6dSY9kD"
+}

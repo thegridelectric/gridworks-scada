@@ -8,20 +8,23 @@ import numpy as np
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
 from gwsproto.errors import DcError
-from gwproactor import MonitoredName, Problems
+from gwproactor import MonitoredName
 from gwproactor.message import InternalShutdownMessage, PatInternalWatchdogMessage
 from gwproto import Message
 from gwsproto.data_classes.components import PicoFlowModuleComponent
-from gwsproto.enums import GpmFromHzMethod, HzCalcMethod, MakeModel, TelemetryName
+from gwsproto.enums import GpmFromHzMethod, DeviceType, HzCalcMethod, TelemetryName
 from gwsproto.named_types import (
     ChannelReadings,
+    FlowHallParams,
     SyncedReadings,
     TicklistHall,
     TicklistHallReport,
     TicklistReed,
     TicklistReedReport,
 )
-from gwsproto.data_classes.house_0_names import ScadaWeb
+from gwsproto.names.core.node_names import ScadaWeb
+from actors.pico_liveness import PicoLiveness
+from actors.pico_post_refusal import RefusedPosts, refused_post, unknown_pico, unreadable_post
 from actors.sh_node_actor import ShNodeActor
 from gwsproto.enums import LogLevel
 from gwsproto.named_types import Glitch, PicoMissing
@@ -30,17 +33,6 @@ from result import Ok, Result
 from drivers.pipe_flow_sensor.signal_processing import butter_lowpass, filtering
 from scada_app_interface import ScadaAppInterface
 
-FLATLINE_REPORT_S = 60
-
-
-class FlowHallParams(BaseModel):
-    HwUid: str
-    ActorNodeName: str
-    FlowNodeName: str
-    PublishTicklistPeriodS: int
-    PublishEmptyTicklistAfterS: int
-    TypeName: Literal["flow.hall.params"] = "flow.hall.params"
-    Version: str = "101"
 
 
 class FlowReedParams(BaseModel):
@@ -81,20 +73,32 @@ class ApiFlowModule(ShNodeActor):
         self._stop_requested: bool = False
         self._component = component
         self.hw_uid = self._component.gt.HwUid
+        self.refused_posts = RefusedPosts(self)
 
+        # Built but idle: a disabled node keeps its routes and its place in
+        # the cycler's roster, and neither reads, reports nor alerts.
+        self.disabled: bool = self.layout.node_disabled(self.name)
         # Flow processing
         self.gpm_channel = self.layout.data_channels[f"{self.name}"]
         self.hz_channel = self.layout.data_channels[f"{self.name}-hz"]
+        self.publish_gpm: bool = not self.layout.channel_disabled(self.gpm_channel.Name)
+        self.publish_hz: bool = (
+            self._component.gt.SendHz and not self.layout.channel_disabled(self.hz_channel.Name)
+        )
+        self.feeds_derived = self.layout.feeds_derived(
+            self.layout.enabled_channel_names([self.gpm_channel.Name, self.hz_channel.Name])
+        )
 
         self.nano_timestamps: List[int] = []
         self.latest_tick_ns = None
         self.latest_hz = None
         self.latest_gpm = None
 
-        self.capture_s = self._component.gt.ConfigList[0].CapturePeriodS
+        self.capture_s = self.layout.capture_tuning_by_channel[
+            self.gpm_channel.Name
+        ].CapturePeriodS
         self.latest_sync_send_s = time.time()
-        self.last_heard = time.time()
-        self.last_error_report = time.time()
+        self.liveness = PicoLiveness(expected_post_s=self.expected_post_s())
 
         self.slow_turner: bool = False
         if self._component.gt.ConstantGallonsPerTick > 0.5:
@@ -102,37 +106,36 @@ class ApiFlowModule(ShNodeActor):
 
         self.validate_config_params()
 
-        if self._component.gt.Enabled:
-            if self._component.cac.MakeModel == MakeModel.GRIDWORKS__PICOFLOWHALL:
-                self._services.add_web_route(
-                    server_name=ScadaWeb.DEFAULT_SERVER_NAME,
-                    method="POST",
-                    path="/" + self.hall_params_path,
-                    handler=self._handle_hall_params_post,
-                )
-                self._services.add_web_route(
-                    server_name=ScadaWeb.DEFAULT_SERVER_NAME,
-                    method="POST",
-                    path="/" + self.ticklist_hall_path,
-                    handler=self._handle_ticklist_hall_post,
-                )
-            elif self._component.cac.MakeModel == MakeModel.GRIDWORKS__PICOFLOWREED:
-                self._services.add_web_route(
-                    server_name=ScadaWeb.DEFAULT_SERVER_NAME,
-                    method="POST",
-                    path="/" + self.reed_params_path,
-                    handler=self._handle_reed_params_post,
-                )
-                self._services.add_web_route(
-                    server_name=ScadaWeb.DEFAULT_SERVER_NAME,
-                    method="POST",
-                    path="/" + self.ticklist_reed_path,
-                    handler=self._handle_ticklist_reed_post,
-                )
-            else:
-                raise Exception(
-                    f"ApiFlowMeter actor does not recognize {self._component.cac.MakeModel}"
-                )
+        if self._component.gt.DeviceType == DeviceType.GridworksPicoFlowHall:
+            self._services.add_web_route(
+                server_name=ScadaWeb.DEFAULT_SERVER_NAME,
+                method="POST",
+                path="/" + self.hall_params_path,
+                handler=self._handle_hall_params_post,
+            )
+            self._services.add_web_route(
+                server_name=ScadaWeb.DEFAULT_SERVER_NAME,
+                method="POST",
+                path="/" + self.ticklist_hall_path,
+                handler=self._handle_ticklist_hall_post,
+            )
+        elif self._component.gt.DeviceType == DeviceType.GridworksPicoFlowReed:
+            self._services.add_web_route(
+                server_name=ScadaWeb.DEFAULT_SERVER_NAME,
+                method="POST",
+                path="/" + self.reed_params_path,
+                handler=self._handle_reed_params_post,
+            )
+            self._services.add_web_route(
+                server_name=ScadaWeb.DEFAULT_SERVER_NAME,
+                method="POST",
+                path="/" + self.ticklist_reed_path,
+                handler=self._handle_ticklist_reed_post,
+            )
+        else:
+            raise Exception(
+                f"ApiFlowMeter actor does not recognize {self._component.gt.DeviceType}"
+            )
 
     def validate_config_params(self) -> None:
         if self._component.gt.HzCalcMethod == HzCalcMethod.BasicExpWeightedAvg:
@@ -141,12 +144,6 @@ class ApiFlowModule(ShNodeActor):
         if self._component.gt.HzCalcMethod == HzCalcMethod.BasicButterWorth:
             if self._component.gt.CutoffFrequency is None:
                 raise DcError(f"{self.name}: BasicButterWorth requires CutoffFrequency")
-        channel_names = [x.ChannelName for x in self._component.gt.ConfigList]
-        if self.gpm_channel.Name not in channel_names:
-            raise DcError(f"Missing {self.gpm_channel.Name} channel!")
-        if self._component.gt.SendHz:
-            if self.hz_channel.Name not in channel_names:
-                raise DcError(f"SendHz but missing {self.hz_channel.Name}!")
         if self._component.gt.SendGallons:
             raise ValueError("Not set up to send gallons right now")
 
@@ -171,10 +168,12 @@ class ApiFlowModule(ShNodeActor):
             return 1
 
     def publish_synced_readings(self):
+        if self.disabled or not self.publish_gpm:
+            return
         if self.latest_gpm is not None:
             channel_names = [self.gpm_channel.Name]
             values = [int(self.latest_gpm * 100)]
-            if self._component.gt.SendHz:
+            if self.publish_hz:
                 channel_names.append(self.hz_channel.Name)
                 values.append(int(self.latest_hz * 1e6))
             msg = SyncedReadings(
@@ -183,14 +182,34 @@ class ApiFlowModule(ShNodeActor):
                 ScadaReadTimeUnixMs=int(time.time() * 1000),
             )
             self._send_to(self.primary_scada, msg)
-            if self.layout.use_sieg_loop and self.node.name == "sieg-flow":
+            if self.feeds_derived:
                 self._send_to(self.derived_generator, msg)
 
-    def flatline_seconds(self) -> int:
-        if self._component.cac.MakeModel == MakeModel.GRIDWORKS__PICOFLOWHALL:
-            return self._component.gt.PublishEmptyTicklistAfterS * 2.5
-        if self._component.cac.MakeModel == MakeModel.GRIDWORKS__PICOFLOWREED:
-            return self._component.gt.PublishAnyTicklistAfterS * 2.5
+    def expected_post_s(self) -> float:
+        """The longest the pico stays silent by design: a hall pico posts
+        an empty ticklist after PublishEmptyTicklistAfterS, a reed pico
+        posts any ticklist after PublishAnyTicklistAfterS."""
+        if self._component.gt.DeviceType == DeviceType.GridworksPicoFlowHall:
+            return self._component.gt.PublishEmptyTicklistAfterS
+        if self._component.gt.DeviceType == DeviceType.GridworksPicoFlowReed:
+            return self._component.gt.PublishAnyTicklistAfterS
+        raise ValueError(
+            f"{self.name}: no expected post period for DeviceType {self._component.gt.DeviceType}"
+        )
+
+    def flatline_seconds(self) -> float:
+        return self.liveness.flatline_seconds
+
+    def missing(self) -> bool:
+        return self.liveness.missing(time.time())
+
+    def report_missing(self) -> None:
+        self.latest_gpm = None
+        self.latest_hz = None
+        self._send_to(
+            self.pico_cycler,
+            PicoMissing(ActorName=self.name, PicoHwUid=self.hw_uid),
+        )
 
     # This registers ApiFlowModule with the watchdog.
     @property
@@ -198,7 +217,7 @@ class ApiFlowModule(ShNodeActor):
         return [MonitoredName(self.name, self.flatline_seconds() * 2.1)]
 
     async def main(self):
-        if self.slow_turner:
+        if self.slow_turner and not self.disabled:
             self.publish_zero_flow()
 
         while not self._stop_requested:
@@ -217,21 +236,8 @@ class ApiFlowModule(ShNodeActor):
 
             self._send(PatInternalWatchdogMessage(src=self.name))
 
-            # Check if flatlined, if so send an error report every FLATLINE_REPORT_S
-            if (
-                time.time() - self.last_heard > self.flatline_seconds() and
-                time.time() - self.last_error_report > FLATLINE_REPORT_S
-                ):
-                self.latest_gpm = None
-                self.latest_hz = None
-                self._send_to(
-                    self.pico_cycler,
-                    PicoMissing(
-                        ActorName=self.name,
-                        PicoHwUid=self.hw_uid,
-                    ),
-                )
-                self.last_error_report = time.time()
+            if not self.disabled and self.liveness.report_due(time.time()):
+                self.report_missing()
 
             try:
                 # Publish readings synchronously every capture_s
@@ -275,31 +281,8 @@ class ApiFlowModule(ShNodeActor):
         try:
             return await request.text()
         except Exception as e:
-            self.services.send_threadsafe(
-                Message(
-                    Payload=Problems(
-                        errors=[e]
-                    ).problem_event(
-                        summary=(
-                            f"ERROR awaiting post ext <{self.name}>: {type(e)} <{e}>"
-                        ),
-                    )
-                )
-            )
+            self.refused_posts.report(unreadable_post(self.name, e))
         return None
-
-    def _report_post_error(self, exception: BaseException, text: str) -> None:
-        self.services.send_threadsafe(
-            Message(
-                Payload=Problems(
-                    msg=f"request: <{text}>", errors=[exception]
-                ).problem_event(
-                    summary=(
-                        f"Pico POST processing error for <{self._name}>: {type(exception)} <{exception}>"
-                    ),
-                )
-            )
-        )
 
     def need_to_update_layout(self) -> bool:
         if self._component.gt.HwUid:
@@ -312,21 +295,22 @@ class ApiFlowModule(ShNodeActor):
             self.services.logger.error(log_str)
 
     async def _handle_hall_params_post(self, request: Request) -> Response:
-        # Read params as FlowHallParams
         text = await self._get_text(request)
         self.params_text = text
+        if text is None:
+            return Response()
         try:
             params = FlowHallParams(**json.loads(text))
         except BaseException as e:
-            self._report_post_error(e, "malformed FlowHall parameters!")
+            self.refused_posts.report(refused_post(self.name, text, e, FlowHallParams))
             self.log("Flow module params are malformed")
             return Response()
         if params.FlowNodeName != self._component.gt.FlowNodeName:
             self.log("FlowNodeName is not correct")
             return Response()
-        if self._component.cac.MakeModel != MakeModel.GRIDWORKS__PICOFLOWHALL:
+        if self._component.gt.DeviceType != DeviceType.GridworksPicoFlowHall:
             raise Exception(
-                f"{self.name} has {self._component.cac.MakeModel} but got FlowHallParams!"
+                f"{self.name} has {self._component.gt.DeviceType} but got FlowHallParams!"
             )
         self.pico_state_log(f"{params.HwUid} PARAMS")
         # Temporary hack prior to installerapp
@@ -343,27 +327,31 @@ class ApiFlowModule(ShNodeActor):
                 PublishEmptyTicklistAfterS=self._component.gt.PublishEmptyTicklistAfterS,
             )
             return Response(text=new_params.model_dump_json())
-        else: # TODO: do we still need this?
-            # A strange pico is identifying itself as our "a" tank
-            self.log(f"Unknown pico {params.HwUid} identifying as {self.name} Pico A!")
+        else:
+            self.log(f"Unknown pico {params.HwUid} identifying as {self.name}")
+            self.refused_posts.report(
+                unknown_pico(self.name, params.HwUid, self._component.gt.HwUid)
+            )
             return Response()
 
     async def _handle_reed_params_post(self, request: Request) -> Response:
         # Read params as FlowReedParams
         text = await self._get_text(request)
         self.params_text = text
+        if text is None:
+            return Response()
         try:
             params = FlowReedParams(**json.loads(text))
         except BaseException as e:
-            self._report_post_error(e, "malformed tankmodule parameters!")
+            self.refused_posts.report(refused_post(self.name, text, e, FlowReedParams))
             self.log("Flow module params are malformed")
             return Response()
         if params.FlowNodeName != self._component.gt.FlowNodeName:
             self.log("FlowNodeName is not correct")
             return Response()
-        if self._component.cac.MakeModel != MakeModel.GRIDWORKS__PICOFLOWREED:
+        if self._component.gt.DeviceType != DeviceType.GridworksPicoFlowReed:
             raise Exception(
-                f"{self.name} has {self._component.cac.MakeModel} but got FlowReedParams!"
+                f"{self.name} has {self._component.gt.DeviceType} but got FlowReedParams!"
             )
         self.pico_state_log(f"{params.HwUid} PARAMS")
         # Temporary hack prior to installerapp
@@ -383,16 +371,18 @@ class ApiFlowModule(ShNodeActor):
                 DeadbandMilliseconds=params.DeadbandMilliseconds,
             )
             return Response(text=new_params.model_dump_json())
-        else: # TODO: do we still need this?
-            # A strange pico is identifying itself as our "a" tank
-            self.log(f"Unknown pico {params.HwUid} identifying as {self.name} Pico A!")
+        else:
+            self.log(f"Unknown pico {params.HwUid} identifying as {self.name}")
+            self.refused_posts.report(
+                unknown_pico(self.name, params.HwUid, self._component.gt.HwUid)
+            )
             return Response()
 
     async def _handle_ticklist_hall_post(self, request: Request) -> Response:
         '''Sends a TicklistHall message to self, which will trigger _process_ticklist_hall()'''
-        if self._component.cac.MakeModel != MakeModel.GRIDWORKS__PICOFLOWHALL:
+        if self._component.gt.DeviceType != DeviceType.GridworksPicoFlowHall:
             raise Exception(
-                f"{self.name} has {self._component.cac.MakeModel} but got TicklistHall!"
+                f"{self.name} has {self._component.gt.DeviceType} but got TicklistHall!"
             )
         text = await self._get_text(request)
         self.readings_text = text
@@ -406,14 +396,14 @@ class ApiFlowModule(ShNodeActor):
                     )
                 )
             except Exception as e: # noqa
-                self._report_post_error(e, text)
+                self.refused_posts.report(refused_post(self.name, text, e, TicklistHall))
         return Response()
 
     async def _handle_ticklist_reed_post(self, request: Request) -> Response:
         '''Sends a TicklistReed message to self, which will trigger _process_ticklist_reed()'''
-        if self._component.cac.MakeModel != MakeModel.GRIDWORKS__PICOFLOWREED:
+        if self._component.gt.DeviceType != DeviceType.GridworksPicoFlowReed:
             raise Exception(
-                f"{self.name} has {self._component.cac.MakeModel} but got TicklistReed!"
+                f"{self.name} has {self._component.gt.DeviceType} but got TicklistReed!"
             )
         text = await self._get_text(request)
         self.readings_text = text
@@ -427,7 +417,7 @@ class ApiFlowModule(ShNodeActor):
                     )
                 )
             except Exception as e: # noqa
-                self._report_post_error(e, text)
+                self.refused_posts.report(refused_post(self.name, text, e, TicklistReed))
         return Response()
 
     def update_timestamps_for_hall(self, data: TicklistHall) -> None:
@@ -464,10 +454,12 @@ class ApiFlowModule(ShNodeActor):
     def publish_zero_flow(self):
         self.latest_gpm = 0
         self.latest_hz = 0
+        if self.disabled or not self.publish_gpm:
+            return
         # Set the appropriate channels to 0
         channel_names = [self.gpm_channel.Name]
         values = [0]
-        if self._component.gt.SendHz:
+        if self.publish_hz:
             channel_names.append(self.hz_channel.Name)
             values.append(0)
         # Set the timestamp for the zero reading just after (100ms) the latest tick received
@@ -480,7 +472,7 @@ class ApiFlowModule(ShNodeActor):
             ScadaReadTimeUnixMs=zero_flow_ms,
         )
         self._send_to(self.primary_scada, msg)
-        if self.layout.use_sieg_loop and self.node.name == "sieg-flow":
+        if self.feeds_derived:
             self._send_to(self.derived_generator, msg)
         self._send_to(
             self.pico_cycler,
@@ -511,9 +503,11 @@ class ApiFlowModule(ShNodeActor):
         gallons_per_tick = self._component.gt.ConstantGallonsPerTick
         self.latest_gpm = first_frequency * 60 * gallons_per_tick
         self.latest_hz = first_frequency
+        if self.disabled or not self.publish_gpm:
+            return
         channel_names = [self.gpm_channel.Name]
         values = [int(self.latest_gpm * 100)]
-        if self._component.gt.SendHz:
+        if self.publish_hz:
             channel_names.append(self.hz_channel.Name)
             values.append(int(self.latest_hz * 1e6))
         msg = SyncedReadings(
@@ -522,7 +516,7 @@ class ApiFlowModule(ShNodeActor):
             ScadaReadTimeUnixMs=int(self.latest_tick_ns/1e6),
         )
         self._send_to(self.primary_scada, msg)
-        if self.layout.use_sieg_loop and self.node.name == "sieg-flow":
+        if self.feeds_derived:
             self._send_to(self.derived_generator, msg)
         self._send_to(
             self.pico_cycler,
@@ -537,7 +531,7 @@ class ApiFlowModule(ShNodeActor):
         if data.HwUid != self.hw_uid:
             self.log(f"{self.name}: Ignoring data from pico {data.HwUid} - expect {self.hw_uid}!")
             return
-        self.last_heard = time.time()
+        self.liveness.heard(time.time())
 
         # Report ticklist if specified in hardware layout
         if self._component.gt.SendTickLists:
@@ -575,7 +569,7 @@ class ApiFlowModule(ShNodeActor):
         if data.HwUid != self.hw_uid:
             self.log(f"Ignoring data from pico {data.HwUid} - expect {self.hw_uid}!")
             return
-        self.last_heard = time.time()
+        self.liveness.heard(time.time())
 
         # Report ticklist if specified in hardware layout
         if self._component.gt.SendTickLists:
@@ -614,16 +608,18 @@ class ApiFlowModule(ShNodeActor):
         hz_list = [x / 1e6 for x in micro_hz_readings.ValueList]
         gpms = [x * 60 * gallons_per_tick for x in hz_list]
         self.latest_gpm = gpms[-1]
+        if self.disabled or not self.publish_gpm:
+            return
         gpm_readings = ChannelReadings(
             ChannelName=self.gpm_channel.Name,
             ValueList=[int(x*100) for x in gpms],
             ScadaReadTimeUnixMsList=micro_hz_readings.ScadaReadTimeUnixMsList,
         )
         self._send_to(self.primary_scada, gpm_readings)
-        if self.layout.use_sieg_loop and self.node.name == "sieg-flow":
+        if self.feeds_derived:
             self._send_to(self.derived_generator, gpm_readings)
         self._send_to(self.pico_cycler, gpm_readings)
-        if self._component.gt.SendHz:
+        if self.publish_hz:
             self._send_to(self.primary_scada, micro_hz_readings)
 
     def get_micro_hz_readings(self) -> ChannelReadings:
@@ -794,6 +790,8 @@ class ApiFlowModule(ShNodeActor):
                 self._process_ticklist_reed(message.Payload)
             case TicklistHall():
                 self._process_ticklist_hall(message.Payload)
+            case Glitch():
+                self._send_to(self.ltn, message.Payload)
         return Ok(True)
 
     def start(self) -> None:

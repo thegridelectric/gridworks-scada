@@ -1,0 +1,33 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/gw.zone.emitter.type/000"
+
+title: "gw.zone.emitter.type"
+type: "string"
+description: >
+  The emitter a zone-call circuit drives, as far as GridWorks needs to
+  know: whether it can cool (FanCoil) and whether it needs a floor
+  temperature sensor (RadiantSlab). Every other emitter is Other.
+
+enum:
+  - "Other"
+  - "RadiantSlab"
+  - "FanCoil"
+
+default: "Other"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "Other": >
+      An emitter GridWorks has no need to distinguish (fin tube, cast iron,
+      and any value this version does not declare). Heats only; no floor
+      sensor.
+
+    "RadiantSlab": >
+      Tubing embedded in a floor slab. The circuit names its floor
+      temperature channel.
+
+    "FanCoil": >
+      A coil with a fan moving room air across it. The one emitter a
+      circuit may cool through.

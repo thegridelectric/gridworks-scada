@@ -1,0 +1,22 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/formats/non.empty.string"
+
+title: "non.empty.string"
+description: |
+  A string with at least one character. Used for free-form string
+  fields whose only intrinsic constraint is that they not be empty.
+
+type: string
+minLength: 1
+
+examples:
+  - "a"
+  - "RelayOpen"
+  - "192.0.2.1:5550"
+  - "conn-7e3a"
+
+counterexamples:
+  - ""              # empty string is invalid
+
+x-gridworks:
+  owner: "gridworks-energy"

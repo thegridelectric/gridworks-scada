@@ -1,0 +1,15 @@
+{
+  "TypeName": "gw.house.operating.status",
+  "Version": "000",
+  "ScadaAlias": "hw1.isone.me.versant.keene.spruce.scada",
+  "ValidationState": "ValidatedRealAssetAndGps",
+  "Standby": false,
+  "StandbyPosture": "NoHeatingOrCooling",
+  "SeasonalStorageMode": "BufferOnly",
+  "ServiceMode": "Heating",
+  "AcceptsDispatch": true,
+  "TopState": "Auto",
+  "ScadaBlind": false,
+  "LtnDispatching": true,
+  "CreatedMs": 1790000000000
+}

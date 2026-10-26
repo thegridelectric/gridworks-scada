@@ -1,0 +1,71 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/cop.curve/000"
+
+title: "cop.curve"
+type: object
+description: >
+  A heat pump's coefficient-of-performance model as a function of outdoor air
+  temperature and leaving water temperature:
+  COP = Intercept + OatCoeff * OatF + LwtCoeff * LwtF, floored at Min, with
+  the floor applied for all outdoor temperatures below MinOatF.
+
+properties:
+
+  Intercept:
+    type: number
+    description: >
+      The COP at zero degrees F outdoor air and zero leaving water
+      contribution.
+
+  OatCoeff:
+    type: number
+    description: >
+      COP change per degree F of outdoor air temperature.
+
+  LwtCoeff:
+    type: number
+    description: >
+      COP change per degree F of leaving water temperature.
+
+  Min:
+    type: number
+    description: >
+      The COP floor.
+
+  MinOatF:
+    type: number
+    description: >
+      The outdoor air temperature, in degrees F, below which the COP floor
+      applies.
+
+  TypeName:
+    const: "cop.curve"
+
+  Version:
+    const: "000"
+
+required:
+  - Intercept
+  - OatCoeff
+  - LwtCoeff
+  - Min
+  - MinOatF
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "Intercept": 1.02,
+      "OatCoeff": 0.0257,
+      "LwtCoeff": 0,
+      "Min": 1.4,
+      "MinOatF": 15,
+      "TypeName": "cop.curve",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"

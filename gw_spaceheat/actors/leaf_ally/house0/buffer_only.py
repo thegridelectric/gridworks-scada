@@ -1,0 +1,403 @@
+import asyncio
+import time
+import uuid
+from typing import List, Sequence, Optional
+
+from gwproactor import MonitoredName
+from gwproactor.message import PatInternalWatchdogMessage
+from gwproto import Message
+from gwsproto.data_classes.sh_node import ShNode
+
+from gwsproto.enums import (
+    ActorClass, LeafAllyBufferOnlyEvent, LeafAllyBufferOnlyState, 
+    FsmReportType, RelayClosedOrOpen
+)
+
+from gwsproto.named_types import FsmAtomicReport, FsmFullReport
+from result import Ok, Result
+from transitions import Machine
+
+from actors.hydronic.house0 import House0Hydronic
+from scada_app_interface import ScadaAppInterface
+from gwsproto.named_types import (
+    GoDormant, Ha1Params,
+    SingleMachineState, SlowContractHeartbeat, SlowDispatchContract, SuitUp
+)
+from gwsproto.names.core.node_names import CoreNodeNames
+from actors.procedural.dist_pump_doctor import DistPumpDoctor
+from actors.procedural.dist_pump_monitor import DistPumpMonitor
+from actors.procedural.store_pump_doctor import StorePumpDoctor
+from actors.procedural.store_pump_monitor import StorePumpMonitor
+
+class BufferOnlyLeafAlly(House0Hydronic):
+    MAIN_LOOP_SLEEP_SECONDS = 60
+    states = LeafAllyBufferOnlyState.values()
+    # Uses AaBufferOnlyEvent as transitions
+    transitions = (
+        [
+        # Initializing
+        {"trigger": "ChargeBuffer", "source": "Initializing", "dest": "HpOn"},
+        {"trigger": "BufferFull", "source": "Initializing", "dest": "HpOff"},
+        {"trigger": "NoMoreElec", "source": "Initializing", "dest": "HpOff"},
+        # 1 Starting at: HP on, Store off ============= HP -> buffer
+        {"trigger": "BufferFull", "source": "HpOn", "dest": "HpOff"},
+        {"trigger": "NoMoreElec", "source": "HpOn", "dest": "HpOff"},
+        # 2 Starting at: HP off, Store off ============ idle
+        {"trigger": "ChargeBuffer", "source": "HpOff", "dest": "HpOn"},
+        # 3 Oil boiler on
+    ] + [
+        {"trigger": "StartNonElectricBackup", "source": state, "dest": "HpOffNonElectricBackup"}
+        for state in states if state not in  ["Dormant", "HpOffNonElectricBackup"]
+    ] + [
+        {"trigger": "StopNonElectricBackup", "source": "HpOffNonElectricBackup", "dest": "Initializing"}
+        # Going dormant and waking up
+    ] + [
+        {"trigger": "GoDormant", "source": state, "dest": "Dormant"} for state in states if state != "Dormant"
+    ] + [
+        {"trigger":"WakeUp", "source": "Dormant", "dest": "Initializing"}
+    ] 
+    )
+
+    def __init__(self, name: str, services: ScadaAppInterface):
+        super().__init__(name, services)
+        self._stop_requested: bool = False
+
+        # State machine
+        self.machine = Machine(
+            model=self,
+            states=BufferOnlyLeafAlly.states,
+            transitions=BufferOnlyLeafAlly.transitions,
+            initial=LeafAllyBufferOnlyState.Dormant,
+            send_event=True,
+        )     
+        self.state: LeafAllyBufferOnlyState = LeafAllyBufferOnlyState.Dormant
+        self.initialize_task: Optional[asyncio.Task] = None
+        self.prev_state: LeafAllyBufferOnlyState = LeafAllyBufferOnlyState.Dormant 
+        self.dist_pump_doctor = DistPumpDoctor(host=self)
+        self.dist_pump_monitor = DistPumpMonitor(
+            host=self,
+            doctor=self.dist_pump_doctor,
+        )
+        self.store_pump_doctor = StorePumpDoctor(host=self)
+        self.store_pump_monitor = StorePumpMonitor(
+            host=self,
+            doctor=self.store_pump_doctor,
+        )
+        self.log(f"Params: {self.params}")
+        self.time_buffer_full = 0
+
+    @property
+    def command_node(self) -> ShNode:
+        """
+        top of command tree
+
+        This is used by procedural, non-transactive interrupts.
+        Always returns an ShNode, even if authority is degraded.
+        """
+        return self.node
+
+    @property
+    def remaining_watthours(self) -> Optional[int]:
+        return self.services.scada.contract_handler.remaining_watthours
+    
+    @property
+    def contract_hb(self) -> Optional[SlowContractHeartbeat]:
+        return self.services.scada.contract_handler.latest_scada_hb
+
+    @property
+    def params(self) -> Ha1Params:
+        return self.data.ha1_params
+
+    def start(self) -> None:
+        self._send_to(
+            self.primary_scada,
+            SingleMachineState(
+                MachineHandle=self.node.handle,
+                StateEnum=LeafAllyBufferOnlyState.enum_name(),
+                State=self.state,
+                UnixMs=int(time.time() * 1000),
+            ),
+        )
+        self.services.add_task(
+            asyncio.create_task(self.main(), name="LeafAlly keepalive")
+        )
+
+    def stop(self) -> None:
+        self._stop_requested = True
+        
+    async def join(self):
+        ...
+
+    def process_message(self, message: Message) -> Result[bool, BaseException]:
+        from_node = self.layout.node(message.Header.Src, None)
+        match message.Payload:
+            case GoDormant():
+                if self.state != LeafAllyBufferOnlyState.Dormant:
+                    self.cancel_initialize()
+                    # GoDormant: AnyOther -> Dormant ...
+                    self.trigger_event(LeafAllyBufferOnlyEvent.GoDormant)
+                    self.log("Going dormant")
+            case SlowDispatchContract(): # WakeUp
+                self.process_slow_dispatch_contract(from_node, message.Payload)
+        return Ok(True)
+    
+    def process_slow_dispatch_contract(self, from_node, contract: SlowDispatchContract) -> None:
+        """ Used to start new contracts and/or to wake up"""
+        self.log("Processing SlowDispatchContract!")
+        if from_node != self.primary_scada:
+            raise Exception("contract should come from scada!")
+        if self.state == LeafAllyBufferOnlyState.Dormant:
+            self.log("Got a slow dispatch contract ... waking up")
+            self.wake_up()
+        if contract.OilBoilerOn:
+            if self.state != LeafAllyBufferOnlyState.HpOffNonElectricBackup:
+                self.log("SlowDispatchContract: NonElectricBackup")
+                self.trigger_event(LeafAllyBufferOnlyEvent.StartNonElectricBackup)
+            else:
+                self.log(f"Received contract w OilBoilerOn. Already in {self.state} so ignoring")
+        else:
+            if self.state == LeafAllyBufferOnlyState.HpOffNonElectricBackup:
+                self.trigger_event(LeafAllyBufferOnlyEvent.StopNonElectricBackup)  # back to Initializing
+                self.spawn_initialize()
+            if self.state == LeafAllyBufferOnlyState.Initializing:
+                return  # initialize judges once the inputs are in
+            self.engage_brain()
+    
+    def trigger_event(self, event: LeafAllyBufferOnlyEvent) -> None:
+        now_ms = int(time.time() * 1000)
+        self.prev_state = self.state
+        self.trigger(event)
+        self.log(f"{event}: {self.prev_state} -> {self.state}")
+        self._send_to(
+            self.primary_scada,
+            SingleMachineState(
+                MachineHandle=self.node.handle,
+                StateEnum=LeafAllyBufferOnlyState.enum_name(),
+                State=self.state,
+                UnixMs=now_ms,
+            ),
+        )
+
+        # Could update this to receive back reports from the relays and
+        # add them to the report.
+        trigger_id = str(uuid.uuid4())
+        self._send_to(
+            self.primary_scada,
+            FsmFullReport(
+                FromName=self.name,
+                TriggerId=trigger_id,
+                AtomicList=[
+                    FsmAtomicReport(
+                        MachineHandle=self.node.handle,
+                        StateEnum=LeafAllyBufferOnlyState.enum_name(),
+                        ReportType=FsmReportType.Event,
+                        EventEnum=LeafAllyBufferOnlyEvent.enum_name(),
+                        Event=event,
+                        FromState=self.prev_state,
+                        ToState=self.state,
+                        UnixTimeMs=now_ms,
+                        TriggerId=trigger_id,
+                    )
+                ],
+            ),
+        )
+        self.update_relays()
+
+    @property
+    def monitored_names(self) -> Sequence[MonitoredName]:
+        return [MonitoredName(self.name, self.MAIN_LOOP_SLEEP_SECONDS * 2.1)]
+
+    def wake_up(self) -> None:
+        """SuitUp to the scada (it is taking control), Dormant -> Initializing,
+        then the actuators. The scada answered the offer; the ally has
+        nothing to decide about data."""
+        self.log("Waking up")
+        self.get_temperatures()
+        self._send_to(self.primary_scada, SuitUp(ToNode=CoreNodeNames.primary_scada, FromNode=self.name))
+
+        #  Dormant -> Initializing
+        self.trigger_event(LeafAllyBufferOnlyEvent.WakeUp) # Dormant -> Initializing
+        self.initialize_actuators()
+        self.spawn_initialize()
+
+    def spawn_initialize(self) -> None:
+        """One judgment task per entry into Initializing, kept on the ally
+        and cancelled before it is replaced. Not services.add_task: the
+        proactor joins only the tasks it holds at start, so a task added
+        later would never be joined and its exception would be lost."""
+        self.cancel_initialize()
+        self.initialize_task = asyncio.create_task(self.initialize(), name="leaf ally initialize")
+        self.initialize_task.add_done_callback(self.initialize_done)
+
+    def cancel_initialize(self) -> None:
+        if self.initialize_task is not None and not self.initialize_task.done():
+            self.initialize_task.cancel()
+        self.initialize_task = None
+
+    def initialize_done(self, task: asyncio.Task) -> None:
+        if task.cancelled():
+            return
+        exc = task.exception()
+        if exc is not None:
+            self.log(f"initialize failed: {exc!r}")
+            self.send_error("leaf-ally-initialize-failed", repr(exc))
+
+    async def initialize(self) -> None:
+        """The ally's only Initializing judgment: once the first heating
+        forecast and the first fresh buffer are in, and the ally is still
+        Initializing, read the temperatures and judge."""
+        await self.data.first_forecast.wait()
+        await self.data.buffer_fresh_once.wait()
+        if self.state != LeafAllyBufferOnlyState.Initializing:
+            return
+        self.get_temperatures()
+        self.engage_brain()
+
+    def engage_brain(self) -> None:
+        self.log(f"State: {self.state}")
+        if self.state not in [LeafAllyBufferOnlyState.Dormant, 
+                              LeafAllyBufferOnlyState.HpOffNonElectricBackup]:
+            self.get_temperatures()
+
+            if self.state == LeafAllyBufferOnlyState.Initializing:
+                if self.data.heating_forecast is None:
+                    self.send_warning(
+                        "judged-without-forecast",
+                        f"engage_brain in {self.state} with no heating forecast; initialize awaits it",
+                    )
+                    return
+                if self.buffer_fresh():
+                    if self.hp_should_be_off():
+                        self.trigger_event(LeafAllyBufferOnlyEvent.NoMoreElec)
+                    elif self.is_buffer_charge_limited():
+                        self.log("Buffer is as full as can be")
+                        self.time_buffer_full = int(time.time())
+                        self.trigger_event(LeafAllyBufferOnlyEvent.BufferFull)
+                        # TODO: send message to Ltn saying the EnergyInstruction will be violated
+                    else:
+                        self.trigger_event(LeafAllyBufferOnlyEvent.ChargeBuffer)
+                            
+                else:
+                    self.log("Buffer temperatures not available; staying in Initializing")
+                    if self.hp_should_be_off():
+                        self.turn_off_hp() 
+
+            # 1
+            elif self.state == LeafAllyBufferOnlyState.HpOn:
+                if self.hp_should_be_off():
+                    self.trigger_event(LeafAllyBufferOnlyEvent.NoMoreElec)
+                elif self.is_buffer_charge_limited():
+                    self.log("Buffer is as full as can be")
+                    self.time_buffer_full = int(time.time())
+                    self.trigger_event(LeafAllyBufferOnlyEvent.BufferFull)
+                    # TODO: send message to Ltn saying the EnergyInstruction will be violated
+
+            # 2
+            elif self.state == LeafAllyBufferOnlyState.HpOff:
+                if not self.hp_should_be_off() and time.time()-self.time_buffer_full>15*60:
+                    self.trigger_event(LeafAllyBufferOnlyEvent.ChargeBuffer)
+
+    async def main(self):
+        await asyncio.sleep(2)
+        while not self._stop_requested:
+
+            self._send(PatInternalWatchdogMessage(src=self.name))
+
+            if self.state == LeafAllyBufferOnlyState.Dormant:
+                await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
+                continue
+
+            # Verify distribution pump health; initiate recovery if needed
+            if self.dist_pump_monitor.needs_recovery():
+                await self.dist_pump_doctor.run()
+
+            # Verify store pump health; initiate recovery if needed
+            if self.store_pump_monitor.needs_recovery():
+                await self.store_pump_doctor.run()
+
+            if self.state != LeafAllyBufferOnlyState.Initializing:  # initialize judges there
+                self.engage_brain()
+            await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
+
+    def update_relays(self) -> None:
+        self.log(f"update_relays with previous_state {self.prev_state} and state {self.state}")
+        if self.state == LeafAllyBufferOnlyState.Dormant:
+            return
+        if self.state == LeafAllyBufferOnlyState.Initializing:
+            if self.hp_should_be_off():
+                self.turn_off_hp()
+            return
+
+        if self.prev_state == LeafAllyBufferOnlyState.HpOffNonElectricBackup:
+            self.hp_failsafe_switch_to_scada()
+            self.aquastat_ctrl_switch_to_scada()
+        if "HpOn" not in self.prev_state and "HpOn" in self.state:
+            self.turn_on_hp()
+        if "HpOff" not in self.prev_state and "HpOff" in self.state:
+            self.turn_off_hp()
+        if self.state == LeafAllyBufferOnlyState.HpOffNonElectricBackup.value:
+            self.hp_failsafe_switch_to_aquastat()
+            self.aquastat_ctrl_switch_to_boiler()
+        else:
+            self.hp_failsafe_switch_to_scada()
+            self.aquastat_ctrl_switch_to_scada()
+
+    def initialize_actuators(self):
+        """
+          - de-energizes all non-critical relays directly reporting to aa
+          - sets 0-10V outputs to defaults
+        """
+        my_relays =  {
+            relay
+            for relay in self.my_actuators()
+            if relay.ActorClass == ActorClass.Relay and self.the_boss_of(relay) == self.node
+        }
+
+        target_relays: List[ShNode] = list(my_relays - {
+                self.layout.store_charge_discharge_relay, # keep as it was
+                self.layout.hp_failsafe_relay,
+                self.layout.hp_scada_ops_relay, # keep as it was unless on peak
+                self.layout.aquastat_control_relay, # de-energized turns on non-electric backup - only go here if scada is dead!
+                self.layout.hp_loop_on_off, # de-energized keeps telling hp loop valve to change - only go here if scada is dead!
+            }
+        )
+        target_relays.sort(key=lambda x: x.Name)
+        self.log("Initializing actuators")
+        self.log("de-energizing most relays")
+        for relay in target_relays:
+            try:
+                self.de_energize(relay)
+            except Exception as e:
+                self.log(f"Trouble de energizing {relay}: {e}")
+
+        self.log("Taking care of relays with default energized positions")
+        self.hp_failsafe_switch_to_scada()
+        self.aquastat_ctrl_switch_to_scada()
+        if self.hp_should_be_off():
+            self.turn_off_hp()
+        try:
+            self.set_010_defaults()
+        except ValueError as e:
+            self.log(f"Trouble with set_010_defaults: {e}")
+
+    def hp_should_be_off(self) -> bool:
+        if self.remaining_watthours:
+            if self.remaining_watthours > 0:
+                return False
+        
+        if self.layout.hp_scada_ops_relay.name in self.data.latest_machine_state.keys():
+            scada_relay_state = self.data.latest_machine_state[self.layout.hp_scada_ops_relay.name].State
+            
+            if scada_relay_state == RelayClosedOrOpen.RelayClosed:
+                # If the relay is closed and there is no contract, keep it closed
+                if self.contract_hb is None:
+                    return False
+                # If the relay is closed and in the last 5 minutes of >= 30 minute contract,
+                #  keep it closed
+                elif self.contract_hb.Contract.DurationMinutes >= 30:  
+                    c = self.contract_hb.Contract
+                    last_5 = c.StartS + (c.DurationMinutes - 5)*60  
+                    if time.time() > last_5:
+                        return False
+        return True      
+

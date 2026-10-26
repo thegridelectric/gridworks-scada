@@ -16,8 +16,9 @@ def test_pico_cycler_event() -> None:
         "ConfirmRebooted",
         "ShakeZombies",
         "RebootDud",
+        "Startup",
     }
 
-    assert PicoCyclerEvent.default() == PicoCyclerEvent.ConfirmRebooted
+    assert PicoCyclerEvent.default() == PicoCyclerEvent.WakeUp
     assert PicoCyclerEvent.enum_name() == "pico.cycler.event"
     assert PicoCyclerEvent.enum_version() == "000"

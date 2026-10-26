@@ -2,7 +2,6 @@ import json
 from pathlib import Path
 
 from typing import Union
-from gwsproto.data_classes.house_0_names import H0CN
 from gwsproto.named_types import LayoutLite
 from gwsproto.data_classes.layout_lite_dc import LayoutLiteDc
 from gwsproto.named_types import (
@@ -36,13 +35,6 @@ class LtnData:
 
     def my_channels(self) -> list[Union[DataChannelGt, DerivedChannelGt]]:
         return self.my_data_channels() + self.my_derived_channels()
-
-    @property
-    def h0cn(self) -> H0CN | None:
-        if self.layout_lite is None:
-            return None
-        else:
-            return self.layout_lite.h0cn
 
     @property
     def tank_temp_channel_names(self) -> list[str]:

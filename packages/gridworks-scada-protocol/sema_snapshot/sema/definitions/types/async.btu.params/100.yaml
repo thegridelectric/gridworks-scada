@@ -1,0 +1,159 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/async.btu.params/100"
+
+title: "async.btu.params"
+type: object
+description: >
+  The params handshake between an async-btu pico and its scada. The pico
+  posts its current parameters at boot; the scada answers with the same
+  type carrying the values the pico should run with, including the
+  capture offset that lines its synchronous reports up with the other
+  picos in the house.
+
+properties:
+  HwUid:
+    type: string
+    description: >
+      The pico's hardware id, derived from the chip's unique id.
+
+  ActorNodeName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      The name of the scada node this pico reports as.
+
+  FlowChannelName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      The channel name used for flow readings from this pico.
+
+  SendHz:
+    type: boolean
+    description: >
+      When true, the pico reports flow as Hz rather than GPM.
+
+  ReadCtVoltage:
+    type: boolean
+    description: >
+      When true, the pico samples and reports CT voltage on CtChannelName.
+
+  HotChannelName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      The channel name used for the hot-side thermistor reading.
+
+  ColdChannelName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      The channel name used for the cold-side thermistor reading.
+
+  CtChannelName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      The channel name used for CT voltage readings, when ReadCtVoltage is
+      true.
+
+  ThermistorBeta:
+    type: integer
+    description: >
+      Beta coefficient for the thermistor temperature calculation.
+
+  CapturePeriodS:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Seconds between synchronous multichannel reports.
+
+  GallonsPerPulse:
+    $ref: "https://schemas.electricity.works/formats/positive.float"
+    description: >
+      Flow volume in gallons per flow-meter pulse.
+
+  AsyncCaptureDeltaGpmX100:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Change in GPM x100 since the last report that triggers an asynchronous
+      report.
+
+  AsyncCaptureDeltaCelsiusX100:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Change in temperature x100 since the last report that triggers an
+      asynchronous report.
+
+  AsyncCaptureDeltaCtVoltsX100:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Change in CT volts x100 since the last report that triggers an
+      asynchronous report; present when ReadCtVoltage is true.
+
+  CaptureOffsetS:
+    type: number
+    description: >
+      Seconds after the period boundary at which the pico takes its
+      synchronous reading. Set by the scada in its answer; held in memory
+      only, never persisted on the pico.
+
+  PicoBoardVariant:
+    $ref: "https://schemas.electricity.works/enums/pico.board.variant/000"
+    description: >
+      The physical board this pico runs on, as the firmware determines it
+      at boot.
+
+  MicropythonVersion:
+    type: string
+    description: >
+      The MicroPython release the firmware is running on, read live from
+      the interpreter at each post.
+
+  TypeName:
+    const: "async.btu.params"
+
+  Version:
+    const: "100"
+
+required:
+  - HwUid
+  - ActorNodeName
+  - FlowChannelName
+  - SendHz
+  - ReadCtVoltage
+  - HotChannelName
+  - ColdChannelName
+  - CapturePeriodS
+  - GallonsPerPulse
+  - AsyncCaptureDeltaGpmX100
+  - AsyncCaptureDeltaCelsiusX100
+  - PicoBoardVariant
+  - MicropythonVersion
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "HwUid": "pico_3a202a",
+      "ActorNodeName": "primary-btu",
+      "FlowChannelName": "primary-flow",
+      "SendHz": false,
+      "ReadCtVoltage": false,
+      "HotChannelName": "hp-lwt",
+      "ColdChannelName": "hp-ewt",
+      "CapturePeriodS": 60,
+      "GallonsPerPulse": 0.0009,
+      "AsyncCaptureDeltaGpmX100": 10,
+      "AsyncCaptureDeltaCelsiusX100": 20,
+      "AsyncCaptureDeltaCtVoltsX100": 20,
+      "PicoBoardVariant": "PicoRaspberryWifi2040",
+      "MicropythonVersion": "1.24.1",
+      "TypeName": "async.btu.params",
+      "Version": "100"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "ReadCtVoltageIffCtChannelName"
+      statement: >
+        ReadCtVoltage is true iff CtChannelName is present.

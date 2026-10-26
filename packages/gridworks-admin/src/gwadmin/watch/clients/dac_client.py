@@ -23,10 +23,12 @@ from gwadmin.watch.clients.admin_client import AdminClient
 from gwadmin.watch.clients.admin_client import AdminSubClient
 from gwadmin.watch.clients.constrained_mqtt_client import MessageReceivedCallback
 from gwadmin.watch.clients.constrained_mqtt_client import StateChangeCallback
-from gwsproto.data_classes.house_0_names import H0N
+from gwadmin.watch.clients.dispatch_replies import DispatchReply
+from gwadmin.watch.clients.dispatch_replies import DispatchReplyTracker
 from gwsproto.named_types import AdminAnalogDispatch
 from gwsproto.named_types import (AdminKeepAlive, AdminReleaseControl,
                          ScadaControlCapabilities, SnapshotSpaceheat)
+from gwsproto.names.core.node_names import CoreNodeNames
 
 module_logger = logging.getLogger(__name__)
 
@@ -71,6 +73,7 @@ class DACConfigChange(BaseModel):
         return self
 
 DACConfigChangeCallback = Callable[[dict[str, DACConfigChange]], None]
+DispatchReplyCallback = Callable[[DispatchReply], None]
 
 @dataclass
 class DACClientCallbacks:
@@ -92,6 +95,10 @@ class DACClientCallbacks:
 
     dac_config_change_callback: Optional[DACConfigChangeCallback] = None
     """Hook for user. Called when a DAC config change is observed. 
+    Called from Paho thread. Must be threadsafe."""
+
+    dispatch_reply_callback: Optional[DispatchReplyCallback] = None
+    """Hook for user. Called when the scada acks or nacks a DAC dispatch.
     Called from Paho thread. Must be threadsafe."""
 
     ctrl_capabilities_callback: Optional[CtrlCapabilitiesCallback] = None
@@ -120,6 +127,7 @@ class DACWatchClient(AdminSubClient):
     ) -> None:
         self._lock = threading.RLock()
         self._callbacks = callbacks or DACClientCallbacks()
+        self._replies = DispatchReplyTracker()
         self._logger = logger
         self._dacs = {}
         self._channel2node = {}
@@ -257,31 +265,35 @@ class DACWatchClient(AdminSubClient):
         decoded_topic = MQTTTopic.decode(topic)
         if decoded_topic.message_type == type_name(SingleReading):
             self._process_single_reading(payload)
+        elif (reply := self._replies.match(topic, payload)) is not None:
+            if self._callbacks.dispatch_reply_callback is not None:
+                self._callbacks.dispatch_reply_callback(reply)
         if self._callbacks.mqtt_message_received_callback is not None:
             self._callbacks.mqtt_message_received_callback(topic, payload)
 
-    def set_dac(self, dac_row_name: str, new_state: int, timeout_seconds: Optional[int] = None):
-        self._send_set_command(dac_row_name, new_state, datetime.datetime.now(), timeout_seconds)
+    def set_dac(self, dac_node_name: str, new_state: int, timeout_seconds: Optional[int] = None):
+        self._send_set_command(dac_node_name, new_state, datetime.datetime.now(), timeout_seconds)
 
     def _send_set_command(
             self,
-            dac_row_name: str,
+            dac_node_name: str,
             value: int,
             set_time: datetime.datetime,
             timeout_seconds: Optional[int] = None
     ) -> None:
-        dac_node_name = dac_row_name.lower() + "-010v"
+        dispatch = AnalogDispatch(
+            FromGNodeAlias=None,
+            FromHandle=CoreNodeNames.admin,
+            ToHandle=f"{CoreNodeNames.admin}.{dac_node_name}",
+            AboutName=dac_node_name,
+            Value=value,
+            TriggerId=str(uuid.uuid4()),
+            UnixTimeMs=int(set_time.timestamp() * 1000),
+        )
+        self._replies.note(dispatch.TriggerId, dispatch.ToHandle, f"set {value}")
         self._admin_client.publish(
             AdminAnalogDispatch(
-                Dispatch=AnalogDispatch(
-                    FromGNodeAlias=None,
-                    FromHandle=H0N.admin,
-                    ToHandle=f"{H0N.admin}.{dac_node_name}",
-                    AboutName=dac_node_name,
-                    Value=value,
-                    TriggerId=str(uuid.uuid4()),
-                    UnixTimeMs=int(set_time.timestamp() * 1000),
-                ),
+                Dispatch=dispatch,
                 TimeoutSeconds=timeout_seconds,
             )
         )

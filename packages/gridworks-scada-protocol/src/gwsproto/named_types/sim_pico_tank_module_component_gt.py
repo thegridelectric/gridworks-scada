@@ -4,12 +4,10 @@ from pydantic import ConfigDict, PositiveInt, model_validator
 from typing_extensions import Self
 
 from gwsproto.enums import TempCalcMethod
-from gwsproto.named_types.component_gt import ComponentGt
+from gwsproto.type_helpers.component_base import DeviceComponentBase
 
 
-
-class SimPicoTankModuleComponentGt(ComponentGt):
-    Enabled: bool
+class SimPicoTankModuleComponentGt(DeviceComponentBase):
     PicoHwUid: Optional[str] = None
     PicoAHwUid: Optional[str] = None
     PicoBHwUid: Optional[str] = None
@@ -19,20 +17,23 @@ class SimPicoTankModuleComponentGt(ComponentGt):
     Samples: PositiveInt
     NumSampleAverages: PositiveInt
     PicoKOhms: PositiveInt | None = None
-    SerialNumber: str = "NA"
+    SerialNumber: str
     AsyncCaptureDeltaMicroVolts: int
     SensorOrder: list[int] | None = None
+    SimLifeS: PositiveInt | None = None
+    SimRebootS: PositiveInt | None = None
     SimulatesTypeName: Literal["pico.tank.module.component.gt"] = "pico.tank.module.component.gt"
-    SimulatesVersion: Literal["011"] = "011"
+    SimulatesVersion: Literal["012"] = "012"
     TypeName: Literal["sim.pico.tank.module.component.gt"] = "sim.pico.tank.module.component.gt"
-    Version: Literal["000"] = "000"
+    Version: Literal["001"] = "001"
 
     model_config = ConfigDict(extra="allow")
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
         """
-        Axiom 1: PicoHwUid exists  XOR (both PicoAHwUid and PicoBHwUid exist)
+        Axiom 1: PicoHardwareIdentityXor.
+        PicoHwUid exists XOR (both PicoAHwUid and PicoBHwUid exist)
         """
         if self.PicoHwUid is not None:
             if self.PicoAHwUid or self.PicoBHwUid:
@@ -49,7 +50,8 @@ class SimPicoTankModuleComponentGt(ComponentGt):
     @model_validator(mode="after")
     def check_axiom_2(self) -> Self:
         """
-        Axiom 2: PicoKOhms exists iff TempCalcMethod is TempCalcMethod.SimpleBetaForPico
+        Axiom 2: PicoKOhmsConsistency.
+        PicoKOhms exists iff TempCalcMethod is TempCalcMethod.SimpleBetaForPico
         # note this is a known incorrect method, but there are a few in the field
         # that do this.
         """
@@ -63,13 +65,14 @@ class SimPicoTankModuleComponentGt(ComponentGt):
 
         return self
 
-    def check_axiom_3(self) -> None:
+    @model_validator(mode="after")
+    def check_axiom_3(self) -> Self:
         """
-        Axiom 3:
+        Axiom 3: SensorOrderPermutation.
         If SensorOrder is provided, it must be a permutation of [1, 2, 3].
         """
         if self.SensorOrder is None:
-            return
+            return self
 
         expected = [1, 2, 3]
         order = self.SensorOrder
@@ -83,5 +86,4 @@ class SimPicoTankModuleComponentGt(ComponentGt):
             raise ValueError(
                 f"SensorOrder must be a permutation of {expected}; got {order}"
             )
-
-    
+        return self

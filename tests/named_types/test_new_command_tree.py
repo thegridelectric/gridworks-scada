@@ -1,4 +1,33 @@
+"""Tests new.command.tree type, version 003"""
+
+
 from gwsproto.named_types import NewCommandTree
+from tests.named_types.sema_oracle import assert_refused
+
+
+def node(name: str, handle: str | None, actor_class: str = "NoActor") -> dict:
+    d = {
+        "Name": name,
+        "ActorClass": actor_class,
+        "ShNodeId": "6c734dbb-9950-485d-a83b-55456d914576",
+        "TypeName": "spaceheat.node.gt",
+        "Version": "303",
+    }
+    if handle is not None:
+        d["Handle"] = handle
+    if actor_class != "NoActor":
+        d["ActorHierarchyName"] = f"s.{name}"
+    return d
+
+
+def tree(nodes: list[dict]) -> dict:
+    return {
+        "FromGNodeAlias": "d1.isone.me.versant.keene.spruce.scada",
+        "ShNodes": nodes,
+        "UnixMs": 1731168353695,
+        "TypeName": "new.command.tree",
+        "Version": "003",
+    }
 
 
 def test_new_command_tree_generated() -> None:
@@ -11,7 +40,7 @@ def test_new_command_tree_generated() -> None:
                 "Name": "s",
                 "ShNodeId": "bae076c2-05cb-40c8-996a-b1a7f642ccf7",
                 "TypeName": "spaceheat.node.gt",
-                "Version": "300",
+                "Version": "303",
             },
             {
                 "ActorClass": "SecondaryScada",
@@ -19,14 +48,101 @@ def test_new_command_tree_generated() -> None:
                 "Name": "s2",
                 "ShNodeId": "57b027a6-f446-4403-bc69-26f56a1176bb",
                 "TypeName": "spaceheat.node.gt",
-                "Version": "300",
+                "Version": "303",
             },
         ],
         "UnixMs": 1735861984823,
         "TypeName": "new.command.tree",
-        "Version": "000",
+        "Version": "003",
     }
 
     d2 = NewCommandTree.model_validate(d).model_dump(exclude_none=True)
 
     assert d2 == d
+
+
+def test_new_command_tree_generated_handles() -> None:
+    d = tree(
+        [
+            node("auto", "auto"),
+            node("five-v-boss", "auto.five-v-boss", "FiveVBoss"),
+            node("pico-cycler", "auto.five-v-boss.pico-cycler", "PicoCycler"),
+            node("vdc-relay", "auto.five-v-boss.pico-cycler.vdc-relay", "Relay"),
+        ]
+    )
+    d2 = NewCommandTree.model_validate(d).model_dump(exclude_none=True)
+    assert d2 == d
+
+
+def test_new_command_tree_axiom_1() -> None:
+    """An effective handle whose prefix names no ShNode is rejected."""
+    orphan = tree(
+        [
+            node("auto", "auto"),
+            node("vdc-relay", "auto.pico-cycler.vdc-relay", "Relay"),
+        ]
+    )
+    assert_refused(NewCommandTree, orphan, match="Axiom 1")
+
+
+def test_new_command_tree_axiom_1_handle_absent_root() -> None:
+    """A Handle-absent node's effective handle is its Name, so it can anchor
+    children (the `ltn` root anchoring `ltn.la`)."""
+    d = tree([node("ltn", None), node("la", "ltn.la", "LeafAlly")])
+    NewCommandTree.model_validate(d)
+    # ... but a Handle-absent node anchors only under its own Name.
+    d = tree([node("ltn", None), node("la", "ltn.x.la", "LeafAlly")])
+    assert_refused(NewCommandTree, d, match="Axiom 1")
+
+
+def test_new_command_tree_axiom_2_a_actuator_not_leaf() -> None:
+    """A relay with a child is not a leaf."""
+    d = tree(
+        [
+            node("auto", "auto"),
+            node("five-v-boss", "auto.five-v-boss", "FiveVBoss"),
+            node("pico-cycler", "auto.five-v-boss.pico-cycler", "PicoCycler"),
+            node("vdc-relay", "auto.five-v-boss.pico-cycler.vdc-relay", "Relay"),
+            node("x", "auto.five-v-boss.pico-cycler.vdc-relay.x", "Relay"),
+        ]
+    )
+    assert_refused(NewCommandTree, d, match="Axiom 2")
+
+
+def test_new_command_tree_axiom_2_a_actuator_undotted() -> None:
+    """An actuator with a bare Name for a handle has no boss."""
+    d = tree([node("auto", "auto"), node("vdc-relay", None, "Relay")])
+    assert_refused(NewCommandTree, d, match="Axiom 2")
+
+
+def test_new_command_tree_axiom_2_b_no_actor_leaf() -> None:
+    """A NoActor leaf is a command node only directly under LocalControl."""
+    ok = tree(
+        [
+            node("auto", "auto"),
+            node("lc", "auto.lc", "LocalControl"),
+            node("n", "auto.lc.n"),
+        ]
+    )
+    NewCommandTree.model_validate(ok)
+    d = tree(
+        [
+            node("auto", "auto"),
+            node("lc", "auto.lc", "LocalControl"),
+            node("hp-boss", "auto.lc.hp-boss", "HpBoss"),
+            node("hp-odu", "auto.lc.hp-boss.hp-odu"),
+        ]
+    )
+    assert_refused(NewCommandTree, d, match="Axiom 2")
+
+
+def test_new_command_tree_axiom_2_dormant_command_leaf_ok() -> None:
+    """hp-boss with no commandable heat pump is a leaf and a command node."""
+    d = tree(
+        [
+            node("auto", "auto"),
+            node("lc", "auto.lc", "LocalControl"),
+            node("hp-boss", "auto.lc.hp-boss", "HpBoss"),
+        ]
+    )
+    NewCommandTree.model_validate(d)

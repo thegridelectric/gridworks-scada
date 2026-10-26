@@ -1,9 +1,10 @@
 from typing import List, Literal
-from pydantic import BaseModel
+
 from gwsproto.property_format import SpaceheatName
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class MicroVolts(BaseModel):
+class MicroVolts(GwsprotoSemaType):
     HwUid: str
     AboutNodeNameList: List[SpaceheatName]
     MicroVoltsList: List[int]

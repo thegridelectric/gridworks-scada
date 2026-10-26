@@ -1,15 +1,17 @@
 from typing import Literal
 from typing_extensions import Self
 
-from pydantic import BaseModel, PositiveInt, model_validator
+from pydantic import PositiveInt, model_validator
 from gwsproto.named_types.tank_temp_calibration import TankTempCalibration
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
-class TankTempCalibrationMap(BaseModel):
+
+class TankTempCalibrationMap(GwsprotoSemaType):
     Buffer: TankTempCalibration
     Tank: dict[PositiveInt, TankTempCalibration]
 
     TypeName: Literal["gw1.tank.temp.calibration.map"] = "gw1.tank.temp.calibration.map"
-    Version: Literal["000"] = "000"
+    Version: Literal["001"] = "001"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

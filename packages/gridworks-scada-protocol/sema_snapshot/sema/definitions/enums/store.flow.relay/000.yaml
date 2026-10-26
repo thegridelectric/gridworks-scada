@@ -1,0 +1,23 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/store.flow.relay/000"
+
+title: "store.flow.relay"
+type: "string"
+description: >
+  Direction the store flow relay sets for water through the thermal store: discharging the store to the house or charging it from the heat pump.
+
+enum:
+  - "DischargingStore"
+  - "ChargingStore"
+
+default: "DischargingStore"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "DischargingStore": >
+      Store water flows toward the distribution loop; the relay rests in this position de-energized.
+
+    "ChargingStore": >
+      Heat pump water flows into the store.

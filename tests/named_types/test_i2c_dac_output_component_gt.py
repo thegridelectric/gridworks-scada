@@ -1,0 +1,41 @@
+"""Tests i2c.dac.output.component.gt type, version 000, and its
+dac.output.config."""
+
+
+from gwsproto.named_types import I2cDacOutputComponentGt
+from tests.named_types.sema_oracle import assert_refused
+
+
+def base_config(dac_channel: str) -> dict:
+    return {
+        "ChannelName": "secondary-010v",
+        "ActorName": "secondary-010v",
+        "DacChannel": dac_channel,
+        "TypeName": "dac.output.config",
+        "Version": "000",
+    }
+
+
+def base_component() -> dict:
+    return {
+        "ComponentId": "3f6d8a34-5f1e-4c9b-9a37-2e8d41f7c655",
+        "BoardComponentId": "9b1c5e2a-77d4-4f6e-8c3a-5f2e9d101b44",
+        "DacName": "Dac2",
+        "ConfigList": [base_config("C")],
+        "TypeName": "i2c.dac.output.component.gt",
+        "Version": "000",
+    }
+
+
+def test_i2c_dac_output_component_gt_generated() -> None:
+    d = base_component()
+    d2 = I2cDacOutputComponentGt.model_validate(d).model_dump(exclude_none=True)
+    assert d2 == d
+
+
+def test_i2c_dac_output_component_gt_axiom_1() -> None:
+    d = base_component()
+    d["ConfigList"].append(base_config("A"))
+    assert_refused(I2cDacOutputComponentGt, d, match="Axiom 1 \\(ExactlyOneConfig\\) failed")
+    d["ConfigList"] = []
+    assert_refused(I2cDacOutputComponentGt, d, match="Axiom 1 \\(ExactlyOneConfig\\) failed")

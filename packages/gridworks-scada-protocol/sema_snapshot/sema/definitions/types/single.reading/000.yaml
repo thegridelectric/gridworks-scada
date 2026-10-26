@@ -1,0 +1,35 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/single.reading/000"
+
+title: "single.reading"
+type: object
+description: >
+  Latest known reading for a single channel at a specific SCADA read time.
+
+properties:
+  ChannelName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+
+  Value:
+    type: integer
+
+  ScadaReadTimeUnixMs:
+    $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+
+  TypeName:
+    const: "single.reading"
+
+  Version:
+    const: "000"
+
+required:
+  - ChannelName
+  - Value
+  - ScadaReadTimeUnixMs
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+x-gridworks:
+  owner: "gridworks-energy"

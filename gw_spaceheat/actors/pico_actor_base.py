@@ -2,7 +2,7 @@ import socket
 
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
-from gwsproto.data_classes.house_0_names import ScadaWeb
+from gwsproto.names.core.node_names import ScadaWeb
 
 
 from gwsproto.data_classes.components.web_server_component import WebServerComponent

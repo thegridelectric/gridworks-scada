@@ -7,16 +7,35 @@ from typing import Optional
 from pydantic import BaseModel
 from textual.logging import TextualHandler
 
+from gwadmin.watch.clients.relay_client import CommandTransition
 from gwadmin.watch.clients.relay_client import RelayConfig
-from gwadmin.watch.clients.relay_client import RelayEnergized
 from gwadmin.watch.clients.relay_client import RelayState
+from gwsproto.enums import MoveSiegValve
+from gwsproto.enums import SiegValveState
 
 module_logger = logging.getLogger(__name__)
 module_logger.addHandler(TextualHandler())
 
+# Vocabularies whose node takes a command while its observed state is no
+# command's result (the sieg valve mid-travel starts a fresh run to the
+# commanded stop). Every other node nacks Busy in transition. Hand-kept
+# until gw.command.interface carries this fact per vocabulary; that field
+# retires this constant.
+MID_TRANSITION_VOCABULARIES: frozenset[str] = frozenset({MoveSiegValve.enum_name()})
+
+# For the sieg valve, the command results not offered from each observed
+# state: no stop at a stop, and no move toward the stop the motor is
+# already running to.
+UNOFFERED_FROM: dict[str, frozenset[str]] = {
+    SiegValveState.FullySend: frozenset({SiegValveState.SteadyBlend}),
+    SiegValveState.FullyKeep: frozenset({SiegValveState.SteadyBlend}),
+    SiegValveState.KeepingMore: frozenset({SiegValveState.FullyKeep}),
+    SiegValveState.KeepingLess: frozenset({SiegValveState.FullySend}),
+}
+
 
 class RelayTableName(BaseModel):
-    channel_name: str = ""
+    node_name: str = ""
     row_name: str = ""
     relay_number: Optional[int] = None
 
@@ -25,16 +44,18 @@ class RelayTableName(BaseModel):
     )
 
     @classmethod
-    def from_channel_name(cls, channel_name: str) -> "RelayTableName":
-        relay_match = cls.relay_table_name_rgx.match(channel_name)
+    def from_node_name(cls, node_name: str) -> "RelayTableName":
+        # The suffix parse covers old-convention names (`vdc-relay1`) still in
+        # the field; a functional name (`zone1-bedrooms-ops-relay`) has no number.
+        relay_match = cls.relay_table_name_rgx.match(node_name)
         if relay_match is None:
-            channel_part = channel_name
+            channel_part = node_name.removesuffix("-relay")
             relay_number = None
         else:
             channel_part = relay_match.group("channel_part")
             relay_number = int(relay_match.group("relay_number"))
         return RelayTableName(
-            channel_name=channel_name,
+            node_name=node_name,
             row_name=" ".join(
                 [
                     word.capitalize()
@@ -50,75 +71,62 @@ class RelayTableName(BaseModel):
             return self.row_name
         return f"Relay {self.relay_number}: {self.row_name}"
 
+
 class RelayWidgetConfig(RelayConfig):
-    energized_icon: str = "⚡"
-    deenergized_icon: str = "-"
-    show_icon: bool = True
 
     @cached_property
     def table_name(self) -> RelayTableName:
-        return RelayTableName.from_channel_name(self.channel_name)
+        return RelayTableName.from_node_name(self.about_node_name)
 
     @classmethod
-    def from_config(
-            cls,
-            config: RelayConfig,
-            energized_icon: str = "🔴",
-            deenergized_icon: str = "⚫️",
-            show_icon: bool = True,
-    ) -> "RelayWidgetConfig":
-        return RelayWidgetConfig(
-            energized_icon=energized_icon,
-            deenergized_icon=deenergized_icon,
-            show_icon=show_icon,
-            **config.model_dump()
-        )
+    def from_config(cls, config: RelayConfig) -> "RelayWidgetConfig":
+        return RelayWidgetConfig(**config.model_dump())
 
-    def get_state_str(self, energized: Optional[bool], *, show_icon: Optional[bool] = None) -> str:
-        if energized is None:
-            icon = "?"
-            description = "?"
-        elif energized:
-            icon = self.energized_icon
-            description = self.energizing_event
-        else:
-            icon = self.deenergized_icon
-            description = self.de_energizing_event
-        if (show_icon is None and self.show_icon) or show_icon is True:
-            return f"{icon} {description}"
-        return description
+    def offered_commands(self, state: Optional[str]) -> list[CommandTransition]:
+        """The commands to offer given the observed state, at most two, in
+        the order the vocabularies arrive. A two-command vocabulary offers
+        the first command whose result differs from the observed state. A
+        vocabulary the node takes mid-transition (MID_TRANSITION_VOCABULARIES,
+        the sieg valve) offers what the valve can usefully do from where it
+        is: at a stop, the move to the other stop; in a steady blend, both
+        moves; travelling, StopValve and the move to the other stop, since
+        the motor is already headed for this one. A one-command vocabulary
+        (reboot.picos on five-v-boss) is offered when the observed state is
+        its target, since the node only takes it at rest. No observed
+        state, or a row with no commands (a relay owned by an interior
+        node), offers nothing."""
+        if state is None:
+            return []
+        vocabularies: dict[str, list[CommandTransition]] = {}
+        for command in self.commands:
+            vocabularies.setdefault(command.event_type, []).append(command)
+        offered: list[CommandTransition] = []
+        for event_type, commands in vocabularies.items():
+            if len(commands) == 1:
+                if commands[0].to_state == state:
+                    offered.append(commands[0])
+                continue
+            elsewhere = [c for c in commands if c.to_state != state]
+            if event_type in MID_TRANSITION_VOCABULARIES:
+                offered.extend(c for c in elsewhere if c.to_state not in UNOFFERED_FROM.get(state, ()))
+            elif elsewhere:
+                offered.append(elsewhere[0])
+        return offered
 
-    def get_current_state_str(self, energized: Optional[bool], icon: Optional[bool] = False) -> str:
-        if energized is None:
-            return "?"
-        if energized:
-            if icon:
-                return self.energized_icon
-            return self.energized_state
-        else:
-            if icon:
-                return self.deenergized_icon
-            return self.deenergized_state
-    
+    def offered_command(self, state: Optional[str], offer_index: int) -> Optional[CommandTransition]:
+        offered = self.offered_commands(state)
+        return offered[offer_index] if offer_index < len(offered) else None
+
+    def get_current_state_str(self, state: Optional[str]) -> str:
+        return "?" if state is None else state
+
+    def get_action_str(self, state: Optional[str]) -> str:
+        return "/".join(c.event for c in self.offered_commands(state))
+
 
 class RelayWidgetInfo(BaseModel):
     config: RelayWidgetConfig
     observed: Optional[RelayState] = None
 
-    @classmethod
-    def get_observed_state(cls, observed) -> Optional[bool]:
-        if observed is not None:
-            return observed.value == RelayEnergized.energized
-        return None
-
-    def get_state(self) -> Optional[bool]:
-        return self.get_observed_state(self.observed)
-
-    def get_state_str(self) -> str:
-        return self.config.get_state_str(self.get_state())
-
-    def get_energize_str(self) -> str:
-        return self.config.get_energize_str(True)
-
-    def get_deenergize_str(self) -> str:
-        return self.config.get_energize_str(False)
+    def get_state(self) -> Optional[str]:
+        return None if self.observed is None else self.observed.value

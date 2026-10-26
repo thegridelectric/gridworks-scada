@@ -1,0 +1,853 @@
+{
+  "TypeName": "gw.operational.params",
+  "Version": "000",
+  "ScadaAlias": "d1.isone.me.versant.keene.spruce.scada",
+  "FamilyParams": {
+    "TypeName": "gw.nolan.family.params",
+    "Version": "000",
+    "KeepBufferFull": false,
+    "SeasonalStorageMode": "BufferOnly",
+    "BufferFullF": 130,
+    "BufferChargeF": 90
+  },
+  "CaptureTuningList": [
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "buffer-top-elt-pwr",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 100,
+      "PollPeriodMs": 1000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "buffer-bottom-elt-pwr",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 100,
+      "PollPeriodMs": 1000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "tank1-top-elt-pwr",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 100,
+      "PollPeriodMs": 1000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "tank1-bottom-elt-pwr",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 100,
+      "PollPeriodMs": 1000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "secondary-pump-pwr",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 5,
+      "PollPeriodMs": 1000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "hp-ctrl-box-pwr",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 5,
+      "PollPeriodMs": 1000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "hp-odu-pwr",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 20,
+      "PollPeriodMs": 1000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "primary-pump-pwr",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 5,
+      "PollPeriodMs": 1000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "store-pump-pwr",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 5,
+      "PollPeriodMs": 1000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "dist-pump-pwr",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 5,
+      "PollPeriodMs": 1000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "economy-energy-l1-pwr",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 200,
+      "PollPeriodMs": 1000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "economy-energy-l2-pwr",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 200,
+      "PollPeriodMs": 1000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "vdc-relay",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "PollPeriodMs": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "zone1-bedrooms-failsafe-relay",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "PollPeriodMs": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "zone1-bedrooms-ops-relay",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "PollPeriodMs": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "zone2-living-rm-failsafe-relay",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "PollPeriodMs": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "zone2-living-rm-ops-relay",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "PollPeriodMs": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "zone3-upstairs-failsafe-relay",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "PollPeriodMs": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "zone3-upstairs-ops-relay",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "PollPeriodMs": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "zone4-garage-failsafe-relay",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "PollPeriodMs": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "zone4-garage-ops-relay",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "PollPeriodMs": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "zone5-living-rm-fancoil-failsafe-relay",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "PollPeriodMs": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "zone5-living-rm-fancoil-ops-relay",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "PollPeriodMs": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "hp-scada-ops-relay",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "PollPeriodMs": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "secondary-pump-relay",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "PollPeriodMs": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "iso-valve-relay",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "PollPeriodMs": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "charge-valve-relay",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "PollPeriodMs": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "store-pump-relay",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "PollPeriodMs": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "buffer-top-elt-relay",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "PollPeriodMs": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "buffer-bottom-elt-relay",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "PollPeriodMs": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "tank1-top-elt-relay",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "PollPeriodMs": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "tank1-bottom-elt-relay",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "PollPeriodMs": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "secondary-010v",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "zone1-bedrooms-gw-temp",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 50,
+      "PollPeriodMs": 1000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "zone1-bedrooms-gw-microvolts",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 5000,
+      "PollPeriodMs": 1000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "zone2-living-rm-gw-temp",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 50,
+      "PollPeriodMs": 1000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "zone2-living-rm-gw-microvolts",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 5000,
+      "PollPeriodMs": 1000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "zone3-upstairs-gw-temp",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 50,
+      "PollPeriodMs": 1000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "zone3-upstairs-gw-microvolts",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 5000,
+      "PollPeriodMs": 1000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "zone4-garage-gw-temp",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 50,
+      "PollPeriodMs": 1000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "zone4-garage-gw-microvolts",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 5000,
+      "PollPeriodMs": 1000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "zone1-bedrooms-opto-input",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "PollPeriodMs": 1000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "zone2-living-rm-opto-input",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "PollPeriodMs": 1000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "zone3-upstairs-opto-input",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "PollPeriodMs": 1000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "zone4-garage-opto-input",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "PollPeriodMs": 1000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "zone5-living-rm-fancoil-opto-input",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1,
+      "PollPeriodMs": 1000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "buffer-depth1-device",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "buffer-depth1-micro-v",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "buffer-depth2-device",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "buffer-depth2-micro-v",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "buffer-depth3-device",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "buffer-depth3-micro-v",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "tank1-depth1-device",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "tank1-depth1-micro-v",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "tank1-depth2-device",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "tank1-depth2-micro-v",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "tank1-depth3-device",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "tank1-depth3-micro-v",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "fancoil-depth1-device",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "fancoil-depth2-device",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "fancoil-depth3-device",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "fancoil-depth1-micro-v",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "fancoil-depth2-micro-v",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "fancoil-depth3-micro-v",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "floor1-depth1-device",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "floor1-depth2-device",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "floor1-depth3-device",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "floor1-depth1-micro-v",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "floor1-depth2-micro-v",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "floor1-depth3-micro-v",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "pipes1-depth1-device",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "pipes1-depth2-device",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "pipes1-depth3-device",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 200
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "pipes1-depth1-micro-v",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "pipes1-depth2-micro-v",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "pipes1-depth3-micro-v",
+      "CapturePeriodS": 60,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 2000
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "primary-flow",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 10
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "hp-lwt",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 20
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "hp-ewt",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 20
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "secondary-flow",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 10
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "secondary-lwt",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 20
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "secondary-ewt",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 20
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "secondary-pump-ct",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 1
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "store-flow",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 10
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "store-hot-pipe",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 20
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "store-cold-pipe",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 20
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "dist-flow",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 10
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "dist-swt",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 20
+    },
+    {
+      "TypeName": "capture.tuning",
+      "Version": "000",
+      "ChannelName": "dist-rwt",
+      "CapturePeriodS": 300,
+      "AsyncCapture": true,
+      "AsyncCaptureDelta": 20
+    }
+  ],
+  "ZeroTenPowerOnList": [
+    {
+      "TypeName": "zero.ten.power.on",
+      "Version": "000",
+      "NodeName": "secondary-010v",
+      "PowerOnVoltsTimesTen": 76
+    }
+  ],
+  "Standby": false,
+  "StandbyPosture": "NoHeatingOrCooling",
+  "EnergizedStandbyRelays": [],
+  "ServiceMode": "Heating",
+  "DispatchHold": {
+    "TypeName": "gw.dispatch.hold",
+    "Version": "000",
+    "OperatorHold": false,
+    "ServiceContractBroken": false
+  },
+  "CopCurve": {
+    "TypeName": "cop.curve",
+    "Version": "000",
+    "Intercept": 1.02,
+    "OatCoeff": 0.0257,
+    "LwtCoeff": 0.0,
+    "Min": 1.4,
+    "MinOatF": 15.0
+  },
+  "HeatingCurve": {
+    "TypeName": "heating.curve",
+    "Version": "000",
+    "AlphaTimes10": 55,
+    "BetaTimes100": -10,
+    "GammaEx6": 0,
+    "IntermediatePowerKw": 1.5,
+    "IntermediateRswtF": 100,
+    "DdPowerKw": 5.5,
+    "DdRswtF": 150,
+    "DdDeltaTF": 20,
+    "MaxEwtF": 170
+  },
+  "HpTurnOnMinutes": 12,
+  "HpMaxKwEl": 9.66,
+  "LoadOverestimationPercent": 0,
+  "UsesBackupWhenCold": false,
+  "HorizonHours": 48,
+  "WeatherBundleName": "us.me.millinocket.moose",
+  "Tariff": {
+    "TypeName": "gw.tou.tariff",
+    "Version": "000",
+    "Alias": "versant.a1.home.eco.bonus",
+    "DisplayName": "Home Eco Rate with Bonus Meter",
+    "TimezoneStr": "America/New_York",
+    "OnPeakWindows": [
+      {
+        "TypeName": "gw.tou.window",
+        "Version": "000",
+        "Start": "07:00",
+        "End": "12:00",
+        "Days": [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday"
+        ]
+      },
+      {
+        "TypeName": "gw.tou.window",
+        "Version": "000",
+        "Start": "16:00",
+        "End": "20:00",
+        "Days": [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday"
+        ]
+      }
+    ]
+  }
+}

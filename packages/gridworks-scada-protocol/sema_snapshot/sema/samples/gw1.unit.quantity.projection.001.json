@@ -1,0 +1,6 @@
+{
+  "TypeName": "gw1.unit.quantity.projection",
+  "Version": "001",
+  "Unit": "Watts",
+  "Quantity": "Power"
+}

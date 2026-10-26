@@ -1,0 +1,35 @@
+
+class CoreNodeNames:
+    """System actor node names, present whatever the plant is.
+
+    Disjoint from HydronicSpaceheatNodeNames, House0NodeNames and
+    NolanNodeNames: a name declared here is declared nowhere else.
+    """
+
+    primary_scada = "s"
+    secondary_scada = "s2"
+    asset_power_meter = "power-meter"
+    ltn = "ltn"
+    leaf_ally = "la"
+    admin = "admin"
+    auto = "auto"
+    derived_generator = "derived-generator"
+    cold_watch = "cold-watch"
+
+    # local control and its states
+    local_control = "lc"
+    local_control_normal = "n"
+    local_control_backup = "backup"
+    local_control_cold_override = "cold-override"
+    local_control_scada_blind = "scada-blind"
+    local_control_standby = "standby"
+
+    # service equipment
+    web_server = "web-server"
+
+
+class ScadaWeb:
+    """The proactor web-server registry key every scada's pico and Hubitat
+    actors post through; not a node name."""
+
+    DEFAULT_SERVER_NAME = "default"

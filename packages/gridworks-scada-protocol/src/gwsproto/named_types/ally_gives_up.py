@@ -1,11 +1,16 @@
-"""Type ally.gives.up, version 000"""
+"""Type ally.gives.up, version 001"""
 
 from typing import Literal
 
-from pydantic import BaseModel
+from gwsproto.enums import DispatchRefusalReason
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class AllyGivesUp(BaseModel):
-    Reason: str  # This allows us to communicate why we're giving up
+class AllyGivesUp(GwsprotoSemaType):
+    """The scada ends its part in dispatch. Reason is the refusal vocabulary
+    the terminating heartbeat names; Cause is the particular."""
+
+    Reason: DispatchRefusalReason
+    Cause: str
     TypeName: Literal["ally.gives.up"] = "ally.gives.up"
-    Version: str = "000"
+    Version: Literal["001"] = "001"

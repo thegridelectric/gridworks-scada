@@ -1,13 +1,11 @@
 from enum import auto
 from typing import List
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class MarketTypeName(AslEnum):
+class MarketTypeName(SemaEnum):
     """
-    Categorizes different markets run by MarketMaker
-
-    ASL: https://schemas.electricity.works/enums/market.type.name/000
+    Sema: https://schemas.electricity.works/enums/market.type.name/000
     """
 
     unknown = auto()

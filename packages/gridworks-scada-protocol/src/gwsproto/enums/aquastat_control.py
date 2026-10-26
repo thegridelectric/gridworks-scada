@@ -1,18 +1,10 @@
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class AquastatControl(AslEnum):
-    """
-
-    Values:
-      - Boiler
-      - Scada
-
-    For more information:
-      - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
-      - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#aquastatcontrolstate)
+class AquastatControl(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/aquastat.control.state/000
     """
 
     Boiler = auto()

@@ -1,0 +1,140 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/snapshot.spaceheat/003"
+
+title: "snapshot.spaceheat"
+type: object
+description: >
+  Point-in-time snapshot containing the latest known readings and machine states
+  captured by a Spaceheat SCADA.
+
+properties:
+  FromGNodeAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+
+  FromGNodeInstanceId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+
+  SnapshotTimeUnixMs:
+    $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+
+  LatestReadingList:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/single.reading/000"
+
+  LatestStateList:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/single.machine.state/000"
+
+  TypeName:
+    const: "snapshot.spaceheat"
+
+  Version:
+    const: "003"
+
+required:
+  - FromGNodeAlias
+  - FromGNodeInstanceId
+  - SnapshotTimeUnixMs
+  - LatestReadingList
+  - LatestStateList
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "FromGNodeAlias": "d1.isone.me.versant.keene.peach.scada",
+      "FromGNodeInstanceId": "e4cbf56c-6918-4504-ad77-2da01fbe2c1b",
+      "SnapshotTimeUnixMs": 1774893120000,
+      "LatestReadingList": [
+        {
+          "ChannelName": "elt-buffer-top-pwr",
+          "Value": 4487,
+          "ScadaReadTimeUnixMs": 1774893119500,
+          "TypeName": "single.reading",
+          "Version": "000"
+        },
+        {
+          "ChannelName": "elt-buffer-bottom-pwr",
+          "Value": 0,
+          "ScadaReadTimeUnixMs": 1774893119500,
+          "TypeName": "single.reading",
+          "Version": "000"
+        },
+        {
+          "ChannelName": "buffer-depth1",
+          "Value": 14920,
+          "ScadaReadTimeUnixMs": 1774893119400,
+          "TypeName": "single.reading",
+          "Version": "000"
+        },
+        {
+          "ChannelName": "buffer-depth2",
+          "Value": 14110,
+          "ScadaReadTimeUnixMs": 1774893119400,
+          "TypeName": "single.reading",
+          "Version": "000"
+        },
+        {
+          "ChannelName": "buffer-depth3",
+          "Value": 13280,
+          "ScadaReadTimeUnixMs": 1774893119400,
+          "TypeName": "single.reading",
+          "Version": "000"
+        },
+        {
+          "ChannelName": "buffer-depth1-device",
+          "Value": 65111,
+          "ScadaReadTimeUnixMs": 1774893119400,
+          "TypeName": "single.reading",
+          "Version": "000"
+        },
+        {
+          "ChannelName": "buffer-depth2-device",
+          "Value": 60556,
+          "ScadaReadTimeUnixMs": 1774893119400,
+          "TypeName": "single.reading",
+          "Version": "000"
+        },
+        {
+          "ChannelName": "buffer-depth3-device",
+          "Value": 55556,
+          "ScadaReadTimeUnixMs": 1774893119400,
+          "TypeName": "single.reading",
+          "Version": "000"
+        },
+        {
+          "ChannelName": "zone1-bedrooms-heat-call",
+          "Value": 1,
+          "ScadaReadTimeUnixMs": 1774893119200,
+          "TypeName": "single.reading",
+          "Version": "000"
+        },
+        {
+          "ChannelName": "zone2-living-rm-heat-call",
+          "Value": 0,
+          "ScadaReadTimeUnixMs": 1774893119200,
+          "TypeName": "single.reading",
+          "Version": "000"
+        }
+      ],
+      "LatestStateList": [
+        {
+          "MachineHandle": "auto.local-control.local-control-normal.relay6",
+          "StateEnum": "relay.closed.or.open",
+          "State": "RelayClosed",
+          "UnixMs": 1774893119050,
+          "TypeName": "single.machine.state",
+          "Version": "000"
+        }
+      ],
+      "TypeName": "snapshot.spaceheat",
+      "Version": "003"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"

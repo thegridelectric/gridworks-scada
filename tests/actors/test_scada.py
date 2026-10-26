@@ -9,12 +9,17 @@ import pytest
 from scada_app import ScadaApp
 from actors.config import ScadaSettings
 from gwsproto.named_types import ChannelReadings, ReportEvent, SnapshotSpaceheat
-from gwsproto.data_classes.house_0_names import H0N, H0CN
 from tests.utils.scada_live_test_helper import ScadaLiveTest
+from gwsproto.names.hydronic_spaceheat.node_names import (
+    HydronicSpaceheatNodeNames as HSNN,
+)
+from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
+from gwsproto.names.nolan.node_names import NolanNodeNames
+from gwsproto.names.core.node_names import CoreNodeNames
 
 
 def test_scada_small():
-    scada_app = ScadaApp(app_settings=ScadaSettings(is_simulated=True))
+    scada_app = ScadaApp(app_settings=ScadaSettings())
     settings = scada_app.settings
     if uses_tls(settings):
         copy_keys("scada", settings)
@@ -22,7 +27,7 @@ def test_scada_small():
     scada_app.instantiate()
     layout = scada_app.hardware_layout
     scada = scada_app.scada
-    assert layout.power_meter_node == layout.node(H0N.primary_power_meter)
+    assert layout.power_meter_node == layout.node(CoreNodeNames.asset_power_meter)
     channel_names = [ch.Name for ch in scada._data.my_channels]
     assert (
         list(scada._data.latest_channel_values.keys())
@@ -37,13 +42,14 @@ def test_scada_small():
         == channel_names
     )
 
-    assert scada.layout.vdc_relay.name == H0N.vdc_relay
+    
+    assert scada.layout.vdc_relay.name == HSNN.vdc_relay
 
     ###########################################
     # Testing making report events
     ###########################################
 
-    ch = scada._layout.data_channels[H0CN.store_pump_pwr]
+    ch = scada._layout.data_channels[HCN.secondary_pump_pwr]
 
     scada._data.recent_channel_values[ch.Name] = [43]
     scada._data.recent_channel_unix_ms[ch.Name] = [
@@ -159,11 +165,11 @@ async def test_scada_snaphot_request_delivery(request: pytest.FixtureRequest):
 #     if uses_tls(settings):
 #         copy_keys("scada", settings)
 #     settings.paths.mkdirs(parents=True)
-#     layout = House0Layout.load(settings.paths.hardware_layout)
+#     layout = HydronicLayout.load(settings.paths.hardware_layout)
 #     actors = Actors(
 #         settings,
 #         layout=layout,
-#         scada=ScadaRecorder(H0N.primary_scada, settings, hardware_layout=layout),
+#         scada=ScadaRecorder(CoreNodeNames.primary_scada, settings, hardware_layout=layout),
 #         ltn_settings=AsyncFragmentRunner.make_ltn_settings()
 #     )
 #     actors.scada._last_status_second = int(time.time())
@@ -201,10 +207,10 @@ async def test_scada_snaphot_request_delivery(request: pytest.FixtureRequest):
 #             assert scada.scada_ltn_fast_dispatch_contract_is_alive
 #
 #             # Provoke a message by increasing the power of hp-odu
-#             hp_odu = scada._data.hardware_layout.node(H0N.hp_odu)
+#             hp_odu = scada._data.hardware_layout.node(HSNN.hp_odu)
 #             assert hp_odu is not None
 #             scada._layout.channel
-#             ch = scada._layout.channel(H0CN.hp_odu_pwr)
+#             ch = scada._layout.channel(HCN.hp_odu_pwr)
 #             meter._sync_thread.latest_telemetry_value[ch] += 300
 #
 #             await await_for(

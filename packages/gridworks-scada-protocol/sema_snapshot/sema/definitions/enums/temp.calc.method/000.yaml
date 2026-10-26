@@ -1,0 +1,23 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/temp.calc.method/000"
+
+title: "temp.calc.method"
+type: "string"
+description: >
+  Method used to calculate temperature from voltage-derived thermistor
+  measurements.
+
+enum:
+  - "SimpleBetaForPico"
+  - "SimpleBeta"
+
+default: "SimpleBeta"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "SimpleBetaForPico": >
+      Use the beta method with the Pico-specific fixed-resistance assumption.
+    "SimpleBeta": >
+      Use the beta method with ThermistorBeta as the required parameter.

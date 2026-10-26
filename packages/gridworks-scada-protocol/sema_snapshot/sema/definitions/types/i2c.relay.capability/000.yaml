@@ -1,0 +1,88 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/i2c.relay.capability/000"
+
+title: "i2c.relay.capability"
+type: object
+description: >
+  One relay a GridWorks SCADA board offers: its board-level name (matching the
+  physical marking on the device), which of the board's I²C GPIO expanders
+  drives it, the register bit within that expander, and the wiring
+  configurations it supports. This describes what the board makes possible;
+  the chosen wiring and control semantics for a deployment live in the
+  layout's relay configuration.
+
+properties:
+
+  RelayName:
+    $ref: "https://schemas.electricity.works/formats/pascal.case"
+    description: >
+      The board-level name of this relay, matching the physical marking on
+      the device (e.g. Relay17).
+
+  ExpanderIdx:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      The 1-based index of the I²C GPIO expander that drives this relay,
+      in the board's expander order.
+
+  RegisterIndex:
+    $ref: "https://schemas.electricity.works/formats/non.negative.int"
+    description: >
+      The register within the expander.
+
+  BitIndex:
+    $ref: "https://schemas.electricity.works/formats/non.negative.int"
+    description: >
+      The bit index within the register.
+
+  SupportedWiringConfigs:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/enums/relay.wiring.config/000"
+    description: >
+      The wiring configurations this relay supports.
+
+  Notes:
+    type: string
+    description: >
+      Free-form notes about this relay.
+
+  TypeName:
+    const: "i2c.relay.capability"
+
+  Version:
+    const: "000"
+
+required:
+  - RelayName
+  - ExpanderIdx
+  - RegisterIndex
+  - BitIndex
+  - SupportedWiringConfigs
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "RelayName": "Relay17",
+      "ExpanderIdx": 2,
+      "RegisterIndex": 0,
+      "BitIndex": 7,
+      "SupportedWiringConfigs": [
+        "DoubleThrow"
+      ],
+      "TypeName": "i2c.relay.capability",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+  extended_description: >
+    The expander's I²C bus address is deliberately absent: it belongs to the
+    expander entry (fixed for soldered expanders, an allowed range for
+    DIP-switch-configured ones, with the chosen address a deployment fact on
+    the component). RelayName carries the device's own physical markings so a
+    person in the field can identify the relay from the record.

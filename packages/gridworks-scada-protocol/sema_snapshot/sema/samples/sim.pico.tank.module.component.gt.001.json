@@ -1,0 +1,16 @@
+{
+  "TypeName": "sim.pico.tank.module.component.gt",
+  "Version": "001",
+  "ComponentId": "4058e925-2399-4908-91a1-5c4c63cf89f0",
+  "DeviceType": "GridworksTankModule3",
+  "PicoHwUid": "pico_a1b2c3",
+  "TempCalcMethod": "SimpleBeta",
+  "ThermistorBeta": 1,
+  "SendMicroVolts": false,
+  "Samples": 1,
+  "NumSampleAverages": 1,
+  "SerialNumber": "example",
+  "AsyncCaptureDeltaMicroVolts": 0,
+  "SimulatesTypeName": "pico.tank.module.component.gt",
+  "SimulatesVersion": "012"
+}

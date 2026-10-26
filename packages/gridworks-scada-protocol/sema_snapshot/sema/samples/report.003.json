@@ -1,0 +1,41 @@
+{
+  "TypeName": "report",
+  "Version": "003",
+  "FromGNodeAlias": "hw1.isone.me.versant.keene.beech.scada",
+  "FromGNodeInstanceId": "19ee09df-80ba-437b-b6c1-1eebe9d34801",
+  "AboutGNodeAlias": "hw1.isone.me.versant.keene.beech.ta",
+  "SlotStartUnixS": 1762633800,
+  "SlotDurationS": 300,
+  "ChannelReadingList": [
+    {
+      "TypeName": "channel.readings",
+      "Version": "002",
+      "ChannelName": "hp-lwt",
+      "ValueList": [
+        19900,
+        19700
+      ],
+      "ScadaReadTimeUnixMsList": [
+        1762633800195,
+        1762634056082
+      ]
+    }
+  ],
+  "StateList": [
+    {
+      "TypeName": "machine.states",
+      "Version": "000",
+      "MachineHandle": "ltn.la.relay6",
+      "StateEnum": "relay.closed.or.open",
+      "StateList": [
+        "RelayOpen"
+      ],
+      "UnixMsList": [
+        1762634098098
+      ]
+    }
+  ],
+  "FsmReportList": [],
+  "MessageCreatedMs": 1762634100033,
+  "Id": "7499defd-c54a-4061-a37a-17f3c84f88a2"
+}

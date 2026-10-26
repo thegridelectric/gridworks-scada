@@ -1,0 +1,165 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/sim.pico.tank.module.component.gt/001"
+
+title: "sim.pico.tank.module.component.gt"
+type: object
+description: >
+  A simulated pico tank-module component — the **component-faithful** facet of
+  simulation. It mirrors a specific real component (`SimulatesTypeName` /
+  `SimulatesVersion` → the real tank-module component) so a simulated layout drives
+  the real scada pico-tank code path (`ApiTankModule`) with simulated hardware input.
+  This is distinct from the generic plant-seam sim components
+  (the simulated sensor component / the simulated relay component), which feed synthetic channels
+  to exercise comms infrastructure rather than device code. Kept because testing the
+  real pico code under simulation is worth it; the actor side is only partly worked
+  through (see the simulated-test-environment gleanings).
+
+properties:
+  ComponentId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+
+  DeviceType:
+    $ref: "https://schemas.electricity.works/formats/pascal.case"
+    description: >
+      The device category this component is built on, an open
+      pascal-case string.
+
+  DisplayName:
+    type: string
+
+  HwUid:
+    type: string
+
+
+  PicoHwUid:
+    type: string
+
+  PicoAHwUid:
+    type: string
+
+  PicoBHwUid:
+    type: string
+
+  TempCalcMethod:
+    $ref: "https://schemas.electricity.works/enums/temp.calc.method/000"
+
+  ThermistorBeta:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+
+  SendMicroVolts:
+    type: boolean
+
+  Samples:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+
+  NumSampleAverages:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+
+  PicoKOhms:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+
+  SerialNumber:
+    type: string
+
+  AsyncCaptureDeltaMicroVolts:
+    type: integer
+
+  SensorOrder:
+    type: array
+    items:
+      type: integer
+
+  SimLifeS:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Seconds the simulated pico posts readings after each boot before
+      it goes silent. Absent means it never dies on a schedule.
+
+  SimRebootS:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Seconds after the vdc relay closes, following an open, before the
+      simulated pico boots and posts again. Absent means a dead pico
+      stays dead.
+
+  SimulatesTypeName:
+    const: "pico.tank.module.component.gt"
+
+  SimulatesVersion:
+    const: "012"
+
+  TypeName:
+    const: "sim.pico.tank.module.component.gt"
+
+  Version:
+    const: "001"
+
+required:
+  - ComponentId
+  - DeviceType
+  - TempCalcMethod
+  - ThermistorBeta
+  - SendMicroVolts
+  - Samples
+  - NumSampleAverages
+  - SerialNumber
+  - AsyncCaptureDeltaMicroVolts
+  - SimulatesTypeName
+  - SimulatesVersion
+  - TypeName
+  - Version
+
+additionalProperties: true
+
+examples:
+  - |
+    {
+      "ComponentId": "4058e925-2399-4908-91a1-5c4c63cf89f0",
+      "DeviceType": "GridworksTankModule3",
+      "TempCalcMethod": "SimpleBeta",
+      "ThermistorBeta": 1,
+      "SendMicroVolts": false,
+      "Samples": 1,
+      "NumSampleAverages": 1,
+      "SerialNumber": "example",
+      "AsyncCaptureDeltaMicroVolts": 0,
+      "SimulatesTypeName": "pico.tank.module.component.gt",
+      "SimulatesVersion": "012",
+      "TypeName": "sim.pico.tank.module.component.gt",
+      "Version": "001",
+      "PicoHwUid": "pico_a1b2c3"
+    }
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "PicoHardwareIdentityXor"
+      statement: >
+        Exactly one of the following SHALL hold:
+          - PicoHwUid is present
+          - both PicoAHwUid and PicoBHwUid are present
+
+    - number: 2
+      name: "PicoKOhmsConsistency"
+      statement: >
+        PicoKOhms SHALL be present if and only if TempCalcMethod equals
+        SimpleBetaForPico.
+
+    - number: 3
+      name: "SensorOrderPermutation"
+      statement: >
+        If SensorOrder is present, it SHALL be a permutation of [1, 2, 3].
+  extended_description: >
+    The `.gt` suffix declares that this type is coupled bijectively with a table in
+    a canonical seed database (here, the terminalasset registry): the table's rows are
+    instances of this type. Sema is the authority over what a row means; the seed
+    table is the authority over which instances are currently asserted.
+
+    DeviceType values come from the `gw1.device.type` vocabulary; the hardware layout enforces membership.
+
+    SimLifeS and SimRebootS script the simulated pico's liveness (posts, dies,
+    reboots after a vdc power cycle) so the pico-cycler loop can be exercised
+    on a simulated layout.
+
+    Simulates `pico.tank.module.component.gt`. Kin: `sim.sensor.component.gt`.

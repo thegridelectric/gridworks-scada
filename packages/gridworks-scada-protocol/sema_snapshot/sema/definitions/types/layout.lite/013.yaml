@@ -1,0 +1,155 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/layout.lite/013"
+
+title: "layout.lite"
+type: object
+description: >
+  Runtime projection of the active SCADA context needed to interpret telemetry
+  and snapshot messages for a running Spaceheat deployment.
+
+  `layout.lite` is emitted by SCADA on request (and on boot). It is not intended to
+  be a lossless copy of the source layout artifact on disk. Some fields are projected
+  directly from the loaded hardware layout, while others reflect active runtime
+  settings.
+
+properties:
+
+  FromGNodeAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      GNode alias of the SCADA actor publishing this runtime context.
+
+  CreatedMs:
+    $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+    description: >
+      The sender's clock when this projection came to be.
+
+  MessageId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      Unique identifier for this emitted layout projection.
+
+  HardwareLayoutTypeName:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      TypeName of the layout word the running SCADA loaded (for example
+      gw.house0.layout or gw.nolan.layout): the layout family every consumer
+      of this projection branches on.
+
+  ZoneList:
+    type: array
+    items:
+      type: string
+    description: >
+      Ordered list of zones known to the running deployment.
+
+  CriticalZoneList:
+    type: array
+    items:
+      type: string
+    description: >
+      Ordered list of critical zones. SHALL be a subset of ZoneList.
+
+  ShNodes:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/spaceheat.node.gt/303"
+    description: >
+      Spaceheat nodes available in the running SCADA context.
+
+  DataChannels:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/data.channel.gt/004"
+    description: >
+      Raw telemetry channel definitions used to interpret channel names appearing
+      in reports and snapshots.
+
+  DerivedChannels:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/derived.channel.gt/003"
+    description: >
+      Derived telemetry channel definitions used to interpret derived channel
+      names appearing in reports and snapshots.
+
+  StateMachines:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/gw.state.machine/000"
+    description: >
+      The state machines the running SCADA hosts, one per hosting node, each
+      with the enum and version its states are values of. A report's
+      MachineHandle resolves to the entry whose NodeName is the handle's last
+      dotted segment.
+
+  TypeName:
+    const: "layout.lite"
+
+  Version:
+    const: "013"
+
+required:
+  - FromGNodeAlias
+  - CreatedMs
+  - MessageId
+  - HardwareLayoutTypeName
+  - ZoneList
+  - CriticalZoneList
+  - ShNodes
+  - DataChannels
+  - DerivedChannels
+  - StateMachines
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "DcNodeConsistency"
+      statement: >
+        Every DataChannels.AboutNodeName and DataChannels.CapturedByNodeName
+        SHALL reference an existing ShNodes.Name, and every captured-by node
+        SHALL have an active ActorClass.
+
+    - number: 2
+      name: "NodeHandleHierarchyConsistency"
+      statement: >
+        Every ShNode with a dotted handle SHALL have its immediate boss present
+        as another ShNode in the same payload.
+
+    - number: 3
+      name: "CriticalZoneSubset"
+      statement: >
+        CriticalZoneList SHALL be a subset of ZoneList.
+
+    - number: 4
+      name: "DerivedNodeConsistency"
+      statement: >
+        Every DerivedChannels.CreatedByNodeName SHALL reference an existing
+        ShNodes.Name whose ActorClass is active.
+
+    - number: 5
+      name: "StateMachineNodeConsistency"
+      statement: >
+        Every StateMachines.NodeName SHALL reference an existing ShNodes.Name,
+        and no two StateMachines entries SHALL share a NodeName.
+
+  extended_description: >
+    `layout.lite` is the SCADA-emitted semantic context for a running
+    deployment. It exists so consumers can interpret compact runtime payloads
+    that reference channels and nodes by name rather than embedding full
+    definitions in every message.
+
+    In particular, `report.event` and `snapshot.spaceheat` rely on
+    `layout.lite` for channel interpretation. `ChannelName` references inside
+    those messages SHALL be resolved against `DataChannels` and
+    `DerivedChannels` in the relevant `layout.lite` context.
+    A `MachineHandle` in a `single.machine.state` or `machine.states` entry
+    SHALL be resolved to the `StateMachines` entry whose `NodeName` equals the
+    handle's last dotted segment; that entry names the enum, at a version,
+    the machine's `State` values belong to.

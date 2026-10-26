@@ -1,0 +1,23 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/primary.pump.control/000"
+
+title: "primary.pump.control"
+type: "string"
+description: >
+  Which controller the primary pump relay hands the primary pump to: the heat pump's own pump output or the SCADA.
+
+enum:
+  - "HeatPump"
+  - "Scada"
+
+default: "HeatPump"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "HeatPump": >
+      The heat pump drives its primary pump; the relay rests in this position de-energized.
+
+    "Scada": >
+      The SCADA drives the primary pump through the relay.

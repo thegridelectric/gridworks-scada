@@ -1,0 +1,7 @@
+{
+  "TypeName": "gw.house0.family.params",
+  "Version": "000",
+  "SiegLoopStrategy": "StratProtect",
+  "KeepBufferFull": false,
+  "SeasonalStorageMode": "AllTanks"
+}

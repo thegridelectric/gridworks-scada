@@ -1,0 +1,42 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/zone.circuit.governance.event/000"
+
+title: "zone.circuit.governance.event"
+type: "string"
+description: >
+  Events for a zone-call-circuit actor's governance machine: the top
+  machine selecting which authority rules the circuit. Bosses command
+  governance; the posture machine executes under it.
+
+enum:
+  - "WakeUp"
+  - "GoDormant"
+  - "SwitchToStatRules"
+  - "SwitchToOff"
+  - "SwitchToThermostatic"
+
+default: "GoDormant"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "WakeUp": >
+      The governance machine leaves Dormant and resumes its current mode.
+
+    "GoDormant": >
+      The governance machine stops acting. Relay pins are left untouched;
+      a latched hold survives.
+
+    "SwitchToStatRules": >
+      Defer to the wall thermostat: the posture machine releases the
+      circuit.
+
+    "SwitchToOff": >
+      Scada-owned hold: the posture machine holds the circuit with no
+      call, latched through Dormant and service stops.
+
+    "SwitchToThermostatic": >
+      The scada runs the circuit thermostatically against a commanded
+      setpoint and the zone's temperature channel, cycling the posture
+      machine between Held and Calling.

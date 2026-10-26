@@ -1,0 +1,57 @@
+from gwsproto.data_classes.components.component import DeviceComponent
+from gwsproto.enums import SimDeviceType
+from gwsproto.errors import DcError
+from gwsproto.named_types import ScadaBoardComponentGt
+from gwsproto.named_types.i2c_expander import I2cExpander
+from gwsproto.named_types.scada_device_type_gt import ScadaDeviceTypeGt
+
+
+class ScadaBoardComponent(DeviceComponent[ScadaBoardComponentGt, ScadaDeviceTypeGt]):
+    """The only device types a scada board carries today are gw.scada.device.type
+    records, and the layout's BoardResolution axiom guarantees the record
+    exists — so device_type is required and never None."""
+
+    device_type: ScadaDeviceTypeGt
+
+    def __init__(
+        self, gt: ScadaBoardComponentGt, device_type: ScadaDeviceTypeGt
+    ) -> None:
+        if not isinstance(device_type, ScadaDeviceTypeGt):
+            raise DcError(
+                f"ScadaBoardComponent <{gt.ComponentId}> requires a "
+                f"gw.scada.device.type record; got {type(device_type).__name__}"
+            )
+        super().__init__(gt, device_type)
+
+    @property
+    def simulated(self) -> bool:
+        """The board is a simulated device: its record's DeviceType is a
+        gw1.sim.device.type value (SimGw108). Board-resident actors take real
+        or fake silicon from this, never from a runtime flag."""
+        return self.device_type.DeviceType in SimDeviceType.values()
+
+    def expander_address(self, expander: I2cExpander) -> int:
+        """The expander's I2C address on THIS board: the record's fixed
+        address when soldered, else the field-chosen one recorded on the
+        component's I2cAddressList, index-aligned with the record's
+        Expanders (ExpanderIdx is 1-based)."""
+        if expander.I2cAddress is not None:
+            return expander.I2cAddress
+        chosen = self.gt.I2cAddressList or []
+        if len(chosen) < expander.ExpanderIdx:
+            raise DcError(
+                f"board component <{self.gt.ComponentId}> ({self.gt.DeviceType}) "
+                f"has no I2cAddressList entry for field-addressed expander "
+                f"{expander.ExpanderIdx}"
+            )
+        address = chosen[expander.ExpanderIdx - 1]
+        if (
+            expander.AllowedI2cAddressList is not None
+            and address not in expander.AllowedI2cAddressList
+        ):
+            raise DcError(
+                f"board component <{self.gt.ComponentId}>: address {address} for "
+                f"expander {expander.ExpanderIdx} is not in its "
+                f"AllowedI2cAddressList {expander.AllowedI2cAddressList}"
+            )
+        return address

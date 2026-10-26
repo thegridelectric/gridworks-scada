@@ -1,0 +1,69 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/i2c.mux/000"
+
+title: "i2c.mux"
+type: object
+description: >
+  An I²C bus multiplexer on a GridWorks SCADA board: a switch whose
+  channel-select register connects the upstream bus to one of several
+  downstream branches, so that devices with identical addresses can share
+  one upstream bus. Devices behind the mux reference it by MuxName.
+
+properties:
+
+  MuxName:
+    $ref: "https://schemas.electricity.works/formats/pascal.case"
+    description: >
+      The name of this mux on the board.
+
+  I2cBus:
+    $ref: "https://schemas.electricity.works/formats/pascal.case"
+    description: >
+      The name of the board bus this mux is attached to.
+
+  I2cAddress:
+    $ref: "https://schemas.electricity.works/formats/non.negative.int"
+    description: >
+      The I²C bus address of the mux itself.
+
+  MuxType:
+    $ref: "https://schemas.electricity.works/enums/i2c.mux.type/000"
+    description: >
+      The mux model.
+
+  Channels:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      The number of downstream bus channels the mux provides.
+
+  TypeName:
+    const: "i2c.mux"
+
+  Version:
+    const: "000"
+
+required:
+  - MuxName
+  - I2cBus
+  - I2cAddress
+  - MuxType
+  - Channels
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "MuxName": "DacMux",
+      "I2cBus": "DefaultBus",
+      "I2cAddress": 112,
+      "MuxType": "Tca9548a",
+      "Channels": 8,
+      "TypeName": "i2c.mux",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"

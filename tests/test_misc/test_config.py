@@ -7,6 +7,8 @@ import logging
 import dotenv
 import pytest
 from gwproactor.config import Paths
+from clock import ClockSource
+from weather_source import WeatherSourceKind
 from gwproactor.config.mqtt import TLSInfo
 from gwproactor.config.proactor_settings import ACK_TIMEOUT_SECONDS
 from gwproactor.config.proactor_settings import NUM_INITIAL_EVENT_REUPLOADS
@@ -14,10 +16,10 @@ from gwproactor import ProactorSettings
 
 from actors.config import AdminLinkSettings
 from actors.config import PersisterSettings
+from actors.config import ScadaPaths
 from gwproactor.config import LoggingSettings
 from gwproactor.config import MQTTClient
 from actors.config import ScadaSettings
-from gwsproto.enums import HpModel
 from gwproactor.config.proactor_settings import MQTT_LINK_POLL_SECONDS
 from gwproactor_test import clean_test_env
 from gwproactor_test.clean import DefaultTestEnv
@@ -49,33 +51,9 @@ def test_scada_settings_defaults(default_test_env, clean_test_env, clean_scada_e
         )
     )
     exp = dict(
-        alpha= 5.5,
-        beta=-0.1,
-        gamma=0.0,
-        hp_max_kw_el=9.66,
-        latitude=45.6573,
-        longitude=-68.7098,
-        intermediate_power=1.5,
-        intermediate_rswt=100,
-        dd_power=5.5,
-        dd_rswt=150,
-        dd_delta_t=20,
-        max_ewt_f=170,
-        cop_intercept=1.02,
-        cop_oat_coeff=0.0257,
-        cop_lwt_coeff=0,
-        cop_min=1.4,
-        cop_min_oat_f=15,
-        hp_turn_on_minutes=12,
-        short_cycle_buffer=False,
-        load_overestimation_percent=0,
-        whitewire_threshold_watts=20,
-        system_mode="Heating",
-        seasonal_storage_mode="AllTanks",
-        oil_boiler_backup=True,
         pico_cycler_state_logging=False,
+        unknown_channel_logging=False,
         power_meter_logging_level=logging.WARNING,
-        relay_multiplexer_logging_level=logging.INFO,
         local_mqtt=exp_local_mqtt.model_dump(),
         gridworks_mqtt=MQTTClient(
             tls=TLSInfo(use_tls=False).update_tls_paths(
@@ -85,10 +63,15 @@ def test_scada_settings_defaults(default_test_env, clean_test_env, clean_scada_e
         ).model_dump(),
         proactor=ProactorSettings().model_dump(),
         paho_logging=False,
+        clock_source=ClockSource.Wall,
+        weather_source=WeatherSourceKind.Gwwf,
+        weather_api_url="https://forecast.electricity.works/hw1-isone-weather",
+        weather_pull_timeout_s=20,
         seconds_per_report=300,
         seconds_per_snapshot=30,
         async_power_reporting_threshold=0.02,
-        paths=Paths().model_dump(),
+        power_meter_lost_after_s=10,
+        paths=ScadaPaths().model_dump(),
         logging=LoggingSettings().model_dump(),
         persister=PersisterSettings().model_dump(),
         admin=AdminLinkSettings(
@@ -97,10 +80,7 @@ def test_scada_settings_defaults(default_test_env, clean_test_env, clean_scada_e
                 "admin"
             )
         ).model_dump(),
-        timezone_str="America/New_York",
-        is_simulated=False,
         contract_rep_logging_level=20,
-        hp_model=HpModel.SamsungFiveTonneHydroKit
     )
     assert settings.local_mqtt.tls.model_dump() == exp_local_mqtt.tls.model_dump()
     assert settings.local_mqtt.model_dump() == exp_local_mqtt.model_dump()

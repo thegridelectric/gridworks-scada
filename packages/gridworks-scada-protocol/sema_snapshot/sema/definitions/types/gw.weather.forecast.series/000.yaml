@@ -1,0 +1,93 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw.weather.forecast.series/000"
+
+title: "gw.weather.forecast.series"
+type: object
+description: >
+  One forecast series inside a gw.weather.forecast: the values one
+  forecast channel predicts over the message's shared slice grid,
+  with the series' own fidelity rung and source revision time. The
+  bundle the message names declares which series it holds; the
+  Quantity lets a consumer pick a series without that lookup, and the
+  bundle binds it to the channel.
+
+properties:
+  ChannelName:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      Name of the gw.weather.forecast.channel.gt whose prediction
+      these values are.
+
+  Quantity:
+    $ref: "https://schemas.electricity.works/enums/gw1.quantity/003"
+    description: >
+      The physical quantity the values forecast; equals the Quantity
+      of the observed channel the forecast channel targets.
+
+  Values:
+    type: array
+    items:
+      type: integer
+    description: >
+      Forecast values, one per time slice, scaled per the channel's
+      Unit.
+
+  Fidelity:
+    $ref: "https://schemas.electricity.works/enums/gw.weather.forecast.fidelity/000"
+    description: >
+      The degradation rung of Values. Each downgrade transition
+      additionally raises a Glitch.
+
+  SourceUpdatedTime:
+    $ref: "https://schemas.electricity.works/formats/utc.iso8601.seconds"
+    description: >
+      When the ingested external service last revised the underlying
+      forecast data for this series (for NWS, the gridpoint
+      updateTime; for Open-Meteo, the model run time). May hold
+      unchanged across many emissions while the source sits on a
+      package.
+
+  TypeName:
+    const: "gw.weather.forecast.series"
+
+  Version:
+    const: "000"
+
+required:
+  - ChannelName
+  - Quantity
+  - Values
+  - Fidelity
+  - SourceUpdatedTime
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "ChannelName": "us.me.millinocket.temperature.forecast.nws.hourly",
+      "Quantity": "Temperature",
+      "Values": [
+        512,
+        498
+      ],
+      "Fidelity": "Live",
+      "SourceUpdatedTime": "2026-10-15T20:01:57Z",
+      "TypeName": "gw.weather.forecast.series",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "NonEmptyValues"
+      statement: >
+        Values SHALL be non-empty.
+    - number: 2
+      name: "ForecastNaming"
+      statement: >
+        ChannelName SHALL contain "forecast" as an interior segment.

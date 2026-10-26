@@ -1,39 +1,15 @@
 from gwsproto.named_types import LayoutLite
+from tests.named_types.sema_oracle import assert_refused
 
 
-def test_layout_lite_generated() -> None:
-    d = {
+def layout_lite_dict() -> dict:
+    return {
         "FromGNodeAlias": "hw1.isone.me.versant.keene.beech.scada",
-        "MessageCreatedMs": 1728651445746,
+        "CreatedMs": 1728651445746,
         "MessageId": "1302c0f8-1983-43b2-90d2-61678d731db3",
-        "Strategy": "House0",
+        "HardwareLayoutTypeName": "gw.house0.layout",
         "ZoneList": ["Down", "Up"],
-        "SystemMode": "Heating",
-        "SeasonalStorageMode": "AllTanks",
-        "BufferShortCycling": False,
         "CriticalZoneList": ["Down"],
-        "TotalStoreTanks": 3,
-        "Ha1Params": {
-            "AlphaTimes10": 120,
-            "BetaTimes100": -22,
-            "GammaEx6": 0,
-            "IntermediatePowerKw": 1.5,
-            "IntermediateRswtF": 100,
-            "DdPowerKw": 12,
-            "DdRswtF": 160,
-            "DdDeltaTF": 20,
-            "HpMaxKwEl": 9.66,
-            "MaxEwtF": 170,
-            "LoadOverestimationPercent": 10,
-            "CopIntercept": 1.02,
-            "CopOatCoeff": 0.0257,
-            "CopLwtCoeff": 0,
-            "CopMin": 1.4,
-            "CopMinOatF": 15,
-            "HpTurnOnMinutes": 12,
-            "TypeName": "ha1.params",
-            "Version": "005",
-        },
         "ShNodes": [
             {
                 "ActorClass": "PrimaryScada",
@@ -41,7 +17,7 @@ def test_layout_lite_generated() -> None:
                 "Name": "s",
                 "ShNodeId": "da9a0427-d6c0-44c0-b51c-492c1e580dc5",
                 "TypeName": "spaceheat.node.gt",
-                "Version": "300",
+                "Version": "303",
             },
             {
                 "ActorClass": "PowerMeter",
@@ -51,20 +27,28 @@ def test_layout_lite_generated() -> None:
                 "Name": "power-meter",
                 "ShNodeId": "6c0563b7-5171-4b1c-bba3-de156bea4b95",
                 "TypeName": "spaceheat.node.gt",
-                "Version": "300",
+                "Version": "303",
             },
             {
                 "ActorClass": "NoActor",
                 "DisplayName": "Hp Idu",
-                "InPowerMetering": True,
                 "Name": "hp-idu",
                 "NameplatePowerW": 4000,
                 "ShNodeId": "07b8ca98-12c4-4510-8d0f-14fda2331215",
                 "TypeName": "spaceheat.node.gt",
-                "Version": "300",
+                "Version": "303",
             },
         ],
         "DerivedChannels": [
+        ],
+        "StateMachines": [
+            {
+                "NodeName": "s",
+                "StateEnum": "gw.top.state",
+                "StateEnumVersion": "000",
+                "TypeName": "gw.state.machine",
+                "Version": "000",
+            }
         ],
         "DataChannels": [
             {
@@ -73,207 +57,44 @@ def test_layout_lite_generated() -> None:
                 "AboutNodeName": "hp-idu",
                 "CapturedByNodeName": "power-meter",
                 "TelemetryName": "PowerW",
+                "Quantity": "Power",
                 "TerminalAssetAlias": "hw1.isone.me.versant.keene.beech.ta",
-                "InPowerMetering": True,
                 "StartS": 1721405699,
                 "Id": "50cf426b-ff3f-4a30-8415-8d3fba5e0ab7",
                 "TypeName": "data.channel.gt",
-                "Version": "001",
+                "Version": "004",
             }
         ],
-        "TankModuleComponents": [
-            {
-                "ComponentAttributeClassId": "f88fbf89-5b74-46d6-84a3-8e7494d08435",
-                "ComponentId": "8aef0b11-5a1c-415e-b40e-d277e0ff4403",
-                "ConfigList": [
-                    {
-                        "AsyncCapture": True,
-                        "CapturePeriodS": 60,
-                        "ChannelName": "buffer-depth1",
-                        "Exponent": 3,
-                        "TypeName": "channel.config",
-                        "Unit": "Celcius",
-                        "Version": "000",
-                    },
-                    {
-                        "AsyncCapture": True,
-                        "CapturePeriodS": 60,
-                        "ChannelName": "buffer-depth2",
-                        "Exponent": 3,
-                        "TypeName": "channel.config",
-                        "Unit": "Celcius",
-                        "Version": "000",
-                    },
-                    {
-                        "AsyncCapture": True,
-                        "CapturePeriodS": 60,
-                        "ChannelName": "buffer-depth3",
-                        "Exponent": 3,
-                        "TypeName": "channel.config",
-                        "Unit": "Celcius",
-                        "Version": "000",
-                    },
-                    {
-                        "AsyncCapture": True,
-                        "AsyncCaptureDelta": 2000,
-                        "CapturePeriodS": 60,
-                        "ChannelName": "buffer-depth1-micro-v",
-                        "Exponent": 6,
-                        "TypeName": "channel.config",
-                        "Unit": "VoltsRms",
-                        "Version": "000",
-                    },
-                    {
-                        "AsyncCapture": True,
-                        "AsyncCaptureDelta": 2000,
-                        "CapturePeriodS": 60,
-                        "ChannelName": "buffer-depth2-micro-v",
-                        "Exponent": 6,
-                        "TypeName": "channel.config",
-                        "Unit": "VoltsRms",
-                        "Version": "000",
-                    },
-                    {
-                        "AsyncCapture": True,
-                        "AsyncCaptureDelta": 2000,
-                        "CapturePeriodS": 60,
-                        "ChannelName": "buffer-depth3-micro-v",
-                        "Exponent": 6,
-                        "TypeName": "channel.config",
-                        "Unit": "VoltsRms",
-                        "Version": "000",
-                    },
-                ],
-                "DisplayName": "buffer PicoTankModule",
-                "Enabled": True,
-                "SerialNumber": "1030",
-                "NumSampleAverages": 10,
-                "PicoHwUid": "pico_aaaaaa",
-                "Samples": 1000,
-                "SendMicroVolts": True,
-                "TempCalcMethod": "SimpleBeta",
-                "ThermistorBeta": 3977,
-                "AsyncCaptureDeltaMicroVolts": 2000,
-                "TypeName": "pico.tank.module.component.gt",
-                "Version": "011",
-            }
-        ],
-        "FlowModuleComponents": [
-            {
-                "AsyncCaptureThresholdGpmTimes100": 5,
-                "ComponentAttributeClassId": "aa4ad342-883a-4f89-bf86-9eb430aeb308",
-                "ComponentId": "b505a781-1671-467f-af8f-6d0ad7aca172",
-                "ConfigList": [
-                    {
-                        "AsyncCapture": True,
-                        "CapturePeriodS": 10,
-                        "ChannelName": "primary-flow",
-                        "Exponent": 2,
-                        "TypeName": "channel.config",
-                        "Unit": "Gpm",
-                        "Version": "000",
-                    },
-                    {
-                        "AsyncCapture": True,
-                        "CapturePeriodS": 10,
-                        "ChannelName": "primary-flow-hz",
-                        "Exponent": 6,
-                        "TypeName": "channel.config",
-                        "Unit": "VoltsRms",
-                        "Version": "000",
-                    },
-                ],
-                "ConstantGallonsPerTick": 0.0748,
-                "CutoffFrequency": 1.25,
-                "DisplayName": "Primary Flow ReedFlowModule",
-                "Enabled": True,
-                "FlowMeterType": "EKM__HOTSPWM075HD",
-                "FlowNodeName": "primary-flow",
-                "GpmFromHzMethod": "Constant",
-                "HwUid": "pico_1b5636",
-                "HzCalcMethod": "BasicExpWeightedAvg",
-                "NoFlowMs": 5000,
-                "PublishAnyTicklistAfterS": 10,
-                "PublishTicklistLength": 10,
-                "SendGallons": False,
-                "SendHz": True,
-                "SendTickLists": False,
-                "SerialNumber": "NA",
-                "TypeName": "pico.flow.module.component.gt",
-                "Version": "000",
-            }
-        ],
-        "I2cRelayComponent": {
-            "ComponentAttributeClassId": "29eab8b1-100f-4230-bb44-3a2fcba33cc3",
-            "ComponentId": "b95e75a3-1483-484f-954f-65d202d50e6d",
-            "ConfigList": [
-                {
-                    "ActorName": "relay1",
-                    "AsyncCapture": True,
-                    "CapturePeriodS": 300,
-                    "ChannelName": "vdc-relay1",
-                    "DeEnergizedState": "RelayClosed",
-                    "DeEnergizingEvent": "CloseRelay",
-                    "EnergizedState": "RelayOpen",
-                    "EnergizingEvent": "OpenRelay",
-                    "EventType": "change.relay.state",
-                    "Exponent": 0,
-                    "PollPeriodMs": 200,
-                    "RelayIdx": 1,
-                    "StateType": "relay.closed.or.open",
-                    "TypeName": "relay.actor.config",
-                    "Unit": "Unitless",
-                    "Version": "002",
-                    "WiringConfig": "NormallyClosed",
-                },
-                {
-                    "ActorName": "relay2",
-                    "AsyncCapture": True,
-                    "CapturePeriodS": 300,
-                    "ChannelName": "tstat-common-relay2",
-                    "DeEnergizedState": "RelayClosed",
-                    "DeEnergizingEvent": "CloseRelay",
-                    "EnergizedState": "RelayOpen",
-                    "EnergizingEvent": "OpenRelay",
-                    "EventType": "change.relay.state",
-                    "Exponent": 0,
-                    "PollPeriodMs": 200,
-                    "RelayIdx": 2,
-                    "StateType": "relay.closed.or.open",
-                    "TypeName": "relay.actor.config",
-                    "Unit": "Unitless",
-                    "Version": "002",
-                    "WiringConfig": "NormallyClosed",
-                },
-                {
-                    "ActorName": "relay3",
-                    "AsyncCapture": True,
-                    "CapturePeriodS": 300,
-                    "ChannelName": "charge-discharge-relay3",
-                    "DeEnergizedState": "DischargingStore",
-                    "DeEnergizingEvent": "DischargeStore",
-                    "EnergizedState": "ChargingStore",
-                    "EnergizingEvent": "ChargeStore",
-                    "EventType": "change.store.flow.relay",
-                    "Exponent": 0,
-                    "PollPeriodMs": 200,
-                    "RelayIdx": 3,
-                    "StateType": "store.flow.relay",
-                    "TypeName": "relay.actor.config",
-                    "Unit": "Unitless",
-                    "Version": "002",
-                    "WiringConfig": "NormallyOpen",
-                },
-            ],
-            "DisplayName": "i2c krida relay boards",
-            "I2cAddressList": [32, 33],
-            "TypeName": "i2c.multichannel.dt.relay.component.gt",
-            "Version": "002",
-        },
-        "TypeName": "layout.lite",
-        "Version": "011",
-    }
+            "TypeName": "layout.lite",
+            "Version": "013",
+        }
 
+
+
+def test_layout_lite_generated() -> None:
+    d = layout_lite_dict()
     d2 = LayoutLite.model_validate(d).model_dump(exclude_none=True)
 
     assert d2 == d
+
+
+def machine(node_name: str) -> dict:
+    return {
+        "NodeName": node_name,
+        "StateEnum": "gw.top.state",
+        "StateEnumVersion": "000",
+        "TypeName": "gw.state.machine",
+        "Version": "000",
+    }
+
+
+def test_layout_lite_axiom_5_unknown_node() -> None:
+    d = layout_lite_dict()
+    d["StateMachines"] = [machine("hp-boss")]
+    assert_refused(LayoutLite, d, match="Axiom 5")
+
+
+def test_layout_lite_axiom_5_two_machines_on_one_node() -> None:
+    d = layout_lite_dict()
+    d["StateMachines"] = [machine("s"), machine("s")]
+    assert_refused(LayoutLite, d, match="Axiom 5")

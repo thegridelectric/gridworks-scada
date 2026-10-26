@@ -1,0 +1,9 @@
+{
+  "TypeName": "cop.curve",
+  "Version": "000",
+  "Intercept": 1.02,
+  "OatCoeff": 0.0257,
+  "LwtCoeff": 0.0,
+  "Min": 1.4,
+  "MinOatF": 15.0
+}

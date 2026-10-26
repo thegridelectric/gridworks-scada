@@ -1,0 +1,149 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw.weather.forecast.channel.gt/000"
+
+title: "gw.weather.forecast.channel.gt"
+type: object
+description: >
+  A named predictor of one observed weather series. A forecast's
+  producer is constitutive — "NWS's prediction" and "gw's
+  bias-corrected prediction" are different claims that legitimately
+  coexist, competing against the same observed series — so the record
+  carries the Forecaster and its acquisition detail. Slice structure
+  is declared here, not on the wire: TotalSlices and
+  ForecastDurationMinutes are deliberately redundant with
+  SliceDurationSList (Axioms 1-2 carry the consistency) so consumers
+  read totals without arithmetic. There is deliberately no
+  created-before-start constraint on emissions: hindcast channels are
+  legal (a challenger backtesting against history for skill-scoring).
+  Coupled bijectively with a table in the gridworks-weather DB.
+  Changing a structural fact is a new record (new Id); the Name
+  persists, and Start scopes which record an archived message
+  resolves against.
+
+properties:
+  Name:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      The predictor's fleet-scoped name: TargetChannelName +
+      ".forecast." + a forecaster slug (Axiom 4).
+
+  TargetChannelName:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      The gw.weather.channel.gt Name of the observed series this
+      predictor is scored against.
+
+  Forecaster:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      The producer whose prediction this channel carries
+      (e.g. us.nws.gridpoint, gw.bias.corrected.v1).
+
+  Method:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      The forecaster's acquisition or generation method
+      (e.g. api.weather.gov.gridpoint.hourly).
+
+  SourceLocator:
+    $ref: "https://schemas.electricity.works/formats/non.empty.string"
+    description: >
+      Method-scoped locator of this channel's product at the source
+      (e.g. NWS gridpoint car.60.114). Absent when the method has no
+      external locator.
+
+  TotalSlices:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Declared number of slices per emission; equals the length of
+      SliceDurationSList (Axiom 1).
+
+  SliceDurationSList:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Duration of each slice in seconds, in slice order. Uniform today
+      (e.g. 48 x 3600); non-uniform is a record change, not a wire
+      change.
+
+  ForecastDurationMinutes:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Declared total horizon in minutes; equals the sum of
+      SliceDurationSList over 60 (Axiom 2).
+
+  Start:
+    $ref: "https://schemas.electricity.works/formats/utc.iso8601.seconds"
+    description: >
+      When this record became the active record for Name; an archived
+      message resolves against the record active at its time.
+
+  Id:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      Immutable identifier of this record. A structural change is a
+      new record with a new Id under the persisting Name.
+
+  TypeName:
+    const: "gw.weather.forecast.channel.gt"
+
+  Version:
+    const: "000"
+
+required:
+  - Name
+  - TargetChannelName
+  - Forecaster
+  - Method
+  - TotalSlices
+  - SliceDurationSList
+  - ForecastDurationMinutes
+  - Start
+  - Id
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "Name": "us.me.millinocket.temperature.forecast.nws",
+      "TargetChannelName": "us.me.millinocket.temperature",
+      "Forecaster": "us.nws.gridpoint",
+      "Method": "api.weather.gov.gridpoint.hourly",
+      "SourceLocator": "car.60.114",
+      "TotalSlices": 2,
+      "SliceDurationSList": [3600, 3600],
+      "ForecastDurationMinutes": 120,
+      "Start": "2026-08-11T00:00:00Z",
+      "Id": "9b3e5d7a-2f8c-4c6b-8e1d-4a7f9c2b6e8d",
+      "TypeName": "gw.weather.forecast.channel.gt",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "SliceCount"
+      statement: >
+        TotalSlices SHALL equal the number of elements of
+        SliceDurationSList.
+    - number: 2
+      name: "DurationConsistency"
+      statement: >
+        The sum of SliceDurationSList SHALL equal
+        ForecastDurationMinutes times 60.
+    - number: 3
+      name: "SliceQuantum"
+      statement: >
+        Every element of SliceDurationSList SHALL be a positive
+        multiple of 300.
+    - number: 4
+      name: "NameShape"
+      statement: >
+        Name SHALL equal TargetChannelName + ".forecast." followed by
+        one or more further segments.

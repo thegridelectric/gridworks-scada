@@ -1,0 +1,100 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/web.server.component.gt/001"
+
+title: "web.server.component.gt"
+type: object
+description: >
+  A web-server component (one installed device instance) that exposes a local HTTP
+  server (e.g. for Pico devices to POST to). Flat — the shared component fields are
+  spelled out here; the server settings are an inline WebServer object.
+
+properties:
+
+  ComponentId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+
+  DeviceType:
+    $ref: "https://schemas.electricity.works/formats/pascal.case"
+    description: >
+      The device category this component is built on, an open
+      pascal-case string.
+
+  WebServer:
+    type: object
+    description: >
+      The local HTTP server settings.
+    properties:
+      Serve:
+        type: boolean
+        description: >
+          Whether the scada runs this HTTP server.
+      Host:
+        type: string
+      Name:
+        type: string
+      Port:
+        type: integer
+      Kwargs:
+        type: object
+        description: >
+          Free-form keyword arguments passed through to the server.
+    required:
+      - Serve
+      - Host
+      - Name
+      - Port
+      - Kwargs
+    additionalProperties: false
+
+  DisplayName:
+    type: string
+
+  HwUid:
+    type: string
+
+  TypeName:
+    const: "web.server.component.gt"
+
+  Version:
+    const: "001"
+
+required:
+  - ComponentId
+  - DeviceType
+  - WebServer
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "ComponentId": "f7dca1af-d89d-463d-b3ab-a1c1a4fec75b",
+      "DeviceType": "AbstractWebServer",
+      "WebServer": {
+        "Serve": false,
+        "Host": "example",
+        "Name": "example",
+        "Port": 0,
+        "Kwargs": {}
+      },
+      "TypeName": "web.server.component.gt",
+      "Version": "001"
+    }
+x-gridworks:
+  owner: "gridworks-energy"
+
+  extended_description: >
+    This is a bit of a dangler: a web server is a software service, not telemetry
+    or actuation hardware, so it produces no channels. It rides the component
+    shape only because the layout references it by ComponentId. A cleaner model
+    would move the local-server settings out of the component vocabulary — revisit
+    when the component model is next reworked.
+
+    The `.gt` suffix declares that this type is coupled bijectively with a table in
+    a canonical seed database (here, the terminalasset registry): the table's rows are
+    instances of this type. Sema is the authority over what a row means; the seed
+    table is the authority over which instances are currently asserted.
+
+    DeviceType values come from the `gw1.device.type` vocabulary; the hardware layout enforces membership.

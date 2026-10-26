@@ -1,0 +1,44 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/gw.scada.cmd.refusal.reason/000"
+
+title: "gw.scada.cmd.refusal.reason"
+type: "string"
+description: >
+  Why a scada command node refused a command from its boss, carried on
+  gw.dispatch.nack. A refusal is judged by the target node, which is the
+  only party that knows whether it is busy, whether the sender is its
+  boss, and whether the command is one it takes.
+
+enum:
+  - "Unknown"
+  - "Busy"
+  - "NotMyBoss"
+  - "UnknownEvent"
+  - "OutOfRange"
+  - "NotAControlNode"
+
+default: "Unknown"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "Unknown": >
+      The reason was not one this vocabulary names. Also the default, so an
+      out-of-vocabulary reason reads as unexplained rather than as a
+      specific cause.
+
+    "Busy": >
+      The node is executing an earlier command and takes one at a time.
+
+    "NotMyBoss": >
+      The sender is not the node's immediate boss in the live command tree.
+
+    "UnknownEvent": >
+      The event type or event name is not in the node's command vocabulary.
+
+    "OutOfRange": >
+      An analog value lies outside the range the node can drive.
+
+    "NotAControlNode": >
+      The addressed node takes no commands at all.

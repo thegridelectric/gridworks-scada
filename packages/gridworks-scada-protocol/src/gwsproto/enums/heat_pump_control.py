@@ -1,18 +1,10 @@
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class HeatPumpControl(AslEnum):
-    """
-
-    Values:
-      - BufferTankAquastat
-      - Scada
-
-    For more information:
-      - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
-      - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#heatpumpcontrol)
+class HeatPumpControl(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/heat.pump.control/000
     """
 
     BufferTankAquastat = auto()

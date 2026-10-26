@@ -1,0 +1,23 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/market.price.unit/000"
+
+title: "market.price.unit"
+type: "string"
+description: >
+  Unit of the price axis for a MarketType. This unit defines the
+  dimensional interpretation of bid prices and clearing prices
+  within the associated MarketSlot.
+
+  Price units represent compensation per unit of the declared
+  QuantityUnit over the market settlement interval. All bids and
+  clearing results for a given MarketSlot SHALL use the PriceUnit
+  declared by its MarketType.
+
+enum:
+  - "USDPerMWh"
+
+default: "USDPerMWh"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"

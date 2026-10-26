@@ -5,7 +5,7 @@ from typing import Optional
 
 from gwsproto.data_classes.data_channel import DataChannel
 from gwsproto.data_classes.derived_channel import DerivedChannel
-from gwsproto.enums import TelemetryName, GwUnit
+from gwsproto.enums import TelemetryName, Unit
 from rich.console import Console
 from rich.console import ConsoleOptions
 from rich.console import RenderResult
@@ -15,7 +15,7 @@ from rich.text import Text
 from actors.honeywell_thermostat import HoneywellThermostatOperatingState
 from gwsproto.conversions.temperature import convert_temp_to_f
 from gwsproto.named_types import SnapshotSpaceheat
-from gwsproto.data_classes.hardware_layout import ChannelRegistry
+from gwsproto.data_classes.hydronic_layout import ChannelRegistry
 from actors.ltn.dashboard.display.styles import fahrenheit_style
 from actors.ltn.dashboard.display.styles import tank_style
 from actors.ltn.dashboard.channels.reading import MissingReading
@@ -32,7 +32,7 @@ DEFAULT_STYLE = ""
 
 class DisplayChannel:
     name: str
-    unit: TelemetryName | GwUnit | None = None
+    unit: TelemetryName | Unit | None = None
     format_string: str
     style: Style
     style_calculator: Optional[Callable[[float | int], Style]] = None
@@ -175,7 +175,8 @@ class TemperatureChannel(DisplayChannel):
                 TelemetryName.WaterTempCTimes1000,
                 TelemetryName.AirTempFTimes1000,
                 TelemetryName.WaterTempFTimes1000,
-                GwUnit.FahrenheitX100,
+                TelemetryName.CelsiusTimes100,
+                Unit.FahrenheitX100,
             ):
                 raise ValueError(
                     f"TemperatureChannel {self.name} has non-temperature "
@@ -234,10 +235,10 @@ class FlowChannel(DisplayChannel):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        if self.exists and self.unit not in [TelemetryName.GpmTimes100, GwUnit.GpmX100]:
+        if self.exists and self.unit not in [TelemetryName.GpmTimes100, Unit.GpmX100]:
             raise ValueError(
                 f"ERROR. Flow channel {self.name} expects "
-                f"{TelemetryName.GpmTimes100} or {GwUnit.GpmX100}. Got {self.unit}"
+                f"{TelemetryName.GpmTimes100} or {Unit.GpmX100}. Got {self.unit}"
             )
     
     def convert(self, raw: int) -> float:
@@ -279,4 +280,3 @@ class HoneywellThermostatStateChannel(DisplayChannel):
             if self.raise_errors:
                 raise
         return Text(f"{converted} (?)", style=self.UNEXPECTED_STYLE)
-

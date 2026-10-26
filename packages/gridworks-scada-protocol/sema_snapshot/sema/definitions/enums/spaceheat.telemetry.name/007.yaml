@@ -1,0 +1,76 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/spaceheat.telemetry.name/007"
+
+title: "spaceheat.telemetry.name"
+type: "string"
+description: >
+  Specifies the canonical name of telemetry values produced by legacy
+  Spaceheat SCADA systems.
+
+  This enum historically encoded both physical quantity and unit scaling
+  within a single string (e.g., WaterTempCTimes1000, GpmTimes100).
+  It remains supported for backward compatibility and stable integration
+  with existing deployed systems.
+
+  Newer Sema vocabulary separates quantity classification (gw1.quantity)
+  from unit representation (gw1.unit) to make dimensional semantics
+  explicit and mechanically verifiable. Future designs SHOULD prefer
+  those explicit fields over introducing new values into this enum.
+
+  This enum remains authoritative for existing Spaceheat channel
+  definitions but is not intended to expand indefinitely.
+
+enum:
+  - "Unknown"
+  - "PowerW"
+  - "RelayState"
+  - "WaterTempCTimes1000"
+  - "WaterTempFTimes1000"
+  - "GpmTimes100"
+  - "CurrentRmsMicroAmps"
+  - "GallonsTimes100"
+  - "VoltageRmsMilliVolts"
+  - "MilliWattHours"
+  - "MicroHz"
+  - "AirTempCTimes1000"
+  - "AirTempFTimes1000"
+  - "ThermostatState"
+  - "MicroVolts"
+  - "VoltsTimesTen"
+  - "WattHours"
+  - "StorageLayer"
+  - "PercentKeep"
+  - "CelsiusTimes100"
+  - "VoltsTimes100"
+  - "HzTimes100"
+  - "BinaryState"
+
+default: "Unknown"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "007"
+  value_descriptions:
+    "Unknown": "Default Value - unknown telemetry name."
+    "PowerW": "Power in Watts."
+    "RelayState": "The Telemetry reading belongs to [1 ('Energized'), 0 ('DeEnergized')] (relay.energization.state enum)."
+    "WaterTempCTimes1000": "Water temperature, in Degrees Celcius multiplied by 1000. Example: 43200 means 43.2 deg Celcius."
+    "WaterTempFTimes1000": "Water temperature, in Degrees F multiplied by 1000. Example: 142100 means 142.1 deg Fahrenheit."
+    "GpmTimes100": "Gallons Per Minute multiplied by 100. Example: 433 means 4.33 gallons per minute."
+    "CurrentRmsMicroAmps": "Current measurement in Root Mean Square MicroAmps."
+    "GallonsTimes100": "Gallons multipled by 100. This is useful for flow meters that report cumulative gallons as their raw output. Example: 55300 means 55.3 gallons."
+    "VoltageRmsMilliVolts": "Voltage in Root Mean Square MilliVolts."
+    "MilliWattHours": "Energy in MilliWattHours."
+    "MicroHz": "Frequency in MicroHz. Example: 59,965,332 means 59.965332 Hz."
+    "AirTempCTimes1000": "Air temperature, in Degrees Celsius multiplied by 1000. Example: 6234 means 6.234 deg Celcius."
+    "AirTempFTimes1000": "Air temperature, in Degrees F multiplied by 1000. Example: 69329 means 69.329 deg Fahrenheit."
+    "ThermostatState": "Thermostat State: 0 means idle, 1 means heating, 2 means pending heat"
+    "MicroVolts": "Microvolts RMS"
+    "VoltsTimesTen": "VoltsTimesTen value"
+    "WattHours": "WattHours value"
+    "StorageLayer": "StorageLayer value"
+    "PercentKeep": "Percentage of the flow in the Siegenthaler loop that returns to the heat pump"
+    "CelsiusTimes100": "Temperature in celsius times 100"
+    "VoltsTimes100": "Voltage times 100"
+    "HzTimes100": "Frequency times 100"
+    "BinaryState": "In [0,1], generic"

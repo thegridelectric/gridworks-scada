@@ -1,0 +1,9 @@
+{
+  "TypeName": "flow.hall.params",
+  "Version": "101",
+  "HwUid": "pico_1a2b3c",
+  "ActorNodeName": "dist-flow",
+  "FlowNodeName": "dist-flow",
+  "PublishTicklistPeriodS": 10,
+  "PublishEmptyTicklistAfterS": 60
+}

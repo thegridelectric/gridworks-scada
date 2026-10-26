@@ -17,36 +17,30 @@ from gwproto.message import Header
 
 from gwsproto.data_classes.components.ads111x_based_component import \
     Ads111xBasedComponent
-from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.data_classes.data_channel import DataChannel
 from gwsproto.data_classes.sh_node import ShNode
-from gwsproto.enums import MakeModel
-from gwsproto.named_types import AdsChannelConfig, SyncedReadings
+from gwsproto.enums import DeviceType
+from gwsproto.named_types import CaptureTuning, SyncedReadings
 from gwsproto.named_types import Glitch
-from gwsproto.data_classes.hardware_layout import HardwareLayout
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
+from gwsproto.names.core.node_names import CoreNodeNames
 
 from actors.config import ScadaSettings
 from scada_app_interface import ScadaAppInterface
-
-UNKNOWNMAKE__UNKNOWNMODEL__MODULE_NAME = (
-    "drivers.multipurpose_sensor.unknown_multipurpose_sensor_driver"
-)
-UNKNOWNMAKE__UNKNOWNMODEL__CLASS_NAME = "UnknownMultipurposeSensorDriver"
-
 
 class MpDriverThreadSetupHelper:
     """A helper class to isolate code only used in construction of MultipurposeSensorDriverThread"""
 
     node: ShNode
     settings: ScadaSettings
-    hardware_layout: HardwareLayout
+    hardware_layout: HydronicLayout
     component: Ads111xBasedComponent
 
     def __init__(
         self,
         node: ShNode,
         settings: ScadaSettings,
-        hardware_layout: HardwareLayout,
+        hardware_layout: HydronicLayout,
     ):
         if not isinstance(node.component, Ads111xBasedComponent):
             raise ValueError(
@@ -61,11 +55,8 @@ class MpDriverThreadSetupHelper:
     def make_driver(self) -> MultipurposeSensorDriver:
         driver_module_name = ""
         driver_class_name = ""
-        cac = self.component.cac
-        if cac.MakeModel == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
-            driver_module_name = UNKNOWNMAKE__UNKNOWNMODEL__MODULE_NAME
-            driver_class_name = UNKNOWNMAKE__UNKNOWNMODEL__CLASS_NAME
-        elif cac.MakeModel == MakeModel.GRIDWORKS__TSNAP1:
+        cac = self.component.device_type
+        if cac.DeviceType == DeviceType.GridworksTsnap1ScadaBoard:
             driver_module_name = "drivers.multipurpose_sensor.gridworks_tsnap1__multipurpose_sensor_driver"
             driver_class_name = "GridworksTsnap1_MultipurposeSensorDriver"
             for module_name in [
@@ -77,12 +68,12 @@ class MpDriverThreadSetupHelper:
             ]:
                 found = importlib.util.find_spec(module_name)
                 if found is None:
-                    driver_module_name = UNKNOWNMAKE__UNKNOWNMODEL__MODULE_NAME
-                    driver_class_name = UNKNOWNMAKE__UNKNOWNMODEL__CLASS_NAME
-                    break
+                    raise NotImplementedError(
+                        f"MultipurposeSensor {cac.DeviceType} needs i2c/adafruit libs not available here"
+                    )
         if not driver_module_name or not driver_class_name:
             raise NotImplementedError(
-                f"No MultipurposeSensor driver yet for {cac.MakeModel}"
+                f"No MultipurposeSensor driver yet for {cac.DeviceType}"
             )
         if driver_module_name not in sys.modules:
             importlib.import_module(driver_module_name)
@@ -94,19 +85,19 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
 
     FASTEST_POLL_PERIOD_MS = 40
     driver: MultipurposeSensorDriver
-    cfg_by_ch: Dict[DataChannel, AdsChannelConfig]
+    tuning_by_ch: Dict[DataChannel, CaptureTuning]
     my_channels: List[DataChannel]
     last_reported_telemetry_value: Dict[str, Optional[int]]  # channel name to value
     latest_telemetry_value: Dict[str, Optional[int]]
     _last_sampled_s: Dict[str, Optional[int]]
     _telemetry_destination: str
-    _hardware_layout: HardwareLayout
+    _hardware_layout: HydronicLayout
 
     def __init__(
         self,
         node: ShNode,
         settings: ScadaSettings,
-        hardware_layout: HardwareLayout,
+        hardware_layout: HydronicLayout,
         telemetry_destination: str,
         responsive_sleep_step_seconds=0.01,
         daemon: bool = True,
@@ -120,18 +111,26 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
         self.component = typing.cast(Ads111xBasedComponent, node.component)
         self.poll_period_ms = max(
             self.FASTEST_POLL_PERIOD_MS,
-            self.component.cac.MinPollPeriodMs,
+            self.component.device_type.MinPollPeriodMs,
         )
         self._telemetry_destination = telemetry_destination
-        my_channel_names = {x.ChannelName for x in self.component.gt.ConfigList}
+        my_channel_names = set(
+            hardware_layout.enabled_channel_names(
+                x.ChannelName for x in self.component.gt.ConfigList
+            )
+        )
+        if hardware_layout.node_disabled(node.name):
+            my_channel_names = set()
         self.my_channels = [
             ch
             for ch in self._hardware_layout.data_channels.values()
             if ch.AboutNodeName in my_channel_names
         ]
         setup_helper = MpDriverThreadSetupHelper(node, settings, hardware_layout)
-        self.cfg_by_ch = {
-            self._hardware_layout.data_channels[cfg.ChannelName]: cfg
+        self.tuning_by_ch = {
+            self._hardware_layout.data_channels[cfg.ChannelName]: (
+                self._hardware_layout.capture_tuning_by_channel[cfg.ChannelName]
+            )
             for cfg in self.component.gt.ConfigList
         }
         self.driver = setup_helper.make_driver()
@@ -156,7 +155,7 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
                 Details=outcome.comments_to_details(),
             )
             message = Message(
-                header=Header(Src=self.name, Dst=H0N.ltn,  MessageType=payload.TypeName),
+                header=Header(Src=self.name, Dst=CoreNodeNames.ltn,  MessageType=payload.TypeName),
                 Payload=payload,
             )
             # TODO: add analog temp logging
@@ -199,7 +198,7 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
                 Details=outcome.comments_to_details(),
             )
             message = Message(
-                header=Header(Src=self.name, Dst=H0N.ltn, MessageType=payload.TypeName),
+                header=Header(Src=self.name, Dst=CoreNodeNames.ltn, MessageType=payload.TypeName),
                 Payload=payload,
             )
             # TODO: add analog temp logging
@@ -233,7 +232,7 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
         the amount of change required (as a function of the absolute max value) determined
         in the Config.
         """
-        telemetry_config = self.cfg_by_ch[ch]
+        telemetry_config = self.tuning_by_ch[ch]
         if (
             telemetry_config.AsyncCapture
             and telemetry_config.AsyncCaptureDelta is not None
@@ -264,7 +263,7 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
             return True
         if (
             time.time() - self._last_sampled_s[ch.Name]
-            > self.cfg_by_ch[ch].CapturePeriodS
+            > self.tuning_by_ch[ch].CapturePeriodS
         ):
             return True
         if self.value_exceeds_async_threshold(ch):

@@ -4,11 +4,6 @@ from enum import Enum
 
 
 class RelayEnergizationState(Enum):
-    """
-    The basic two-state enum for a double-throw relay where nothing is known about its energized/de-energized
-    legs. This can only ever have two states. This is an old-school enum, where DeEnergized
-    encodes 0 and Energized encodes 1.
-    """
 
     DeEnergized = 0
     Energized = 1

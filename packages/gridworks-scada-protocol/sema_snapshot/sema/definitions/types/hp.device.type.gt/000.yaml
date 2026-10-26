@@ -1,0 +1,131 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/hp.device.type.gt/000"
+
+title: "hp.device.type.gt"
+type: object
+description: >
+  The specialized device-type record for a compressor-bearing heat pump unit category:
+  monobloc ODUs, hydro-kit ODUs, and hydro-kit IDUs that carry their own refrigerant
+  cycle. Keyed by `DeviceType` (a device-category value); a component joins this
+  record by the shared `DeviceType` value. Carries the category-level facts control
+  code branches on — capacity, electrical limits, and the three primary-pump facts.
+  Replaces the legacy `HpModel` enum-plus-settings pattern (`ScadaSettings.hp_model`
+  and `HpMaxKwEl`). Flat.
+
+properties:
+
+  DeviceType:
+    $ref: "https://schemas.electricity.works/formats/pascal.case"
+    description: >
+      The device category this component is built on, an open
+      pascal-case string.
+
+  DisplayName:
+    type: string
+
+  MaxKwEl:
+    $ref: "https://schemas.electricity.works/formats/positive.float"
+    description: >
+      Maximum electrical power draw of the unit, in kW.
+
+  HeatingCapacityBtuHr:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Rated heating capacity, in BTU per hour.
+
+  CoolingCapacityBtuHr:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Rated cooling capacity, in BTU per hour.
+
+  PrimaryPumpFactoryInstalled:
+    type: boolean
+    description: >
+      The primary pump ships inside the unit, as opposed to field-supplied.
+
+  PrimaryPumpOverridable:
+    type: boolean
+    description: >
+      The unit exposes its pump-control signal so an external interrupt can be wired
+      (the Samsung/LG two-stage terminal-block pattern). False where the pump is
+      sealed in with no signal out.
+
+  PrimaryPumpAlwaysOn:
+    type: boolean
+    description: >
+      Under the unit's own control the primary pump never stops.
+
+  Refrigerant:
+    $ref: "https://schemas.electricity.works/formats/non.empty.string"
+    description: >
+      The refrigerant the unit's cycle uses (e.g. R32, R410A).
+
+  CompressorRatedAmps:
+    $ref: "https://schemas.electricity.works/formats/positive.float"
+
+  Mca:
+    $ref: "https://schemas.electricity.works/formats/positive.float"
+    description: >
+      Minimum circuit ampacity, from the nameplate.
+
+  Mop:
+    $ref: "https://schemas.electricity.works/formats/positive.float"
+    description: >
+      Maximum overcurrent protection, in amps, from the nameplate.
+
+  ProductInfoUrl:
+    type: string
+    description: >
+      Link to a publicly accessible folder or page holding product information for
+      this device category — manuals, nameplate photos, wiring diagrams, and
+      controls-integration notes.
+
+  TypeName:
+    const: "hp.device.type.gt"
+
+  Version:
+    const: "000"
+
+required:
+  - DeviceType
+  - MaxKwEl
+  - HeatingCapacityBtuHr
+  - CoolingCapacityBtuHr
+  - PrimaryPumpFactoryInstalled
+  - PrimaryPumpOverridable
+  - PrimaryPumpAlwaysOn
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "TypeName": "hp.device.type.gt",
+      "Version": "000",
+      "DeviceType": "SamsungAE055FCYDCG",
+      "DisplayName": "Samsung AE055 EHS mono outdoor monobloc",
+      "MaxKwEl": 4.35,
+      "HeatingCapacityBtuHr": 54600,
+      "CoolingCapacityBtuHr": 54600,
+      "PrimaryPumpFactoryInstalled": false,
+      "PrimaryPumpOverridable": false,
+      "PrimaryPumpAlwaysOn": false,
+      "Refrigerant": "R32",
+      "CompressorRatedAmps": 18.9,
+      "Mca": 32.0,
+      "Mop": 40.0,
+      "ProductInfoUrl": "https://drive.google.com/drive/folders/1XV80QPgqpyYvMaoQIR9PpGWmu6dSY9kD"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+  extended_description: >
+    The `.gt` suffix declares that this type is coupled bijectively with a table in
+    a canonical seed database (here, the terminalasset registry): the table's
+    rows are instances of this type. Sema is
+    the authority over what a row means; the seed table is the authority over which
+    instances are currently asserted.
+
+    DeviceType values come from the `gw1.device.type` vocabulary; the hardware layout enforces membership.

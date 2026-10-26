@@ -1,10 +1,10 @@
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class LocalControlAllTanksState(AslEnum):
-    """ASL: https://schemas.electricity.works/enums/gw1.local.control.all.tanks.state/000"""
+class LocalControlAllTanksState(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/gw1.local.control.all.tanks.state/001"""
 
     Initializing = auto()
     HpOnStoreOff = auto()
@@ -20,6 +20,10 @@ class LocalControlAllTanksState(AslEnum):
     @classmethod
     def enum_name(cls) -> str:
         return "gw1.local.control.all.tanks.state"
+
+    @classmethod
+    def enum_version(cls) -> str:
+        return "001"
 
     @classmethod
     def values(cls) -> list[str]:

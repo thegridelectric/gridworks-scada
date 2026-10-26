@@ -1,0 +1,7 @@
+{
+  "TypeName": "gw.boiler.backup",
+  "Version": "000",
+  "FailsafeRelayName": "hp-failsafe-relay",
+  "AquastatCtrlRelayName": "aquastat-ctrl-relay",
+  "InService": true
+}

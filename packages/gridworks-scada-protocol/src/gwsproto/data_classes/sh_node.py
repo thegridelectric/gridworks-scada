@@ -65,10 +65,6 @@ class ShNode(SpaceheatNodeGt):
     def component_id(self) -> Optional[str]:
         return self.ComponentId
 
-    @property
-    def in_power_metering(self) -> Optional[bool]:
-        return self.InPowerMetering
-
     def __repr__(self) -> str:
         rs = f"ShNode {self.display_name} => {self.name}, "
         if self.has_actor:

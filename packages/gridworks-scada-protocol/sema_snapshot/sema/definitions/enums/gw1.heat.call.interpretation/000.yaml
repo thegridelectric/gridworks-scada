@@ -1,0 +1,36 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/gw1.heat.call.interpretation/000"
+
+title: "gw1.heat.call.interpretation"
+type: "string"
+description: >
+  Defines how a source telemetry channel is interpreted to determine
+  whether a zone is calling for heat.
+
+enum:
+  - "DigitalZeroIsActive"
+  - "DigitalOneIsActive"
+  - "GreaterThanThreshold"
+
+default: "DigitalZeroIsActive"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+
+    DigitalZeroIsActive: >
+      The source channel is treated as a digital signal where a value of
+      zero indicates an active call for heat. This is typically used for
+      opto-isolated GPIO inputs connected to 24 VAC thermostat circuits
+      that pull the input low when energized.
+
+    DigitalOneIsActive: >
+      The source channel is treated as a digital signal where a value of
+      one indicates an active call for heat.
+
+    GreaterThanThreshold: >
+      The source channel is treated as a scalar measurement. A zone is
+      considered to be calling for heat when the absolute value of the
+      source reading exceeds the configured threshold. This mode is
+      typically used for legacy white-wire power measurements.

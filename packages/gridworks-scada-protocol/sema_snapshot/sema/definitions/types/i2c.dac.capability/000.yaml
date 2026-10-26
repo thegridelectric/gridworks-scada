@@ -1,0 +1,94 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/i2c.dac.capability/000"
+
+title: "i2c.dac.capability"
+type: object
+description: >
+  A digital-to-analog converter on a GridWorks SCADA board.
+
+properties:
+
+  DacName:
+    $ref: "https://schemas.electricity.works/formats/pascal.case"
+    description: >
+      The name of this DAC on the board.
+
+  I2cBus:
+    $ref: "https://schemas.electricity.works/formats/pascal.case"
+    description: >
+      The name of the board bus this DAC is attached to.
+
+  I2cAddress:
+    $ref: "https://schemas.electricity.works/formats/non.negative.int"
+    description: >
+      The I²C bus address of the DAC.
+
+  MuxName:
+    $ref: "https://schemas.electricity.works/formats/pascal.case"
+    description: >
+      The name of the board mux this DAC sits behind, when it does not sit
+      directly on its bus.
+
+  MuxChannel:
+    $ref: "https://schemas.electricity.works/formats/non.negative.int"
+    description: >
+      The downstream channel of that mux the DAC is reached through.
+
+  DacType:
+    $ref: "https://schemas.electricity.works/enums/i2c.dac.type/000"
+    description: >
+      The DAC model.
+
+  Channels:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      The number of channels the DAC provides.
+
+  TypeName:
+    const: "i2c.dac.capability"
+
+  Version:
+    const: "000"
+
+required:
+  - DacName
+  - I2cBus
+  - I2cAddress
+  - DacType
+  - Channels
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "DacName": "Zones",
+      "I2cBus": "DefaultBus",
+      "I2cAddress": 96,
+      "DacType": "Mcp4728",
+      "Channels": 4,
+      "TypeName": "i2c.dac.capability",
+      "Version": "000"
+    }
+  - |
+    {
+      "DacName": "Zones456",
+      "I2cBus": "DefaultBus",
+      "I2cAddress": 96,
+      "MuxName": "DacMux",
+      "MuxChannel": 2,
+      "DacType": "Mcp4728",
+      "Channels": 4,
+      "TypeName": "i2c.dac.capability",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "MuxPairing"
+      statement: >
+        MuxName and MuxChannel SHALL be both present or both absent.

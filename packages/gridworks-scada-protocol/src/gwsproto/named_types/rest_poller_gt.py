@@ -7,12 +7,15 @@ from functools import cached_property
 from typing import Any, Literal, Optional, Self
 
 import yarl
-from pydantic import BaseModel, ConfigDict, HttpUrl, model_validator
+from pydantic import ConfigDict, HttpUrl, model_validator
 
 from gwproto.utils import snake_to_camel
 
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
-class URLArgs(BaseModel):
+
+
+class URLArgs(GwsprotoSemaType):
     """A container for paramters that can be passed to yarl.URL.build()"""
 
     scheme: Literal["http", "https", ""] = "https"
@@ -45,8 +48,7 @@ class URLArgs(BaseModel):
     def from_url(cls, url: str | yarl.URL) -> "URLArgs":
         return URLArgs(**cls.dict_from_url(url))
 
-
-class URLConfig(BaseModel):
+class URLConfig(GwsprotoSemaType):
     """Construct a URL. Three methods are provided. They are run in order of appearance,
     each updating and/or modifying the previous method.
 
@@ -119,24 +121,21 @@ class URLConfig(BaseModel):
             return yarl.URL.build(**args)
         return None
 
-
-class AioHttpClientTimeout(BaseModel):
+class AioHttpClientTimeout(GwsprotoSemaType):
     total: Optional[float] = None
     connect: Optional[float] = None
     sock_read: Optional[float] = None
     sock_connect: Optional[float] = None
     model_config = ConfigDict(alias_generator=snake_to_camel, populate_by_name=True)
 
-
-class SessionArgs(BaseModel):
+class SessionArgs(GwsprotoSemaType):
     base_url: Optional[URLConfig] = None
     timeout: Optional[AioHttpClientTimeout] = None
     model_config = ConfigDict(
         extra="allow", alias_generator=snake_to_camel, populate_by_name=True
     )
 
-
-class RequestArgs(BaseModel):
+class RequestArgs(GwsprotoSemaType):
     url: Optional[URLConfig] = None
     method: Literal["GET", "POST", "PUT", "DELETE"] = "GET"
     params: Optional[dict[str, Any]] = None
@@ -148,8 +147,7 @@ class RequestArgs(BaseModel):
         extra="allow", alias_generator=snake_to_camel, populate_by_name=True
     )
 
-
-class ErrorResponse(BaseModel):
+class ErrorResponse(GwsprotoSemaType):
     error_for_http_status: bool = True
     raise_exception: bool = False
     report: bool = True
@@ -157,19 +155,16 @@ class ErrorResponse(BaseModel):
         extra="allow", alias_generator=snake_to_camel, populate_by_name=True
     )
 
-
-class ErrorResponses(BaseModel):
+class ErrorResponses(GwsprotoSemaType):
     request: ErrorResponse = ErrorResponse()
     convert: ErrorResponse = ErrorResponse()
     model_config = ConfigDict(
         extra="allow", alias_generator=snake_to_camel, populate_by_name=True
     )
 
-
 DEFAULT_REST_POLL_PERIOD_SECONDS = 60.0
 
-
-class RESTPollerSettings(BaseModel):
+class RESTPollerSettings(GwsprotoSemaType):
     session: SessionArgs = SessionArgs()
     request: RequestArgs = RequestArgs()
     poll_period_seconds: float = DEFAULT_REST_POLL_PERIOD_SECONDS

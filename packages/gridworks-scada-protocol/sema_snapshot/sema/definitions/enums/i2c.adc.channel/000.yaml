@@ -1,0 +1,18 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/i2c.adc.channel/000"
+
+title: "i2c.adc.channel"
+type: "string"
+description: "ADC input pin identifier for I2C ADC devices."
+
+enum:
+  - "P0"
+  - "P1"
+  - "P2"
+  - "P3"
+
+default: "P0"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"

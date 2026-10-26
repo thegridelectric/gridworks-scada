@@ -1,13 +1,14 @@
 from typing import Literal
 from typing_extensions import Self
 
-from pydantic import BaseModel, model_validator
+from pydantic import model_validator
 
 from gwsproto.named_types.data_channel_gt import DataChannelGt
 from gwsproto.property_format import SpaceheatName
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class ChannelFlatlined(BaseModel):
+class ChannelFlatlined(GwsprotoSemaType):
     FromName: SpaceheatName
     Channel: DataChannelGt
     TypeName: Literal["channel.flatlined"] = "channel.flatlined"

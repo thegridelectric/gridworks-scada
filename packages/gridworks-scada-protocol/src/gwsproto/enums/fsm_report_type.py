@@ -1,20 +1,10 @@
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class FsmReportType(AslEnum):
-    """
-
-    Values:
-      - Other
-      - Event
-      - Action
-
-    For more information:
-      - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
-      - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#fsmreporttype)
-      - [More Info](https://gridworks-protocol.readthedocs.io/en/latest/finite-state-machines.html)
+class FsmReportType(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/fsm.report.type/000
     """
 
     Other = auto()

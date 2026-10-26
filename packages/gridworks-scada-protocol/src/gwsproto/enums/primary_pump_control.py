@@ -1,18 +1,10 @@
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class PrimaryPumpControl(AslEnum):
-    """
-
-    Values:
-      - HeatPump
-      - Scada
-
-    For more information:
-      - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
-      - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#primarypumpcontrol)
+class PrimaryPumpControl(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/primary.pump.control/000
     """
 
     HeatPump = auto()

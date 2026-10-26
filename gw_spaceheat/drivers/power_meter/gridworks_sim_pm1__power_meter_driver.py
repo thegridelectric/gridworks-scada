@@ -1,7 +1,7 @@
 from actors.config import ScadaSettings
 from drivers.driver_result import DriverResult
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
-from gwsproto.enums import MakeModel
+from gwsproto.enums import SimDeviceType
 from gwsproto.data_classes.components.electric_meter_component import (
     ElectricMeterComponent,
 )
@@ -14,18 +14,23 @@ class GridworksSimPm1_PowerMeterDriver(PowerMeterDriver):
         super(GridworksSimPm1_PowerMeterDriver, self).__init__(
             component=component, settings=settings
         )
-        if component.cac.MakeModel != MakeModel.GRIDWORKS__SIMPM1:
+        if component.gt.DeviceType != SimDeviceType.SimPowerMeter:
             raise Exception(
-                f"Expected {MakeModel.GRIDWORKS__SIMPM1}, got {component.cac}"
+                f"Expected {SimDeviceType.SimPowerMeter}, got {component.gt.DeviceType}"
             )
         self.component = component
         self.fake_current_rms_micro_amps = 18000
         self.fake_power_w = 0
+        # Channels whose reads come back with no value, as a meter that
+        # cannot be reached does.
+        self.no_value_channel_names: set[str] = set()
 
     def read_hw_uid(self) -> Result[DriverResult[str | None], Exception]:
         return Ok(DriverResult("1001ab"))
 
     def read_power_w(self, channel: DataChannel) -> Result[DriverResult[int | None], Exception]:
+        if channel.Name in self.no_value_channel_names:
+            return Ok(DriverResult(None))
         return Ok(DriverResult(self.fake_power_w))
 
     def read_current_rms_micro_amps(

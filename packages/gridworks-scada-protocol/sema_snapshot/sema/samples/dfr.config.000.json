@@ -1,0 +1,7 @@
+{
+  "TypeName": "dfr.config",
+  "Version": "000",
+  "ChannelName": "scada",
+  "OutputIdx": 1,
+  "InitialVoltsTimes100": 0
+}

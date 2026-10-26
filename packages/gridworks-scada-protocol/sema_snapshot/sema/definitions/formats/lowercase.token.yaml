@@ -1,0 +1,28 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/formats/lowercase.token"
+
+title: "lowercase.token"
+description: |
+  One lowercase alphanumeric segment starting with a letter: a name that
+  is exactly one segment of a dotted identifier, with no separator of
+  any kind. Where a value of this format is the first segment of
+  left.right.dot names, the names that extend it are unambiguous.
+
+type: string
+pattern: "^[a-z][a-z0-9]*$"
+
+examples:
+  - "kmlt"
+  - "kmemilli18"
+  - "raccoon"
+
+counterexamples:
+  - ""                 # empty
+  - "KMLT"             # uppercase
+  - "us.me.kmlt"       # dotted
+  - "old-town"         # hyphen
+  - "old_town"         # underscore
+  - "14610"            # starts with a digit
+
+x-gridworks:
+  owner: "gridworks-energy"

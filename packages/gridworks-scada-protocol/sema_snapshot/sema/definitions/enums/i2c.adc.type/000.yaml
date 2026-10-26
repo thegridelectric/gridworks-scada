@@ -1,0 +1,23 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/i2c.adc.type/000"
+
+title: "i2c.adc.type"
+type: "string"
+description: >
+  The model of the I²C analog-to-digital converter chipset used by a GridWorks
+  SCADA board.
+
+enum:
+  - "Ads1115"
+  - "Ads1015"
+
+default: "Ads1115"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "Ads1115": >
+      Texas Instruments ADS1115, a 16-bit 4-channel I²C analog-to-digital converter.
+    "Ads1015": >
+      Texas Instruments ADS1015, a 12-bit 4-channel I²C analog-to-digital converter.

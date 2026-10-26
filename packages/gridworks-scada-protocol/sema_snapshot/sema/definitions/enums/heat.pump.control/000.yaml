@@ -1,0 +1,23 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/heat.pump.control/000"
+
+title: "heat.pump.control"
+type: "string"
+description: >
+  Which controller the heat pump relay hands the heat pump's call to: the buffer tank aquastat or the SCADA.
+
+enum:
+  - "BufferTankAquastat"
+  - "Scada"
+
+default: "BufferTankAquastat"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "BufferTankAquastat": >
+      The buffer tank aquastat calls the heat pump; the relay rests in this position de-energized.
+
+    "Scada": >
+      The SCADA calls the heat pump through the relay.

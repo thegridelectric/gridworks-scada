@@ -1,11 +1,11 @@
 from enum import auto
 from typing import List
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class MainAutoState(AslEnum):
-    """ASL: https://schemas.electricity.works/enums/gw1.main.auto.state/000"""
+class MainAutoState(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/gw1.main.auto.state/001"""
 
     LocalControl = auto()
     LeafTransactiveNode = auto()
@@ -25,4 +25,4 @@ class MainAutoState(AslEnum):
 
     @classmethod
     def enum_version(cls) -> str:
-        return "000"
+        return "001"

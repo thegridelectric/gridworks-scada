@@ -23,8 +23,8 @@ from gwproto.messages import (
 from gwproactor import LinkSettings
 from gwproactor.codecs import CodecFactory
 
-from gwsproto.data_classes.house_0_layout import House0Layout
-from gwsproto.data_classes.house_0_names import H0N
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
+from gwsproto.names.core.node_names import CoreNodeNames
 
 from actors.scada_interface import ScadaInterface
 
@@ -53,9 +53,9 @@ ScadaMessageDecoder = create_message_model(
 
 class GridworksMQTTCodec(MQTTCodec):
     exp_src: str
-    exp_dst: str = H0N.primary_scada
+    exp_dst: str = CoreNodeNames.primary_scada
 
-    def __init__(self, hardware_layout: House0Layout):
+    def __init__(self, hardware_layout: HydronicLayout):
         self.exp_src = hardware_layout.ltn_g_node_alias
         super().__init__(ScadaMessageDecoder)
 
@@ -76,11 +76,11 @@ class LocalMQTTCodec(MQTTCodec):
         self.primary_scada = primary_scada
         self.exp_srcs = remote_node_names
         if self.primary_scada:
-            self.exp_srcs.add(H0N.secondary_scada)
-            self.exp_dst = H0N.primary_scada
+            self.exp_srcs.add(CoreNodeNames.secondary_scada)
+            self.exp_dst = CoreNodeNames.primary_scada
         else:
-            self.exp_srcs.add(H0N.primary_scada)
-            self.exp_dst = H0N.secondary_scada
+            self.exp_srcs.add(CoreNodeNames.primary_scada)
+            self.exp_dst = CoreNodeNames.secondary_scada
 
         super().__init__(ScadaMessageDecoder)
 
@@ -112,10 +112,10 @@ class AdminCodec(MQTTCodec):
         super().__init__(ScadaMessageDecoder)
 
     def validate_source_and_destination(self, src: str, dst: str) -> None:
-        if dst != self.scada_gnode or src != H0N.admin:
+        if dst != self.scada_gnode or src != CoreNodeNames.admin:
             raise ValueError(
                 "ERROR validating src and/or dst\n"
-                f"  exp: one of {H0N.admin} -> {self.scada_gnode}\n"
+                f"  exp: one of {CoreNodeNames.admin} -> {self.scada_gnode}\n"
                 f"  got: {src} -> {dst}"
             )
 
@@ -132,16 +132,16 @@ class ScadaCodecFactory(CodecFactory):
         proactor_name: ProactorName,
         layout: HardwareLayout,
     ) -> MQTTCodec:
-        if not isinstance(layout, House0Layout):
+        if not isinstance(layout, HydronicLayout):
             raise ValueError(
                 "ERROR. ScadaCodecFactory requires hardware layout "
-                "to be an instance of House0Layout but received layout type "
+                "to be an instance of HydronicLayout but received layout type "
                 f"<{type(layout)}>"
             )
         if link_name == self.LTN_MQTT:
             return GridworksMQTTCodec(layout)
         elif link_name == self.LOCAL_MQTT:
-            scada_node = layout.node(H0N.primary_scada)
+            scada_node = layout.node(CoreNodeNames.primary_scada)
             remote_actor_node_names = {
                 node.name
                 for node in layout.nodes.values()
@@ -149,7 +149,7 @@ class ScadaCodecFactory(CodecFactory):
                     and node != scada_node
                     and node.has_actor
                 )
-            } | {layout.scada2_gnode_name().replace(".", "-")}
+            } | {layout.scada2_g_node_name().replace(".", "-")}
             return LocalMQTTCodec(
                 primary_scada=True,
                 remote_node_names=remote_actor_node_names
@@ -174,10 +174,10 @@ class Scada2CodecFactory(CodecFactory):
             proactor_name: ProactorName,
             layout: HardwareLayout,
     ) -> MQTTCodec:
-        if not isinstance(layout, House0Layout):
+        if not isinstance(layout, HydronicLayout):
             raise ValueError(
                 "ERROR. ScadaCodecFactory requires hardware layout "
-                "to be an instance of House0Layout but received layout type "
+                "to be an instance of HydronicLayout but received layout type "
                 f"<{type(layout)}>"
             )
         if link_name == self.LOCAL_MQTT:

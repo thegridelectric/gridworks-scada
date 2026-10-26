@@ -1,9 +1,10 @@
+
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 from typing import List, Literal
 
-from pydantic import BaseModel
 
 
-class FloNextHourPlans(BaseModel):
+class FloNextHourPlans(GwsprotoSemaType):
     """Plan output from FLO for the next hour(s) after market clear."""
 
     ExpectedStorageKwhAtHour1: float

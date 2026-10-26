@@ -1,0 +1,79 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/egauge.register.config/000"
+
+title: "egauge.register.config"
+type: object
+description: >
+  Configuration for one EGauge modbus register mapped to a telemetry channel. The
+  Address is the 4-digit modbus holding address (the EGauge map's 3xxxx address
+  with the leading '3' dropped). Name/Description/Type/Unit mirror the EGauge
+  modbus map; Denominator scales the raw register value.
+
+properties:
+
+  Address:
+    type: integer
+    description: >
+      The EGauge modbus holding address (the 4-digit address after the leading
+      '3' of the 3xxxx holding-address form).
+
+  Name:
+    type: string
+    description: >
+      The name assigned to this register in the EGauge modbus map.
+
+  Description:
+    type: string
+    description: >
+      The description assigned to this register in the EGauge modbus map (usually
+      "change in value").
+
+  Type:
+    type: string
+    description: >
+      The EGauge numerical data type for this register (e.g. f32, t16, u32).
+
+  Denominator:
+    type: integer
+    description: >
+      Divisor applied to the raw register value (e.g. 3.6e6 for cumulative-energy
+      registers; 1 for power/current/voltage/phase-angle).
+
+  Unit:
+    type: string
+    description: >
+      The EGauge unit for this register (typically A, Hz, or W).
+
+  TypeName:
+    const: "egauge.register.config"
+
+  Version:
+    const: "000"
+
+required:
+  - Address
+  - Name
+  - Description
+  - Type
+  - Denominator
+  - Unit
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "Address": 0,
+      "Name": "example",
+      "Description": "example",
+      "Type": "example",
+      "Denominator": 0,
+      "Unit": "example",
+      "TypeName": "egauge.register.config",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"

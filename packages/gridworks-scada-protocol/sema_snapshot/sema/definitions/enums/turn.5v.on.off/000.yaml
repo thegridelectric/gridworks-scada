@@ -1,0 +1,26 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/turn.5v.on.off/000"
+
+title: "turn.5v.on.off"
+type: "string"
+description: >
+  The five-v-boss's hold vocabulary: a boss may ask it to hold the picos'
+  5 V supply off, or to restore it. Named by EventType on an fsm.event
+  addressed to five-v-boss.
+
+enum:
+  - "TurnOn"
+  - "TurnOff"
+
+default: "TurnOn"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "TurnOn": >
+      Close the vdc relay and, once it reports closed, hand it back to
+      the pico-cycler.
+
+    "TurnOff": >
+      Take the vdc relay from the pico-cycler, open it, and hold it open.

@@ -1,0 +1,26 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/formats/git.commit"
+
+title: "git.commit"
+description: |
+  A git commit identifying the code a program is running: the full
+  40-character lowercase commit hash, suffixed `-dirty` when the program
+  ran from a working tree with uncommitted changes. The full hash, never
+  a short form: the record is permanent, and a short hash unique today
+  can become ambiguous as the repository grows.
+
+type: string
+pattern: "^[0-9a-f]{40}(-dirty)?$"
+
+examples:
+  - "109d44041c2b3d4e5f60718293a4b5c6d7e8f901"
+  - "109d44041c2b3d4e5f60718293a4b5c6d7e8f901-dirty"
+
+counterexamples:
+  - "109d440"                                          # short hash
+  - "109D44041C2B3D4E5F60718293A4B5C6D7E8F901"         # uppercase hex
+  - "unstamped"
+  - ""
+
+x-gridworks:
+  owner: "gridworks-energy"

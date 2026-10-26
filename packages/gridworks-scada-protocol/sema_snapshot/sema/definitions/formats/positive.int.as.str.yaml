@@ -1,0 +1,30 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/formats/positive.int.as.str"
+
+title: "positive.int.as.str"
+description: |
+  A string whose value is the canonical decimal representation of a
+  positive integer (1, 2, 3, ...). No leading zeros, no sign, no
+  whitespace. Used as the `propertyNames` $ref for int-keyed Typed
+  Maps (see `sema/spec/authoring/types.md` §Typed Maps).
+
+type: string
+pattern: "^[1-9][0-9]*$"
+
+examples:
+  - "1"
+  - "2"
+  - "42"
+  - "999"
+
+counterexamples:
+  - "0"           # zero is not positive
+  - "-1"          # negative not allowed
+  - "01"          # no leading zero
+  - ""            # empty string invalid
+  - "1.5"         # not an integer
+  - " 1"          # no leading whitespace
+  - "1 "          # no trailing whitespace
+
+x-gridworks:
+  owner: "gridworks-energy"

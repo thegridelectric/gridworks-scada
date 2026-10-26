@@ -1,19 +1,10 @@
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class HzCalcMethod(AslEnum):
-    """
-
-    Values:
-      - BasicExpWeightedAvg
-      - BasicButterWorth
-
-    For more information:
-      - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
-      - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#hzcalcmethod)
-    """
+class HzCalcMethod(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/hz.calc.method/001"""
 
     BasicExpWeightedAvg = auto()
     BasicButterWorth = auto()

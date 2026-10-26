@@ -1,0 +1,112 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw1.zone.call.circuit/000"
+
+title: "gw1.zone.call.circuit"
+type: object
+description: >
+  One zone-call circuit: the chain from wall thermostat through call
+  wire and relay pair to an emitter, serving one zone. A zone may be
+  served by more than one circuit.
+
+properties:
+  CircuitPosition:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      The circuit's 1-based place in the layout's list of zone-call
+      circuits.
+
+  Name:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      The circuit's label (e.g. "living-rm-fancoil").
+
+  ServesZone:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      Name of the hvac zone this circuit serves.
+
+  EmitterType:
+    $ref: "https://schemas.electricity.works/enums/gw.zone.emitter.type/000"
+
+  CanCool:
+    type: boolean
+    description: >
+      True if a call on this circuit may be used for cooling.
+
+  SetpointSource:
+    $ref: "https://schemas.electricity.works/enums/zone.setpoint.source/000"
+
+  Thermostat:
+    $ref: "https://schemas.electricity.works/types/gw1.zone.thermostat/000"
+
+  WhitewireChannelName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      Name of the channel sensing the thermostat call wire.
+
+  SetpointChannelName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      Name of the channel carrying this circuit's thermostat setpoint.
+
+  TempChannelName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      Name of the channel carrying the air temperature sensed at this
+      circuit's thermostat. The sensor is physically co-located with the
+      thermostat element that makes the heat call.
+
+  FloorTempChannelName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      Name of the channel sensing the circuit's floor temperature.
+
+  FailsafeRelayNode:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      Name of the relay node selecting the circuit's call source.
+
+  OpsRelayNode:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      Name of the relay node asserting the scada-side call.
+
+  TypeName:
+    const: "gw1.zone.call.circuit"
+
+  Version:
+    const: "000"
+
+required:
+  - CircuitPosition
+  - Name
+  - ServesZone
+  - EmitterType
+  - CanCool
+  - SetpointSource
+  - Thermostat
+  - WhitewireChannelName
+  - FailsafeRelayNode
+  - OpsRelayNode
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "OnlyFanCoilsCool"
+      statement: >
+        If EmitterType is not FanCoil, CanCool SHALL be false.
+    - number: 2
+      name: "ReadSetpointNeedsCommsStat"
+      statement: >
+        If SetpointSource is FromThermostat, Thermostat.Kind SHALL NOT
+        be MechanicalDial.
+    - number: 3
+      name: "SetpointNeedsTemp"
+      statement: >
+        If SetpointChannelName is present, TempChannelName SHALL be
+        present.

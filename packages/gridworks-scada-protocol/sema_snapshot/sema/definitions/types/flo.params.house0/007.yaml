@@ -1,0 +1,466 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/flo.params.house0/007"
+
+title: "flo.params.house0"
+type: object
+description: >
+  Complete input parameter set for one run of the Forward Looking Optimization
+  (FLO) algorithm against a House0 thermal model. It captures the optimization
+  horizon, the modeled equipment, the initial state of thermal storage, the
+  price and weather forecasts, the house thermal-response coefficients, and the
+  RSWT and plan-stability penalty terms needed to plan heat pump operation and
+  produce a market bid.
+
+properties:
+
+  GNodeAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      GNode alias of the home (SCADA) whose thermal system is being optimized.
+
+  FloParamsUid:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      Unique identifier for this parameter set, used to tie a FLO run and its
+      resulting bid back to the exact inputs that produced them.
+
+  TimezoneStr:
+    type: string
+    description: >
+      IANA timezone name for the home, used to align the optimization horizon
+      and forecasts with local time.
+
+  StartUnixS:
+    $ref: "https://schemas.electricity.works/formats/utc.seconds"
+    description: >
+      Start of the optimization horizon, in Unix seconds.
+
+  NumLayers:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Number of stacked thermal layers used to model the storage tanks in the
+      House0 model. More layers give finer resolution of the temperature
+      profile and thermocline position.
+
+  HorizonHours:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Length of the optimization horizon in hours. The forecast arrays are
+      consumed over this horizon.
+
+  StorageVolumeGallons:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Total volume of thermal storage available to the model, in gallons.
+
+  StorageLossesPercent:
+    type: number
+    description: >
+      Standing thermal loss of the storage, expressed as a percentage, used to
+      model heat lost from storage over the horizon.
+
+  HpMinElecKw:
+    type: number
+    description: >
+      Minimum electrical power the heat pump may draw while running, in kW. May
+      be negative to represent metered offsets at the lower operating bound.
+
+  HpMaxElecKw:
+    type: number
+    description: >
+      Maximum electrical power the heat pump may draw, in kW.
+
+  MaxHpKwhTh:
+    type: number
+    description: >
+      Maximum thermal energy, in kWh, the heat pump can deliver within a single
+      optimization step.
+
+  MaxLoadKwhTh:
+    type: number
+    description: >
+      Maximum thermal energy, in kWh, the house load can draw within a single
+      optimization step.
+
+  BufferAvailableKwh:
+    type: number
+    description: >
+      Thermal energy currently available from the buffer tank at the start of
+      the horizon, in kWh.
+
+  HouseAvailableKwh:
+    type: number
+    description: >
+      Thermal energy currently stored in the house mass and available to the
+      model at the start of the horizon, in kWh.
+
+  CopIntercept:
+    type: number
+    description: >
+      Intercept term of the linear model giving heat pump coefficient of
+      performance as a function of outside air temperature.
+
+  CopOatCoeff:
+    type: number
+    description: >
+      Slope term of the heat pump COP model with respect to outside air
+      temperature in degrees Fahrenheit.
+
+  CopMin:
+    type: number
+    description: >
+      Floor applied to the modeled COP when the outside air temperature is at
+      or below CopMinOatF.
+
+  CopMinOatF:
+    type: number
+    description: >
+      Outside air temperature in degrees Fahrenheit at or below which the
+      modeled COP is held at CopMin.
+
+  CopLwtCoeff:
+    type: number
+    description: >
+      Coefficient adjusting the modeled COP for the heat pump leaving water
+      temperature.
+
+  InitialTopTempF:
+    type: integer
+    description: >
+      Measured temperature, in degrees Fahrenheit, of the top of thermal
+      storage at the start of the horizon.
+
+  InitialMiddleTempF:
+    type: integer
+    description: >
+      Measured temperature, in degrees Fahrenheit, of the middle of thermal
+      storage at the start of the horizon.
+
+  InitialBottomTempF:
+    type: integer
+    description: >
+      Measured temperature, in degrees Fahrenheit, of the bottom of thermal
+      storage at the start of the horizon.
+
+  HpIsOff:
+    type: boolean
+    description: >
+      Whether the heat pump is off at the start of the horizon.
+
+  HpTurnOnMinutes:
+    type: integer
+    description: >
+      Minutes the heat pump takes to reach steady operation after being turned
+      on, used to model the cost of starting it.
+
+  LmpForecast:
+    type: array
+    items:
+      type: number
+    description: >
+      Hourly forecast of the locational marginal (energy) price over the
+      horizon, in PriceUnit.
+
+  InitialThermocline1:
+    type: integer
+    description: >
+      Layer index of the first thermocline in storage at the start of the
+      horizon, marking a boundary between temperature bands.
+
+  InitialThermocline2:
+    type: integer
+    description: >
+      Layer index of the second thermocline in storage at the start of the
+      horizon.
+
+  DistPriceForecast:
+    type: array
+    items:
+      type: number
+    description: >
+      Hourly forecast of the distribution price component over the horizon, in
+      PriceUnit.
+
+  RegPriceForecast:
+    type: array
+    items:
+      type: number
+    description: >
+      Hourly forecast of the regulation price component over the horizon, in
+      PriceUnit.
+
+  PriceForecastUid:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      Unique identifier of the price forecast (LMP, distribution, and
+      regulation components) used for this run.
+
+  OatForecastF:
+    type: array
+    items:
+      type: number
+    description: >
+      Hourly forecast of outside air temperature over the horizon, in degrees
+      Fahrenheit.
+
+  WindSpeedForecastMph:
+    type: array
+    items:
+      type: number
+    description: >
+      Hourly forecast of wind speed over the horizon, in miles per hour, used
+      in modeling house heat loss.
+
+  WeatherUid:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      Unique identifier of the weather forecast (outside air temperature and
+      wind speed) used for this run.
+
+  AlphaTimes10:
+    type: integer
+    description: >
+      House thermal-response coefficient alpha, scaled by 10. Integer scaling
+      avoids floating point representation at the serialization boundary.
+
+  BetaTimes100:
+    type: integer
+    description: >
+      House thermal-response coefficient beta, scaled by 100.
+
+  GammaEx6:
+    type: integer
+    description: >
+      House thermal-response coefficient gamma, scaled by one million.
+
+  IntermediatePowerKw:
+    type: number
+    description: >
+      Thermal power, in kW, at the intermediate operating point of the house
+      heating curve.
+
+  IntermediateRswtF:
+    type: integer
+    description: >
+      Required source water temperature, in degrees Fahrenheit, at the
+      intermediate operating point.
+
+  DdPowerKw:
+    type: number
+    description: >
+      Thermal power, in kW, required at the design-day (coldest expected)
+      operating point.
+
+  DdRswtF:
+    type: integer
+    description: >
+      Required source water temperature, in degrees Fahrenheit, at the
+      design-day operating point.
+
+  DdDeltaTF:
+    type: integer
+    description: >
+      Temperature drop, in degrees Fahrenheit, across the house heat emitters
+      at the design-day operating point.
+
+  MaxEwtF:
+    type: integer
+    description: >
+      Maximum entering water temperature, in degrees Fahrenheit, that the
+      house distribution system will accept.
+
+  RswtPenaltyEnabled:
+    type: boolean
+    description: >
+      Whether the required-source-water-temperature (RSWT) penalty term is
+      included in the FLO cost function.
+
+  StabilityPenaltyEnabled:
+    type: boolean
+    description: >
+      Whether the plan-stability penalty term is included in the FLO cost
+      function.
+
+  RswtPenaltyWeight:
+    type: number
+    description: >
+      Weight applied to the RSWT penalty term in the FLO cost function. The
+      RSWT penalty discourages plans that require a high source water
+      temperature, which the heat pump serves less efficiently.
+
+  RswtPenaltyDecay:
+    type: number
+    description: >
+      Per-hour decay factor applied to the RSWT penalty across the horizon.
+
+  RswtPenaltyExponentRate:
+    type: number
+    description: >
+      Exponent rate governing how sharply the RSWT penalty grows as the
+      required source water temperature rises.
+
+  RswtPenaltyDecayMaxHour:
+    type: integer
+    description: >
+      Hour of the horizon beyond which the RSWT penalty decay is held constant
+      rather than continuing to compound.
+
+  PreviousPlanHpKwhElList:
+    type: array
+    items:
+      type: number
+    description: >
+      Heat pump electrical energy, in kWh per hour, from the previous FLO
+      run's plan. It is the reference the plan-stability penalty discourages
+      diverging from. Absent on the first run, when there is no previous plan.
+
+  PreviousEstimateStorageKwhNow:
+    type: number
+    description: >
+      The previous FLO run's estimate of thermal energy currently in storage,
+      in kWh, used as a reference point for the plan-stability penalty. Absent
+      on the first run, when there is no previous estimate.
+
+  StabilityPenaltyWeight:
+    type: number
+    description: >
+      Weight applied to the plan-stability penalty term in the FLO cost
+      function. Higher values more strongly discourage the new plan from
+      diverging from the previous plan.
+
+  StabilityPenaltyDecay:
+    type: number
+    description: >
+      Per-hour decay factor applied to the plan-stability penalty across the
+      horizon, so that divergence in nearer hours is penalized more than
+      divergence further out.
+
+  StabilityPenaltyThresholdKwh:
+    type: number
+    description: >
+      Deviation threshold, in kWh, below which the plan-stability penalty is
+      not applied. Divergence from the previous plan within this band is
+      treated as free.
+
+  StabilityPenaltyHorizonHours:
+    type: integer
+    description: >
+      Number of hours from the start of the horizon over which the
+      plan-stability penalty is applied.
+
+  PriceUnit:
+    $ref: "https://schemas.electricity.works/enums/market.price.unit/000"
+    description: >
+      Unit in which the LMP, distribution, and regulation price forecasts are
+      expressed.
+
+  ParamsGeneratedS:
+    $ref: "https://schemas.electricity.works/formats/utc.seconds"
+    description: >
+      Time, in Unix seconds, at which this parameter set was generated.
+
+  ConstantDeltaT:
+    type: integer
+    description: >
+      Constant temperature drop, in degrees Fahrenheit, applied across the
+      house heat emitters. House0 models delta-T as fixed rather than per
+      operating point.
+
+  FloGitCommit:
+    type: string
+    description: >
+      Git commit of the FLO implementation (gridflo) used for this run,
+      recorded so a run can be reproduced and audited against a specific
+      version of the algorithm.
+
+  TypeName:
+    const: "flo.params.house0"
+
+  Version:
+    const: "007"
+
+required:
+  - GNodeAlias
+  - FloParamsUid
+  - TimezoneStr
+  - StartUnixS
+  - NumLayers
+  - HorizonHours
+  - StorageVolumeGallons
+  - StorageLossesPercent
+  - HpMinElecKw
+  - HpMaxElecKw
+  - MaxHpKwhTh
+  - MaxLoadKwhTh
+  - BufferAvailableKwh
+  - HouseAvailableKwh
+  - CopIntercept
+  - CopOatCoeff
+  - CopMin
+  - CopMinOatF
+  - CopLwtCoeff
+  - InitialTopTempF
+  - InitialMiddleTempF
+  - InitialBottomTempF
+  - HpIsOff
+  - HpTurnOnMinutes
+  - InitialThermocline1
+  - InitialThermocline2
+  - PriceForecastUid
+  - WeatherUid
+  - AlphaTimes10
+  - BetaTimes100
+  - GammaEx6
+  - IntermediatePowerKw
+  - IntermediateRswtF
+  - DdPowerKw
+  - DdRswtF
+  - DdDeltaTF
+  - MaxEwtF
+  - RswtPenaltyEnabled
+  - StabilityPenaltyEnabled
+  - RswtPenaltyWeight
+  - RswtPenaltyDecay
+  - RswtPenaltyExponentRate
+  - RswtPenaltyDecayMaxHour
+  - StabilityPenaltyWeight
+  - StabilityPenaltyDecay
+  - StabilityPenaltyThresholdKwh
+  - StabilityPenaltyHorizonHours
+  - PriceUnit
+  - ParamsGeneratedS
+  - ConstantDeltaT
+  - FloGitCommit
+  - TypeName
+  - Version
+
+additionalProperties: true
+
+x-gridworks:
+  owner: "gridworks-energy"
+  extended_description: >
+    A LeafTransactiveNode builds a flo.params.house0 each market slot to drive
+    its Forward Looking Optimization. FLO models the home's heat pump and
+    thermal storage over HorizonHours, searches for the lowest-cost operating
+    plan against the price and weather forecasts, and from that plan derives
+    the price-quantity curve the node submits as its market bid.
+
+    The parameters fall into groups: identity and timing (GNodeAlias,
+    FloParamsUid, TimezoneStr, StartUnixS, ParamsGeneratedS, FloGitCommit);
+    horizon and storage geometry (HorizonHours, NumLayers,
+    StorageVolumeGallons, StorageLossesPercent); heat pump characteristics
+    (HpMinElecKw, HpMaxElecKw, MaxHpKwhTh, MaxLoadKwhTh, HpTurnOnMinutes,
+    HpIsOff, and the Cop terms); the initial thermal state (the InitialTemp
+    and InitialThermocline fields, BufferAvailableKwh, HouseAvailableKwh); the
+    forecasts and their provenance ids; the House0 thermal-response
+    coefficients and operating points (Alpha/Beta/Gamma, ConstantDeltaT, the
+    Intermediate and Dd fields, MaxEwtF); and the RSWT and plan-stability
+    cost-function penalty terms. Several coefficients are carried as scaled
+    integers to keep the serialized contract free of floating point
+    representation.
+
+    Version 007 adds FloGitCommit, the git commit of the gridflo
+    implementation that consumed these parameters, so a run can be reproduced
+    and audited. It is supplied by the LeafTransactiveNode, which reads the
+    commit from gridflo. The penalty model is unchanged from version 006. The
+    SCADA codebase has emitted version 007 in a single, stable shape.

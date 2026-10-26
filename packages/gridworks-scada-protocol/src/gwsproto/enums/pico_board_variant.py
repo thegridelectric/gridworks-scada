@@ -1,10 +1,12 @@
+# Versioned Enum:
+#  - additional values can be added over time.
+#  - Sent as-is, not in hex symbol
 from enum import auto
-from typing import List
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class PicoBoardVariant(AslEnum):
+class PicoBoardVariant(SemaEnum):
     """Sema: https://schemas.electricity.works/enums/pico.board.variant/000"""
 
     Unknown = auto()
@@ -13,12 +15,15 @@ class PicoBoardVariant(AslEnum):
     PicoRaspberryWifi2040 = auto()
 
     @classmethod
-    def default(cls) -> "PicoBoardVariant":
-        return cls.Unknown
+    def values(cls) -> list[str]:
+        """
+        Returns enum choices
+        """
+        return [elt.value for elt in cls]
 
     @classmethod
-    def values(cls) -> List[str]:
-        return [elt.value for elt in cls]
+    def default(cls) -> "PicoBoardVariant":
+        return cls.Unknown
 
     @classmethod
     def enum_name(cls) -> str:

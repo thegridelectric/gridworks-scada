@@ -1,0 +1,60 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/baseurl.failure.alert/100"
+
+title: "baseurl.failure.alert"
+type: object
+description: >
+  A pico's report that its primary scada base URL stopped answering and
+  it has failed over to its backup URL. Posted over the backup URL so the
+  scada reached second can log which pico lost its first path and why.
+
+properties:
+  HwUid:
+    type: string
+    description: >
+      The pico's hardware id, derived from the chip's unique id.
+
+  ActorNodeName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      The name of the scada node this pico reports as.
+
+  BaseUrl:
+    type: string
+    description: >
+      The primary base URL the pico could not reach.
+
+  Message:
+    type: string
+    description: >
+      Human-readable detail on the failure and the fallback taken.
+
+  TypeName:
+    const: "baseurl.failure.alert"
+
+  Version:
+    const: "100"
+
+required:
+  - HwUid
+  - ActorNodeName
+  - BaseUrl
+  - Message
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "HwUid": "pico_3a202a",
+      "ActorNodeName": "primary-btu",
+      "BaseUrl": "http://192.168.0.10:8080",
+      "Message": "switching to backup url http://192.168.0.11:8080",
+      "TypeName": "baseurl.failure.alert",
+      "Version": "100"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"

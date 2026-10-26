@@ -1,0 +1,25 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/hz.calc.method/001"
+
+title: "hz.calc.method"
+type: "string"
+description: >
+  Method used to estimate signal frequency from pulse timing data.
+
+enum:
+  - "BasicExpWeightedAvg"
+  - "BasicButterWorth"
+  - "UniformWindow"
+
+default: "BasicExpWeightedAvg"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "001"
+  value_descriptions:
+    "BasicExpWeightedAvg": >
+      Estimate frequency using a basic exponentially weighted average.
+    "BasicButterWorth": >
+      Estimate frequency using a basic Butterworth-style filter.
+    "UniformWindow": >
+      Estimate frequency using a uniform window over recent pulses.

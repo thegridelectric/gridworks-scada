@@ -4,3 +4,4 @@ mypy >=1.15.0
 ruff >=0.9.6
 black
 pytest-asyncio
+pyyaml  # the sema conformance checker reads the snapshot indexes

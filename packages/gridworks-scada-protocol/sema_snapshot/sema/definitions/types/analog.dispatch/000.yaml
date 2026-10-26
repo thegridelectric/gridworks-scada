@@ -1,0 +1,83 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/analog.dispatch/000"
+
+title: "analog.dispatch"
+type: object
+description: >
+  A command from a boss to a node that drives a level rather than a state:
+  set this value. The counterpart of fsm.event for analog actuators such
+  as a 0-10V output.
+
+properties:
+
+  FromGNodeAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      The GNode the command originates from, when it crosses a GNode
+      boundary.
+
+  FromHandle:
+    $ref: "https://schemas.electricity.works/formats/handle.name"
+
+  ToHandle:
+    $ref: "https://schemas.electricity.works/formats/handle.name"
+
+  AboutName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      The node whose level is being set.
+
+  Value:
+    type: integer
+    description: >
+      The level, in the unit the addressed node drives.
+
+  TriggerId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      Minted by the commander; the node's acknowledgement and any report
+      carry it back.
+
+  UnixTimeMs:
+    $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+
+  TypeName:
+    const: "analog.dispatch"
+
+  Version:
+    const: "000"
+
+required:
+  - FromHandle
+  - ToHandle
+  - AboutName
+  - Value
+  - TriggerId
+  - UnixTimeMs
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "FromHandle": "admin",
+      "ToHandle": "admin.primary-010v",
+      "AboutName": "primary-010v",
+      "Value": 65,
+      "TriggerId": "1c0d8f5e-3f4a-4b3c-9d2e-7a6b5c4d3e2f",
+      "UnixTimeMs": 1757282100000,
+      "TypeName": "analog.dispatch",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "FromHandleIsBoss"
+      statement: >
+        FromHandle SHALL be the immediate boss of ToHandle (ToHandle with
+        its last dot-segment removed), unless ToHandle contains
+        "multiplexer".

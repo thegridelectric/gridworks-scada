@@ -1,0 +1,69 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw.dispatch.ack/000"
+
+title: "gw.dispatch.ack"
+type: object
+description: >
+  A scada node's reply to its boss that a command was taken. Sent by the
+  target node direct to the boss that commanded it; taken or refused is
+  discriminated by the reply's TypeName (the refusal twin is
+  gw.dispatch.nack), never by inspecting a field. Taken means the node
+  will act; the outcome arrives afterwards as its fsm.full.report and
+  state rows, under the same TriggerId.
+
+properties:
+
+  FromHandle:
+    $ref: "https://schemas.electricity.works/formats/handle.name"
+    description: >
+      The node that took the command.
+
+  ToHandle:
+    $ref: "https://schemas.electricity.works/formats/handle.name"
+    description: >
+      The boss that sent it.
+
+  TriggerId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      The command's TriggerId, so a boss with several commands in flight
+      knows which one was answered.
+
+  UnixTimeMs:
+    $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+
+  TypeName:
+    const: "gw.dispatch.ack"
+
+  Version:
+    const: "000"
+
+required:
+  - FromHandle
+  - ToHandle
+  - TriggerId
+  - UnixTimeMs
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "FromHandle": "admin.pico-cycler",
+      "ToHandle": "admin",
+      "TriggerId": "1c0d8f5e-3f4a-4b3c-9d2e-7a6b5c4d3e2f",
+      "UnixTimeMs": 1757282100250,
+      "TypeName": "gw.dispatch.ack",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "ToHandleIsBoss"
+      statement: >
+        ToHandle SHALL be the immediate boss of FromHandle (FromHandle with
+        its last dot-segment removed).

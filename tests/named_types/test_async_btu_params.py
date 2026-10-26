@@ -1,7 +1,7 @@
 """Tests async.btu.params type, version 100"""
 
 import pytest
-from pydantic import ValidationError
+from tests.named_types.sema_oracle import assert_refused
 
 from gwsproto.enums import PicoBoardVariant
 from gwsproto.named_types import AsyncBtuParams
@@ -26,16 +26,9 @@ WIRE_100 = {
 }
 
 
-def test_async_btu_params_generated() -> None:
-    d2 = AsyncBtuParams.model_validate(WIRE_100).model_dump(exclude_none=True)
-
-    assert d2 == WIRE_100
-
-
 def test_async_btu_params_axiom_1() -> None:
     d = dict(WIRE_100, ReadCtVoltage=True)
-    with pytest.raises(ValidationError, match="Axiom 1"):
-        AsyncBtuParams.model_validate(d)
+    assert_refused(AsyncBtuParams, d, "Axiom 1")
 
 
 def test_unknown_board_coerces_to_unknown() -> None:
@@ -53,5 +46,5 @@ def test_version_000_wire_shape_is_rejected() -> None:
         if k not in ("PicoBoardVariant", "MicropythonVersion")
     }
     d["Version"] = "000"
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValueError):  # twin-only: the scada decodes one version
         AsyncBtuParams.model_validate(d)

@@ -1,24 +1,11 @@
 from enum import auto
 from typing import List
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class PicoCyclerState(AslEnum):
-    """
-    
-    Values:
-      - Dormant
-      - PicosLive
-      - RelayOpening
-      - RelayOpen
-      - RelayClosing
-      - PicosRebooting
-      - AllZombies
-
-    For more information:
-      - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
-      - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#picocyclerstate)
+class PicoCyclerState(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/pico.cycler.state/000
     """
 
     Dormant = auto()

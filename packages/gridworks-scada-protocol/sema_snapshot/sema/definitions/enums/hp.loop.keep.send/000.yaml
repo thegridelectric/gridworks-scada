@@ -1,0 +1,23 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/hp.loop.keep.send/000"
+
+title: "hp.loop.keep.send"
+type: "string"
+description: >
+  Position of the heat pump loop keep/send relay, which sets whether the loop keeps more of its flow around the heat pump or sends more of it onward.
+
+enum:
+  - "SendLess"
+  - "SendMore"
+
+default: "SendMore"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "SendLess": >
+      The relay keeps more of the loop flow around the heat pump.
+
+    "SendMore": >
+      The relay sends more of the loop flow onward; the relay rests in this position de-energized.

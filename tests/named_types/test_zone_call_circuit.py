@@ -1,0 +1,88 @@
+"""Tests gw1.zone.call.circuit type, version 000"""
+
+
+from gwsproto.named_types import ZoneCallCircuit
+from tests.named_types.sema_oracle import assert_refused
+
+
+def base_circuit() -> dict:
+    return {
+        "CircuitPosition": 1,
+        "Name": "down",
+        "ServesZone": "zone1-down",
+        "EmitterType": "Other",
+        "CanCool": False,
+        "SetpointSource": "Learned",
+        "Thermostat": {
+            "Kind": "MechanicalDial",
+            "TypeName": "gw1.zone.thermostat",
+            "Version": "000",
+        },
+        "WhitewireChannelName": "zone1-down-whitewire",
+        "FailsafeRelayNode": "relay6",
+        "OpsRelayNode": "relay7",
+        "TypeName": "gw1.zone.call.circuit",
+        "Version": "000",
+    }
+
+
+def test_zone_call_circuit_generated() -> None:
+    d = base_circuit()
+
+    d2 = ZoneCallCircuit.model_validate(d).model_dump(by_alias=True, exclude_none=True)
+
+    assert d2 == d
+
+
+def test_zone_call_circuit_axiom_1() -> None:
+    d = base_circuit()
+    d["CanCool"] = True
+
+    assert_refused(ZoneCallCircuit, d, match="Axiom 1 \\(OnlyFanCoilsCool\\) failed")
+
+
+def test_zone_call_circuit_axiom_1_fan_coil_may_cool() -> None:
+    d = base_circuit()
+    d["EmitterType"] = "FanCoil"
+    d["CanCool"] = True
+
+    ZoneCallCircuit.model_validate(d)
+
+
+def test_zone_call_circuit_floor_temp_channel_name_round_trips() -> None:
+    d = base_circuit()
+    d["EmitterType"] = "RadiantSlab"
+    d["FloorTempChannelName"] = "zone1-down-floor-temp"
+
+    d2 = ZoneCallCircuit.model_validate(d).model_dump(by_alias=True, exclude_none=True)
+
+    assert d2 == d
+
+
+def test_zone_call_circuit_axiom_2() -> None:
+    d = base_circuit()
+    d["SetpointSource"] = "FromThermostat"
+
+    assert_refused(ZoneCallCircuit, d, match="Axiom 2 \\(ReadSetpointNeedsCommsStat\\) failed")
+
+
+def test_zone_call_circuit_name_required() -> None:
+    d = base_circuit()
+    del d["Name"]
+
+    assert_refused(ZoneCallCircuit, d, match="Name")
+
+
+def test_gw1_zone_call_circuit_axiom_3() -> None:
+    d = base_circuit()
+    d["SetpointChannelName"] = "zone1-down-set"
+
+    assert_refused(ZoneCallCircuit, d, match="Axiom 3 \\(SetpointNeedsTemp\\) failed")
+
+
+def test_gw1_zone_call_circuit_axiom_3_setpoint_with_temp() -> None:
+    d = base_circuit()
+    d["SetpointChannelName"] = "zone1-down-set"
+    d["TempChannelName"] = "zone1-down-temp"
+
+    assert ZoneCallCircuit.model_validate(d).TempChannelName == "zone1-down-temp"

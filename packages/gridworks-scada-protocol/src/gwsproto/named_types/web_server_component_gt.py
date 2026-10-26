@@ -1,9 +1,10 @@
 from typing import Literal
 
-from gwsproto.named_types.component_gt import ComponentGt
-from gwproto.named_types.web_server_gt import WebServerGt
+from gwsproto.type_helpers.component_base import DeviceComponentBase
+from gwsproto.named_types.web_server_gt import WebServerGt
 
 
-class WebServerComponentGt(ComponentGt):
+class WebServerComponentGt(DeviceComponentBase):
     WebServer: WebServerGt
     TypeName: Literal["web.server.component.gt"] = "web.server.component.gt"
+    Version: Literal["001"] = "001"

@@ -1,0 +1,81 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/gw1.actor.class/014"
+
+title: "gw1.actor.class"
+type: "string"
+description: >
+  Classification of actors in the GridWorks SCADA system.
+
+enum:
+  - "NoActor"
+  - "PrimaryScada"
+  - "SecondaryScada"
+  - "PowerMeter"
+  - "LocalControl"
+  - "LeafAlly"
+  - "DerivedGenerator"
+  - "PicoCycler"
+  - "HpBoss"
+  - "I2cRelayMultiplexer"
+  - "I2cZeroTenMultiplexer"
+  - "Hubitat"
+  - "Relay"
+  - "MultipurposeSensor"
+  - "HoneywellThermostat"
+  - "ApiTankModule"
+  - "ApiFlowModule"
+  - "ZeroTenOutputer"
+  - "ApiBtuMeter"
+  - "SiegLoop"
+  - "GpioSensor"
+  - "I2cBus"
+  - "I2cRelayBoard"
+  - "I2cThermistorReader"
+  - "SimSensorActor"
+  - "SimRelayActor"
+  - "I2cDacWriter"
+  - "HpTwin"
+  - "FiveVBoss"
+  - "HpWatch"
+  - "ColdWatch"
+
+default: "NoActor"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "014"
+  value_descriptions:
+    "I2cRelayMultiplexer": >
+      Defunct; no layout carries it, the relay actor addresses its board
+      through the I2cBus actor. Retained under additive-only enum
+      evolution.
+    "I2cZeroTenMultiplexer": >
+      Defunct; no layout carries it, the 0-10V output addresses its DAC
+      through the I2cBus actor. Retained under additive-only enum
+      evolution.
+    "I2cRelayBoard": >
+      Defunct; never realized by an actor. Retained under additive-only
+      enum evolution.
+    "I2cDacWriter": >
+      Drives one or more DAC channels on a board-resident DAC (e.g. the
+      gw108 MCP4728s behind the DAC mux), routing every bus operation
+      through the I2cBus actor.
+    "HpTwin": >
+      The digital twin of a commandable heat pump's comms-receiving
+      device: sema command events in, the device's wire protocol out.
+      At most one node per layout carries it — the node the layout's
+      HpCommandNodeName declares — reporting to hp-boss. Which wire it
+      speaks comes from the component's DeviceType record.
+    "FiveVBoss": >
+      The command node above the pico-cycler that can hold the picos'
+      5 V supply off. It owns the vdc relay while the hold is on and
+      the pico-cycler owns it otherwise; exactly one node per layout,
+      named five-v-boss.
+    "HpWatch": >
+      Watches whether the heat pump is running from its outdoor-unit power
+      reading and reports that state as a machine state under its own
+      node. Commands nothing.
+    "ColdWatch": >
+      Judges whether the house is cold, raises the cold glitches and asks
+      the scada to refuse dispatch. Commands nothing; exactly one node per
+      layout, named cold-watch.

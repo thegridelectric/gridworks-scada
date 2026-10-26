@@ -8,15 +8,20 @@ from typing import Optional, Sequence
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
 from gwsproto.errors import DcError
-from gwproactor import MonitoredName, Problems
+from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwsproto.data_classes.components import PicoTankModuleComponent, SimPicoTankModuleComponent
-from gwsproto.enums import TempCalcMethod
-from gwsproto.named_types import SyncedReadings, TankModuleParams
+from gwsproto.enums import RelayClosedOrOpen, TempCalcMethod
+from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames
+from gwsproto.named_types import Glitch, SyncedReadings, TankModuleParams
 from result import Ok, Result
-from actors.pico_actor_base import PicoActorBase
-from gwsproto.data_classes.house_0_names import ScadaWeb
+from actors.pico_identity import PicoIdentity
+from actors.pico_liveness import PicoLiveness
+from actors.pico_post_refusal import RefusedPosts, refused_post, unknown_pico, unreadable_post
+from actors.sh_node_actor import ShNodeActor
+from actors.sim_pico_source import SIM_PICO_TICK_S, SimPicoSource
+from gwsproto.names.core.node_names import ScadaWeb
 from gwsproto.named_types import PicoMissing, ChannelFlatlined, MicroVolts
 
 from scada_app_interface import ScadaAppInterface
@@ -25,11 +30,41 @@ R_FIXED_KOHMS = 5.65  # The voltage divider resistors in the TankModule
 THERMISTOR_T0 = 298  # i.e. 25 degrees
 THERMISTOR_R0_KOHMS = 10  # The R0 of the NTC thermistor - an industry standard
 PICO_VOLTS = 3.3
-FLATLINE_REPORT_S = 60
-NYQUIST_MULTIPLE = 2.1
+OPEN_THERMISTOR_REPORT_S = 24 * 3600  # an open thermistor is reported once a day
+# A tank at rest, stratified: depth1 is the top. Fixed until the plant drives
+# tank temperatures.
+SIM_TANK_AT_REST_C: dict[int, float] = {1: 55.0, 2: 50.0, 3: 45.0}
 
 
-class ApiTankModule(PicoActorBase):
+def microvolts_without(reading: MicroVolts, about_node_names: set[str]) -> MicroVolts:
+    """The reading with the named depths dropped from its lists."""
+    kept = [
+        i for i, name in enumerate(reading.AboutNodeNameList) if name not in about_node_names
+    ]
+    return MicroVolts(
+        HwUid=reading.HwUid,
+        AboutNodeNameList=[reading.AboutNodeNameList[i] for i in kept],
+        MicroVoltsList=[reading.MicroVoltsList[i] for i in kept],
+    )
+
+
+def microvolts_at_c(temp_c: float, beta: int) -> int:
+    """The divider voltage the pico reads for a thermistor at temp_c, in
+    microvolts: the inverse of simple_beta."""
+    r_therm_kohms = THERMISTOR_R0_KOHMS * math.exp(
+        beta * (1 / (temp_c + 273) - 1 / THERMISTOR_T0)
+    )
+    volts = PICO_VOLTS * r_therm_kohms / (R_FIXED_KOHMS + r_therm_kohms)
+    return int(round(volts * 1e6))
+
+
+class ApiTankModule(ShNodeActor):
+    """Reads a pico tank module over HTTP. When the component is the sim
+    word the actor runs its own SimPicoSource, posting microvolts to itself
+    on the same path the web handler uses. The source lives in the actor
+    rather than as its own node or in the plant, a choice to re-evaluate: a
+    plant-side pico posting over HTTP would test the real ingress path."""
+
     _stop_requested: bool
 
     def __init__(
@@ -55,66 +90,92 @@ class ApiTankModule(PicoActorBase):
             )
 
         self._stop_requested: bool = False
+        # Built but idle: a disabled node keeps its routes and its place in
+        # the cycler's roster, and neither reads, reports nor alerts.
+        self.disabled: bool = self.layout.node_disabled(self.name)
 
-        if self._component.gt.Enabled:
-            self._services.add_web_route(
-                server_name=ScadaWeb.DEFAULT_SERVER_NAME,
-                method="POST",
-                path="/" + self.microvolts_path,
-                handler=self._handle_microvolts_post,
-            )
-            self._services.add_web_route(
-                server_name=ScadaWeb.DEFAULT_SERVER_NAME,
-                method="POST",
-                path="/" + self.params_path,
-                handler=self._handle_params_post,
-            )
-
-        self.pico_uid = self._component.gt.PicoHwUid
-
-        # Use the following for generating pico offline reports for triggering the pico cycler
-        self.last_heard = time.time()
-        self.last_error_report = time.time()
-        tank_channel_names = (
-            self.h0cn.buffer
-            if self.name == self.h0n.buffer.reader
-            else next(
-                t for t in self.h0cn.tank.values()
-                if t.reader == self.name
-            )
+        self._services.add_web_route(
+            server_name=ScadaWeb.DEFAULT_SERVER_NAME,
+            method="POST",
+            path="/" + self.microvolts_path,
+            handler=self._handle_microvolts_post,
+        )
+        self._services.add_web_route(
+            server_name=ScadaWeb.DEFAULT_SERVER_NAME,
+            method="POST",
+            path="/" + self.params_path,
+            handler=self._handle_params_post,
         )
 
-        if self.name == self.h0n.buffer.reader:
-            self.depth_about_nodes: dict[int, str] = {
-                1: self.h0n.buffer.depth1,
-                2: self.h0n.buffer.depth2,
-                3: self.h0n.buffer.depth3,
-            }
-        else:
-            tank = next(
-                t for t in self.h0n.tank.values()
-                if t.reader == self.name
+        self.pico_uid = self._component.gt.PicoHwUid
+        # When each depth node's open thermistor was last reported
+        self.open_thermistor_reported_s: dict[str, float] = {}
+        self.refused_posts = RefusedPosts(self)
+        self.pico_identity: Optional[PicoIdentity] = None
+        if isinstance(self._component, PicoTankModuleComponent):
+            self.pico_identity = PicoIdentity(
+                board_variant=self._component.gt.PicoBoardVariant,
+                micropython_version=self._component.gt.MicropythonVersion,
             )
-            self.depth_about_nodes = {
-                1: tank.depth1,
-                2: tank.depth2,
-                3: tank.depth3,
-            }
-        try:
-            self.device_channels = {
-                1: tank_channel_names.depth1_device,
-                2: tank_channel_names.depth2_device,
-                3: tank_channel_names.depth3_device,
-            }
-            if self._component.gt.SendMicroVolts:
-                self.electrical_channels =  {
-                    1: tank_channel_names.depth1_micro_v,
-                    2: tank_channel_names.depth2_micro_v,
-                    3: tank_channel_names.depth3_micro_v,
-                }
-        except KeyError as e:
-            raise Exception(f"Problem setting up ApiTankModule channels! {e}")
 
+        self.liveness = PicoLiveness(
+            expected_post_s=self.layout.capture_tuning_by_channel[
+                f"{self.name}-depth1-device"
+            ].CapturePeriodS
+        )
+
+        self.depth_about_nodes: dict[int, str] = {
+            1: f"{self.name}-depth1",
+            2: f"{self.name}-depth2",
+            3: f"{self.name}-depth3",
+        }
+        # Disabled channels are left out here, so nothing below reads,
+        # reports or alerts on them.
+        self.device_channels: dict[int, str] = {
+            depth: name
+            for depth, name in (
+                (1, f"{self.name}-depth1-device"),
+                (2, f"{self.name}-depth2-device"),
+                (3, f"{self.name}-depth3-device"),
+            )
+            if not self.layout.channel_disabled(name)
+        }
+        self.electrical_channels: dict[int, str] = {}
+        if self._component.gt.SendMicroVolts:
+            self.electrical_channels = {
+                depth: name
+                for depth, name in (
+                    (1, f"{self.name}-depth1-micro-v"),
+                    (2, f"{self.name}-depth2-micro-v"),
+                    (3, f"{self.name}-depth3-micro-v"),
+                )
+                if not self.layout.channel_disabled(name)
+            }
+
+        self.channel_liveness: dict[str, PicoLiveness] = {
+            name: PicoLiveness(
+                expected_post_s=self.layout.capture_tuning_by_channel[name].CapturePeriodS
+            )
+            for name in self.flatlined_channel_names()
+        }
+
+        self.sim_pico: Optional[SimPicoSource[MicroVolts]] = None
+        if isinstance(self._component, SimPicoTankModuleComponent):
+            assert self.pico_uid
+            beta = self._component.gt.ThermistorBeta
+            self.sim_pico = SimPicoSource(
+                reading=MicroVolts(
+                    HwUid=self.pico_uid,
+                    AboutNodeNameList=[self.depth_about_nodes[d] for d in (1, 2, 3)],
+                    MicroVoltsList=[microvolts_at_c(SIM_TANK_AT_REST_C[d], beta) for d in (1, 2, 3)],
+                ),
+                without=microvolts_without,
+                capture_period_s=self.liveness.expected_post_s,
+                life_s=self._component.gt.SimLifeS,
+                reboot_s=self._component.gt.SimRebootS,
+                booted_at=time.time(),
+            )
+        self.sim_relay_seen: Optional[tuple[str, int]] = None
 
     @cached_property
     def microvolts_path(self) -> str:
@@ -128,30 +189,8 @@ class ApiTankModule(PicoActorBase):
         try:
             return await request.text()
         except Exception as e:
-            self.services.send_threadsafe(
-                Message(
-                    Payload=Problems(errors=[e]).problem_event(
-                        summary=(
-                            f"ERROR awaiting post ext <{self.name}>: {type(e)} <{e}>"
-                        ),
-                    )
-                )
-            )
+            self.refused_posts.report(unreadable_post(self.name, e))
         return None
-
-    def _report_post_error(self, exception: BaseException, text: str) -> None:
-        self.services.send_threadsafe(
-            Message(
-                Payload=Problems(
-                    msg=f"request: <{text}>", errors=[exception]
-                ).problem_event(
-                    summary=(
-                        "Pico POST processing error for "
-                        f"<{self._name}>: {type(exception)} <{exception}>"
-                    ),
-                )
-            )
-        )
 
     def is_valid_pico_uid(self, params: TankModuleParams) -> bool:
         return (
@@ -168,31 +207,29 @@ class ApiTankModule(PicoActorBase):
     async def _handle_params_post(self, request: Request) -> Response:
         text = await self._get_text(request)
         self.params_text = text
+        if text is None:
+            return Response()
         try:
             params = TankModuleParams(**json.loads(text))
         except BaseException as e:
-            self._report_post_error(e, "malformed tankmodule parameters!")
+            self.refused_posts.report(refused_post(self.name, text, e, TankModuleParams))
             return Response()
         if params.ActorNodeName != self.name:
             return Response()
 
         if self.is_valid_pico_uid(params):
-            cfg = next(
-                (
-                    cfg
-                    for cfg in self._component.gt.ConfigList
-                    if cfg.ChannelName ==  self.device_channels[1]
-                ),
-                None,
+            self.services.send_threadsafe(
+                Message(Src=self.name, Dst=self.name, Payload=params)
             )
+            tuning = self.layout.capture_tuning_by_channel[self.device_channels[1]]
 
-            period = cfg.CapturePeriodS
+            period = tuning.CapturePeriodS
             offset = round(period - time.time() % period, 3) - 2
             new_params = TankModuleParams(
                 HwUid=params.HwUid,
                 ActorNodeName=self.name,
                 PicoAB=params.PicoAB,
-                CapturePeriodS=cfg.CapturePeriodS,
+                CapturePeriodS=tuning.CapturePeriodS,
                 Samples=self._component.gt.Samples,
                 NumSampleAverages=self._component.gt.NumSampleAverages,
                 AsyncCaptureDeltaMicroVolts=self._component.gt.AsyncCaptureDeltaMicroVolts,
@@ -202,14 +239,28 @@ class ApiTankModule(PicoActorBase):
             )
             if self.need_to_update_layout(params):
                 self.pico_uid = params.HwUid
-                self.log(f"UPDATE LAYOUT!!: In layout_gen, go to add_tank3 {self.name} "
-                         f"and add PicoHwUid = '{params.HwUid}'")
+                self.log(f"UPDATE LAYOUT!!: set PicoHwUid = '{params.HwUid}' on "
+                         f"{self.name}'s tank component in the layout")
             return Response(text=new_params.model_dump_json())
         else:
-            # A strange pico is identifying itself as our "a" tank
             self.log(f"unknown pico {params.HwUid} identifying as {self.name}")
-            # TODO: send problem report?
+            self.refused_posts.report(
+                unknown_pico(self.name, params.HwUid, self._component.gt.PicoHwUid)
+            )
             return Response()
+
+    def check_pico_identity(self, params: TankModuleParams) -> None:
+        """Warns once per difference between the post's board and MicroPython
+        version and the layout's. The layout value is what the house was
+        provisioned with; the scada does not write it."""
+        if self.pico_identity is None:
+            return
+        for d in self.pico_identity.differences(
+            params.PicoBoardVariant, params.MicropythonVersion
+        ):
+            self.send_warning(
+                summary=d.summary(self.name), details=d.details(params.HwUid)
+            )
 
     async def _handle_microvolts_post(self, request: Request) -> Response:
         text = await self._get_text(request)
@@ -224,7 +275,7 @@ class ApiTankModule(PicoActorBase):
                     )
                 )
             except Exception as e:  # noqa
-                self._report_post_error(e, text)
+                self.refused_posts.report(refused_post(self.name, text, e, MicroVolts))
         return Response()
 
     def _process_microvolts(self, data: MicroVolts) -> None:
@@ -234,7 +285,7 @@ class ApiTankModule(PicoActorBase):
             )
             return
 
-        self.last_heard = time.time()
+        self.liveness.heard(time.time())
 
         # SensorOrder: physical sensor index (1-based) -> correct physical depth
         sensor_order = self._component.gt.SensorOrder or [1, 2, 3]
@@ -250,33 +301,44 @@ class ApiTankModule(PicoActorBase):
             correct_about_name = depth_map.get(incoming_about, incoming_about)
     
             volts = data.MicroVoltsList[i] / 1e6
-            if self._component.gt.SendMicroVolts:
+            electrical_channel_name = f"{correct_about_name}-micro-v"
+            if electrical_channel_name in self.electrical_channels.values():
                 value_list.append(data.MicroVoltsList[i])
-                channel_name_list.append(f"{correct_about_name}-micro-v")
-                #print(f"Updated {channel_name_list[-1]}: {round(volts,3)} V")
+                channel_name_list.append(electrical_channel_name)
+            if f"{correct_about_name}-device" not in self.device_channels.values():
+                continue
             if volts <= 0:
+                continue
+            elif volts >= PICO_VOLTS:
+                # An open thermistor sits at the pico rail: no temperature
+                last_reported_s = self.open_thermistor_reported_s.get(correct_about_name)
+                if last_reported_s is None or time.time() - last_reported_s >= OPEN_THERMISTOR_REPORT_S:
+                    self.open_thermistor_reported_s[correct_about_name] = time.time()
+                    self.send_warning(
+                        "open-thermistor",
+                        f"{correct_about_name} reads {volts} V, the pico rail",
+                    )
                 continue
             elif self._component.gt.TempCalcMethod == TempCalcMethod.SimpleBeta:
                 try:
-                    value_list.append(int(self.simple_beta(volts) * 1000))
-                    channel_name_list.append(f"{correct_about_name}-device") # channel names match node names
+                    device_channel_name = f"{correct_about_name}-device" # channel names match node names
+                    value_list.append(
+                        self.layout.channel_registry.temperature_from_c(
+                            device_channel_name, self.simple_beta(volts)
+                        ).raw
+                    )
+                    channel_name_list.append(device_channel_name)
                 except BaseException as e:
-                    self.log(f"Problem with simple_beta({volts})! {e}")
-                    self.services.send_threadsafe(
-                        Message(
-                            Payload=Problems(
-                                msg=(
-                                    f"Volts to temp problem for {correct_about_name}"
-                                ),
-                                errors=[e],
-                            ).problem_event(
-                                summary=(f"Volts to temp problem for {correct_about_name}"),
-                            )
-                        )
+                    self.send_warning(
+                        "volts-to-temp-problem",
+                        f"{correct_about_name} simple_beta({volts}): {e}",
                     )
             else:
                 raise Exception(f"No code for {self._component.gt.TempCalcMethod}!")
 
+        now = time.time()
+        for channel_name in channel_name_list:
+            self.channel_liveness[channel_name].heard(now)
         if channel_name_list:
             msg = SyncedReadings(
                 ChannelNameList=channel_name_list,
@@ -291,6 +353,10 @@ class ApiTankModule(PicoActorBase):
         match message.Payload:
             case MicroVolts():
                 self._process_microvolts(message.Payload)
+            case TankModuleParams():
+                self.check_pico_identity(message.Payload)
+            case Glitch():
+                self._send_to(self.ltn, message.Payload)
         return Ok(True)
 
     def start(self) -> None:
@@ -298,6 +364,35 @@ class ApiTankModule(PicoActorBase):
         self.services.add_task(
             asyncio.create_task(self.main(), name="ApiTankModule keepalive")
         )
+        if self.sim_pico is not None and not self.disabled:
+            self.services.add_task(
+                asyncio.create_task(self.sim_pico_main(), name="ApiTankModule sim pico")
+            )
+
+    def feed_sim_relay_state(self, now: float) -> None:
+        """Hand the source each new vdc relay state from the scada's latest
+        machine states."""
+        assert self.sim_pico is not None
+        sms = self.data.latest_machine_state.get(HydronicSpaceheatNodeNames.vdc_relay)
+        if sms is None:
+            return
+        seen = (sms.State, sms.UnixMs)
+        if seen == self.sim_relay_seen:
+            return
+        self.sim_relay_seen = seen
+        self.sim_pico.relay_state(RelayClosedOrOpen(sms.State), now)
+
+    async def sim_pico_main(self) -> None:
+        assert self.sim_pico is not None
+        while not self._stop_requested:
+            now = time.time()
+            self.feed_sim_relay_state(now)
+            reading = self.sim_pico.tick(now)
+            if reading is not None:
+                self.services.send_threadsafe(
+                    Message(Src=self.name, Dst=self.name, Payload=reading)
+                )
+            await asyncio.sleep(SIM_PICO_TICK_S)
 
     def stop(self) -> None:
         """IOLoop will take care of stop."""
@@ -306,50 +401,57 @@ class ApiTankModule(PicoActorBase):
     async def join(self) -> None:
         """IOLoop will take care of shutting down the associated task."""
 
-    def flatline_seconds(self) -> int:
-        cfg = next(
-            cfg
-            for cfg in self._component.gt.ConfigList
-            if cfg.ChannelName == self.device_channels[1]
-        )
-        return cfg.CapturePeriodS
+    def flatline_seconds(self) -> float:
+        return self.liveness.flatline_seconds
 
     @property
     def monitored_names(self) -> Sequence[MonitoredName]:
-        return [MonitoredName(self.name, self.flatline_seconds() * NYQUIST_MULTIPLE)]
+        return [MonitoredName(self.name, self.flatline_seconds() * 2.1)]
 
     def missing(self) -> bool:
-        return time.time() - self.last_heard > NYQUIST_MULTIPLE * self.flatline_seconds()
+        return self.liveness.missing(time.time())
 
-    def report_missing_if_due(self) -> bool:
-        """Report a missing pico to the cycler and flatline its channels,
-        at most once per FLATLINE_REPORT_S. Returns whether a report went out."""
-        if time.time() - self.last_error_report > FLATLINE_REPORT_S:
-            if self.missing():
-                assert self.pico_uid
+    def flatlined_channel_names(self) -> list[str]:
+        return list(self.device_channels.values()) + list(self.electrical_channels.values())
+
+    def report_missing(self) -> None:
+        assert self.pico_uid
+        self._send_to(
+            self.pico_cycler,
+            PicoMissing(ActorName=self.name, PicoHwUid=self.pico_uid),
+        )
+        for ch in self.flatlined_channel_names():
+            self._send_to(
+                self.primary_scada,
+                ChannelFlatlined(FromName=self.name, Channel=self.layout.data_channels[ch]),
+            )
+
+    def check_liveness(self) -> None:
+        """The whole pico by its posts, then each channel by the posts that
+        carry it. A quiet channel on a posting pico is flatlined at the
+        scada and is no PicoMissing; a missing pico is not also reported
+        channel by channel."""
+        if self.disabled:
+            return
+        now = time.time()
+        if self.liveness.report_due(now):
+            self.report_missing()
+        if self.liveness.missing(now):
+            return
+        for channel_name, liveness in self.channel_liveness.items():
+            if liveness.report_due(now):
                 self._send_to(
-                    self.pico_cycler,
-                    PicoMissing(ActorName=self.name, PicoHwUid=self.pico_uid),
+                    self.primary_scada,
+                    ChannelFlatlined(
+                        FromName=self.name,
+                        Channel=self.layout.data_channels[channel_name],
+                    ),
                 )
-                for ch in self.device_channels.values():
-                    self._send_to(
-                        self.primary_scada,
-                        ChannelFlatlined(FromName=self.name, Channel=self.layout.data_channels[ch]),
-                    )
-                for ch in self.electrical_channels.values():
-                    self._send_to(
-                        self.primary_scada,
-                        ChannelFlatlined(FromName=self.name, Channel=self.layout.data_channels[ch]),
-                    )
-
-                self.last_error_report = time.time()
-                return True
-        return False
 
     async def main(self):
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
-            self.report_missing_if_due()
+            self.check_liveness()
             await asyncio.sleep(10)
 
     def simple_beta(self, volts: float, fahrenheit=False) -> float:
@@ -383,15 +485,6 @@ class ApiTankModule(PicoActorBase):
         temp_f = 32 + (temp_c * 9 / 5)
         return round(temp_f, 2) if fahrenheit else round(temp_c, 2)
 
-    def thermistor_resistance(self, volts):
-        r_fixed = R_FIXED_KOHMS
-        r_pico = self._component.gt.PicoKOhms
-        if r_pico is None:
-            raise DcError(f"{self.name} component missing PicoKOhms!")
-        r_therm = 1 / ((3.3 / volts - 1) / r_fixed - 1 / r_pico)
-        if r_therm <= 0:
-            raise ValueError("Disconnected thermistor!")
-        return r_therm
 
     def pico_state_log(self, note: str) -> None:
         log_str = f"[PicoRelated] {note}"

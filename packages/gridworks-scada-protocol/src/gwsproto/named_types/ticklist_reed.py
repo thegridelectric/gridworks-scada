@@ -2,11 +2,14 @@
 
 from typing import Literal, Optional
 
-from pydantic import BaseModel, StrictInt, model_validator
+from pydantic import StrictInt, model_validator
 from typing_extensions import Self
 
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
-class TicklistReed(BaseModel):
+
+
+class TicklistReed(GwsprotoSemaType):
     HwUid: str
     FirstTickTimestampNanoSecond: Optional[StrictInt] = None
     RelativeMillisecondList: list[StrictInt]

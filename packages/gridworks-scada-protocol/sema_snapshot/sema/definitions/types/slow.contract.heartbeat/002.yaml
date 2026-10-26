@@ -1,0 +1,212 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/slow.contract.heartbeat/002"
+
+title: "slow.contract.heartbeat"
+type: object
+description: >
+  One party's statement about a slow dispatch contract: the contract, its
+  status as that party sees it, and the chained digits and proof that tie
+  the statement to the counterparty's last one. The LTN and the scada
+  exchange these from offer to completion.
+
+properties:
+  FromNode:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      The party speaking: ltn for the LTN, s for the scada.
+
+  Contract:
+    $ref: "https://schemas.electricity.works/types/slow.dispatch.contract/000"
+    description: >
+      The contract this heartbeat is about.
+
+  PreviousStatus:
+    $ref: "https://schemas.electricity.works/enums/gw1.slow.dispatch.contract.status/000"
+    description: >
+      The status the sender last stated, when this heartbeat changes it.
+
+  Status:
+    $ref: "https://schemas.electricity.works/enums/gw1.slow.dispatch.contract.status/000"
+    description: >
+      The contract's status as the sender states it.
+
+  MessageCreatedMs:
+    $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+    description: >
+      When the sender created this heartbeat.
+
+  Cause:
+    type: string
+    description: >
+      Free text on why the contract ended or failed.
+
+  Reason:
+    $ref: "https://schemas.electricity.works/enums/gw.dispatch.refusal.reason/000"
+    description: >
+      Why the scada ends the contract, in the scada's one vocabulary for
+      declining or ending dispatch. Beside the free-text Cause.
+
+  IsAuthoritative:
+    type: boolean
+    description: >
+      Whether the sender has authority over the status it states, rather
+      than stating a claim for an umpire to settle.
+
+  WattHoursUsed:
+    type: integer
+    description: >
+      The electrical energy the house has used under the contract so far,
+      as the scada measures it.
+
+  MyDigit:
+    $ref: "https://schemas.electricity.works/formats/decimal.digit"
+    description: >
+      A digit the sender chooses for this heartbeat; the counterparty
+      echoes it as YourLastDigit, chaining the exchange.
+
+  YourLastDigit:
+    $ref: "https://schemas.electricity.works/formats/decimal.digit"
+    description: >
+      The MyDigit of the counterparty's last heartbeat about this contract.
+
+  SignedProof:
+    type: string
+    description: >
+      The sender's signature over the heartbeat and the counterparty's
+      last proof. A placeholder until signing is live.
+
+  TypeName:
+    const: "slow.contract.heartbeat"
+
+  Version:
+    const: "002"
+
+required:
+  - FromNode
+  - Contract
+  - Status
+  - MessageCreatedMs
+  - IsAuthoritative
+  - MyDigit
+  - SignedProof
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "FromNode": "ltn",
+      "Contract": {
+        "ScadaAlias": "hw1.isone.me.versant.keene.beech.scada",
+        "StartS": 1757300400,
+        "DurationMinutes": 60,
+        "AvgPowerWatts": 3500,
+        "OilBoilerOn": false,
+        "ContractId": "9d3b2a1c-8e7f-4a6b-b5c4-d3e2f1a0b9c8",
+        "TypeName": "slow.dispatch.contract",
+        "Version": "000"
+      },
+      "Status": "Created",
+      "MessageCreatedMs": 1757300402150,
+      "IsAuthoritative": true,
+      "MyDigit": 3,
+      "SignedProof": "signed_proof_stub",
+      "TypeName": "slow.contract.heartbeat",
+      "Version": "002"
+    }
+  - |
+    {
+      "FromNode": "s",
+      "Contract": {
+        "ScadaAlias": "hw1.isone.me.versant.keene.beech.scada",
+        "StartS": 1757300400,
+        "DurationMinutes": 60,
+        "AvgPowerWatts": 3500,
+        "OilBoilerOn": false,
+        "ContractId": "9d3b2a1c-8e7f-4a6b-b5c4-d3e2f1a0b9c8",
+        "TypeName": "slow.dispatch.contract",
+        "Version": "000"
+      },
+      "PreviousStatus": "Created",
+      "Status": "Received",
+      "MessageCreatedMs": 1757300403400,
+      "IsAuthoritative": true,
+      "WattHoursUsed": 0,
+      "MyDigit": 8,
+      "YourLastDigit": 3,
+      "SignedProof": "signed_proof_stub",
+      "TypeName": "slow.contract.heartbeat",
+      "Version": "002"
+    }
+
+  - |
+    {
+      "FromNode": "s",
+      "Contract": {
+        "ScadaAlias": "hw1.isone.me.versant.keene.beech.scada",
+        "StartS": 1757300400,
+        "DurationMinutes": 60,
+        "AvgPowerWatts": 3500,
+        "OilBoilerOn": false,
+        "ContractId": "9d3b2a1c-8e7f-4a6b-b5c4-d3e2f1a0b9c8",
+        "TypeName": "slow.dispatch.contract",
+        "Version": "000"
+      },
+      "PreviousStatus": "Active",
+      "Status": "TerminatedByScada",
+      "MessageCreatedMs": 1757302200250,
+      "Cause": "buffer channels stale for 11 minutes",
+      "Reason": "ScadaBlind",
+      "IsAuthoritative": true,
+      "WattHoursUsed": 1750,
+      "MyDigit": 4,
+      "YourLastDigit": 7,
+      "SignedProof": "signed_proof_stub",
+      "TypeName": "slow.contract.heartbeat",
+      "Version": "002"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "CreatedWithinTenSeconds"
+      statement: >
+        If Status is Created, MessageCreatedMs / 1000 SHALL be no more
+        than 10 seconds after Contract.StartS.
+
+    - number: 2
+      name: "StatusAuthority"
+      statement: >
+        a. If Status is Created, Confirmed or TerminatedByLtn, FromNode
+           SHALL be ltn and IsAuthoritative SHALL be true.
+        b. If Status is Received or TerminatedByScada, FromNode SHALL be
+           s and IsAuthoritative SHALL be true.
+        c. If Status is CompletedSuccess, CompletedFailureByLtn or
+           CompletedFailureByScada, IsAuthoritative SHALL be false.
+
+    - number: 3
+      name: "CausePresence"
+      statement: >
+        Cause SHALL be present if and only if Status is TerminatedByLtn,
+        TerminatedByScada, CompletedUnknownOutcome, CompletedFailureByLtn
+        or CompletedFailureByScada.
+
+    - number: 4
+      name: "FromNodeIsParty"
+      statement: >
+        FromNode SHALL be s or ltn.
+
+    - number: 5
+      name: "ScadaReportsWattHours"
+      statement: >
+        WattHoursUsed SHALL be present if and only if FromNode is s.
+
+    - number: 6
+      name: "ReasonOnScadaTermination"
+      statement: >
+        Reason SHALL be present if and only if Status is
+        TerminatedByScada.

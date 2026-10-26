@@ -33,7 +33,9 @@ For most contributors:
 
     mosquitto -c tests/config/local_mosquitto.conf -v &
 
-> If you already run Mosquitto through Homebrew as a background service, stop that first so ports are not already in use.
+> Do not use `brew services start mosquitto` to provide this broker. `brew services` always launches Mosquitto with Homebrew's own config (`$(brew --prefix)/etc/mosquitto/mosquitto.conf`), a single listener on 1883 — the tests also need the 18831 listener from `tests/config/local_mosquitto.conf`, and `brew services` cannot be pointed at a different config file. If you already run Mosquitto as a Homebrew service, stop it first so the ports are free.
+>
+> To keep the test broker running across reboots, register a user LaunchAgent (macOS) or systemd user unit (Linux) that runs `mosquitto -c <repo-root>/tests/config/local_mosquitto.conf` directly.
 
  2. **Create venv**: Run `./tools/mkenv.sh`.  This creates `gw_spaceheat/venv/`
     - (On a Raspberry Pi use `./tools/mkenv-pi.sh`.)
@@ -186,6 +188,17 @@ ruff check
 ```
 
 Ruff is advisory today and does not yet pass.
+
+### Sema conformance
+
+The gwsproto message types are hand-written twins of [sema](https://github.com/thegridelectric/sema)
+vocabulary words. A sweep in the protocol package checks every named type
+against a sibling sema checkout — run it after changing types on either side,
+and with `--release-gate` before any non-dev deploy:
+
+    cd packages/gridworks-scada-protocol && uv run python gwsproto_sema_conformance.py
+
+Details in the [gridworks-scada-protocol README](./packages/gridworks-scada-protocol/README.md).
 
 
 

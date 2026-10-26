@@ -1,0 +1,26 @@
+class House0NodeNames:
+    """House0-SPECIFIC node names only. Names shared with core /
+    hydronic_spaceheat (system actors, pumps, pipe temps, flows, 010V outputs,
+    buffer, oat, and the relays both families have) are NOT duplicated here —
+    a consumer uses CoreNodeNames / HydronicSpaceheatNodeNames directly for
+    those. The four name classes are disjoint.
+    """
+
+    tstat_common_relay = "tstat-common-relay"
+    store_charge_discharge_relay = "charge-discharge-relay"
+    hp_failsafe_relay = "hp-failsafe-relay"
+    aquastat_ctrl_relay = "aquastat-ctrl-relay"
+    primary_pump_scada_ops = "primary-pump-scada-ops-relay"
+    primary_pump_failsafe = "primary-pump-failsafe-relay"
+    hp_loop_on_off = "hp-loop-on-off-relay"
+    hp_loop_keep_send = "hp-loop-keep-send-relay"
+
+    # House0-specific instrumentation
+    analog_temp = "analog-temp"
+
+    # the siegenthaler loop: its actor, flow meters and manifold temperatures
+    sieg_loop = "sieg-loop"
+    sieg_flow = "sieg-flow"
+    sieg_send_flow = "sieg-send-flow"
+    sieg_cold = "sieg-cold"
+    sieg_hot = "sieg-hot"

@@ -1,20 +1,18 @@
 from typing import Literal
 
-from pydantic import BaseModel, StrictInt, model_validator  # Count:true
+from pydantic import StrictInt, model_validator  # Count:true
 from typing_extensions import Self
 
 from gwsproto.property_format import (
     SpaceheatName,
     UTCMilliseconds,
 )
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class ChannelReadings(BaseModel):
+class ChannelReadings(GwsprotoSemaType):
     """
-    A list of timestamped readings (values) for a data channel. This is meant to be reported
-    for non-local consumption (AtomicTNode, other) by a SCADA. Therefore, the data channel is
-    referenced by its globally unique identifier. The receiver needs to reference this idea
-    against a list of the data channels used by the SCADA for accurate parsing.
+    Sema: https://schemas.electricity.works/types/channel-readings/002
     """
 
     ChannelName: SpaceheatName
@@ -27,7 +25,13 @@ class ChannelReadings(BaseModel):
     def check_axiom_1(self) -> Self:
         """
         Axiom 1: ListLengthConsistency.
-        ValueList and ScadaReadTimeUnixMsList must have the same length.
+        len(ValueList) SHALL equal len(ScadaReadTimeUnixMsList).
         """
-        # Implement check for axiom 1"
+        if len(self.ValueList) != len(self.ScadaReadTimeUnixMsList):
+            raise ValueError(
+                "Axiom 1 violated! "
+                f"ValueList has length {len(self.ValueList)} but "
+                "ScadaReadTimeUnixMsList has length "
+                f"{len(self.ScadaReadTimeUnixMsList)}"
+            )
         return self

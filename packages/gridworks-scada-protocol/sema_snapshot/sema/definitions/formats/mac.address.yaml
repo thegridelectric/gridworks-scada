@@ -1,0 +1,24 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/formats/mac.address"
+
+title: "mac.address"
+description: |
+  A MAC address as six lowercase hexadecimal octet pairs separated by colons
+  (e.g. 34:e1:d1:82:22:22). Lowercase is insisted on so identity comparison is a
+  plain string match; this is the normalized form the SCADA boundary already emits.
+
+type: string
+pattern: "^([0-9a-f]{2}:){5}[0-9a-f]{2}$"
+
+examples:
+  - "34:e1:d1:82:22:22"
+  - "aa:bb:cc:dd:ee:ff"
+
+counterexamples:
+  - "34:E1:D1:82:22:22"   # uppercase hex not allowed
+  - "34-e1-d1-82-22-22"   # hyphen separator not allowed
+  - "34:e1:d1:82:22"      # only five octets
+  - "example"             # not a MAC address
+
+x-gridworks:
+  owner: "gridworks-energy"

@@ -1,0 +1,105 @@
+"""The top machine of each local control: its states and the events that
+move it. Neither family's heating machine has the Standby state, and the
+standby machine has Standby and Dormant alone."""
+
+import pytest
+
+from actors.local_control.house0.tou_base import LocalControlTouBase
+from actors.local_control.nolan.buffer_only_tou import NolanBufferOnlyTou
+from actors.local_control.standby import StandbyLocalControl
+from gwsproto.enums import LocalControlTopEvent, LocalControlTopState
+from gwsproto.names.core.node_names import CoreNodeNames
+from gwsproto.type_helpers.command_tree_axioms import LOCAL_CONTROL_STATE_NODES
+
+TOP_STATES = {
+    LocalControlTouBase: {
+        LocalControlTopState.Dormant,
+        LocalControlTopState.Normal,
+        LocalControlTopState.ScadaBlind,
+        LocalControlTopState.InBackup,
+        LocalControlTopState.ColdOverride,
+    },
+    NolanBufferOnlyTou: {
+        LocalControlTopState.Dormant,
+        LocalControlTopState.Normal,
+        LocalControlTopState.ScadaBlind,
+        LocalControlTopState.InBackup,
+        LocalControlTopState.ColdOverride,
+    },
+    StandbyLocalControl: {
+        LocalControlTopState.Dormant,
+        LocalControlTopState.Standby,
+    },
+}
+
+
+@pytest.mark.parametrize("machine", TOP_STATES, ids=lambda m: m.__name__)
+def test_top_machine_states(machine: type) -> None:
+    states = TOP_STATES[machine]
+    assert set(machine.top_states) == states
+    for transition in machine.top_transitions:
+        assert set(sources(transition)) <= states
+        assert transition["dest"] in states
+        assert transition["trigger"] in LocalControlTopEvent.values()
+
+
+COLD_STATES = {LocalControlTopState.InBackup, LocalControlTopState.ColdOverride}
+
+
+
+
+def sources(transition: dict) -> list:
+    source = transition["source"]
+    return list(source) if isinstance(source, list) else [source]
+
+
+@pytest.mark.parametrize("machine", [LocalControlTouBase, NolanBufferOnlyTou], ids=lambda m: m.__name__)
+@pytest.mark.parametrize("state", [LocalControlTopState.Normal, LocalControlTopState.ScadaBlind])
+def test_system_cold_leaves_normal_or_scada_blind_for_the_cold_state_its_event_names(
+    machine: type, state: LocalControlTopState
+) -> None:
+    assert {
+        (t["trigger"], t["dest"])
+        for t in machine.top_transitions
+        if state in sources(t) and t["dest"] in COLD_STATES
+    } == {
+        (LocalControlTopEvent.SystemCold, LocalControlTopState.InBackup),
+        (LocalControlTopEvent.SystemColdNoBackup, LocalControlTopState.ColdOverride),
+    }
+
+
+@pytest.mark.parametrize("machine", [LocalControlTouBase, NolanBufferOnlyTou], ids=lambda m: m.__name__)
+@pytest.mark.parametrize("state", sorted(COLD_STATES))
+def test_a_cold_state_leaves_warm_offpeak_or_dormant(machine: type, state: LocalControlTopState) -> None:
+    assert {
+        (t["trigger"], t["dest"])
+        for t in machine.top_transitions
+        if t["source"] == state
+    } == {
+        (LocalControlTopEvent.CriticalZonesAtSetpointOffpeak, LocalControlTopState.Normal),
+        (LocalControlTopEvent.TopGoDormant, LocalControlTopState.Dormant),
+    }
+
+
+def test_every_commanding_top_state_has_its_state_node() -> None:
+    state_nodes = {
+        LocalControlTopState.Normal: CoreNodeNames.local_control_normal,
+        LocalControlTopState.InBackup: CoreNodeNames.local_control_backup,
+        LocalControlTopState.ColdOverride: CoreNodeNames.local_control_cold_override,
+        LocalControlTopState.ScadaBlind: CoreNodeNames.local_control_scada_blind,
+        LocalControlTopState.Standby: CoreNodeNames.local_control_standby,
+    }
+    assert set(LocalControlTopState) - {LocalControlTopState.Dormant} == set(state_nodes)
+    assert set(state_nodes.values()) == LOCAL_CONTROL_STATE_NODES
+
+
+def test_top_events() -> None:
+    assert set(LocalControlTopEvent.values()) == {
+        "SystemCold",
+        "SystemColdNoBackup",
+        "TopGoDormant",
+        "TopWakeUp",
+        "MissingData",
+        "DataAvailable",
+        "CriticalZonesAtSetpointOffpeak",
+    }

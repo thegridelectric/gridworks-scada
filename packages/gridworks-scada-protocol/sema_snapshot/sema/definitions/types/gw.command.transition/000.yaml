@@ -1,0 +1,47 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw.command.transition/000"
+
+title: "gw.command.transition"
+type: object
+description: >
+  One command a node takes, paired with the state the command leads to.
+  The vocabulary the two values belong to is named by the containing
+  command interface (EventType and StateType); this type carries only the
+  pair.
+
+properties:
+  Event:
+    $ref: "https://schemas.electricity.works/formats/non.empty.string"
+    description: >
+      The event value a boss sends to ask for this transition.
+
+  ToState:
+    $ref: "https://schemas.electricity.works/formats/non.empty.string"
+    description: >
+      The state the node reports once the command has taken effect.
+
+  TypeName:
+    const: "gw.command.transition"
+
+  Version:
+    const: "000"
+
+required:
+  - Event
+  - ToState
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "Event": "TurnOn",
+      "ToState": "HpOn",
+      "TypeName": "gw.command.transition",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"

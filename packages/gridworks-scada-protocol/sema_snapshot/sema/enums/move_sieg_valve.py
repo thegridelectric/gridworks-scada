@@ -1,0 +1,27 @@
+from enum import auto
+
+from sema_snapshot.sema.enums.gw_str_enum import SemaEnum
+
+
+class MoveSiegValve(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/move.sieg.valve/001"""
+
+    MoveToFullSend = auto()
+    MoveToFullKeep = auto()
+    StopValve = auto()
+
+    @classmethod
+    def default(cls) -> "MoveSiegValve":
+        return cls.MoveToFullSend
+
+    @classmethod
+    def values(cls) -> list[str]:
+        return [elt.value for elt in cls]
+
+    @classmethod
+    def enum_name(cls) -> str:
+        return "move.sieg.valve"
+
+    @classmethod
+    def enum_version(cls) -> str:
+        return "001"

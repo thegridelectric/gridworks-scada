@@ -17,11 +17,11 @@ from gwadmin.config import CurrentAdminConfig
 from gwadmin.config import AdminMQTTClient
 from gwadmin.config import ScadaConfig
 from gwadmin.watch.relay_app import RelaysApp, __version__
-from gwsproto.data_classes.house_0_names import H0N
+from gwsproto.names.core.node_names import CoreNodeNames
 
 CONFIG_ENV_VAR = "GWADMIN_CONFIG_NAME"
 
-DEFAULT_ADMIN_NAME = H0N.admin
+DEFAULT_ADMIN_NAME = CoreNodeNames.admin
 
 ENV_FILE_HELP_TEXT = "Optional path to a .env file used to control configuration name."
 CONFIG_NAME_HELP_TEXT = (

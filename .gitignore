@@ -4,6 +4,7 @@ venv
 **/__pycache__/
 *.pyc
 
+CLAUDE.md
 # local files only
 price_forecast.csv
 
@@ -18,7 +19,6 @@ gw_spaceheat/dw1_isone_nh*
 SassyMQ
 .idea
 .env
-tests/.env-gw-spaceheat-test
 tests/.certificate_cache
 tests/.ci-ca
 tmp.csv

@@ -1,0 +1,7 @@
+{
+  "TypeName": "dac.output.config",
+  "Version": "000",
+  "ChannelName": "secondary-010v",
+  "ActorName": "secondary-010v",
+  "DacChannel": "C"
+}

@@ -1,16 +1,15 @@
 from enum import auto
-from gwsproto.enums.gw_str_enum import AslEnum
 from typing import List
 
-class SlowDispatchContractStatus(AslEnum):
-    """Lifecycle status for dispatch contracts between LeafTransactiveNode 
-    and SCADA, tracking creation through completion or termination.
-    
-    ASL: https://schemas.electricity.works/enums/gw1.slow.dispatch.contract.status/000
-    """
+from gwsproto.enums.gw_str_enum import SemaEnum
 
+
+class SlowDispatchContractStatus(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/gw1.slow.dispatch.contract.status/000"""
+
+    Unknown = auto()
     Created = auto()
-    Received = auto() 
+    Received = auto()
     Confirmed = auto()
     Active = auto()
     TerminatedByLtn = auto()
@@ -22,7 +21,7 @@ class SlowDispatchContractStatus(AslEnum):
 
     @classmethod
     def default(cls) -> "SlowDispatchContractStatus":
-        return cls.Created
+        return cls.Unknown
 
     @classmethod
     def values(cls) -> List[str]:
@@ -30,8 +29,8 @@ class SlowDispatchContractStatus(AslEnum):
 
     @classmethod
     def enum_name(cls) -> str:
-        return "gw1.contract.status"
+        return "gw1.slow.dispatch.contract.status"
 
-    @classmethod 
+    @classmethod
     def enum_version(cls) -> str:
         return "000"

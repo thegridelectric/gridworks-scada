@@ -1,7 +1,8 @@
-from gwsproto.data_classes.components.component import Component
-from gwsproto.named_types import ComponentAttributeClassGt
+from typing import Any
+from gwsproto.data_classes.components.component import DeviceComponent
 from gwsproto.named_types import SimPicoTankModuleComponentGt
 
+
 class SimPicoTankModuleComponent(
-    Component[SimPicoTankModuleComponentGt, ComponentAttributeClassGt]
+    DeviceComponent[SimPicoTankModuleComponentGt, Any]
 ): ...

@@ -1,0 +1,24 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/day.of.week/000"
+
+title: "day.of.week"
+type: "string"
+
+description: >
+  Day of the civil week. Used wherever a schedule binds behavior to
+  particular days (e.g. time-of-use windows).
+
+enum:
+  - "Monday"
+  - "Tuesday"
+  - "Wednesday"
+  - "Thursday"
+  - "Friday"
+  - "Saturday"
+  - "Sunday"
+
+default: "Monday"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"

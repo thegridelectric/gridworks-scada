@@ -1,0 +1,22 @@
+{
+  "TypeName": "i2c.relay.component.gt",
+  "Version": "000",
+  "ComponentId": "7b5a9e2a-c2ae-43bb-a317-ce3941a6ba60",
+  "BoardComponentId": "9b1c5e2a-77d4-4f6e-8c3a-5f2e9d101b44",
+  "RelayName": "BufferTop",
+  "ConfigList": [
+    {
+      "TypeName": "relay.control.config",
+      "Version": "000",
+      "ChannelName": "zone1-down-failsafe-relay17",
+      "ActorName": "relay17",
+      "WiringConfig": "NormallyClosed",
+      "EventType": "change.relay.state",
+      "DeEnergizingEvent": "CloseRelay",
+      "EnergizingEvent": "OpenRelay",
+      "StateType": "relay.closed.or.open",
+      "DeEnergizedState": "RelayClosed",
+      "EnergizedState": "RelayOpen"
+    }
+  ]
+}

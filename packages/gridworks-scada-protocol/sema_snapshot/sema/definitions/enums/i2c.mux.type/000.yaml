@@ -1,0 +1,23 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/i2c.mux.type/000"
+
+title: "i2c.mux.type"
+type: "string"
+description: >
+  The model of the I²C bus multiplexer chipset used by a GridWorks SCADA
+  board.
+
+enum:
+  - "Tca9548a"
+
+default: "Tca9548a"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "Tca9548a": >
+      Texas Instruments TCA9548A, an 8-channel I²C switch: a channel-select
+      register connects the upstream bus to one or more downstream bus
+      branches, letting devices with identical addresses share one upstream
+      bus.

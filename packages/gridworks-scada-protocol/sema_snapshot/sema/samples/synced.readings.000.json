@@ -1,0 +1,13 @@
+{
+  "TypeName": "synced.readings",
+  "Version": "000",
+  "ChannelNameList": [
+    "hp-odu-pwr",
+    "buffer-depth1"
+  ],
+  "ValueList": [
+    3215,
+    4973
+  ],
+  "ScadaReadTimeUnixMs": 1735689600123
+}

@@ -1,0 +1,37 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/setpoint.phase/000"
+
+title: "setpoint.phase"
+type: "string"
+description: >
+  Epistemic phase of a learned setpoint belief: how the current belief
+  about a thermostat's setpoint was obtained and how much to trust it.
+
+enum:
+  - "Unknown"
+  - "LastHeatCallEndTemp"
+  - "SuspectZoneBelowSetpoint"
+  - "SuspectZoneAboveSetpoint"
+
+default: "Unknown"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "Unknown": >
+      No belief; no setpoint value exists.
+
+    "LastHeatCallEndTemp": >
+      The belief is the zone temperature observed when the last call
+      ended.
+
+    "SuspectZoneBelowSetpoint": >
+      The last known value is kept but suspect: the circuit calls at
+      zone temperatures above it, indicating the actual setpoint sits
+      higher and the zone is below its setpoint.
+
+    "SuspectZoneAboveSetpoint": >
+      The last known value is kept but suspect: the circuit stays quiet
+      at zone temperatures below it, indicating the actual setpoint sits
+      lower and the zone is above its setpoint.

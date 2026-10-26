@@ -3,8 +3,8 @@
 from typing import Any, Protocol
 from gwsproto.data_classes.sh_node import ShNode
 from actors.scada_data import ScadaData
-from gwsproto.data_classes.house_0_layout import House0Layout
-from gwsproto.data_classes.house_0_names import H0CN
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
+from gwsproto.named_types import ZoneCallCircuit
 from actors.config import ScadaSettings
 
 class ProceduralHost(Protocol):
@@ -56,16 +56,10 @@ class ProceduralHost(Protocol):
     def primary_010v(self) -> ShNode:
         ...
 
-    @property
-    def store_charge_discharge_relay(self) -> ShNode: ...
-
-    @property
-    def store_pump_failsafe(self) -> ShNode: ...
-
     def _send_to(self, dst: ShNode, payload: Any, src: ShNode | None = None) -> None: ...
 
     @property 
-    def layout(self) -> House0Layout: ...
+    def layout(self) -> HydronicLayout: ...
 
     async def await_with_watchdog(
             self, 
@@ -78,19 +72,16 @@ class ProceduralHost(Protocol):
         """
         ...
 
-    @property
-    def h0cn(self) -> H0CN: ...
-
     def alert(self, summary: str, details: str) -> None: ...
 
     def set_010_defaults(self, command_node: ShNode | None = None) -> None: ...
     
-    def stat_ops_open_relay(self, zone: str, command_node: ShNode| None = None) -> None: ...
+    def stat_ops_open_relay(self, circuit: ZoneCallCircuit, command_node: ShNode| None = None) -> None: ...
 
-    def heatcall_ctrl_to_scada(self, zone: str, command_node: ShNode | None = None) -> None:
+    def heatcall_ctrl_to_scada(self, circuit: ZoneCallCircuit, command_node: ShNode | None = None) -> None:
         ...
 
-    def stat_ops_close_relay(self, zone: str, command_node: ShNode | None = None) -> None:
+    def stat_ops_close_relay(self, circuit: ZoneCallCircuit, command_node: ShNode | None = None) -> None:
         ...
 
     def turn_off_store_pump(self, command_node: ShNode | None = None) -> None: 
@@ -99,9 +90,9 @@ class ProceduralHost(Protocol):
     def turn_on_store_pump(self, command_node: ShNode | None = None) -> None: 
         ...
 
-    def heatcall_ctrl_to_stat(self, zone: str, command_node: ShNode | None = None) -> None: 
+    def heatcall_ctrl_to_stat(self, circuit: ZoneCallCircuit, command_node: ShNode | None = None) -> None: 
         """
-        Return control of the zone heatcall to the wall thermostat.
+        Return control of the circuit's heatcall to the wall thermostat.
 
         Implementations must:
         - Route the command using command_node, using self.node if no command_node provided

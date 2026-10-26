@@ -1,0 +1,57 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/ticklist.reed.report/000"
+
+title: "ticklist.reed.report"
+type: object
+description: >
+  A reed-switch flow meter tick batch (ticklist.reed) wrapped by a SCADA node
+  with the channel and terminal asset context needed to interpret it, for
+  forwarding to the LeafTransactiveNode.
+
+properties:
+
+  TerminalAssetAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      GNode alias of the TerminalAsset the flow meter belongs to.
+
+  ChannelName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      Name of the data channel the flow meter feeds.
+
+  ScadaReceivedUnixMs:
+    $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+    description: >
+      Time at which the SCADA node received the tick batch from the pico.
+
+  Ticklist:
+    $ref: "https://schemas.electricity.works/types/ticklist.reed/101"
+    description: >
+      The raw reed-switch tick batch as posted by the pico flow module.
+
+  TypeName:
+    const: "ticklist.reed.report"
+
+  Version:
+    const: "000"
+
+required:
+  - TerminalAssetAlias
+  - ChannelName
+  - ScadaReceivedUnixMs
+  - Ticklist
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+x-gridworks:
+  owner: "gridworks-energy"
+  extended_description: >
+    ticklist.reed.report is the SCADA-to-LeafTransactiveNode boundary message
+    in GridWorks' experiments with reed-switch flow meters. A pico flow module
+    posts a raw ticklist.reed to the SCADA node's flow module actor; when tick
+    list publishing is enabled, that actor wraps the payload with terminal
+    asset, channel, and receive-time context and sends this report to the
+    LeafTransactiveNode. The hall-effect counterpart is ticklist.hall.report.

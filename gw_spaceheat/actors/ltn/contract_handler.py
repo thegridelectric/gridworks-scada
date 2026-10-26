@@ -11,14 +11,14 @@ from typing import Optional, Callable
 import pytz
 from gwproto import Message
 from gwsproto.data_classes.sh_node import ShNode
-from gwsproto.data_classes.house_0_layout import House0Layout
-from gwsproto.data_classes.house_0_names import H0N
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwproactor.logger import LoggerOrAdapter
 from gwsproto.enums import MarketPriceUnit
 from gwsproto.enums import SlowDispatchContractStatus
 from gwsproto.named_types import ( 
-    Bid, LatestPrice, SlowContractHeartbeat, SlowDispatchContract, 
+    Bid, LatestPrice, SlowContractHeartbeat, SlowContractRejection, SlowDispatchContract, 
 )
+from gwsproto.names.core.node_names import CoreNodeNames
 
 from actors.ltn.config import LtnSettings
 
@@ -45,7 +45,7 @@ class LtnContractHandler:
         self,
         node: ShNode,
         settings: LtnSettings,
-        layout: House0Layout,
+        layout: HydronicLayout,
         logger: LoggerOrAdapter,
         send_threadsafe: Callable[[Message], None]
     ):
@@ -184,6 +184,18 @@ class LtnContractHandler:
         else:
             self.latest_hb = scada_hb
     
+    def process_slow_contract_rejection(self, rejection: SlowContractRejection) -> None:
+        """The scada will not take the offered contract. Drop the pending
+        Created heartbeat so the rejected offer is not resent or reloaded."""
+        if self.latest_hb is None or rejection.ContractId != self.latest_hb.Contract.ContractId:
+            self.logger.info(f"Rejection for a contract we are not offering ... ignoring: {rejection}")
+            return
+        self.logger.warning(
+            f"Scada refused contract {rejection.ContractId}: {rejection.Reason.value}"
+        )
+        self.latest_hb = None
+        self.contract_file.unlink(missing_ok=True)
+
     def create_new_contract(self) -> None:
         """
         - Create a new SlowDispatchContract at the top of the hour
@@ -252,7 +264,7 @@ class LtnContractHandler:
         self.send_threadsafe(
                 Message(
                     Src=self.node.name,
-                    Dst=H0N.primary_scada,
+                    Dst=CoreNodeNames.primary_scada,
                     Payload=self.latest_hb,
                 )
             )
@@ -289,7 +301,7 @@ class LtnContractHandler:
         if hb is not None:
             if hb.Status == SlowDispatchContractStatus.Created:
                 # we didn't get any response, send again
-                self.send_threadsafe(Message(Src=self.node.name,Dst=H0N.primary_scada,Payload=hb))
+                self.send_threadsafe(Message(Src=self.node.name,Dst=CoreNodeNames.primary_scada,Payload=hb))
         while not self._stop_requested:
             try:
                 # Only send heartbeats if we have an active contract              
@@ -301,7 +313,7 @@ class LtnContractHandler:
                             self.send_threadsafe(
                                 Message(
                                     Src=self.node.name,
-                                    Dst=H0N.primary_scada,
+                                    Dst=CoreNodeNames.primary_scada,
                                     Payload=completion_hb
                                 )
                             )
@@ -314,7 +326,7 @@ class LtnContractHandler:
                             self.send_threadsafe(
                                 Message(
                                     Src=self.node.name,
-                                    Dst=H0N.primary_scada,
+                                    Dst=CoreNodeNames.primary_scada,
                                     Payload=send_hb
                                 )
                             )
@@ -333,7 +345,7 @@ class LtnContractHandler:
             raise Exception("Past the top of the hour but still in prev contract timeslot!?")
         
         try:
-            self.send_threadsafe(Message(Src=self.node.name, Dst=H0N.primary_scada,
+            self.send_threadsafe(Message(Src=self.node.name, Dst=CoreNodeNames.primary_scada,
                             Payload=self.create_completion_heartbeat())
             )
         except Exception as e:

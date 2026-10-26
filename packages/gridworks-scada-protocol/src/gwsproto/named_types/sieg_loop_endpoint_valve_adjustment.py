@@ -2,10 +2,12 @@ import time
 from typing import Literal
 
 from gwsproto.property_format import HandleName, UTCMilliseconds
-from pydantic import BaseModel, Field, PositiveInt, StrictInt, model_validator
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
+from pydantic import Field, PositiveInt, StrictInt, model_validator
 from typing_extensions import Self
 
-class SiegLoopEndpointValveAdjustment(BaseModel):
+
+class SiegLoopEndpointValveAdjustment(GwsprotoSemaType):
     """
     Used to gauarantee that the Siegenthaler valve is fully closed or fully open.
     If the HpKeepPercent is 100% (and matches actual), the SiegLoop actor pushes

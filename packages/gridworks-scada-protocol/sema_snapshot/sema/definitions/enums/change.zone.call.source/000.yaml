@@ -1,0 +1,27 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/change.zone.call.source/000"
+
+title: "change.zone.call.source"
+type: "string"
+description: >
+  Events for switching a zone-call circuit's call authority between the
+  wall thermostat and the scada, actuated by the circuit's failsafe
+  relay.
+
+enum:
+  - "SwitchToWallThermostat"
+  - "SwitchToScada"
+
+default: "SwitchToWallThermostat"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "SwitchToWallThermostat": >
+      De-energize the failsafe relay: the wall thermostat's call passes
+      to the actuator.
+
+    "SwitchToScada": >
+      Energize the failsafe relay: the scada's ops relay drives the
+      call.

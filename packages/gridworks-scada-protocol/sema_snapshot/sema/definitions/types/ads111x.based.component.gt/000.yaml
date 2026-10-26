@@ -1,0 +1,101 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/ads111x.based.component.gt/000"
+
+title: "ads111x.based.component.gt"
+type: object
+description: >
+  An ADS111x-based multipurpose-sensor component (one installed device instance): thermistor
+  inputs read through ADS111x ADC terminal blocks. Flat — the shared component
+  fields are spelled out here; ConfigList references the ads channel config by $ref.
+
+properties:
+
+  ComponentId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      Globally unique identifier for this installed component instance.
+
+  DeviceType:
+    $ref: "https://schemas.electricity.works/formats/pascal.case"
+    description: >
+      The device category this component is built on, an open
+      pascal-case string.
+
+  ConfigList:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/ads.channel.config/000"
+    description: >
+      Per-channel thermistor configurations read through the ADS terminal blocks.
+
+  OpenVoltageByAds:
+    type: array
+    items:
+      type: number
+    description: >
+      Open-circuit voltage observed per ADS chip, used in the resistance calculation.
+
+  DisplayName:
+    type: string
+
+  HwUid:
+    type: string
+    description: >
+      Hardware unique id of the installed device, when known.
+
+  TypeName:
+    const: "ads111x.based.component.gt"
+
+  Version:
+    const: "000"
+
+required:
+  - ComponentId
+  - DeviceType
+  - ConfigList
+  - OpenVoltageByAds
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "ComponentId": "335cc56a-165a-4400-a550-387c2d744680",
+      "DeviceType": "GridworksTsnap1ScadaBoard",
+      "ConfigList": [
+        {
+          "ChannelName": "scada",
+          "TerminalBlockIdx": 1,
+          "ThermistorDeviceType": "MakeModel",
+          "TypeName": "ads.channel.config",
+          "Version": "000"
+        }
+      ],
+      "OpenVoltageByAds": [
+        4.95
+      ],
+      "TypeName": "ads111x.based.component.gt",
+      "Version": "000"
+    }
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "ChannelNameUniqueness"
+      statement: >
+        Channel names SHALL be unique across the ConfigList.
+    - number: 2
+      name: "OpenVoltageByAdsRange"
+      statement: >
+        Every element of OpenVoltageByAds SHALL be between 4.5 and 5.5 inclusive
+        (the "near 5V" Raspberry-Pi-supply open-circuit range).
+  extended_description: >
+    The `.gt` suffix declares that this type is coupled bijectively with a table in
+    a canonical seed database (here, the terminalasset registry): the table's rows are
+    instances of this type. Sema is the authority over what a row means; the seed
+    table is the authority over which instances are currently asserted.
+
+    DeviceType values come from the `gw1.device.type` vocabulary; the hardware layout enforces membership.

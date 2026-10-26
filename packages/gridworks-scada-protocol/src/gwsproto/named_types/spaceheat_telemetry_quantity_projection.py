@@ -1,0 +1,47 @@
+from typing import Literal
+
+from pydantic import ConfigDict, model_validator
+from typing_extensions import Self
+
+from gwsproto.enums import Quantity, TelemetryName as TelemetryNameEnum
+from gwsproto.enums.unit_quantity import UNIT_TO_QUANTITY
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
+
+
+class SpaceheatTelemetryQuantityProjection(GwsprotoSemaType):
+    """
+    Sema: https://schemas.electricity.works/types/spaceheat.telemetry.quantity.projection/001
+    """
+
+    TelemetryName: TelemetryNameEnum
+    Quantity: Quantity
+    TypeName: Literal[
+        "spaceheat.telemetry.quantity.projection"
+    ] = "spaceheat.telemetry.quantity.projection"
+    Version: Literal["001"] = "001"
+
+    model_config = ConfigDict(use_enum_values=True)
+
+    @classmethod
+    def canonical(
+        cls, telemetry_name: TelemetryNameEnum
+    ) -> "SpaceheatTelemetryQuantityProjection":
+        return cls(
+            TelemetryName=telemetry_name,
+            Quantity=UNIT_TO_QUANTITY[telemetry_name],
+        )
+
+    @model_validator(mode="after")
+    def check_axiom_1(self) -> Self:
+        """
+        Axiom 1: EnumeratedProjectionMapping.
+        Quantity must match the canonical projection for TelemetryName.
+        """
+        expected_quantity = UNIT_TO_QUANTITY[self.TelemetryName]
+        if self.Quantity != expected_quantity:
+            raise ValueError(
+                "Axiom 1 violated! "
+                f"TelemetryName {self.TelemetryName} maps to Quantity "
+                f"{expected_quantity}, not {self.Quantity}"
+            )
+        return self

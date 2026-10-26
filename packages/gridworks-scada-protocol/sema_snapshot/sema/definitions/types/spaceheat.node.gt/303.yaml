@@ -1,0 +1,146 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/spaceheat.node.gt/303"
+
+title: "spaceheat.node.gt"
+type: object
+description: >
+  A Spaceheat node representing a named element in the SCADA system.
+
+properties:
+
+  Name:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      Unique name identifying this node within the Spaceheat system. This name
+      is used as the primary reference point for binding channels, actors, and
+      control logic.
+
+  ActorHierarchyName:
+    $ref: "https://schemas.electricity.works/formats/handle.name"
+    description: >
+      Hierarchical name in the actor command tree. This is used when the node
+      participates in structured actor control and command routing.
+
+  Handle:
+    $ref: "https://schemas.electricity.works/formats/handle.name"
+    description: >
+      Handle used for actor-to-actor communication. When present, this defines
+      the addressable identity of the node within the actor messaging layer.
+
+  ActorClass:
+    $ref: "https://schemas.electricity.works/enums/gw1.actor.class/014"
+    description: >
+      Class of the software actor associated with this node. This determines
+      the behavior, capabilities, and runtime role of the node within the SCADA.
+
+  DisplayName:
+    type: string
+    description: >
+      Human-readable display name for this node, intended for UI presentation
+      and operator interaction.
+
+  ComponentId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      Identifier of the physical component associated with this node. This links
+      the node to hardware defined elsewhere in the system.
+
+  BoardComponentId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      Identifier of the board-level component associated with this node. This
+      allows grouping of nodes by embedded hardware platform or control board.
+
+  NameplatePowerW:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Nameplate power rating in watts for this node, used for power estimation,
+      metering, and system-level energy calculations.
+
+  ShNodeId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      Immutable unique identifier for this Spaceheat node. This identifier is
+      stable across deployments and renaming.
+
+  TypeName:
+    const: "spaceheat.node.gt"
+
+  Version:
+    const: "303"
+
+required:
+  - Name
+  - ActorClass
+  - ShNodeId
+  - TypeName
+  - Version
+
+additionalProperties: true
+
+examples:
+  - |
+    {
+      "Name": "s",
+      "ActorClass": "PrimaryScada",
+      "DisplayName": "Spruce Scada",
+      "ShNodeId": "8f3c27de-6a41-4bb0-9df2-51b7ac94e203",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303"
+    }
+  - |
+    {
+      "ActorClass": "Relay",
+      "ActorHierarchyName": "s.relay1",
+      "ComponentId": "7a2f6d84-9cb1-4e73-b8a6-3f1d52ce8049",
+      "DisplayName": "5VDC Relay",
+      "Handle": "auto.pico-cycler.relay1",
+      "Name": "relay1",
+      "ShNodeId": "d84f1ab6-73ce-4b92-8f45-1ea769c2053d",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "ActorHierarchyConstraints"
+      statement: >
+        If ActorClass is "NoActor", ActorHierarchyName SHALL be absent.
+        If ActorClass is not "NoActor" and ActorHierarchyName is absent,
+        then ActorClass SHALL be "PrimaryScada" or "SecondaryScada".
+        If ActorHierarchyName is present, its final segment SHALL equal Name
+        and all segments SHALL be unique.
+
+    - number: 2
+      name: "HandleConstraints"
+      statement: >
+        If Handle is present, its final segment SHALL equal Name and all
+        segments SHALL be unique.
+
+  extended_description: >
+    Spaceheat nodes are the fundamental building blocks of an agent-based
+    SCADA deployment for a hydronic heating system.
+
+    Each node represents a named element in the operational control model.
+    Nodes may correspond to active software actors responsible for sensing,
+    control, telemetry generation, or coordination. They may also represent
+    passive physical or logical entities that are measured or controlled, or
+    higher-level semantic roles such as supervisory control, derived signals,
+    or system modes.
+
+    This abstraction unifies physical equipment, software actors, and logical
+    constructs under a single naming system, enabling consistent binding across
+    telemetry, control, and coordination layers.
+
+    This type permits additionalProperties to support forward-compatible schema
+    evolution and temporary inclusion of application-specific fields during
+    layout development. Such extensions are expected to be formalized into
+    explicit schema properties over time.
+
+    The `.gt` suffix declares that this type is coupled bijectively with a table in
+    a canonical seed database (here, the terminalasset registry): the table's rows are
+    instances of this type. Sema is the authority over what a row means; the seed
+    table is the authority over which instances are currently asserted.

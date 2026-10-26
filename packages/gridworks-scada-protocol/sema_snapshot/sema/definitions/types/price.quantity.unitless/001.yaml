@@ -1,0 +1,47 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/price.quantity.unitless/001"
+
+title: "price.quantity.unitless"
+type: object
+description: >
+  Integer price and quantity pair for market bidding and dispatch curves.
+
+  Both values are serialized as strict integers scaled by 1000.
+
+properties:
+
+  PriceX1000:
+    type: integer
+    description: >
+      Price value scaled by 1000.
+
+  QuantityX1000:
+    type: integer
+    description: >
+      Quantity value scaled by 1000.
+
+  TypeName:
+    const: "price.quantity.unitless"
+
+  Version:
+    const: "001"
+
+required:
+  - PriceX1000
+  - QuantityX1000
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "PriceX1000": 12500,
+      "QuantityX1000": -3000,
+      "TypeName": "price.quantity.unitless",
+      "Version": "001"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"

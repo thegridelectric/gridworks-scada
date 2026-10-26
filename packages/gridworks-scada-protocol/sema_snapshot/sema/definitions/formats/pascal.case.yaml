@@ -1,0 +1,28 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/formats/pascal.case"
+
+title: "pascal.case"
+description: |
+  PascalCase identifier composed of ASCII alphanumeric characters.
+  The first character must be an uppercase alphabetic character.
+  Separators, whitespace, and underscores are not allowed.
+
+type: string
+minLength: 1
+pattern: "^[A-Z][A-Za-z0-9]*$"
+
+examples:
+  - "MakeModel"
+  - "UtcIso8601Seconds"
+  - "Gw1ActorClass009"
+
+counterexamples:
+  - "makeModel"     # must start with uppercase
+  - "Make_Model"    # underscore not allowed
+  - "Make.Model"    # dot not allowed
+  - "Make-Model"    # hyphen not allowed
+  - "1MakeModel"    # cannot start with a digit
+  - ""              # empty string invalid
+
+x-gridworks:
+  owner: "gridworks-energy"

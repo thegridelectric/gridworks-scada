@@ -1,0 +1,11 @@
+{
+  "TypeName": "i2c.relay.capability",
+  "Version": "000",
+  "RelayName": "Relay17",
+  "ExpanderIdx": 2,
+  "RegisterIndex": 0,
+  "BitIndex": 7,
+  "SupportedWiringConfigs": [
+    "DoubleThrow"
+  ]
+}

@@ -1,0 +1,27 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/i2c.dac.type/000"
+
+title: "i2c.dac.type"
+type: "string"
+description: >
+  The model of the I²C digital-to-analog converter chipset used by a GridWorks
+  SCADA board.
+
+enum:
+  - "Mcp4728"
+  - "Mcp4725"
+  - "Gp8403"
+
+default: "Mcp4728"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "Mcp4728": >
+      Microchip MCP4728, a 12-bit 4-channel I²C digital-to-analog converter.
+    "Mcp4725": >
+      Microchip MCP4725, a 12-bit single-channel I²C digital-to-analog converter.
+    "Gp8403": >
+      Guestgood GP8403, a 12-bit two-channel I²C digital-to-analog converter with
+      a 0-10V output range (the DFRobot DFR0971 module).

@@ -10,7 +10,7 @@ from gwsproto.named_types import SnapshotSpaceheat, PowerWatts
 
 from actors.ltn.dashboard.misc import UpdateSources
 from actors.ltn.config import DashboardSettings
-from gwsproto.data_classes.hardware_layout import ChannelRegistry
+from gwsproto.data_classes.hydronic_layout import ChannelRegistry
 from actors.ltn.dashboard.channels.containers import Channels
 from actors.ltn.dashboard.display.displays import Displays
 from actors.ltn.dashboard.hackhp import HackHp

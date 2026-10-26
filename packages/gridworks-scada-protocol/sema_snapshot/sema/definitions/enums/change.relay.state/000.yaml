@@ -1,0 +1,22 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/change.relay.state/000"
+
+title: "change.relay.state"
+type: "string"
+description: >
+  Canonical FSM events for transitioning a simple relay between open and closed
+  states. These events correspond to control actions applied to the relay.
+
+enum:
+  - "CloseRelay"
+  - "OpenRelay"
+
+default: OpenRelay
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+
+  value_descriptions:
+    CloseRelay: "Command to close the relay (energize circuit)."
+    OpenRelay: "Command to open the relay (de-energize circuit)."

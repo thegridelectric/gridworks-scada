@@ -1,15 +1,21 @@
 """Container for data Scada uses in building status and snapshot messages, separated from Scada for clarity,
 not necessarily re-use. """
 
+import json
+import os
+import asyncio
 import time
 import uuid
-from typing import Dict, List, Optional, Union
+from pathlib import Path
+from typing import Dict, List, NamedTuple, Optional, Union
 
 from actors.config import ScadaSettings
 from gwsproto.data_classes.data_channel import DataChannel
-from gwsproto.data_classes.house_0_names import H0CN
+from gwsproto.data_classes.derived_channel import DerivedChannel
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.named_types import (
     ChannelReadings,
+    RecordedSetpoints,
     Report,
     SingleReading,
     SingleMachineState,
@@ -20,36 +26,103 @@ from gwsproto.named_types import (
     HeatingForecast,
     SnapshotSpaceheat,
 )
+from gwsproto.property_format import LeftRightDotStr, SpaceheatName
 
-from gwsproto.data_classes.derived_channel import DerivedChannel
-from gwsproto.data_classes.house_0_layout import House0Layout
+
+from actors.config import DEFAULT_OPS_PARAMS_FILE
+from sema_to_dc import OperationalParams, decode_operational_params
+
+
+def load_operational_params(settings: ScadaSettings) -> OperationalParams:
+    """Load the home's authored operational-params artifact, decoded through
+    its own family's word. The artifact is REQUIRED — its values have no
+    defaults anywhere else. Pairing with the layout family is enforced at
+    layout load (sema_to_dc.check_approved_pair)."""
+    path = Path(settings.paths.operational_params)
+    if not path.exists():
+        raise FileNotFoundError(
+            f"Operational params artifact not found at {path}. Every home needs "
+            f"its authored {DEFAULT_OPS_PARAMS_FILE} (set paths.operational_params, "
+            "or place it beside the hardware layout in the same folder)."
+        )
+    return decode_operational_params(json.loads(path.read_text()))
+
+
+RECORDED_SETPOINTS_FILE = "recorded-setpoints.json"
+
+
+def write_text_atomically(path: Path, text: str) -> None:
+    """Replace the file in one step, so neither a reader nor a power cut
+    meets a half-written one."""
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(text)
+    os.replace(tmp, path)
+
+
+def save_operational_params(settings: ScadaSettings, ops: OperationalParams) -> None:
+    """Write the params the scada now runs over its operational-params
+    file."""
+    write_text_atomically(
+        Path(settings.paths.operational_params),
+        json.dumps(ops.model_dump(by_alias=True, exclude_none=True, mode="json"), indent=2) + "\n",
+    )
+
+
+def load_recorded_setpoints(
+    settings: ScadaSettings, scada_alias: LeftRightDotStr
+) -> dict[SpaceheatName, SingleReading]:
+    """The recorded setpoints this scada last wrote, by channel name; none
+    when it has written none, or when the file is another scada's."""
+    path = Path(settings.paths.data_dir) / RECORDED_SETPOINTS_FILE
+    if not path.exists():
+        return {}
+    record = RecordedSetpoints.model_validate_json(path.read_text())
+    if record.ScadaAlias != scada_alias:
+        return {}
+    return {reading.ChannelName: reading for reading in record.SetpointList}
+
+
+def save_recorded_setpoints(
+    settings: ScadaSettings, scada_alias: LeftRightDotStr, setpoints: dict[SpaceheatName, SingleReading]
+) -> None:
+    record = RecordedSetpoints(ScadaAlias=scada_alias, SetpointList=list(setpoints.values()))
+    write_text_atomically(
+        Path(settings.paths.data_dir) / RECORDED_SETPOINTS_FILE,
+        json.dumps(record.model_dump(by_alias=True, exclude_none=True, mode="json"), indent=2) + "\n",
+    )
+
+
+class UnknownChannels(NamedTuple):
+    """The data channels the scada holds no usable value for."""
+
+    no_value: list[str]
+    """Names of channels with no latest value: never read, or flushed."""
+    stale: list[str]
+    """Names of channels whose latest value is older than the flatline bound."""
+
+
 class ScadaData:
 
-    def __init__(self, settings: ScadaSettings, hardware_layout: House0Layout):
+    def __init__(
+        self,
+        settings: ScadaSettings,
+        hardware_layout: HydronicLayout,
+        ops: OperationalParams,
+    ):
         self.reports_to_store: Dict[str, Report] = {}
         self.seconds_by_channel: Dict[str, int] = {}
 
         self.settings: ScadaSettings = settings
-        self.layout: House0Layout = hardware_layout
-        # TODO: move into layout when better UI for it
-        self.ha1_params = Ha1Params(
-            AlphaTimes10=int(self.settings.alpha * 10),
-            BetaTimes100=int(self.settings.beta * 100),
-            GammaEx6=int(self.settings.gamma * 1e6),
-            IntermediatePowerKw=self.settings.intermediate_power,
-            IntermediateRswtF=int(self.settings.intermediate_rswt),
-            DdPowerKw=self.settings.dd_power,
-            DdRswtF=int(self.settings.dd_rswt),
-            DdDeltaTF=int(self.settings.dd_delta_t),
-            HpMaxKwEl=self.settings.hp_max_kw_el,
-            MaxEwtF=self.settings.max_ewt_f,
-            LoadOverestimationPercent=self.settings.load_overestimation_percent,
-            CopIntercept=self.settings.cop_intercept,
-            CopOatCoeff=self.settings.cop_oat_coeff,
-            CopLwtCoeff=self.settings.cop_lwt_coeff,
-            CopMin=self.settings.cop_min,
-            CopMinOatF=self.settings.cop_min_oat_f,
-            HpTurnOnMinutes=self.settings.hp_turn_on_minutes,
+        self.layout: HydronicLayout = hardware_layout
+        # The authored operational params — the runtime source for the control/
+        # optimization values (OPS-408's live-update transport is the eventual
+        # writer).
+        self.ops: OperationalParams = ops
+        self.ha1_params: Ha1Params = self.make_ha1_params(ops)
+        # The last reading each learned zone setpoint channel carried, kept
+        # across restarts (actors/hydronic/cold.py).
+        self.recorded_setpoints: dict[SpaceheatName, SingleReading] = load_recorded_setpoints(
+            settings, hardware_layout.scada_g_node_alias
         )
         self.my_data_channels = self.get_my_data_channels()
         self.my_derived_channels = self.get_my_derived_channels()
@@ -62,11 +135,17 @@ class ScadaData:
         self.latest_channel_unix_ms: Dict[str, int | None] = {
             ch.Name: None for ch in self.my_channels
         }
+        # The value a flush cleared from latest_channel_values, by channel
+        # name; read through last_real_value.
+        self.last_real_channel_values: Dict[str, int] = {}
         self.latest_temperatures_f: Dict[str, float] = {}
-        self.buffer_temps_available: bool = False # change to buffer_available
+        # Two one-shot readiness facts the leaf ally awaits before its first
+        # judgment: the derived generator sets first_forecast when it stores
+        # its first heating forecast; the scada sets buffer_fresh_once the
+        # first time the family's dispatch channels are all fresh.
+        self.first_forecast = asyncio.Event()
+        self.buffer_fresh_once = asyncio.Event()
 
-        self.latest_channel_values[H0CN.usable_energy] = 0
-        self.latest_channel_unix_ms[H0CN.usable_energy] = int(time.time() * 1000)
         self.recent_channel_values: Dict[str, List] = {
             ch.Name: [] for ch in self.my_channels
         }
@@ -77,6 +156,27 @@ class ScadaData:
         self.heating_forecast: HeatingForecast | None = None
         self.recent_fsm_reports = {}
         self.flush_recent_readings()
+
+    def make_ha1_params(self, ops: OperationalParams) -> Ha1Params:
+        return Ha1Params(
+            AlphaTimes10=ops.HeatingCurve.AlphaTimes10,
+            BetaTimes100=ops.HeatingCurve.BetaTimes100,
+            GammaEx6=ops.HeatingCurve.GammaEx6,
+            IntermediatePowerKw=ops.HeatingCurve.IntermediatePowerKw,
+            IntermediateRswtF=ops.HeatingCurve.IntermediateRswtF,
+            DdPowerKw=ops.HeatingCurve.DdPowerKw,
+            DdRswtF=ops.HeatingCurve.DdRswtF,
+            DdDeltaTF=ops.HeatingCurve.DdDeltaTF,
+            HpMaxKwEl=ops.HpMaxKwEl,
+            MaxEwtF=ops.HeatingCurve.MaxEwtF,
+            LoadOverestimationPercent=ops.LoadOverestimationPercent,
+            CopIntercept=ops.CopCurve.Intercept,
+            CopOatCoeff=ops.CopCurve.OatCoeff,
+            CopLwtCoeff=ops.CopCurve.LwtCoeff,
+            CopMin=ops.CopCurve.Min,
+            CopMinOatF=ops.CopCurve.MinOatF,
+            HpTurnOnMinutes=ops.HpTurnOnMinutes,
+        )
 
     def get_my_data_channels(self) -> List[DataChannel]:
         return list(self.layout.data_channels.values())
@@ -96,8 +196,18 @@ class ScadaData:
         """
         if channel_name in self.latest_channel_values and self.latest_channel_values[channel_name] is not None:
             print(f"Channel {channel_name} flatlined - removing from snapshots!")
+            self.last_real_channel_values[channel_name] = self.latest_channel_values[channel_name]
         self.latest_channel_values[channel_name] = None
         self.latest_channel_unix_ms[channel_name] = None
+
+    def last_real_value(self, channel_name: str) -> Optional[int]:
+        """The channel's last reading that carried a value, whatever its
+        age: the latest value when there is one, else the value a flush
+        cleared. None for a channel never read."""
+        latest = self.latest_channel_values.get(channel_name)
+        if latest is not None:
+            return latest
+        return self.last_real_channel_values.get(channel_name)
 
     def flush_recent_readings(self):
         self.recent_channel_values = {ch.Name: [] for ch in self.my_channels}
@@ -148,15 +258,28 @@ class ScadaData:
         )
 
     def capture_seconds(self, ch: Union[DataChannel, DerivedChannel]) -> int:
+        """The period a channel's value is fresh for: a data channel's capture
+        period; a derived channel's emit period, or for one that emits on a
+        trigger, the longest period among the inputs it is derived from."""
         if ch.Name not in self.seconds_by_channel:
-            self.seconds_by_channel = {}
-            components = [c.gt for c in self.layout.components.values()]
-            for c in components:
-                for config in c.ConfigList:
-                    self.seconds_by_channel[config.ChannelName] = config.CapturePeriodS
+            self.seconds_by_channel = {
+                name: tuning.CapturePeriodS
+                for name, tuning in self.layout.capture_tuning_by_channel.items()
+            }
             for s in self.my_derived_channels:
-                self.seconds_by_channel[s.Name] = 60  # TODO: fix
+                self.seconds_by_channel[s.Name] = self.derived_seconds(s)
         return self.seconds_by_channel[ch.Name]
+
+    def derived_seconds(self, dc: DerivedChannel) -> int:
+        if dc.EmitPeriodS is not None:
+            return dc.EmitPeriodS
+        inputs = [
+            self.derived_seconds(self.layout.derived_channels[name])
+            if name in self.layout.derived_channels
+            else self.layout.capture_tuning_by_channel[name].CapturePeriodS
+            for name in dc.InputChannelNames
+        ]
+        return max(inputs)
 
     def flatlined(self, ch: Union[DataChannel, DerivedChannel]) -> bool:
         if self.latest_channel_unix_ms[ch.Name] is None:
@@ -169,6 +292,19 @@ class ScadaData:
         ):
             return True
         return False
+
+    def unknown_channels(self) -> UnknownChannels:
+        """Channels with no value or a stale one. A disabled channel is
+        neither: the layout says the house cannot serve it yet."""
+        no_value = [
+            ch.Name for ch in self.my_reported_channels
+            if self.latest_channel_values[ch.Name] is None
+        ]
+        stale = [
+            ch.Name for ch in self.my_reported_channels
+            if self.latest_channel_values[ch.Name] is not None and self.flatlined(ch)
+        ]
+        return UnknownChannels(no_value=no_value, stale=stale)
 
     def make_snapshot(self) -> SnapshotSpaceheat:
         latest_reading_list = []

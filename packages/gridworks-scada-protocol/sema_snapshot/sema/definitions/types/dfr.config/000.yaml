@@ -1,0 +1,55 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/dfr.config/000"
+
+title: "dfr.config"
+type: object
+description: >
+  Channel configuration for one analog output on a DFRobot DFR0971 dual analog-out
+  (0-10V DAC) board.
+
+  This type spells out the channel name together with the board output index and the
+  initial output voltage the channel drives on startup. It carries only the per-channel
+  hardware binding; capture/report tuning lives in operational-params (capture.tuning),
+  not in the static layout.
+
+properties:
+  ChannelName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+
+  OutputIdx:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Which analog output on the DFR board this channel drives.
+
+  InitialVoltsTimes100:
+    type: integer
+    description: >
+      Output voltage (in hundredths of a volt) the channel drives on startup.
+
+  TypeName:
+    const: "dfr.config"
+
+  Version:
+    const: "000"
+
+required:
+  - ChannelName
+  - OutputIdx
+  - InitialVoltsTimes100
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "ChannelName": "scada",
+      "OutputIdx": 1,
+      "InitialVoltsTimes100": 0,
+      "TypeName": "dfr.config",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"

@@ -1,0 +1,70 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/gw1.unit/003"
+
+title: "gw1.unit"
+type: "string"
+description: >
+  Canonical measurement unit associated with a GridWorks telemetry value.
+  This enum defines the structural unit representation used at the serialization
+  boundary. Scaling conventions are encoded explicitly in the unit name.
+
+enum:
+  - "Unknown"
+  - "Unitless"
+  - "FahrenheitX100"
+  - "Watts"
+  - "WattHours"
+  - "Gallons"
+  - "GpmX100"
+  - "Seconds"
+  - "SecondsX10"
+  - "Milliseconds"
+  - "DollarsX1000"
+  - "MilesPerHourX1000"
+  - "KilowattHoursX1000"
+  - "WattsPerSquareMeter"
+  - "MilesPerHourX10"
+  - "FahrenheitX10"
+
+default: "Unknown"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "003"
+  value_descriptions:
+    "Unknown": >
+      Unit has not been specified or is not known.
+    "Unitless": >
+      Dimensionless quantity.
+    "FahrenheitX100": >
+      Temperature in degrees Fahrenheit multiplied by 100.
+    "GpmX100": >
+      Flow rate in gallons per minute multiplied by 100.
+    "SecondsX10": >
+      Time measured in tenths of a second.
+    "DollarsX1000": >
+      Monetary value in US Dollars multiplied by 1,000.
+    "MilesPerHourX1000": >
+      Velocity in miles per hour multiplied by 1,000.
+    "KilowattHoursX1000": >
+      Energy in kilowatt-hours multiplied by 1,000.
+    "WattsPerSquareMeter": >
+      Irradiance in watts per square meter (solar irradiance on a surface).
+    "MilesPerHourX10": >
+      Velocity in miles per hour multiplied by 10.
+    "FahrenheitX10": >
+      Temperature in degrees Fahrenheit multiplied by 10.
+  extended_description: >
+    Scale convention: a scaled unit carries one decimal digit more
+    precision than the accuracy of the best source that produces it. New
+    units are named at that scale; a finer legacy scale is not a claim of
+    accuracy. Wind speed sources are accurate to about 2 mph and report in
+    whole knots or whole mph, so MilesPerHourX10 is the wind speed unit
+    and MilesPerHourX1000 is legacy. Outdoor air temperature sources are
+    accurate to about 1 F (ASOS 0.9 F RMSE, home sensors 0.4 to 0.5 F)
+    and the NWS delivers whole degrees, so FahrenheitX10 is the unit for
+    weather temperature; FahrenheitX100 remains the unit of the scada's
+    own temperature channels. KilowattHoursX1000 and DollarsX1000 are
+    planned to be obsolete: WattHours covers the energy case, and a
+    currency unit at an honest precision replaces DollarsX1000. Every
+    value remains because published versions never drop one.

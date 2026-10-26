@@ -1,0 +1,31 @@
+"""Tests gw1.hvac.zone type, version 000"""
+
+
+from gwsproto.named_types import HvacZone
+from tests.named_types.sema_oracle import assert_refused
+
+
+def base_zone() -> dict:
+    return {
+        "Name": "zone1-down",
+        "Critical": True,
+        "KwhPerDegF": 2.5,
+        "PrimaryCircuitPosition": 1,
+        "TypeName": "gw1.hvac.zone",
+        "Version": "000",
+    }
+
+
+def test_hvac_zone_generated() -> None:
+    d = base_zone()
+
+    d2 = HvacZone.model_validate(d).model_dump(by_alias=True, exclude_none=True)
+
+    assert d2 == d
+
+
+def test_hvac_zone_primary_circuit_required() -> None:
+    d = base_zone()
+    del d["PrimaryCircuitPosition"]
+
+    assert_refused(HvacZone, d)

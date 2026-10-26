@@ -1,3 +1,18 @@
+"""TLS commissioning tool for scada/LTN MQTT links — OPERATOR CLI, run by
+a human, imported by nothing (zero importers is by design; do not mistake
+that for dead code).
+
+Drives the GridWorks certificate authority on certbot.electricity.works:
+1. ssh to certbot and generate the named cert/key pair against the CA;
+2. rclone the CA certificate, the cert, and the private key down to the
+   target machine's certs dir (a pi, an LTN box, or a local dir);
+3. delete the generated material from certbot.
+
+Requires the certbot ssh key (~/.ssh/gridworks-hybrid.pem by default) and
+configured rclone remotes for certbot and the destination. Usage examples
+in the argparse text below; `--dry-run` prints the commands.
+"""
+
 import argparse
 import subprocess
 from pathlib import Path

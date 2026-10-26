@@ -1,11 +1,11 @@
 from typing import Literal
 
-
 from gwsproto.property_format import  LeftRightDotStr, UTCMilliseconds
-from pydantic import BaseModel, StrictInt
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
+from pydantic import StrictInt
 
 
-class SiegTargetTooLow(BaseModel):
+class SiegTargetTooLow(GwsprotoSemaType):
     FromGNodeAlias: LeftRightDotStr
     TargetLwtFx10: StrictInt
     SiegColdFx10: StrictInt

@@ -1,0 +1,35 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/gw.standby.posture/000"
+
+title: "gw.standby.posture"
+type: "string"
+
+description: >
+  What a scada in Standby does to the plant. Standby de-energizes every
+  relay directly under local control except the ones its operational
+  params list as EnergizedStandbyRelays, and holds the heat pump off
+  through hp-boss; the posture names what that list achieves at this
+  house, so two houses with different lists can state the same intent.
+  The vdc relay keeps cycling in every posture: the pico power supply is
+  not part of the plant.
+
+enum:
+  - "MonitorOnly"
+  - "NoHeatingOrCooling"
+
+default: "MonitorOnly"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+
+  value_descriptions:
+    "MonitorOnly": >
+      The scada energizes nothing. The house runs on its failsafe wiring
+      while the scada collects and reports telemetry. The decode
+      fallback: an unknown posture degrades to touching nothing.
+
+    "NoHeatingOrCooling": >
+      The scada holds every heat source off: the heat pump and any
+      non-electric backup. Which relays that takes is a fact about the
+      house, carried in EnergizedStandbyRelays.

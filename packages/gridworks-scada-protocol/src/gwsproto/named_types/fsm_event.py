@@ -6,21 +6,12 @@ from gwsproto.property_format import (
     UTCMilliseconds,
     UUID4Str,
 )
-from pydantic import BaseModel, ConfigDict, model_validator
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
+from pydantic import ConfigDict, model_validator
 from typing_extensions import Self
 
 
-class FsmEvent(BaseModel):
-    """
-    Finite State Machine Event Command.
-
-    A message sent to a SpaceheatNode wher ethe Node implements a finite state machine. The
-    message is intended to be an FSM Events (aka Trigger) that allow a state machine to react
-    (by starting a Transition and any side-effect Actions).
-
-    [More info](https://gridworks-protocol.readthedocs.io/en/latest/finite-state-machines.html)
-    """
-
+class FsmEvent(GwsprotoSemaType):
     FromHandle: HandleName
     ToHandle: HandleName
     EventType: LeftRightDotStr

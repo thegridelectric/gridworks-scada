@@ -1,45 +1,46 @@
-import time
-import uuid
 from typing import List, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, PositiveInt, StrictInt
+from pydantic import ConfigDict, PositiveInt, StrictInt
 
 from gwsproto.enums import MarketPriceUnit
 from gwsproto.property_format import LeftRightDotStr, UTCSeconds, UUID4Str
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class FloParamsHouse0(BaseModel):
+class FloParamsHouse0(GwsprotoSemaType):
+    """Sema: https://schemas.electricity.works/types/flo.params.house0/007"""
+
     GNodeAlias: LeftRightDotStr
-    FloParamsUid: UUID4Str = Field(default_factory=lambda: str(uuid.uuid4()))
-    TimezoneStr: str = "America/New_York"
+    FloParamsUid: UUID4Str
+    TimezoneStr: str
     StartUnixS: UTCSeconds
-    HorizonHours: PositiveInt = 48
-    NumLayers: PositiveInt = 27
+    HorizonHours: PositiveInt
+    NumLayers: PositiveInt
     # Equipment
-    StorageVolumeGallons: PositiveInt = 360
-    StorageLossesPercent: float = 0.5
-    HpMinElecKw: float = -0.5
-    HpMaxElecKw: float = 9.66
-    HpTurnOnMinutes: int = 12
-    MaxHpKwhTh: float = 25
-    MaxLoadKwhTh: float = 20
+    StorageVolumeGallons: PositiveInt
+    StorageLossesPercent: float
+    HpMinElecKw: float
+    HpMaxElecKw: float
+    HpTurnOnMinutes: int
+    MaxHpKwhTh: float
+    MaxLoadKwhTh: float
     # Initial state
     InitialTopTempF: StrictInt
     InitialMiddleTempF: StrictInt
     InitialBottomTempF: StrictInt
     InitialThermocline1: StrictInt
     InitialThermocline2: StrictInt
-    HpIsOff: bool = False
-    BufferAvailableKwh: float = 0
-    HouseAvailableKwh: float = 0
+    HpIsOff: bool
+    BufferAvailableKwh: float
+    HouseAvailableKwh: float
     # Forecasts
     LmpForecast: Optional[List[float]] = None
     DistPriceForecast: Optional[List[float]] = None
     RegPriceForecast: Optional[List[float]] = None
-    PriceForecastUid: UUID4Str = Field(default_factory=lambda: str(uuid.uuid4()))
+    PriceForecastUid: UUID4Str
     OatForecastF: Optional[List[float]] = None
     WindSpeedForecastMph: Optional[List[float]] = None
-    WeatherUid: UUID4Str = Field(default_factory=lambda: str(uuid.uuid4()))
+    WeatherUid: UUID4Str
     # House parameters
     AlphaTimes10: StrictInt
     BetaTimes100: StrictInt
@@ -56,25 +57,25 @@ class FloParamsHouse0(BaseModel):
     CopMin: float
     CopMinOatF: float
     # Penalties
-    RswtPenaltyEnabled: bool = True
-    StabilityPenaltyEnabled: bool = True
+    RswtPenaltyEnabled: bool
+    StabilityPenaltyEnabled: bool
     # RSWT penalty
-    RswtPenaltyWeight: float = 0.5
-    RswtPenaltyDecay: float = 0.9
-    RswtPenaltyExponentRate: float = 0.03
-    RswtPenaltyDecayMaxHour: int = 12
+    RswtPenaltyWeight: float
+    RswtPenaltyDecay: float
+    RswtPenaltyExponentRate: float
+    RswtPenaltyDecayMaxHour: int
     # Plan stability penalty
     PreviousPlanHpKwhElList: list[float] | None = None
     PreviousEstimateStorageKwhNow: float | None = None
-    StabilityPenaltyWeight: float = 0.5
-    StabilityPenaltyDecay: float = 0.75
-    StabilityPenaltyThresholdKwh: float = 10.0
-    StabilityPenaltyHorizonHours: int = 20
+    StabilityPenaltyWeight: float
+    StabilityPenaltyDecay: float
+    StabilityPenaltyThresholdKwh: float
+    StabilityPenaltyHorizonHours: int
     # Other
-    PriceUnit: MarketPriceUnit = MarketPriceUnit.USDPerMWh
-    ParamsGeneratedS: UTCSeconds = Field(default_factory=lambda: int(time.time()))
-    ConstantDeltaT: StrictInt = 20
-    FloGitCommit: str = 'Unknown'
+    PriceUnit: MarketPriceUnit
+    ParamsGeneratedS: UTCSeconds
+    ConstantDeltaT: StrictInt
+    FloGitCommit: str
     TypeName: Literal["flo.params.house0"] = "flo.params.house0"
     Version: Literal["007"] = "007"
 

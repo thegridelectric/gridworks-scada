@@ -3,12 +3,11 @@ from typing import Literal, Optional
 from pydantic import ConfigDict, PositiveInt, model_validator
 from typing_extensions import Self
 
-from gwsproto.enums import TempCalcMethod
-from gwsproto.named_types.component_gt import ComponentGt
+from gwsproto.enums import PicoBoardVariant, TempCalcMethod
+from gwsproto.type_helpers.component_base import DeviceComponentBase
 
 
-class PicoTankModuleComponentGt(ComponentGt):
-    Enabled: bool
+class PicoTankModuleComponentGt(DeviceComponentBase):
     PicoHwUid: Optional[str] = None
     PicoAHwUid: Optional[str] = None
     PicoBHwUid: Optional[str] = None
@@ -18,18 +17,21 @@ class PicoTankModuleComponentGt(ComponentGt):
     Samples: PositiveInt
     NumSampleAverages: PositiveInt
     PicoKOhms: PositiveInt | None = None
-    SerialNumber: str = "NA"
+    SerialNumber: str
     AsyncCaptureDeltaMicroVolts: int
     SensorOrder: list[int] | None = None
+    PicoBoardVariant: PicoBoardVariant
+    MicropythonVersion: Optional[str] = None
     TypeName: Literal["pico.tank.module.component.gt"] = "pico.tank.module.component.gt"
-    Version: Literal["011"] = "011"
+    Version: Literal["012"] = "012"
 
     model_config = ConfigDict(extra="allow")
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
         """
-        Axiom 1: PicoHwUid exists  XOR (both PicoAHwUid and PicoBHwUid exist)
+        Axiom 1: PicoHardwareIdentityXor.
+        PicoHwUid exists XOR (both PicoAHwUid and PicoBHwUid exist)
         """
         if self.PicoHwUid is not None:
             if self.PicoAHwUid or self.PicoBHwUid:
@@ -46,7 +48,8 @@ class PicoTankModuleComponentGt(ComponentGt):
     @model_validator(mode="after")
     def check_axiom_2(self) -> Self:
         """
-        Axiom 2: PicoKOhms exists iff TempCalcMethod is TempCalcMethod.SimpleBetaForPico
+        Axiom 2: PicoKOhmsConsistency.
+        PicoKOhms exists iff TempCalcMethod is TempCalcMethod.SimpleBetaForPico
         # note this is a known incorrect method, but there are a few in the field
         # that do this.
         """
@@ -60,13 +63,14 @@ class PicoTankModuleComponentGt(ComponentGt):
 
         return self
 
-    def check_axiom_3(self) -> None:
+    @model_validator(mode="after")
+    def check_axiom_3(self) -> Self:
         """
-        Axiom 3:
+        Axiom 3: SensorOrderPermutation.
         If SensorOrder is provided, it must be a permutation of [1, 2, 3].
         """
         if self.SensorOrder is None:
-            return
+            return self
 
         expected = [1, 2, 3]
         order = self.SensorOrder
@@ -80,3 +84,4 @@ class PicoTankModuleComponentGt(ComponentGt):
             raise ValueError(
                 f"SensorOrder must be a permutation of {expected}; got {order}"
             )
+        return self

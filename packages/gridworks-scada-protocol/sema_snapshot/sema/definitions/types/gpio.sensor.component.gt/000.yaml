@@ -1,0 +1,88 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gpio.sensor.component.gt/000"
+
+title: "gpio.sensor.component.gt"
+type: object
+description: >
+  A single board-resident digital sensor read on a native (on-board) GPIO pin, as one
+  Spaceheat component. Board-generic: it works on any scada board that exposes native
+  GPIO inputs (e.g. a GW108). A native GPIO read is binary — the sensor reports 1 or 0.
+
+  It is thin — it names its board (BoardComponentId, the scada board component this
+  sensor is resident on), which GPIO input it reads (GpioName, resolved against that
+  board's NativeGpioInputs), and how the pin is read (SenseMode). It does NOT restate
+  the physical pin (BCM number) — that is the board record's single source of truth.
+  It carries no ConfigList: the sensor's channel binds via its DataChannel, and capture
+  tuning lives in the operational params.
+
+properties:
+
+  ComponentId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+
+  BoardComponentId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      The component id of the scada board this device is resident on.
+
+  GpioName:
+    $ref: "https://schemas.electricity.works/formats/pascal.case"
+    description: >
+      The name of the board GPIO input this sensor reads, intended to be uniquely
+      identifiable on the board.
+
+  SenseMode:
+    $ref: "https://schemas.electricity.works/enums/gpio.sense.mode/000"
+    description: >
+      Whether the pin is read by polling or by hardware edge detection.
+
+  DisplayName:
+    type: string
+
+  HwUid:
+    type: string
+
+  TypeName:
+    const: "gpio.sensor.component.gt"
+
+  Version:
+    const: "000"
+
+required:
+  - ComponentId
+  - BoardComponentId
+  - GpioName
+  - SenseMode
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "ComponentId": "f49e721c-b510-418e-a6af-843de90b3032",
+      "BoardComponentId": "9b1c5e2a-77d4-4f6e-8c3a-5f2e9d101b44",
+      "GpioName": "Zone1Whitewire",
+      "SenseMode": "Polling",
+      "TypeName": "gpio.sensor.component.gt",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  extended_description: >
+    gpio.sensor.component.gt is the native-GPIO input sibling of gpio.relay.component.gt
+    in the board-resident model. The full resolution chain: a SpaceheatNode carries a
+    ComponentId naming this component; this component carries a BoardComponentId naming
+    the scada board component (scada.board.component.gt) it is resident on; the board
+    component's DeviceType names the board's gw1.scada.device.type.gt record; and
+    GpioName matches a Name in that record's NativeGpioInputs, which holds the physical
+    BCM pin. The board record is the single source of physical truth; this component is
+    the thin per-sensor device carried by at most one ShNode.
+
+    The `.gt` suffix declares that this type is coupled bijectively with a table in
+    a canonical seed database (here, the terminalasset registry): the table's rows are
+    instances of this type. Sema is the authority over what a row means; the seed
+    table is the authority over which instances are currently asserted.

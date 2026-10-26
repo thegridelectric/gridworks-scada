@@ -1,10 +1,11 @@
 from typing import Literal
-from pydantic import BaseModel, StrictInt
+from pydantic import StrictInt
 
 from gwsproto.named_types.analog_dispatch import AnalogDispatch
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class AdminAnalogDispatch(BaseModel):
+class AdminAnalogDispatch(GwsprotoSemaType):
     Dispatch: AnalogDispatch
     TimeoutSeconds: StrictInt
     TypeName: Literal["admin.analog.dispatch"] = "admin.analog.dispatch"

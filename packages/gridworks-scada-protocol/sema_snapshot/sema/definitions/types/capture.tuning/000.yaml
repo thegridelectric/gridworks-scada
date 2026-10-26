@@ -1,0 +1,96 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/capture.tuning/000"
+
+title: "capture.tuning"
+type: object
+description: >
+  Per-channel telemetry capture and report tuning for one channel: the
+  operational (non-topology) knobs that change how often a channel is polled
+  and emitted, without rewiring hardware.
+
+  These fields are authored in operational-params, not in the static hardware
+  layout. A run carries one capture.tuning per captured channel, keyed by
+  ChannelName.
+
+properties:
+  ChannelName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+
+  CapturePeriodS:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      How often SCADA reports or emits the channel value into the telemetry
+      stream, in seconds.
+
+  AsyncCapture:
+    type: boolean
+    description: >
+      Whether the channel may emit asynchronously between periodic captures.
+
+  AsyncCaptureDelta:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Optional threshold for asynchronous emission, expressed in the channel's
+      serialized integer reading units. If present, an async capture is
+      triggered when the magnitude of the change since the last published value
+      is greater than or equal to AsyncCaptureDelta.
+
+  PollPeriodMs:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Optional. How often SCADA polls the underlying hardware device or source
+      for a fresh value, in milliseconds. Applies to devices that must be
+      queried rather than emitting on their own.
+
+  TypeName:
+    const: "capture.tuning"
+
+  Version:
+    const: "000"
+
+required:
+  - ChannelName
+  - CapturePeriodS
+  - AsyncCapture
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "ChannelName": "scada",
+      "CapturePeriodS": 1,
+      "AsyncCapture": false,
+      "TypeName": "capture.tuning",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "CaptureAndPollingConsistency"
+      statement: >
+        a. If PollPeriodMs is present, CapturePeriodS*1000 SHALL be greater than
+           PollPeriodMs.
+        b. If PollPeriodMs is present and CapturePeriodS*1000 is less than
+           10*PollPeriodMs, then CapturePeriodS*1000 SHALL be an integer multiple
+           of PollPeriodMs.
+
+  extended_description: >
+    capture.tuning is the per-channel member of the operational-params artifact
+    (the third SCADA artifact alongside deployment config and the static
+    hardware layout). The capture params lived on the channel-config family in
+    the static layout until they were recognized as operational: a channel's
+    poll and report cadence can change without rewiring, so they are authored
+    here instead.
+
+    PollPeriodMs is bounded below by the hardware floor carried as
+    MinPollPeriodMs on the channel's device type (e.g. ads111x.based.device.type.gt).
+    That floor is a property of the layout, not of this tuning, so the
+    PollPeriodMs >= MinPollPeriodMs check is enforced at assembly time (when the
+    static layout and operational-params are merged into the runtime
+    dc HardwareLayout), not as an axiom on this type.

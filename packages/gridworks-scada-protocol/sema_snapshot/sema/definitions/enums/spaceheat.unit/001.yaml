@@ -1,0 +1,46 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/spaceheat.unit/001"
+
+title: "spaceheat.unit"
+type: "string"
+description: >
+  Canonical measurement unit used by legacy Spaceheat SCADA channel
+  configuration and telemetry payloads.
+
+enum:
+  - "Unknown"
+  - "Unitless"
+  - "W"
+  - "Celcius"
+  - "Fahrenheit"
+  - "Gpm"
+  - "WattHours"
+  - "AmpsRms"
+  - "VoltsRms"
+  - "Gallons"
+  - "ThermostatStateEnum"
+
+default: "Unknown"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "001"
+  value_descriptions:
+    "Unknown": "Unit has not been specified or is not known."
+    "Unitless": "Dimensionless value."
+    "W": "Power in watts."
+    "Celcius": "Temperature in degrees Celsius using the legacy enum spelling."
+    "Fahrenheit": "Temperature in degrees Fahrenheit."
+    "Gpm": "Flow rate in gallons per minute."
+    "WattHours": "Energy in watt-hours."
+    "AmpsRms": "Current in RMS amps."
+    "VoltsRms": "Voltage in RMS volts."
+    "Gallons": "Volume in gallons."
+    "ThermostatStateEnum": "Thermostat state encoded as an enum-valued quantity."
+  extended_description: >
+    This enum is used in component ChannelConfig objects, where it is paired
+    with an Exponent field to express the serialized unit and scaling of a
+    telemetry channel.
+
+    It is a legacy Spaceheat unit vocabulary. In the near future it is
+    expected to be replaced by a new layout mechanism based on gw1.unit.

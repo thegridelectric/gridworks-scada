@@ -1,20 +1,36 @@
 import time
 import uuid
+from pathlib import Path
+
 import pytest
 from gwproto import Message
 from actors import LeafAlly
-from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.enums import MainAutoState, SlowDispatchContractStatus
 from gwsproto.named_types import SlowDispatchContract, SlowContractHeartbeat
-from tests.utils.scada_live_test_helper import ScadaLiveTest
+from gwsproto.names.core.node_names import CoreNodeNames
+from sema_to_dc import load_layout
+from tests.utils.scada_live_test_helper import ScadaLiveTest, fresh_buffer
+
+CONFIG = Path(__file__).parent.parent / "config"
+PAIRS = {
+    "nolan": ("gw.nolan.layout.json", "gw.nolan.operational.params.json"),
+    "house0-orange": ("gw.house0.orange.layout.json", "gw.house0.orange.operational.params.json"),
+}
 
 
 @pytest.mark.asyncio
-async def test_auto_state_home_alone_to_ltn(request: pytest.FixtureRequest) -> None:
+@pytest.mark.parametrize("pair", sorted(PAIRS))
+async def test_auto_state_home_alone_to_ltn(
+    request: pytest.FixtureRequest, pair: str
+) -> None:
     """Test that auto_state transitions from LocalControl to Ltn when a SlowDispatchContract starts."""
-    
+    layout_file, ops_file = PAIRS[pair]
+    layout = load_layout(CONFIG / layout_file, CONFIG / ops_file)
+
     async with ScadaLiveTest(
         request=request,
+        layout=layout,
+        ops_path=CONFIG / ops_file,
     ) as tst:
         tst.start_child1() # start primary scada
         tst.start_parent() # start ltn
@@ -25,8 +41,10 @@ async def test_auto_state_home_alone_to_ltn(request: pytest.FixtureRequest) -> N
         )
         scada = tst.child1_app.scada
         ltn = tst.parent_app.ltn
+        assert scada.layout.scada_g_node_alias == layout.scada_g_node_alias
+        assert ltn.layout.scada_g_node_alias == layout.scada_g_node_alias
         leaf_ally = tst.child1_app.get_communicator_as_type(
-                H0N.leaf_ally,
+                CoreNodeNames.leaf_ally,
                 LeafAlly
             )
         if leaf_ally is None:
@@ -35,8 +53,8 @@ async def test_auto_state_home_alone_to_ltn(request: pytest.FixtureRequest) -> N
         print("Verifying initial state is LocalControl")
         assert scada.auto_state == MainAutoState.LocalControl, f"Expected LocalControl, got {scada.auto_state}"
         
-        # Leaf ally will reject contract if it doesn't have forecasts. 
-        # It gets forecasts during startup.
+        # The ally waits in Initializing for forecasts; the test wants it
+        # suited up at once, so it waits for them first.
         await tst.await_for(
             lambda: leaf_ally.heating_forecast is not None,
             "la never got forecasts!"
@@ -61,17 +79,17 @@ async def test_auto_state_home_alone_to_ltn(request: pytest.FixtureRequest) -> N
             FromNode=ltn.node.name,
             Contract=contract,
             Status=SlowDispatchContractStatus.Created,
-            WattHoursUsed=0,
             MessageCreatedMs=int(time.time() * 1000),
             MyDigit=5,
             YourLastDigit=None # First message in chain
         )
         
+        fresh_buffer(scada)
         ltn.contract_handler.latest_hb = ltn_hb
         ltn.services.send_threadsafe(
                 Message(
                     Src=ltn.node.name,
-                    Dst=H0N.primary_scada,
+                    Dst=CoreNodeNames.primary_scada,
                     Payload=ltn.contract_handler.latest_hb,
                 )
             )
@@ -105,7 +123,7 @@ async def test_auto_state_home_alone_to_ltn(request: pytest.FixtureRequest) -> N
 
         # Verify Ltn received the heartbeat
         print("Ltn received heartbeat from Scada")
-        assert ltn.contract_handler.latest_hb.FromNode == H0N.primary_scada
+        assert ltn.contract_handler.latest_hb.FromNode == CoreNodeNames.primary_scada
         assert ltn.contract_handler.latest_hb.Status == SlowDispatchContractStatus.Received
-        assert ltn.contract_handler.latest_hb.FromNode == H0N.primary_scada
+        assert ltn.contract_handler.latest_hb.FromNode == CoreNodeNames.primary_scada
         print(f"Ltn contract status: {ltn.contract_handler.latest_hb.Status}")

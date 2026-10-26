@@ -1,0 +1,23 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/aquastat.control.state/000"
+
+title: "aquastat.control.state"
+type: "string"
+description: >
+  Which controller the aquastat relay hands the aquastat circuit to: the boiler's own aquastat logic or the SCADA.
+
+enum:
+  - "Boiler"
+  - "Scada"
+
+default: "Boiler"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "Boiler": >
+      The boiler's own aquastat drives the circuit; the relay rests in this position de-energized.
+
+    "Scada": >
+      The SCADA drives the aquastat circuit through the relay.

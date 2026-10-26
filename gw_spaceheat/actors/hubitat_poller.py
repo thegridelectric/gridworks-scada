@@ -6,26 +6,29 @@ from typing import Sequence
 from aiohttp import ClientResponse
 from aiohttp import ClientSession
 from gwproactor import Actor
-from gwproactor import Problems
 from gwproactor import AppInterface
 from gwproactor.actors.rest import RESTPoller
 from gwproto import Message
 from gwsproto.data_classes.components.hubitat_component import HubitatComponent
 from gwsproto.data_classes.components.hubitat_poller_component import HubitatPollerComponent
+from gwsproto.enums import LogLevel, SpaceheatUnit
 from gwsproto.type_helpers import MakerAPIAttributeGt
 from result import Err
 from result import Ok
 from result import Result
 
+from actors.glitch_limit import REPEAT_GLITCH_S, GlitchLimit
 from actors.hubitat_interface import default_float_converter
 from actors.hubitat_interface import HubitatAttributeConvertFailure
 from actors.hubitat_interface import HubitatAttributeMissing
+from actors.hubitat_interface import HubitatAttributeWarning
 from actors.hubitat_interface import HubitatWebEventHandler
 from actors.hubitat_interface import HubitatWebEventListenerInterface
 from actors.hubitat_interface import HubitatWebServerInterface
 from actors.hubitat_interface import MakerAPIRefreshResponse
+from actors.hubitat_interface import temperature_converter
 from actors.hubitat_interface import ValueConverter
-from gwsproto.named_types import SyncedReadings
+from gwsproto.named_types import Glitch, SyncedReadings
 
 
 
@@ -44,7 +47,10 @@ class HubitatRESTPoller(RESTPoller):
             services: AppInterface,
     ):
         self._report_dst = services.name
+        self._layout = services.hardware_layout
+        self._scada_g_node_alias = services.hardware_layout.scada_g_node_alias
         self._component = component
+        self.glitch_limit = GlitchLimit(REPEAT_GLITCH_S)
         super().__init__(
             name,
             self._component.rest,
@@ -104,9 +110,9 @@ class HubitatRESTPoller(RESTPoller):
             values = []
             warnings = []
             for config_attribute in self._component.gt.Poller.attributes:
-                if (config_attribute.enabled and
-                    config_attribute.web_poll_enabled and
-                    config_attribute.attribute_name in self._value_converters
+                if (config_attribute.web_poll_enabled and
+                    config_attribute.attribute_name in self._value_converters and
+                    not self._layout.channel_disabled(config_attribute.channel_name)
                 ):
                     convert_result = self._convert_attribute(
                         config_attribute,
@@ -119,6 +125,13 @@ class HubitatRESTPoller(RESTPoller):
                             values.append(convert_result.value)
                     else:
                         warnings.append(convert_result.err())
+            for w in warnings:
+                key = (
+                    f"hubitat-attribute {w.node_name} {w.attribute_name} {type(w).__name__}"
+                    if isinstance(w, HubitatAttributeWarning)
+                    else f"hubitat-attribute {type(w).__name__}"
+                )
+                self.send_warning("hubitat-attribute", key, str(w))
             if values:
                 return Message(
                     Src=self._name,
@@ -129,27 +142,31 @@ class HubitatRESTPoller(RESTPoller):
                         ScadaReadTimeUnixMs=int(1000 * time.time())
                     )
                 )
-            if warnings:
-                self._forward(
-                    Message(
-                        Payload=Problems(warnings=warnings).problem_event(
-                            summary=(
-                                f"<{self._name}> _convert() warnings "
-                            )
-                        )
-                    )
-                )
         except BaseException as e:
-            self._forward(
-                Message(
-                    Payload=Problems(errors=[e]).problem_event(
-                        summary=(
-                            f"<{self._name}> _convert() error"
-                        )
-                    )
-                )
+            self.send_warning(
+                "hubitat-reply-refused", "hubitat-reply-refused",
+                f"{self._name} cannot decode the hub's reply: {type(e).__name__}: {e}",
             )
         return None
+
+    def send_warning(self, summary: str, key: str, details: str) -> None:
+        """A Warning glitch to the primary scada, at most once per key per
+        REPEAT_GLITCH_S. Called on the IO loop."""
+        if not self.glitch_limit.due(key):
+            return
+        self._forward(
+            Message(
+                Src=self._name,
+                Dst=self._report_dst,
+                Payload=Glitch(
+                    FromGNodeAlias=self._scada_g_node_alias,
+                    Node=self._name,
+                    Type=LogLevel.Warning,
+                    Summary=summary,
+                    Details=details,
+                ),
+            )
+        )
 
 class HubitatPoller(Actor, HubitatWebEventListenerInterface):
 
@@ -176,6 +193,9 @@ class HubitatPoller(Actor, HubitatWebEventListenerInterface):
 
         super().__init__(name, services)
         self._component = component
+        # Built but idle: a disabled node polls nothing and listens for nothing.
+        self._layout = services.hardware_layout
+        self.disabled: bool = self._layout.node_disabled(name)
         self._poller = HubitatRESTPoller(
                 name=name,
                 component=component,
@@ -193,9 +213,9 @@ class HubitatPoller(Actor, HubitatWebEventListenerInterface):
         """
         poll_value_converters = dict()
         handlers = []
-        if self._component.gt.Poller.enabled:
+        if not self.disabled:
             for attribute in self._component.gt.Poller.attributes:
-                if attribute.enabled:
+                if not self._layout.channel_disabled(attribute.channel_name):
                     if (converter := self._make_value_converter(attribute)) is not None:
                         if attribute.web_poll_enabled:
                             poll_value_converters[attribute.attribute_name] = converter
@@ -220,12 +240,18 @@ class HubitatPoller(Actor, HubitatWebEventListenerInterface):
         return None
 
     def _make_value_converter(self, attribute: MakerAPIAttributeGt) -> Optional[ValueConverter]:
-        if attribute.enabled:
-            if attribute.interpret_as_number:
-                return functools.partial(default_float_converter, exponent=attribute.exponent)
-            else:
-                return self._make_non_numerical_value_converter(attribute)
-        return None
+        if attribute.interpret_as_number:
+            if attribute.unit in (SpaceheatUnit.Fahrenheit, SpaceheatUnit.Celcius):
+                converter = functools.partial(
+                    temperature_converter,
+                    unit=SpaceheatUnit(attribute.unit),
+                    channel_name=attribute.channel_name,
+                    registry=self._services.hardware_layout.channel_registry,
+                )
+                converter(0)  # a channel that is not a temperature channel raises here
+                return converter
+            return functools.partial(default_float_converter, exponent=attribute.exponent)
+        return self._make_non_numerical_value_converter(attribute)
 
     def _get_hubitat_actor(self) -> Optional[HubitatWebServerInterface]:
         hubitat_actor = None
@@ -252,11 +278,11 @@ class HubitatPoller(Actor, HubitatWebEventListenerInterface):
         raise ValueError("HubitatTankModule does not currently process any messages")
 
     def start(self) -> None:
-        if self._component.gt.Poller.enabled:
+        if not self.disabled:
             self._poller.start()
 
     def stop(self) -> None:
-        if self._component.gt.Poller.enabled:
+        if not self.disabled:
             try:
                 self._poller.stop()
             except: # noqa

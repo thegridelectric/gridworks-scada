@@ -1,0 +1,43 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/gw1.nolan.lc.buffer.only.state/000"
+
+title: "gw1.nolan.lc.buffer.only.state"
+type: "string"
+
+description: >
+  States of the Nolan buffer-only heating machine, the local control
+  that charges the buffer on the time-of-use schedule and leaves the
+  store alone. The state names the one plant decision the machine makes,
+  the heat-pump call; the postures it re-asserts every check (zones on
+  their thermostats, secondary pump following heat-pump power, store
+  circuit closed) are not states.
+
+enum:
+  - "Initializing"
+  - "HpCallOn"
+  - "HpCallOff"
+  - "Dormant"
+
+default: "Initializing"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+
+  value_descriptions:
+    "Initializing": >
+      Waiting for the actuators to be ready, then commanding the boot
+      posture with the heat-pump call open. Boot never opens with a
+      call. The decode fallback.
+
+    "HpCallOn": >
+      The heat-pump call is closed: off-peak and the buffer band wants
+      charge.
+
+    "HpCallOff": >
+      The heat-pump call is open: on-peak, or the buffer band is full.
+
+    "Dormant": >
+      The machine holds no actuators; an admin session or the leaf ally
+      has the command tree. Wake re-enters Initializing, so a released
+      tree is re-booted rather than resumed.

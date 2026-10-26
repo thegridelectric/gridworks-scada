@@ -1,29 +1,30 @@
 import importlib
-from gwsproto.enums import ActorClass, SeasonalStorageMode
+
+from gwproto import Message
+from result import Result
+
 from actors.sh_node_actor import ShNodeActor
+from gwsproto.enums import SeasonalStorageMode
 from scada_app_interface import ScadaAppInterface
 
 class LeafAlly(ShNodeActor):
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
-        node = services.hardware_layout.node(name)
-        if node is None:
-            raise Exception("Missing the LeafAlly!!")
-        if node.ActorClass != ActorClass.LeafAlly:
-            raise Exception("Expects ActorClass LeafAlly!")
-
-        # Dynamically load the implementation class based on LocalControl strategy
-        if self.settings.seasonal_storage_mode == SeasonalStorageMode.AllTanks:
-            module = importlib.import_module("actors.leaf_ally.all_tanks")
+        # Dynamically load the implementation. 
+        if self.layout.layout_type_name == "gw.nolan.layout":
+            module = importlib.import_module("actors.leaf_ally.nolan")
+            impl_class = getattr(module, "NolanLeafAlly")
+        elif self.ops.FamilyParams.SeasonalStorageMode == SeasonalStorageMode.AllTanks:
+            module = importlib.import_module("actors.leaf_ally.house0.all_tanks")
             impl_class = getattr(module, "AllTanksLeafAlly")
-        elif self.settings.seasonal_storage_mode == SeasonalStorageMode.BufferOnly:
-            module = importlib.import_module("actors.leaf_ally.buffer_only")
+        elif self.ops.FamilyParams.SeasonalStorageMode == SeasonalStorageMode.BufferOnly:
+            module = importlib.import_module("actors.leaf_ally.house0.buffer_only")
             impl_class = getattr(module, "BufferOnlyLeafAlly")
         else:
-            raise Exception(f"SeasonalStorageMode {self.settings.seasonal_storage_mode}")
+            raise Exception(f"SeasonalStorageMode {self.ops.FamilyParams.SeasonalStorageMode}")
         # Create the implementation instance
         self._impl = impl_class(name, services)
-        services.logger.error(f"Creating LeafAlly with strategy {self.settings.seasonal_storage_mode}, "
+        services.logger.error(f"Creating LeafAlly with strategy {self.ops.FamilyParams.SeasonalStorageMode}, "
                               f"using {impl_class.__module__}.{impl_class.__name__}")
 
     # Forward all properties and methods to the implementation
@@ -35,7 +36,7 @@ class LeafAlly(ShNodeActor):
     def prev_state(self):
         return self._impl.prev_state
 
-    def process_message(self, message):
+    def process_message(self, message: Message) -> Result[bool, BaseException]:
         return self._impl.process_message(message)
 
     def start(self):

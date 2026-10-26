@@ -1,0 +1,103 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/gw1.device.type/000"
+title: "gw1.device.type"
+type: "string"
+description: 'The kind of device a component is built on — a device *category* identified by a PascalCase
+  name (the `pascal.case` format). This replaces the legacy make/model-as-CAC concept: a device type is
+  the granularity GridWorks cares to distinguish, NOT a strict manufacturer make+model (several eGauge
+  models, say, map to one EgaugePowerMeter). Components carry their `DeviceType` as an open `pascal.case`
+  string (so component types stay version-stable); the hardware layout enforces that the value is a member
+  of this enum or of gw1.sim.device.type, the disjoint vocabulary of simulated devices. Device types that carry category-level data beyond the name open a specialized `<family>.device.type.gt`
+  (e.g. `gw1.scada.device.type.gt` for Gw108RevB). Migrated from `spaceheat.make.model` (now
+  frozen) — each value notes its old MakeModel.'
+enum:
+- EgaugePowerMeter
+- GridworksTsnap1ScadaBoard
+- HubitatC7Hub
+- Amphenol10kThermistor
+- OmegaFtb8010FlowMeter
+- HoneywellT6Thermostat
+- TewaThermistor
+- EkmFlowMeter
+- KridaDoubleRelayBoard16
+- GridworksPicoFlowHall
+- GridworksPicoFlowReed
+- SaierFlowSensor
+- DfrobotDualAnalogOut
+- GridworksTankModule3
+- Gw101
+- Gw108RevB
+- AbstractWebServer
+- Gw108I2cRelay
+- Gw108GpioRelay
+- SamsungAE055FCYDCG
+- SamsungAE055FEYMCG
+- Gw108Adc
+- MitsubishiWUZSA48NMZ
+- MitsubishiERSFNM6E
+- LGARUM048GSS5
+- LGARNH423K3A4
+- SamsungAM048TXMDCH
+- SamsungAM048CNBFCB
+default: EgaugePowerMeter
+x-gridworks:
+  owner: gridworks-energy
+  version: '000'
+  value_descriptions:
+    EgaugePowerMeter: eGauge 4030 power meter. (was MakeModel EGAUGE__4030)
+    GridworksTsnap1ScadaBoard: GridWorks TSnap1 SCADA hardware. (was MakeModel GRIDWORKS__TSNAP1)
+    HubitatC7Hub: Hubitat C7 LAN integration. (was MakeModel HUBITAT__C7__LAN1)
+    Amphenol10kThermistor: Amphenol 10K NTC thermistor. (was MakeModel AMPHENOL__NTC_10K_THERMISTOR_MA100GG103BN)
+    OmegaFtb8010FlowMeter: Omega FTB8010HW-PT flow meter. (was MakeModel OMEGA__FTB8010HWPT)
+    HoneywellT6Thermostat: Honeywell T6 Z-Wave thermostat. (was MakeModel HONEYWELL__T6ZWAVETHERMOSTAT)
+    TewaThermistor: Tewa TT0P-10KC3-T105-1500 thermistor. (was MakeModel TEWA__TT0P10KC3T1051500)
+    EkmFlowMeter: EKM HOT-SPWM-075-HD flow meter. (was MakeModel EKM__HOTSPWM075HD)
+    KridaDoubleRelayBoard16: Krida double EMR16 I2C V3 relay board. (was MakeModel KRIDA__DOUBLEEMR16I2CV3)
+    GridworksPicoFlowHall: GridWorks Pico flow hall sensor. (was MakeModel GRIDWORKS__PICOFLOWHALL)
+    GridworksPicoFlowReed: GridWorks Pico flow reed sensor. (was MakeModel GRIDWORKS__PICOFLOWREED)
+    SaierFlowSensor: Saier SEN-HZG1WA flow sensor. (was MakeModel SAIER__SENHZG1WA)
+    DfrobotDualAnalogOut: Two DFRobot DFR0971 analog output devices. (was MakeModel DFROBOT__DFR0971_TIMES2)
+    GridworksTankModule3: GridWorks Tank Module 3. (was MakeModel GRIDWORKS__TANKMODULE3)
+    Gw101: GridWorks GW101 device. (was MakeModel GRIDWORKS__GW101)
+    Gw108RevB: GridWorks SCADA GW108 board, rev B. (was GridworksScadaGw108; originally MakeModel GRIDWORKS__SCADA_GW108)
+    AbstractWebServer: An abstract (generic) web server — a service component, not a hardware make/model;
+      defined by its component config. Replaces the UNKNOWNMAKE web-server hack.
+    Gw108I2cRelay: >
+      An I²C-driven relay resident on a GridWorks SCADA board (e.g. GW108). Board-resident — its physical
+      address lives in the board's I2cRelays map (gw1.scada.device.type.gt), referenced by RelayName; the
+      component carries only identity + control config.
+    Gw108GpioRelay: >
+      A native-GPIO-driven relay resident on a GridWorks SCADA board (e.g. GW108). Board-resident — its BCM
+      pin lives in the board's NativeGpioOutputs (gw1.scada.device.type.gt), referenced by GpioName; the
+      component carries only identity + control config.
+    SamsungAE055FCYDCG: >
+      Samsung AE055 EHS mono outdoor monobloc unit — compressor-bearing; full nameplate designation
+      verbatim after the make prefix. Category-level data on its hp.device.type.gt record.
+    SamsungAE055FEYMCG: >
+      Samsung AE055 EHS mono indoor control box — water pump + backup heater, control
+      electronics with local touch-screen, ODU comms; no compressor. Category-level data on
+      its hp.control.box.device.type.gt record.
+    Gw108Adc: >
+      A thermistor/CT ADC resident on a GridWorks SCADA board (e.g. GW108). Board-resident —
+      its bus, address, reference volts, and series resistance live in the board's
+      thermistor-interface capability entries (gw1.scada.device.type.gt), referenced by
+      AdcName; the reader component carries only identity, channel configs, and calc method.
+    MitsubishiWUZSA48NMZ: >
+      Mitsubishi Ecodan WUZ-SA48NMZ outdoor unit — compressor-bearing, refrigerant out to
+      the hydrobox; full nameplate designation verbatim after the make prefix. Maple.
+    MitsubishiERSFNM6E: >
+      Mitsubishi Ecodan ERSF-NM6E hydrobox — the indoor unit that does the
+      refrigerant-to-water exchange, so the house loop never leaves the building (no glycol,
+      no plate exchanger). Maple.
+    LGARUM048GSS5: >
+      LG Multi V ARUM048GSS5 outdoor unit — compressor-bearing VRF unit, refrigerant out to
+      the hydro kit. Beech and oak.
+    LGARNH423K3A4: >
+      LG Hydro Kit High Temperature ARNH423K3A4 — the indoor unit that does the
+      refrigerant-to-water exchange (no glycol, no plate exchanger). Beech and oak.
+    SamsungAM048TXMDCH: >
+      Samsung AM048TXMDCH outdoor unit — compressor-bearing, refrigerant out to the Hydro
+      Kit; full nameplate designation verbatim after the make prefix. Fir.
+    SamsungAM048CNBFCB: >
+      Samsung Hydro Kit AM048CNBFCB — the indoor unit that does the refrigerant-to-water
+      exchange (no glycol, no plate exchanger). Fir.

@@ -1,0 +1,9 @@
+{
+  "TypeName": "hubitat.gt",
+  "Version": "000",
+  "Host": "example",
+  "MakerApiId": 0,
+  "AccessToken": "example",
+  "MacAddress": "34:e1:d1:82:22:22",
+  "WebListenEnabled": false
+}

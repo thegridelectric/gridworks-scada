@@ -1,22 +1,20 @@
 import asyncio
 import time
 import uuid
-from enum import auto
 from typing import Dict, List, Optional, Sequence
-from gwsproto.enums.gw_str_enum import GwStrEnum
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
-from gwsproto.data_classes.house_0_names import H0N
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
     ChangeRelayState,
     FsmReportType,
+    RebootPicos,
 )
 from gwsproto.named_types import (
-
     ChannelReadings,
     FsmAtomicReport,
+    FsmEvent,
     FsmFullReport,
     MachineStates,
     SyncedReadings,
@@ -24,10 +22,23 @@ from gwsproto.named_types import (
 from result import Ok, Result
 from transitions import Machine
 import transitions
-from actors.sh_node_actor import ShNodeActor
-from gwsproto.enums import LogLevel, PicoCyclerEvent, PicoCyclerState
-from gwsproto.named_types import Glitch, GoDormant, PicoMissing, WakeUp
-from gwsproto.data_classes.components import PicoTankModuleComponent, PicoFlowModuleComponent, PicoBtuMeterComponent
+from actors.hydronic.shared import HydronicNode
+from actors import command_reply
+from gwsproto.enums import (
+    ScadaCmdRefusalReason,
+    LogLevel,
+    PicoCyclerEvent,
+    PicoCyclerState,
+    SinglePicoState,
+)
+from gwsproto.named_types import DispatchNack, Glitch, GoDormant, PicoMissing, WakeUp
+from gwsproto.data_classes.components import (
+    PicoBtuMeterComponent,
+    PicoFlowModuleComponent,
+    PicoTankModuleComponent,
+    SimPicoBtuMeterComponent,
+    SimPicoTankModuleComponent,
+)
 
 from scada_app_interface import ScadaAppInterface
 class PicoWarning(ValueError):
@@ -45,12 +56,7 @@ class ZombiePicoWarning(PicoWarning):
     def __str__(self):
         return f"ZombiePicoWarning: {self.pico_name}  <{super().__str__()}>"
 
-class SinglePicoState(GwStrEnum):
-    Alive = auto()
-    Flatlined = auto()
-
-
-class PicoCycler(ShNodeActor):
+class PicoCycler(HydronicNode):
     REBOOT_ATTEMPTS = 3
     RELAY_OPEN_S: float = 5
     PICO_REBOOT_S = 60
@@ -88,6 +94,7 @@ class PicoCycler(ShNodeActor):
         {"trigger": "RebootDud", "source": "PicosRebooting", "dest": "AllZombies"},
         {"trigger": "ShakeZombies", "source": "AllZombies", "dest": "RelayOpening"},
         {"trigger": "ShakeZombies", "source": "PicosLive", "dest": "RelayOpening"},
+        {"trigger": "Startup", "source": "PicosLive", "dest": "RelayOpening"},
     ] + [ 
         {"trigger": "GoDormant", "source": state, "dest": "Dormant"}
         for state in states if state !="Dormant"
@@ -96,7 +103,7 @@ class PicoCycler(ShNodeActor):
 
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
-        self.pico_relay = self.layout.node(H0N.vdc_relay)
+        self.pico_relay = self.layout.vdc_relay
 
         # ---------------------------------------------------------
         # Discover Pico-backed actors
@@ -112,13 +119,16 @@ class PicoCycler(ShNodeActor):
             if component is None:
                 continue
 
-            if isinstance(component, PicoBtuMeterComponent):
+            if isinstance(component, (PicoBtuMeterComponent, SimPicoBtuMeterComponent)):
                 hw_uid = component.gt.HwUid
             elif isinstance(component, PicoFlowModuleComponent):
                 hw_uid = component.gt.HwUid
-            elif isinstance(component, PicoTankModuleComponent):
+            elif isinstance(component, (PicoTankModuleComponent, SimPicoTankModuleComponent)):
                 hw_uid = component.gt.PicoHwUid
             else:
+                continue
+            # A disabled pico is not watched and its absence cycles nothing
+            if self.layout.node_disabled(node.name):
                 continue
             if hw_uid is None:
                 self.send_warning(
@@ -186,6 +196,34 @@ class PicoCycler(ShNodeActor):
             return True
         return False
 
+    def pico_state(self, pico: str) -> SinglePicoState:
+        """The pico's state as reported: Zombie once its consecutive failed
+        reboots reach the threshold, else what its readings say."""
+        if pico in self.zombies:
+            return SinglePicoState.Zombie
+        return self.pico_states[pico]
+
+    def report_pico_state(self, pico: str, now_ms: Optional[int] = None) -> None:
+        """One machine.states row for this pico, keyed by its actor's handle,
+        so the journal carries the roster and a cycle reads against the pico
+        whose row flipped just before it."""
+        if now_ms is None:
+            now_ms = int(time.time() * 1000)
+        self._send_to(
+            self.primary_scada,
+            MachineStates(
+                MachineHandle=self.actor_by_pico[pico].handle,
+                StateEnum=SinglePicoState.enum_name(),
+                StateList=[self.pico_state(pico)],
+                UnixMsList=[now_ms],
+            ),
+        )
+
+    def report_pico_roster(self) -> None:
+        now_ms = int(time.time() * 1000)
+        for pico in self.picos:
+            self.report_pico_state(pico, now_ms)
+
     def raise_zombie_pico_warning(self, pico: str) -> None:
         if pico not in self.actor_by_pico:
             raise Exception(
@@ -230,6 +268,7 @@ class PicoCycler(ShNodeActor):
             # this pico is now flatlined if it was not before
             self.pico_states[pico] = SinglePicoState.Flatlined
             self.log(f"{actor.name} {pico} flatlined")
+            self.report_pico_state(pico)
         
         # move out of PicosLive if pico cycler in that state
         if self.state == PicoCyclerState.PicosLive:
@@ -255,6 +294,7 @@ class PicoCycler(ShNodeActor):
                 # If this is the first time a pico reaches the zombie threshold,
                 # raise that warning
                 if self.reboots[pico] == self.REBOOT_ATTEMPTS:
+                    self.report_pico_state(pico)
                     self.raise_zombie_pico_warning(pico)
         # Send action on to pico relay
         self.open_vdc_relay(trigger_id=self.trigger_id)
@@ -291,9 +331,12 @@ class PicoCycler(ShNodeActor):
 
     def is_alive(self, pico: str) -> None:
         was_zombie = pico in self.zombies
+        was = self.pico_state(pico)
 
         self.pico_states[pico] = SinglePicoState.Alive
         self.reboots[pico] = 0
+        if was != SinglePicoState.Alive:
+            self.report_pico_state(pico)
 
         if was_zombie:
             note = f"Pico {pico} [{self.actor_by_pico[pico].name}] recovered from zombie state"
@@ -310,13 +353,16 @@ class PicoCycler(ShNodeActor):
                 self.send_fsm_report()
 
     def process_fsm_full_report(self, payload: FsmFullReport) -> None:
-        if payload.FromName != H0N.vdc_relay:
+        """The relay's report under the cycle's id: its atomics fold into
+        the cycle's report, and the transition it confirms follows."""
+        if payload.FromName != self.layout.vdc_relay.name:
             raise Exception(
                 f"should only get FsmFullReports from VdcRelay, not {payload.FromName}"
             )
-        # start_time = payload.AtomicList[0].UnixTimeMs
-        # end_time = payload.AtomicList[-1].UnixTimeMs
-        # self.log(f"Relay1 dispatch took {end_time - start_time} ms")
+        if payload.TriggerId != self.trigger_id:
+            self.log(f"Relay report {payload.TriggerId} is not the cycle in flight ({self.trigger_id}); dropped")
+            return
+        self.fsm_reports.extend(payload.AtomicList)
         relay_report = payload.AtomicList[0]
         if relay_report.EventEnum != ChangeRelayState.enum_name():
             raise Exception(
@@ -338,12 +384,22 @@ class PicoCycler(ShNodeActor):
                 case ChannelReadings():
                     path_dbg |= 0x00000002
                     self.process_channel_readings(src_node, message.Payload)
+                case FsmEvent():
+                    path_dbg |= 0x00000040
+                    self.process_fsm_event(src_node, message.Payload)
                 case FsmFullReport():
                     path_dbg |= 0x00000004
                     self.process_fsm_full_report(message.Payload)
+                case DispatchNack():
+                    self.send_error(
+                        "relay_nack",
+                        f"{src_node.name} refused {message.Payload.TriggerId}: {message.Payload.Reason}",
+                    )
                 case GoDormant():
                     if self.state != PicoCyclerState.Dormant:
-                        self.GoDormant()
+                        # Through trigger_event like WakeUp, so the Dormant
+                        # row reaches the scada now, not on the periodic report.
+                        self.trigger_event(PicoCyclerEvent.GoDormant)
                         self.log("Going Dormant!")
                 case PicoMissing():
                     path_dbg |= 0x00000008
@@ -371,10 +427,12 @@ class PicoCycler(ShNodeActor):
         if self.state == PicoCyclerState.RelayOpening:
             # ConfirmOpened: RelayOpening -> RelayOpen
             if self.trigger_event(PicoCyclerEvent.ConfirmOpened):
+                # The picos lose power here; PicoMissing is expected for
+                # the next minute, not a fault.
+                self.last_open_time = time.time()
                 asyncio.create_task(self._wait_and_close_relay())
 
     def confirm_closed(self) -> None:
-        self.last_open_time = time.time()
         if self.state == PicoCyclerState.RelayClosing:
             # ConfirmClosed: RelayClosing -> PicosRebooting
             if self.trigger_event(PicoCyclerEvent.ConfirmClosed):
@@ -382,13 +440,20 @@ class PicoCycler(ShNodeActor):
 
     async def _wait_and_close_relay(self) -> None:
         # Wait for RelayOpen_S seconds before closing the relay
+        cycle = self.trigger_id
         self.pico_state_log(
             f"Keeping VDC Relay 1 open for {self.RELAY_OPEN_S} seconds"
         )
         await asyncio.sleep(self.RELAY_OPEN_S)
+        if self.trigger_id != cycle:
+            self.pico_state_log(f"Relay-open wait from cycle {cycle} is stale; ignoring")
+            return
         self.start_closing()
 
     async def _wait_for_rebooting_picos(self) -> None:
+        # The wait belongs to the cycle that spawned it: a later cycle in
+        # PicosRebooting when this timer fires must not be confirmed by it.
+        cycle = self.trigger_id
         self.pico_state_log(
             f"Waiting {self.PICO_REBOOT_S} seconds for picos to come back"
         )
@@ -397,6 +462,9 @@ class PicoCycler(ShNodeActor):
                 f"Wait and open relay should only happen for PicosRebooting, not {self.state}"
             )
         await asyncio.sleep(self.PICO_REBOOT_S)
+        if self.trigger_id != cycle:
+            self.pico_state_log(f"Reboot wait from cycle {cycle} is stale; ignoring")
+            return
         if self.all_zombies:
             self.reboot_dud()
         elif len(self.flatlined) > 0:
@@ -408,6 +476,75 @@ class PicoCycler(ShNodeActor):
     def reboot_dud(self) -> None:
         if self.trigger_event(PicoCyclerEvent.RebootDud):
             self.send_fsm_report()
+
+    def process_fsm_event(self, from_node: ShNode, message: FsmEvent) -> None:
+        """The one command a boss may give: reboot the picos. Accepted only
+        from the immediate boss, addressed to this node's live handle, as
+        relay.py checks its commander; the cycle adopts the commander's
+        TriggerId so its fsm.full.report is tied to the command."""
+        if message.FromHandle != from_node.handle:
+            self.send_warning(
+                "bad_sender",
+                f"{from_node.name} (handle {from_node.handle}) sent a command claiming "
+                f"FromHandle {message.FromHandle}. Ignoring!",
+            )
+            return
+        if message.ToHandle != self.node.handle:
+            self.log(f"Handle is {self.node.handle}; ignoring {message}")
+            self._send_to(
+                from_node,
+                command_reply.nack(
+                    self.node.handle, message.FromHandle, message.TriggerId,
+                    ScadaCmdRefusalReason.NotMyBoss,
+                ),
+            )
+            return
+        if (
+            message.EventType != RebootPicos.enum_name()
+            or message.EventName not in RebootPicos.values()
+        ):
+            self.log(
+                f"Refusing {message.EventType} {message.EventName}: the pico-cycler takes only {RebootPicos.enum_name()}"
+            )
+            self._send_to(
+                from_node,
+                command_reply.nack(
+                    self.node.handle, message.FromHandle, message.TriggerId,
+                    ScadaCmdRefusalReason.UnknownEvent,
+                ),
+            )
+            return
+        if self.state not in {PicoCyclerState.PicosLive, PicoCyclerState.AllZombies}:
+            self.log(f"State is {self.state} so not rebooting picos on command")
+            self._send_to(
+                from_node,
+                command_reply.nack(
+                    self.node.handle, message.FromHandle, message.TriggerId,
+                    ScadaCmdRefusalReason.Busy,
+                ),
+            )
+            return
+        self.trigger_id = message.TriggerId
+        self.fsm_comment = f"{message.EventName} commanded by {message.FromHandle}"
+        # ShakeZombies: AllZombies/PicosLive -> RelayOpening
+        if self.trigger_event(PicoCyclerEvent.ShakeZombies):
+            self._send_to(
+                from_node,
+                command_reply.ack(self.node.handle, message.FromHandle, message.TriggerId),
+            )
+            self.log(f"TRIGGERING PICO REBOOT! {self.fsm_comment}")
+            self.open_vdc_relay(self.trigger_id)
+
+    def startup(self) -> None:
+        """The boot-time cycle: every pico is power-cycled once so the roster
+        starts from a known state. Enters through Startup, not PicoMissing,
+        so the journal does not record a pico missing that never was."""
+        self.trigger_id = str(uuid.uuid4())
+        self.fsm_comment = "startup"
+        # Startup: PicosLive -> RelayOpening
+        if self.trigger_event(PicoCyclerEvent.Startup):
+            self.log(f"TRIGGERING PICO REBOOT! {self.fsm_comment}")
+            self.open_vdc_relay(self.trigger_id)
 
     def shake_zombies(self) -> None:
         self.last_zombie_shake = time.time()
@@ -491,6 +628,7 @@ class PicoCycler(ShNodeActor):
         return True
 
     def start(self) -> None:
+        self.report_pico_roster()
         self.services.add_task(
             asyncio.create_task(self.main(), name="picocycler keepalive")
         )
@@ -516,8 +654,7 @@ class PicoCycler(ShNodeActor):
         zombie notifications
         """
         await asyncio.sleep(3)
-        self.trigger_id = str(uuid.uuid4())
-        self.pico_missing()
+        self.startup()
 
         while not self._stop_requested:
             self.pico_state_log(f"State is {self.state}")
@@ -539,6 +676,7 @@ class PicoCycler(ShNodeActor):
                         UnixMsList=[int(time.time() * 1000)],
                     ),
                 )
+                self.report_pico_roster()
 
             # if all picos are zombies, wifi is probably out.
             # power cycle on a semi-regular basis to get them

@@ -8,7 +8,6 @@ class ModbusClientSettings(BaseModel):
     port: int = 502
     unit_id: int = 1
     timeout: float = 30.0
-    debug: bool = False
     auto_open: bool = True
     auto_close: bool = False
 

@@ -1,18 +1,10 @@
 from enum import auto
 
-from gwsproto.enums.gw_str_enum import AslEnum
+from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class ChangeStoreFlowRelay(AslEnum):
-    """
-    Events that trigger changing StoreFlowDirection finite state machine
-    Values:
-      - DischargeStore
-      - ChargeStore
-
-    For more information:
-      - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
-      - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#changestoreflowrelay)
+class ChangeStoreFlowRelay(SemaEnum):
+    """Sema: https://schemas.electricity.works/enums/change.store.flow.relay/000
     """
 
     DischargeStore = auto()

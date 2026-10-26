@@ -1,0 +1,36 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/zone.circuit.governance.state/000"
+
+title: "zone.circuit.governance.state"
+type: "string"
+description: >
+  States of a zone-call-circuit actor's governance machine: which
+  authority rules the circuit.
+
+enum:
+  - "Dormant"
+  - "StatRules"
+  - "Off"
+  - "ScadaThermostatic"
+
+default: "Dormant"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "Dormant": >
+      The governance machine is not acting. Relay pins hold whatever
+      posture was last asserted.
+
+    "StatRules": >
+      The wall thermostat rules the circuit.
+
+    "Off": >
+      The scada holds the circuit off: no call passes, whatever the wall
+      thermostat asks. The hold is latched through Dormant and service
+      stops.
+
+    "ScadaThermostatic": >
+      The scada rules the circuit thermostatically against a commanded
+      setpoint.

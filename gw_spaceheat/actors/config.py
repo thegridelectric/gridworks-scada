@@ -1,77 +1,144 @@
 import logging
 from pathlib import Path
+from typing import Any, Self
 
-from pydantic import model_validator
+from pydantic import Field, ValidationInfo, field_validator
 from gwproactor import AppSettings
 from gwproactor.config.mqtt import TLSInfo
 from pydantic import BaseModel
 
-from gwsproto.data_classes.house_0_names import H0N
-from gwproactor.config import MQTTClient
+from gwsproto.names.core.node_names import CoreNodeNames
+from clock import ClockSource
+from weather_source import WeatherSourceKind
+from gwproactor.config import MQTTClient, Paths
 from pydantic_settings import SettingsConfigDict
-from gwsproto.enums import HpModel, SystemMode, SeasonalStorageMode
 
-# gridworks-scada/tests/config/hardware-layout.json
+# The deployed config dir holds the two authored artifacts under fixed names,
+# beside each other: proactor already fixes the layout as hardware-layout.json
+# (gwproactor.config.paths.DEFAULT_LAYOUT_FILE), and the operational params sit
+# next to it. Deliberately NOT the sema on-disk filename grammar
+# (<subject>-<type.name>-<version>.json): that grammar exists so an eventstore
+# key carries identity, whereas here the path is known and identity is read from
+# the payload's TypeName (see sema_to_dc.load_layout, which dispatches on it).
+DEFAULT_OPS_PARAMS_FILE = Path("operational-params.json")
+# The home's ta.deed instance, beside the hardware layout; absent until a
+# TaValidator has issued one.
+DEFAULT_TA_DEED_FILE = Path("ta-deed.json")
+
 DEFAULT_TEST_LAYOUT = (
     Path(__file__).resolve()
     .parents[2]   # adjust depth as needed
     / "tests"
     / "config"
-    / "hardware-layout.json"
+    / "gw.nolan.layout.json"
 )
 
 
 DEFAULT_MAX_EVENT_BYTES: int = 500 * 1024 * 1024
 
+# A power meter channel with no read that returned a value for this long is
+# lost.
+POWER_METER_LOST_AFTER_S: float = 10
+
 class PersisterSettings(BaseModel):
     max_bytes: int = DEFAULT_MAX_EVENT_BYTES
 
 
+class ScadaPaths(Paths):
+    """Paths plus the scada-family locations: the home's authored
+    operational-params artifact, defaulting to the file beside the hardware
+    layout in the same folder."""
+
+    operational_params: str | Path = Field(default="", validate_default=True)
+    # The home's ta.deed instance (ScadaAppInterface.validation_state reads
+    # it; UnValidated when absent). Defaults beside the hardware layout.
+    tadeed: str | Path = Field(default="", validate_default=True)
+
+    @field_validator("operational_params")
+    @classmethod
+    def get_operational_params(cls, v: Any, info: ValidationInfo) -> Path:
+        if not v:
+            v = Path(info.data["hardware_layout"]).parent / DEFAULT_OPS_PARAMS_FILE
+        return Path(v)
+
+    @field_validator("tadeed")
+    @classmethod
+    def get_tadeed(cls, v: Any, info: ValidationInfo) -> Path:
+        if not v:
+            v = Path(info.data["hardware_layout"]).parent / DEFAULT_TA_DEED_FILE
+        return Path(v)
+
+    def duplicate(
+        self,
+        *,
+        exclude_unset: bool = True,
+        exclude_defaults: bool = True,
+        exclude: set[str] | None = None,
+        **kwargs: Any,
+    ) -> "ScadaPaths":
+        # the gwproactor version returns base Paths, dropping subclass fields
+        fields = self.model_dump(
+            exclude_unset=exclude_unset,
+            exclude_defaults=exclude_defaults,
+            exclude=exclude,
+        )
+        fields.update(**kwargs)
+        return ScadaPaths(**fields)
+
+
+class ScadaPathsSettings(AppSettings):
+    """AppSettings whose paths are ScadaPaths. update_paths_name and
+    with_paths are overridden because the gwproactor versions rebuild (or
+    accept) base Paths, which would silently drop the scada-family fields."""
+
+    paths: ScadaPaths = Field(default_factory=ScadaPaths, validate_default=True)
+
+    def update_paths_name(self, name: str | Path) -> Self:
+        self.paths = ScadaPaths(
+            name=name, **self.paths.model_dump(exclude={"name"}, exclude_unset=True)
+        )
+        self.update_tls_paths()
+        return self
+
+    def with_paths(self, *, paths: Paths | None = None, **kwargs: Any) -> Self:
+        # an incoming base Paths replaces self.paths wholesale; carry the
+        # explicitly-set scada-family fields (e.g. an env-pinned
+        # operational_params) across, and re-derive the unset ones
+        if paths is not None and not isinstance(paths, ScadaPaths):
+            carried = self.paths.model_dump(
+                include={"operational_params"}, exclude_unset=True
+            )
+            paths = ScadaPaths(
+                **{**paths.model_dump(exclude_unset=True), **carried}
+            )
+        return super().with_paths(paths=paths, **kwargs)
+
+
 class AdminLinkSettings(MQTTClient):
     enabled: bool = False
-    name: str = H0N.admin
+    name: str = CoreNodeNames.admin
     max_timeout_seconds: float = 60 * 60 * 24
 
-class ScadaSettings(AppSettings):
+class ScadaSettings(ScadaPathsSettings):
     """Settings for the GridWorks scada."""
     #logging related (temporary)
     pico_cycler_state_logging: bool = False
+    unknown_channel_logging: bool = False
     power_meter_logging_level: int = logging.WARNING
     contract_rep_logging_level: int = logging.INFO
-    relay_multiplexer_logging_level: int = logging.INFO
     paho_logging: bool = False
     local_mqtt: MQTTClient = MQTTClient(tls=TLSInfo(use_tls=False))
     gridworks_mqtt: MQTTClient = MQTTClient(tls=TLSInfo(use_tls=False))
+    clock_source: ClockSource = ClockSource.Wall
+    weather_source: WeatherSourceKind = WeatherSourceKind.Gwwf
+    # The weather service read facade, party segment included; the bundle
+    # pulled from it is named by the operational params.
+    weather_api_url: str = "https://forecast.electricity.works/hw1-isone-weather"
+    weather_pull_timeout_s: float = 20
     seconds_per_report: int = 300
     seconds_per_snapshot: int = 30
     async_power_reporting_threshold: float = 0.02
+    power_meter_lost_after_s: float = POWER_METER_LOST_AFTER_S
     persister: PersisterSettings = PersisterSettings()
     admin: AdminLinkSettings = AdminLinkSettings(tls=TLSInfo(use_tls=False))
-    timezone_str: str = "America/New_York"
-    latitude: float = 45.6573 
-    longitude: float = -68.7098
-    alpha: float = 5.5
-    beta: float = -0.1
-    gamma: float = 0
-    hp_max_kw_el: float = 9.66
-    intermediate_power: float = 1.5
-    intermediate_rswt: float = 100
-    dd_power: float = 5.5
-    dd_rswt: float = 150
-    dd_delta_t: float = 20
-    is_simulated: bool = False
-    max_ewt_f: int = 170
-    cop_intercept: float = 1.02
-    cop_oat_coeff: float = 0.0257
-    cop_lwt_coeff: float = 0
-    cop_min: float = 1.4
-    cop_min_oat_f: float = 15
-    hp_turn_on_minutes: int = 12
-    short_cycle_buffer: bool = False
-    load_overestimation_percent: int = 0
-    oil_boiler_backup: bool = True
-    system_mode: SystemMode = SystemMode.Heating
-    seasonal_storage_mode: SeasonalStorageMode = SeasonalStorageMode.AllTanks
-    whitewire_threshold_watts: float = 20 # TODO: move to layout
-    hp_model: HpModel = HpModel.SamsungFiveTonneHydroKit # TODO: move to layout
     model_config = SettingsConfigDict(env_prefix="SCADA_", extra="ignore")

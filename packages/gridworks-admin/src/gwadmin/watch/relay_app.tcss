@@ -67,7 +67,7 @@ Button {
     width: 2.5fr;
 }
 
-#relay_toggle_button {
+.relay_toggle_button {
     width: 1fr;
     height: 5;
     margin: 0 1;

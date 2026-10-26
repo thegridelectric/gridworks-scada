@@ -1,0 +1,24 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/formats/positive.float"
+
+title: "positive.float"
+type: number
+description: >
+  Floating-point number strictly greater than zero.
+
+exclusiveMinimum: 0
+
+examples:
+  - 1
+  - 1.0
+  - 2.5
+
+counterexamples:
+  - 0
+  - -1
+  - "1.0"
+  - true
+
+x-gridworks:
+  owner: "gridworks-energy"
+  stable: true

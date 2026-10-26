@@ -1,0 +1,37 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/i2c.bus/000"
+
+title: "i2c.bus"
+type: object
+description: >
+  One physical I²C bus on a GridWorks SCADA board: its board name and the Linux
+  i²c adapter number (`/dev/i2c-<BusNumber>`) used to open it.
+
+properties:
+
+  Name:
+    $ref: "https://schemas.electricity.works/formats/pascal.case"
+    description: >
+      The bus's name on the board.
+
+  BusNumber:
+    $ref: "https://schemas.electricity.works/formats/non.negative.int"
+    description: >
+      The Linux i²c adapter number for this bus (`/dev/i2c-<BusNumber>`).
+
+  TypeName:
+    const: "i2c.bus"
+
+  Version:
+    const: "000"
+
+required:
+  - Name
+  - BusNumber
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+x-gridworks:
+  owner: "gridworks-energy"

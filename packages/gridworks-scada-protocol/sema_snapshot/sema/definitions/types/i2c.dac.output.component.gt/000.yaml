@@ -1,0 +1,104 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/i2c.dac.output.component.gt/000"
+
+title: "i2c.dac.output.component.gt"
+type: object
+description: >
+  A single board-resident 0-10V output, as one Spaceheat component: one channel
+  of a board DAC, driven as an actuator. Board-generic, on the pattern of
+  i2c.relay.component.gt: it names which DAC it lives on (DacName, resolved
+  against the board's DAC list on the board's device-type record, reached from
+  BoardComponentId) and carries one output config for the actor-level control
+  semantics and EEPROM power-on defaults. It does NOT restate the physical
+  address (bus, i2c address, mux) — that is the board's single source of
+  truth. An unwired DAC channel has no component and its EEPROM is never
+  touched.
+
+properties:
+  ComponentId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+
+  BoardComponentId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      The component id of the scada board this output's DAC is resident on.
+
+  DacName:
+    $ref: "https://schemas.electricity.works/formats/pascal.case"
+    description: >
+      The board DAC this output is a channel of, by name — matches a DacName in
+      the board's DAC list (gw1.scada.device.type.gt), which holds the physical
+      address.
+
+  ConfigList:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/dac.output.config/000"
+    description: >
+      The output's control config. Exactly one entry (see axiom
+      ExactlyOneConfig) — one output channel per component.
+
+  DisplayName:
+    type: string
+
+  HwUid:
+    type: string
+
+  TypeName:
+    const: "i2c.dac.output.component.gt"
+
+  Version:
+    const: "000"
+
+required:
+  - ComponentId
+  - BoardComponentId
+  - DacName
+  - ConfigList
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "ComponentId": "3f6d8a34-5f1e-4c9b-9a37-2e8d41f7c655",
+      "BoardComponentId": "9b1c5e2a-77d4-4f6e-8c3a-5f2e9d101b44",
+      "DacName": "Zones456",
+      "ConfigList": [
+        {
+          "ChannelName": "secondary-010v",
+          "ActorName": "secondary-010v",
+          "DacChannel": "C",
+          "TypeName": "dac.output.config",
+          "Version": "000"
+        }
+      ],
+      "TypeName": "i2c.dac.output.component.gt",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "ExactlyOneConfig"
+      statement: >
+        ConfigList SHALL contain exactly one dac.output.config (one output channel per component).
+
+  extended_description: >
+    i2c.dac.output.component.gt is the per-output device layer of the board-resident I²C
+    model (bus / board / device), mirroring i2c.relay.component.gt: the I2cBus actor owns bus
+    traffic; the board (gw1.scada.device.type.gt) is the single source of physical truth
+    (its DAC list holds each DAC's bus, address, and mux position, keyed by DacName); this
+    component is the thin per-output device carried by exactly one ShNode via ComponentId,
+    which is the node the output's boss commands. It replaces the chip-level DAC writer
+    (i2c.dac.writer.component.gt), which held EEPROM defaults for a whole chip but took no
+    command.
+
+    The `.gt` suffix declares that this type is coupled bijectively with a table in
+    a canonical seed database (here, the terminalasset registry): the table's rows are
+    instances of this type. Sema is the authority over what a row means; the seed
+    table is the authority over which instances are currently asserted.

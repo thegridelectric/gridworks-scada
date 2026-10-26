@@ -1,0 +1,57 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/zone.call.circuit.event/000"
+
+title: "zone.call.circuit.event"
+type: "string"
+description: >
+  Events for a zone-call-circuit actor's posture machine: the finite state
+  machine that owns a zone-call circuit's failsafe and ops relay pair.
+
+enum:
+  - "WakeUp"
+  - "GoDormant"
+  - "Release"
+  - "ScadaHold"
+  - "ScadaCall"
+  - "ConfirmHeld"
+  - "ConfirmCalling"
+  - "ConfirmReleased"
+  - "ActuationFailed"
+
+default: "GoDormant"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "WakeUp": >
+      The actor leaves Dormant and adopts its current confirmed posture.
+
+    "GoDormant": >
+      The actor stops acting on the circuit. Relay pins are left
+      untouched; a latched hold survives.
+
+    "Release": >
+      Command to return the circuit to the wall thermostat
+      (failsafe relay de-energized).
+
+    "ScadaHold": >
+      Command to take the circuit from the wall thermostat with no call
+      asserted (failsafe relay energized, ops relay de-energized).
+
+    "ScadaCall": >
+      Command to take the circuit and assert the call (failsafe relay
+      energized, ops relay energized).
+
+    "ConfirmHeld": >
+      Confirmation that the hold posture is asserted.
+
+    "ConfirmCalling": >
+      Confirmation that the call posture is asserted.
+
+    "ConfirmReleased": >
+      Confirmation that the circuit is back with the wall thermostat.
+
+    "ActuationFailed": >
+      A commanded relay actuation failed to verify. The machine holds
+      its last confirmed state.

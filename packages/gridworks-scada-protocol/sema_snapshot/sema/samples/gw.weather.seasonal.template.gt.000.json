@@ -1,0 +1,21 @@
+{
+  "TypeName": "gw.weather.seasonal.template.gt",
+  "Version": "000",
+  "LocationAlias": "us.me.millinocket",
+  "TempByMonth": [
+    -300,
+    -700,
+    100,
+    2100,
+    3000,
+    3100,
+    4600,
+    4700,
+    2800,
+    2400,
+    1600,
+    0
+  ],
+  "Start": "2026-10-07T00:00:00Z",
+  "Id": "3b7c1e52-8d4a-4f6e-9c2b-5a1d8e7f0c93"
+}

@@ -1,0 +1,2660 @@
+{
+  "TypeName": "gw.house0.layout",
+  "Version": "000",
+  "GNodes": [
+    {
+      "TypeName": "g.node.gt",
+      "Version": "006",
+      "GNodeId": "2a55ee02-1443-4fab-8eed-a91bc5bf2e2c",
+      "Alias": "d1.isone.ct.newhaven.willow1",
+      "BaseClass": "LeafTransactiveNode",
+      "GNodeClass": "LeafTransactiveNode",
+      "Status": "Active",
+      "PositionPointId": "b2488e42-503c-46d2-9b52-034e354b8533",
+      "DisplayName": "Little Willow House Heating System LeafTransactiveNode"
+    },
+    {
+      "TypeName": "g.node.gt",
+      "Version": "006",
+      "GNodeId": "298db8f4-ed7d-4432-a89d-3ce85a0e5217",
+      "Alias": "d1.isone.ct.newhaven.willow1.ta",
+      "BaseClass": "TerminalAsset",
+      "GNodeClass": "TerminalAsset",
+      "Status": "Active",
+      "PositionPointId": "d07f6e9e-7ee4-4881-adde-a134bafd8bc6",
+      "DisplayName": "Little Willow House Heating System TerminalAsset"
+    },
+    {
+      "TypeName": "g.node.gt",
+      "Version": "006",
+      "GNodeId": "c2f1512e-8024-4d2b-82b2-727b76981e03",
+      "Alias": "d1.isone.ct.newhaven.willow1.scada",
+      "BaseClass": "Logical",
+      "GNodeClass": "Scada",
+      "Status": "Active",
+      "DisplayName": "Little Willow House Heating System SCADA"
+    }
+  ],
+  "ShNodes": [
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "s",
+      "ActorClass": "PrimaryScada",
+      "DisplayName": "Little Willow House Main Scada",
+      "ShNodeId": "c89416fa-0421-4006-8c9a-d6617e805db5"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "s2",
+      "ActorClass": "SecondaryScada",
+      "DisplayName": "Secondary Scada",
+      "ShNodeId": "20ec8d2b-2d8d-46ca-b6f1-714ca62f29bf"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "admin",
+      "Handle": "admin",
+      "ActorClass": "NoActor",
+      "DisplayName": "Local Admin",
+      "ShNodeId": "83daca35-019c-44ae-8f1d-7e8d894c4806"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "auto",
+      "Handle": "auto",
+      "ActorClass": "NoActor",
+      "DisplayName": "Auto - FSM for dispatch contract",
+      "ShNodeId": "14fba71d-ab9d-4fda-bf78-00eded9189b0"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "ltn",
+      "ActorClass": "NoActor",
+      "DisplayName": "LeafTransactiveNode",
+      "ShNodeId": "229e5cdd-7c22-4928-b20e-d2d8afb2bf83"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "la",
+      "ActorHierarchyName": "s.la",
+      "Handle": "ltn.la",
+      "ActorClass": "LeafAlly",
+      "DisplayName": "Leaf Ally",
+      "ShNodeId": "1b33f1f3-d144-46ce-9d3e-5b7e1b03ecbd"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "five-v-boss",
+      "ActorHierarchyName": "s.five-v-boss",
+      "Handle": "auto.five-v-boss",
+      "ActorClass": "FiveVBoss",
+      "DisplayName": "Five V Boss - can hold the picos' 5VDC supply off",
+      "ShNodeId": "6574a9c8-5ef8-4b32-8696-d4fbee6c8441"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "pico-cycler",
+      "ActorHierarchyName": "s.pico-cycler",
+      "Handle": "auto.five-v-boss.pico-cycler",
+      "ActorClass": "PicoCycler",
+      "DisplayName": "Pico Cycler - responsible for power cycling the 5VDC bus",
+      "ShNodeId": "cc006d80-a53e-4d51-91a6-68d8c1282f72"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "derived-generator",
+      "ActorHierarchyName": "s.derived-generator",
+      "ActorClass": "DerivedGenerator",
+      "DisplayName": "Derived Generator",
+      "ShNodeId": "409fdc46-1903-4c13-aa3f-762235fc5cfc"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "cold-watch",
+      "ActorHierarchyName": "s.cold-watch",
+      "ActorClass": "ColdWatch",
+      "DisplayName": "Cold Watch",
+      "ShNodeId": "feefe23e-d84d-4650-b2c6-59e729ea1dab"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "lc",
+      "ActorHierarchyName": "s.lc",
+      "Handle": "auto.lc",
+      "ActorClass": "LocalControl",
+      "DisplayName": "LocalControl",
+      "ShNodeId": "2ac0f13d-151a-4a92-8f47-a67022d90824"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "n",
+      "Handle": "auto.lc.n",
+      "ActorClass": "NoActor",
+      "DisplayName": "LocalControl Normal",
+      "ShNodeId": "05ba7f48-58f2-42c3-a31c-45857c9fb845"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "backup",
+      "Handle": "auto.lc.backup",
+      "ActorClass": "NoActor",
+      "DisplayName": "LocalControl Backup",
+      "ShNodeId": "0b718335-7260-4931-b166-156197b2e182"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "cold-override",
+      "Handle": "auto.lc.cold-override",
+      "ActorClass": "NoActor",
+      "DisplayName": "LocalControl Cold Override",
+      "ShNodeId": "14473eee-a539-4713-856b-9b71c6451c6d"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "scada-blind",
+      "Handle": "auto.lc.scada-blind",
+      "ActorClass": "NoActor",
+      "DisplayName": "LocalControl Scada Blind",
+      "ShNodeId": "78cc5bd9-e82a-4799-b73d-dbbd5b167d4e"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "standby",
+      "Handle": "auto.lc.standby",
+      "ActorClass": "NoActor",
+      "DisplayName": "LocalControl Standby",
+      "ShNodeId": "ad0f7df2-7e47-41c8-8a2f-7d854367a08f"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "hp-boss",
+      "ActorHierarchyName": "s.hp-boss",
+      "Handle": "auto.hp-boss",
+      "ActorClass": "HpBoss",
+      "DisplayName": "HeatpumpBoss",
+      "ShNodeId": "62a7180b-c54e-4a52-a800-5bf554835d87"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "sieg-loop",
+      "ActorHierarchyName": "s.sieg-loop",
+      "Handle": "auto.sieg-loop",
+      "ActorClass": "SiegLoop",
+      "DisplayName": "Sieg Loop",
+      "ShNodeId": "da4ea9d4-d0cb-4bb0-85f0-f6b57dc85805"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "power-meter",
+      "ActorHierarchyName": "s.power-meter",
+      "ActorClass": "PowerMeter",
+      "DisplayName": "Main Power Meter Simulated Test System",
+      "ComponentId": "6fb726dc-0cc0-4be2-aa7b-242747d090c7",
+      "ShNodeId": "993fca8b-2e6c-408e-8d58-bd62d561403c"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "hp-odu",
+      "ActorClass": "NoActor",
+      "DisplayName": "Hp Odu",
+      "ComponentId": "8eb2406c-0ebd-47cf-867e-a83756682c0c",
+      "NameplatePowerW": 6000,
+      "ShNodeId": "d300ae9e-8ac0-4317-bc1b-6e03bd1cb37c"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "hp-idu",
+      "ActorClass": "NoActor",
+      "DisplayName": "Hp Idu",
+      "ComponentId": "3c172e2b-a7ed-438d-bac1-020ae2df6915",
+      "NameplatePowerW": 4000,
+      "ShNodeId": "3214f382-66d2-4484-993c-62306086975d"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "primary-pump",
+      "ActorClass": "NoActor",
+      "DisplayName": "Primary Pump",
+      "ShNodeId": "d22944fb-1d64-4fc4-990a-e2f0bbbfa2b2"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "store-pump",
+      "ActorClass": "NoActor",
+      "DisplayName": "Store Pump",
+      "ShNodeId": "28dcd828-2359-4bcf-821e-cb0921b0c1ef"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "dist-pump",
+      "ActorClass": "NoActor",
+      "DisplayName": "Dist Pump",
+      "ShNodeId": "5e89a909-4a6a-4e93-84de-7dd31722a36f"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "zone1-main-whitewire",
+      "ActorClass": "NoActor",
+      "DisplayName": "Zone1 Main Whitewire",
+      "NameplatePowerW": 10,
+      "ShNodeId": "a218ed93-6681-447a-b700-48314deace90"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "web-server",
+      "ActorClass": "NoActor",
+      "DisplayName": "Web Server",
+      "ComponentId": "cfa44dd1-fdea-42a7-a5c2-b5494105fd88",
+      "ShNodeId": "bfe14ace-5ad2-4554-a85b-0f17348c07d8"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "zone1-main",
+      "ActorClass": "NoActor",
+      "DisplayName": "Zone 1 Main",
+      "ShNodeId": "f59867c9-392c-43cc-9bb1-23c8218c7fb3"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "zone1-main-temp-sensor",
+      "ActorHierarchyName": "s.zone1-main-temp-sensor",
+      "ActorClass": "SimSensorActor",
+      "DisplayName": "Zone 1 Main Temp Sensor",
+      "ComponentId": "2b298429-4064-4001-b3ee-5a40a4dc94c8",
+      "ShNodeId": "d8a32b0d-0727-4c1a-9d9f-b2a9f413c22a"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "krida",
+      "ActorClass": "NoActor",
+      "DisplayName": "Sim Krida relay panel",
+      "ComponentId": "17d51461-2f09-4c4a-9ff3-88e41f52adae",
+      "ShNodeId": "6a9119a0-d9ef-4f98-882d-ab830f8f1366"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "i2c-bus",
+      "ActorHierarchyName": "s.i2c-bus",
+      "ActorClass": "I2cBus",
+      "DisplayName": "I2C Bus",
+      "ShNodeId": "d6949444-b3d3-43bc-bf78-f1ecad538352"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "vdc-relay",
+      "ActorHierarchyName": "s.vdc-relay",
+      "Handle": "auto.five-v-boss.pico-cycler.vdc-relay",
+      "ActorClass": "Relay",
+      "DisplayName": "5VDC Relay",
+      "ComponentId": "d703809e-ef65-4d9b-8b6e-712493697dfe",
+      "ShNodeId": "1d6cc8a3-42ae-4ccc-926c-4a4a03401c30"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "tstat-common-relay",
+      "ActorHierarchyName": "s.tstat-common-relay",
+      "Handle": "auto.tstat-common-relay",
+      "ActorClass": "Relay",
+      "DisplayName": "TStat Common Relay",
+      "ComponentId": "75159f22-97a6-4c2c-93f1-858df2340c79",
+      "ShNodeId": "62cf03eb-cdaf-43b8-8c51-395db8df3d58"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "charge-discharge-relay",
+      "ActorHierarchyName": "s.charge-discharge-relay",
+      "Handle": "auto.charge-discharge-relay",
+      "ActorClass": "Relay",
+      "DisplayName": "Store Charge/Discharge Relay",
+      "ComponentId": "60afa64a-3a58-498b-bab0-7e94db848b71",
+      "ShNodeId": "585fca11-7965-44a7-8954-c3899f6c3fa2"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "hp-failsafe-relay",
+      "ActorHierarchyName": "s.hp-failsafe-relay",
+      "Handle": "auto.hp-failsafe-relay",
+      "ActorClass": "Relay",
+      "DisplayName": "Hp Failsafe Relay",
+      "ComponentId": "4b1ead2d-6fa7-4083-946f-6f3d3a667d04",
+      "ShNodeId": "dea29999-b00b-48ea-9d23-482a062ed7b4"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "hp-scada-ops-relay",
+      "ActorHierarchyName": "s.hp-scada-ops-relay",
+      "Handle": "auto.hp-boss.hp-scada-ops-relay",
+      "ActorClass": "Relay",
+      "DisplayName": "Hp Scada Ops Relay",
+      "ComponentId": "f85b6dc5-f24b-43d3-8a80-2e47163a38b7",
+      "ShNodeId": "d53686d6-8373-4d07-8978-15dfaf152b52"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "aquastat-ctrl-relay",
+      "ActorHierarchyName": "s.aquastat-ctrl-relay",
+      "Handle": "auto.aquastat-ctrl-relay",
+      "ActorClass": "Relay",
+      "DisplayName": "Aquastat Ctrl Relay",
+      "ComponentId": "e72b7059-a868-4e1c-8972-2300b8c52851",
+      "ShNodeId": "0fa232b8-f434-478f-ae40-c6cefdc27be7"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "store-pump-relay",
+      "ActorHierarchyName": "s.store-pump-relay",
+      "Handle": "auto.store-pump-relay",
+      "ActorClass": "Relay",
+      "DisplayName": "Store Pump Relay",
+      "ComponentId": "837ea64e-b23c-4394-8f12-f247374b0c3d",
+      "ShNodeId": "932a8782-bc8a-425b-ab39-d3cf40a266c2"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "primary-pump-failsafe-relay",
+      "ActorHierarchyName": "s.primary-pump-failsafe-relay",
+      "Handle": "auto.primary-pump-failsafe-relay",
+      "ActorClass": "Relay",
+      "DisplayName": "Primary Pump Failsafe",
+      "ComponentId": "54f91fdd-8bef-4029-bf8d-5c3330ea8aff",
+      "ShNodeId": "d4f1fcdd-661b-4e82-bb17-98853443de19"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "primary-pump-scada-ops-relay",
+      "ActorHierarchyName": "s.primary-pump-scada-ops-relay",
+      "Handle": "auto.primary-pump-scada-ops-relay",
+      "ActorClass": "Relay",
+      "DisplayName": "Primary Pump SCADA Ops",
+      "ComponentId": "b79d9522-75ec-4b11-9174-c8c3f0152d66",
+      "ShNodeId": "e98f4390-2729-43d2-ad79-73be699b702e"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "hp-loop-on-off-relay",
+      "ActorHierarchyName": "s.hp-loop-on-off-relay",
+      "Handle": "auto.sieg-loop.hp-loop-on-off-relay",
+      "ActorClass": "Relay",
+      "DisplayName": "Hp Loop Valve Active/Dormant Relay",
+      "ComponentId": "4b1a59c7-dbfe-4fcf-983d-985936a73bb5",
+      "ShNodeId": "55a044e5-99e4-4028-9278-bf8c313036f2"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "hp-loop-keep-send-relay",
+      "ActorHierarchyName": "s.hp-loop-keep-send-relay",
+      "Handle": "auto.sieg-loop.hp-loop-keep-send-relay",
+      "ActorClass": "Relay",
+      "DisplayName": "Hp Loop Valve SendMore/SendLess Relay",
+      "ComponentId": "1ed7bbb8-b1f1-48fd-a8e0-5b8e5144fa6b",
+      "ShNodeId": "c8a7b3fe-5142-494c-b039-64a8ea69d068"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "zone1-main-failsafe-relay",
+      "ActorHierarchyName": "s.zone1-main-failsafe-relay",
+      "Handle": "auto.zone1-main-failsafe-relay",
+      "ActorClass": "Relay",
+      "DisplayName": "Main Zone 1 Failsf",
+      "ComponentId": "3f59dabc-0e7b-4475-bf98-e771e8e26e56",
+      "ShNodeId": "6485c38d-1b0c-4f61-9330-f7c880a58531"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "zone1-main-ops-relay",
+      "ActorHierarchyName": "s.zone1-main-ops-relay",
+      "Handle": "auto.zone1-main-ops-relay",
+      "ActorClass": "Relay",
+      "DisplayName": "Main Zone Scada Ops",
+      "ComponentId": "85fa89ee-4630-4c1e-afe0-cbe7a2e8b7bf",
+      "ShNodeId": "ee3d327f-7a73-42b5-917f-be2f9c7d7f02"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "buffer",
+      "ActorHierarchyName": "s.buffer",
+      "ActorClass": "ApiTankModule",
+      "DisplayName": "Buffer SIMULATED ApiTankModule actor",
+      "ComponentId": "1a8fb271-80d2-4dff-a062-9730baf82d7f",
+      "ShNodeId": "7018fbc5-0556-436e-a1eb-430abac966c7"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "buffer-depth1",
+      "ActorClass": "NoActor",
+      "DisplayName": "buffer-depth1",
+      "ShNodeId": "7eb1708e-0c8e-46b2-a48a-82f7f461253a"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "buffer-depth2",
+      "ActorClass": "NoActor",
+      "DisplayName": "buffer-depth2",
+      "ShNodeId": "1d68824e-8490-4428-b180-cd8ddd4593d8"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "buffer-depth3",
+      "ActorClass": "NoActor",
+      "DisplayName": "buffer-depth3",
+      "ShNodeId": "f5bf105f-0389-4111-9444-5203db9ce713"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "tank1",
+      "ActorHierarchyName": "s.tank1",
+      "ActorClass": "ApiTankModule",
+      "DisplayName": "Tank1 SIMULATED ApiTankModule actor",
+      "ComponentId": "304f13f3-27ef-4ea3-a94f-47d4f2170487",
+      "ShNodeId": "383d286f-b0d1-456e-9f51-639235b38642"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "tank1-depth1",
+      "ActorClass": "NoActor",
+      "DisplayName": "tank1-depth1",
+      "ShNodeId": "c5aab907-f0d2-48df-96ea-74707085f805"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "tank1-depth2",
+      "ActorClass": "NoActor",
+      "DisplayName": "tank1-depth2",
+      "ShNodeId": "467a9794-d1e2-483d-8424-71817e54c411"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "tank1-depth3",
+      "ActorClass": "NoActor",
+      "DisplayName": "tank1-depth3",
+      "ShNodeId": "b5a9bd9b-5254-451e-a0f8-e816edb24e52"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "dist-010v",
+      "ActorHierarchyName": "s.dist-010v",
+      "Handle": "auto.dist-010v",
+      "ActorClass": "ZeroTenOutputer",
+      "DisplayName": "Dist Pump 010V",
+      "ComponentId": "e74eb971-d417-4f53-b240-de1030b6e3fd",
+      "ShNodeId": "46a2abc7-edf2-4b6c-b434-3de566e9c47f"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "primary-010v",
+      "ActorHierarchyName": "s.primary-010v",
+      "Handle": "auto.primary-010v",
+      "ActorClass": "ZeroTenOutputer",
+      "DisplayName": "Primary Pump 010V",
+      "ComponentId": "eb474a0a-00c8-4260-be8a-5357e48b5e65",
+      "ShNodeId": "1f17dcda-53b7-487b-8747-4701b9d03dbb"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "store-010v",
+      "ActorHierarchyName": "s.store-010v",
+      "Handle": "auto.store-010v",
+      "ActorClass": "ZeroTenOutputer",
+      "DisplayName": "Store Pump 010V",
+      "ComponentId": "c1c2dc50-9b94-4d10-83d7-07f004fd980a",
+      "ShNodeId": "a5f9220e-eb46-42fc-b27e-8235c0c5e7db"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "dist-flow",
+      "ActorHierarchyName": "s.dist-flow",
+      "ActorClass": "SimSensorActor",
+      "DisplayName": "Dist Flow Sim Flow Meter",
+      "ComponentId": "669b626f-fed0-46ce-8e1b-910951f8654b",
+      "ShNodeId": "e2322cc4-6fa0-46dc-99d5-6481ca658870"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "store-flow",
+      "ActorHierarchyName": "s.store-flow",
+      "ActorClass": "SimSensorActor",
+      "DisplayName": "Store Flow Sim Flow Meter",
+      "ComponentId": "ab4b6500-f7bf-4e2c-b617-6f5b3f6d7c6b",
+      "ShNodeId": "790e64d6-e599-4e05-8396-3172c43cbb64"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "sieg-flow",
+      "ActorHierarchyName": "s.sieg-flow",
+      "ActorClass": "SimSensorActor",
+      "DisplayName": "Sieg Flow Sim Flow Meter",
+      "ComponentId": "0ff4912d-b092-4a6a-b4d7-65eeb7c1d1d6",
+      "ShNodeId": "41de8808-7a72-4b9a-a883-85c78cd78329"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "sieg-send-flow",
+      "ActorHierarchyName": "s.sieg-send-flow",
+      "ActorClass": "SimSensorActor",
+      "DisplayName": "Sieg Send Flow Sim Flow Meter",
+      "ComponentId": "4201e86c-ba23-416f-bdf3-c53212024565",
+      "ShNodeId": "90d33e41-686e-4e9b-93b1-8fcfecd0afaf"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "hp-lwt",
+      "ActorHierarchyName": "s.hp-lwt",
+      "ActorClass": "SimSensorActor",
+      "DisplayName": "Hp Lwt Sim Temp Sensor",
+      "ComponentId": "84013ca4-b341-4cf2-8094-eb8e08f0838c",
+      "ShNodeId": "382952bd-c7be-45e5-a138-08963d7b163b"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "hp-ewt",
+      "ActorHierarchyName": "s.hp-ewt",
+      "ActorClass": "SimSensorActor",
+      "DisplayName": "Hp Ewt Sim Temp Sensor",
+      "ComponentId": "997e41fa-3f8e-4529-90c9-fe12a645390f",
+      "ShNodeId": "54354b62-f6fb-46ac-9423-b5b0d7387657"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "dist-swt",
+      "ActorHierarchyName": "s.dist-swt",
+      "ActorClass": "SimSensorActor",
+      "DisplayName": "Dist Swt Sim Temp Sensor",
+      "ComponentId": "48bf89bd-477f-401c-a173-12bcf7a31183",
+      "ShNodeId": "c46f0acb-310f-4a44-b5e8-e823912c765c"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "dist-rwt",
+      "ActorHierarchyName": "s.dist-rwt",
+      "ActorClass": "SimSensorActor",
+      "DisplayName": "Dist Rwt Sim Temp Sensor",
+      "ComponentId": "92022663-e9d7-475b-aaf5-34d39adcbdaa",
+      "ShNodeId": "2e41366b-44f0-44f1-96e7-ae8935dbbb6b"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "store-hot-pipe",
+      "ActorHierarchyName": "s.store-hot-pipe",
+      "ActorClass": "SimSensorActor",
+      "DisplayName": "Store Hot Pipe Sim Temp Sensor",
+      "ComponentId": "87784532-600f-46b8-ad9b-37e478417962",
+      "ShNodeId": "56a42ba2-9354-42f6-91e9-b7124716cb55"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "store-cold-pipe",
+      "ActorHierarchyName": "s.store-cold-pipe",
+      "ActorClass": "SimSensorActor",
+      "DisplayName": "Store Cold Pipe Sim Temp Sensor",
+      "ComponentId": "7bc93705-ba7a-49f8-9247-33214fb233b5",
+      "ShNodeId": "8b07c03f-52f0-4ba7-9bc2-11cfcd16d081"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "buffer-hot-pipe",
+      "ActorHierarchyName": "s.buffer-hot-pipe",
+      "ActorClass": "SimSensorActor",
+      "DisplayName": "Buffer Hot Pipe Sim Temp Sensor",
+      "ComponentId": "8463b98b-7297-4f39-9083-2d596be652f8",
+      "ShNodeId": "18951740-f699-44f7-975a-d665e53259a5"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "sieg-cold",
+      "ActorHierarchyName": "s.sieg-cold",
+      "ActorClass": "SimSensorActor",
+      "DisplayName": "Sieg Cold Sim Temp Sensor",
+      "ComponentId": "d5766360-3af4-4cd7-974a-c6250bfb4db0",
+      "ShNodeId": "4c881dd5-18f5-4da8-907e-141d9078ffdb"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "sieg-hot",
+      "ActorHierarchyName": "s.sieg-hot",
+      "ActorClass": "SimSensorActor",
+      "DisplayName": "Sieg Hot Sim Temp Sensor",
+      "ComponentId": "b63afecb-6d11-45ca-ac6c-5f73d6457ab8",
+      "ShNodeId": "97982086-2185-4cea-a93a-b4337fa1b1e7"
+    }
+  ],
+  "DataChannels": [
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "hp-odu-pwr",
+      "DisplayName": "HP ODU PWR",
+      "AboutNodeName": "hp-odu",
+      "CapturedByNodeName": "power-meter",
+      "TelemetryName": "PowerW",
+      "Quantity": "Power",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "9b61a07d-50f2-4056-a0eb-2252eee1153e"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "hp-idu-pwr",
+      "DisplayName": "HP IDU PWR",
+      "AboutNodeName": "hp-idu",
+      "CapturedByNodeName": "power-meter",
+      "TelemetryName": "PowerW",
+      "Quantity": "Power",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "765b7c18-6f3a-419c-a8b6-743e1a9b9395"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "primary-pump-pwr",
+      "DisplayName": "PRIMARY PUMP PWR",
+      "AboutNodeName": "primary-pump",
+      "CapturedByNodeName": "power-meter",
+      "TelemetryName": "PowerW",
+      "Quantity": "Power",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "8bcfcd77-60f0-4b97-9fca-3551961e2c69"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "store-pump-pwr",
+      "DisplayName": "STORE PUMP PWR",
+      "AboutNodeName": "store-pump",
+      "CapturedByNodeName": "power-meter",
+      "TelemetryName": "PowerW",
+      "Quantity": "Power",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "a3e21f9b-6cd6-41a0-87c6-9f8b0f892cf2"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "dist-pump-pwr",
+      "DisplayName": "DIST PUMP PWR",
+      "AboutNodeName": "dist-pump",
+      "CapturedByNodeName": "power-meter",
+      "TelemetryName": "PowerW",
+      "Quantity": "Power",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "dcdddad1-c2ea-4b1b-b696-7c091f37d36c"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "zone1-main-whitewire-pwr",
+      "DisplayName": "ZONE1 MAIN WHITEWIRE PWR",
+      "AboutNodeName": "zone1-main-whitewire",
+      "CapturedByNodeName": "power-meter",
+      "TelemetryName": "PowerW",
+      "Quantity": "Power",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "9f127bf6-abe4-4f51-be40-afb8bde37c79"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "zone1-main-temp",
+      "DisplayName": "Zone1 Main Temp",
+      "AboutNodeName": "zone1-main",
+      "CapturedByNodeName": "zone1-main-temp-sensor",
+      "TelemetryName": "CelsiusTimes100",
+      "Quantity": "Temperature",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "6d5e7ebd-a3b1-4c00-9211-cff88d7f5ba6"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "vdc-relay",
+      "DisplayName": "5V DC Bus Relay State",
+      "AboutNodeName": "vdc-relay",
+      "CapturedByNodeName": "vdc-relay",
+      "TelemetryName": "RelayState",
+      "Quantity": "Unitless",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "e82edcc9-c049-44dc-a224-ffb2c53a7900"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "tstat-common-relay",
+      "DisplayName": "TStat Common Relay State",
+      "AboutNodeName": "tstat-common-relay",
+      "CapturedByNodeName": "tstat-common-relay",
+      "TelemetryName": "RelayState",
+      "Quantity": "Unitless",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "db063b17-6997-42b6-b175-53692b863a60"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "charge-discharge-relay",
+      "DisplayName": "Charge/Discharge Relay State",
+      "AboutNodeName": "charge-discharge-relay",
+      "CapturedByNodeName": "charge-discharge-relay",
+      "TelemetryName": "RelayState",
+      "Quantity": "Unitless",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "0b13ef09-807c-4863-96ff-3f571f8c75be"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "hp-failsafe-relay",
+      "DisplayName": "Hp Failsafe Relay State",
+      "AboutNodeName": "hp-failsafe-relay",
+      "CapturedByNodeName": "hp-failsafe-relay",
+      "TelemetryName": "RelayState",
+      "Quantity": "Unitless",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "15008511-29cf-496b-904f-8fd4611261f8"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "hp-scada-ops-relay",
+      "DisplayName": "Hp Scada Ops Relay State",
+      "AboutNodeName": "hp-scada-ops-relay",
+      "CapturedByNodeName": "hp-scada-ops-relay",
+      "TelemetryName": "RelayState",
+      "Quantity": "Unitless",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "a1ca0389-448c-4c7a-b02b-50d56db0e4fb"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "aquastat-ctrl-relay",
+      "DisplayName": "Aquastat Control Relay State",
+      "AboutNodeName": "aquastat-ctrl-relay",
+      "CapturedByNodeName": "aquastat-ctrl-relay",
+      "TelemetryName": "RelayState",
+      "Quantity": "Unitless",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "c6ca4b47-7740-4b7d-93d8-db0f3766d58e"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "store-pump-relay",
+      "DisplayName": "Store Pump Relay State",
+      "AboutNodeName": "store-pump-relay",
+      "CapturedByNodeName": "store-pump-relay",
+      "TelemetryName": "RelayState",
+      "Quantity": "Unitless",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "1d8c43c8-0032-4508-a20d-7fd6ca3ad491"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "primary-pump-failsafe-relay",
+      "DisplayName": "Primary Pump Failsafe Relay State",
+      "AboutNodeName": "primary-pump-failsafe-relay",
+      "CapturedByNodeName": "primary-pump-failsafe-relay",
+      "TelemetryName": "RelayState",
+      "Quantity": "Unitless",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "383d3511-ca30-46a3-94b9-1f6f7096fa38"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "primary-pump-scada-ops-relay",
+      "DisplayName": "Primary Pump SCADA Ops Relay State",
+      "AboutNodeName": "primary-pump-scada-ops-relay",
+      "CapturedByNodeName": "primary-pump-scada-ops-relay",
+      "TelemetryName": "RelayState",
+      "Quantity": "Unitless",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "de567c98-2ea8-4974-b49f-7e950ecadc7c"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "hp-loop-on-off-relay",
+      "DisplayName": "Hp Loop On Off Relay State",
+      "AboutNodeName": "hp-loop-on-off-relay",
+      "CapturedByNodeName": "hp-loop-on-off-relay",
+      "TelemetryName": "RelayState",
+      "Quantity": "Unitless",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "71884ee8-a53d-4e4e-8bff-47227f96108a"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "hp-loop-keep-send-relay",
+      "DisplayName": "Hp Loop Keep/Send Relay State",
+      "AboutNodeName": "hp-loop-keep-send-relay",
+      "CapturedByNodeName": "hp-loop-keep-send-relay",
+      "TelemetryName": "RelayState",
+      "Quantity": "Unitless",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "dfd0684f-f2fa-4926-930b-e23d980ba3e2"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "zone1-main-failsafe-relay",
+      "DisplayName": "Main Zone 1 Failsf Relay State",
+      "AboutNodeName": "zone1-main-failsafe-relay",
+      "CapturedByNodeName": "zone1-main-failsafe-relay",
+      "TelemetryName": "RelayState",
+      "Quantity": "Unitless",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "86f1a3e1-d2d8-468a-aa1f-e9864b79fdc2"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "zone1-main-ops-relay",
+      "DisplayName": "Main Zone 1 Scada Ops Relay State",
+      "AboutNodeName": "zone1-main-ops-relay",
+      "CapturedByNodeName": "zone1-main-ops-relay",
+      "TelemetryName": "RelayState",
+      "Quantity": "Unitless",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "dc3fac51-3006-4e89-9cf0-d9952d0c08cc"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "buffer-depth1-device",
+      "DisplayName": "Buffer Depth 1 Device Temp",
+      "AboutNodeName": "buffer-depth1",
+      "CapturedByNodeName": "buffer",
+      "TelemetryName": "CelsiusTimes100",
+      "Quantity": "Temperature",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "3c5171aa-d43f-48cf-9b07-2c9b33155a3c"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "buffer-depth2-device",
+      "DisplayName": "Buffer Depth 2 Device Temp",
+      "AboutNodeName": "buffer-depth2",
+      "CapturedByNodeName": "buffer",
+      "TelemetryName": "CelsiusTimes100",
+      "Quantity": "Temperature",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "b840551d-00ef-49d6-92e9-f12f55eb20d5"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "buffer-depth3-device",
+      "DisplayName": "Buffer Depth 3 Device Temp",
+      "AboutNodeName": "buffer-depth3",
+      "CapturedByNodeName": "buffer",
+      "TelemetryName": "CelsiusTimes100",
+      "Quantity": "Temperature",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "5c26aeb7-047a-4bfe-bf01-1a1c3bc64523"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "buffer-depth1-micro-v",
+      "DisplayName": "Buffer Depth 1 MicroVolts",
+      "AboutNodeName": "buffer-depth1",
+      "CapturedByNodeName": "buffer",
+      "TelemetryName": "MicroVolts",
+      "Quantity": "Voltage",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "b2b47855-5d69-4cff-8090-2a4e2e60c2e9"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "buffer-depth2-micro-v",
+      "DisplayName": "Buffer Depth 2 MicroVolts",
+      "AboutNodeName": "buffer-depth2",
+      "CapturedByNodeName": "buffer",
+      "TelemetryName": "MicroVolts",
+      "Quantity": "Voltage",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "f107763c-88fd-4620-8efa-371f995b2d85"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "buffer-depth3-micro-v",
+      "DisplayName": "Buffer Depth 3 MicroVolts",
+      "AboutNodeName": "buffer-depth3",
+      "CapturedByNodeName": "buffer",
+      "TelemetryName": "MicroVolts",
+      "Quantity": "Voltage",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "3fe45bd6-65f7-43ab-af12-7d50b13876a0"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "tank1-depth1-device",
+      "DisplayName": "Tank1 Depth 1 Device Temp",
+      "AboutNodeName": "tank1-depth1",
+      "CapturedByNodeName": "tank1",
+      "TelemetryName": "CelsiusTimes100",
+      "Quantity": "Temperature",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "21c783c3-4e91-4381-91c6-a49fbadc1a55"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "tank1-depth2-device",
+      "DisplayName": "Tank1 Depth 2 Device Temp",
+      "AboutNodeName": "tank1-depth2",
+      "CapturedByNodeName": "tank1",
+      "TelemetryName": "CelsiusTimes100",
+      "Quantity": "Temperature",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "f40fe416-b557-45b7-9d8e-bfb9e658512f"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "tank1-depth3-device",
+      "DisplayName": "Tank1 Depth 3 Device Temp",
+      "AboutNodeName": "tank1-depth3",
+      "CapturedByNodeName": "tank1",
+      "TelemetryName": "CelsiusTimes100",
+      "Quantity": "Temperature",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "89921cb4-d666-4ac1-9116-d55045c13e8b"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "tank1-depth1-micro-v",
+      "DisplayName": "Tank1 Depth 1 MicroVolts",
+      "AboutNodeName": "tank1-depth1",
+      "CapturedByNodeName": "tank1",
+      "TelemetryName": "MicroVolts",
+      "Quantity": "Voltage",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "4a8ac6c9-dda5-4f69-8819-5f5586cc4057"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "tank1-depth2-micro-v",
+      "DisplayName": "Tank1 Depth 2 MicroVolts",
+      "AboutNodeName": "tank1-depth2",
+      "CapturedByNodeName": "tank1",
+      "TelemetryName": "MicroVolts",
+      "Quantity": "Voltage",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "963e461d-cb58-4176-be5f-d2bfcb3a18f7"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "tank1-depth3-micro-v",
+      "DisplayName": "Tank1 Depth 3 MicroVolts",
+      "AboutNodeName": "tank1-depth3",
+      "CapturedByNodeName": "tank1",
+      "TelemetryName": "MicroVolts",
+      "Quantity": "Voltage",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "2e80e42b-e8a3-49c2-807d-9bd61fb51164"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "dist-010v",
+      "DisplayName": "Dist Pump 010V Level",
+      "AboutNodeName": "dist-010v",
+      "CapturedByNodeName": "dist-010v",
+      "TelemetryName": "VoltsTimesTen",
+      "Quantity": "Voltage",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "96662979-b0f5-47fb-a2c1-d4976f9368ed"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "primary-010v",
+      "DisplayName": "Primary Pump 010V Level",
+      "AboutNodeName": "primary-010v",
+      "CapturedByNodeName": "primary-010v",
+      "TelemetryName": "VoltsTimesTen",
+      "Quantity": "Voltage",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "6af1b417-e1c0-44f3-b169-03bd6cf915b5"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "store-010v",
+      "DisplayName": "Store Pump 010V Level",
+      "AboutNodeName": "store-010v",
+      "CapturedByNodeName": "store-010v",
+      "TelemetryName": "VoltsTimesTen",
+      "Quantity": "Voltage",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "4a33de52-fe9a-4f83-ac08-3691e0b7bbcd"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "dist-flow",
+      "DisplayName": "Dist Flow Gpm X 100",
+      "AboutNodeName": "dist-flow",
+      "CapturedByNodeName": "dist-flow",
+      "TelemetryName": "GpmTimes100",
+      "Quantity": "FlowRate",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "32bc3f4a-223e-48ce-aebb-ca326109b3d1"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "dist-flow-hz",
+      "DisplayName": "Dist Flow MicroHz",
+      "AboutNodeName": "dist-flow",
+      "CapturedByNodeName": "dist-flow",
+      "TelemetryName": "MicroHz",
+      "Quantity": "Frequency",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "478527f7-7854-4ee9-8532-89c89b39df4f"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "store-flow",
+      "DisplayName": "Store Flow Gpm X 100",
+      "AboutNodeName": "store-flow",
+      "CapturedByNodeName": "store-flow",
+      "TelemetryName": "GpmTimes100",
+      "Quantity": "FlowRate",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "18de9e02-4d7c-4188-9b44-66b9b40bc403"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "store-flow-hz",
+      "DisplayName": "Store Flow MicroHz",
+      "AboutNodeName": "store-flow",
+      "CapturedByNodeName": "store-flow",
+      "TelemetryName": "MicroHz",
+      "Quantity": "Frequency",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "a066bcd7-24b8-414d-9a25-e9a04c8a5e16"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "sieg-flow",
+      "DisplayName": "Sieg Flow Gpm X 100",
+      "AboutNodeName": "sieg-flow",
+      "CapturedByNodeName": "sieg-flow",
+      "TelemetryName": "GpmTimes100",
+      "Quantity": "FlowRate",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "b155b762-b290-4b48-8ce8-eee4e359ae0a"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "sieg-flow-hz",
+      "DisplayName": "Sieg Flow MicroHz",
+      "AboutNodeName": "sieg-flow",
+      "CapturedByNodeName": "sieg-flow",
+      "TelemetryName": "MicroHz",
+      "Quantity": "Frequency",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "d0190494-577a-46e8-a149-b77d165012cc"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "sieg-send-flow",
+      "DisplayName": "Sieg Send Flow Gpm X 100",
+      "AboutNodeName": "sieg-send-flow",
+      "CapturedByNodeName": "sieg-send-flow",
+      "TelemetryName": "GpmTimes100",
+      "Quantity": "FlowRate",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "39d680bf-1120-44ef-aac6-8608d09ddeb8"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "sieg-send-flow-hz",
+      "DisplayName": "Sieg Send Flow MicroHz",
+      "AboutNodeName": "sieg-send-flow",
+      "CapturedByNodeName": "sieg-send-flow",
+      "TelemetryName": "MicroHz",
+      "Quantity": "Frequency",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "0d08d081-b135-42b2-b782-115664ed7a6a"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "hp-lwt",
+      "DisplayName": "Hp Lwt Temp",
+      "AboutNodeName": "hp-lwt",
+      "CapturedByNodeName": "hp-lwt",
+      "TelemetryName": "CelsiusTimes100",
+      "Quantity": "Temperature",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "4cdd975c-8cea-4be4-a260-319f70132474"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "hp-ewt",
+      "DisplayName": "Hp Ewt Temp",
+      "AboutNodeName": "hp-ewt",
+      "CapturedByNodeName": "hp-ewt",
+      "TelemetryName": "CelsiusTimes100",
+      "Quantity": "Temperature",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "047e62ec-2e4f-44fe-885d-b9f75557e1ab"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "dist-swt",
+      "DisplayName": "Dist Swt Temp",
+      "AboutNodeName": "dist-swt",
+      "CapturedByNodeName": "dist-swt",
+      "TelemetryName": "CelsiusTimes100",
+      "Quantity": "Temperature",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "5080bae7-868a-4905-b682-caf7fa96ed98"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "dist-rwt",
+      "DisplayName": "Dist Rwt Temp",
+      "AboutNodeName": "dist-rwt",
+      "CapturedByNodeName": "dist-rwt",
+      "TelemetryName": "CelsiusTimes100",
+      "Quantity": "Temperature",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "b0b1d1c0-2711-4eac-9b66-505bc593ac7a"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "store-hot-pipe",
+      "DisplayName": "Store Hot Pipe Temp",
+      "AboutNodeName": "store-hot-pipe",
+      "CapturedByNodeName": "store-hot-pipe",
+      "TelemetryName": "CelsiusTimes100",
+      "Quantity": "Temperature",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "22869588-aa83-41c1-9e2e-e7cbab4ab0a6"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "store-cold-pipe",
+      "DisplayName": "Store Cold Pipe Temp",
+      "AboutNodeName": "store-cold-pipe",
+      "CapturedByNodeName": "store-cold-pipe",
+      "TelemetryName": "CelsiusTimes100",
+      "Quantity": "Temperature",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "fbefd0fc-e196-4fe2-ba5b-0973bd094412"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "buffer-hot-pipe",
+      "DisplayName": "Buffer Hot Pipe Temp",
+      "AboutNodeName": "buffer-hot-pipe",
+      "CapturedByNodeName": "buffer-hot-pipe",
+      "TelemetryName": "CelsiusTimes100",
+      "Quantity": "Temperature",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "225a0fce-c99b-40b5-ae43-436d1b117c29"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "sieg-cold",
+      "DisplayName": "Sieg Cold Temp",
+      "AboutNodeName": "sieg-cold",
+      "CapturedByNodeName": "sieg-cold",
+      "TelemetryName": "CelsiusTimes100",
+      "Quantity": "Temperature",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "aa927b15-89b3-4107-b439-3e338a136830"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
+      "Name": "sieg-hot",
+      "DisplayName": "Sieg Hot Temp",
+      "AboutNodeName": "sieg-hot",
+      "CapturedByNodeName": "sieg-hot",
+      "TelemetryName": "CelsiusTimes100",
+      "Quantity": "Temperature",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta",
+      "Id": "69448068-41b7-4ebf-a03c-612310a82f96"
+    }
+  ],
+  "DerivedChannels": [
+    {
+      "TypeName": "derived.channel.gt",
+      "Version": "003",
+      "Id": "d54c7407-a656-467c-a8e3-a9b905bac55a",
+      "Name": "transactive-power",
+      "CreatedByNodeName": "power-meter",
+      "Strategy": "transactive-power",
+      "InputChannelNames": [
+        "hp-odu-pwr",
+        "hp-idu-pwr"
+      ],
+      "OutputUnit": "Watts",
+      "OutputQuantity": "Power",
+      "EmissionMethod": "OnTrigger",
+      "DisplayName": "Transactive Power W",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta"
+    },
+    {
+      "TypeName": "derived.channel.gt",
+      "Version": "003",
+      "Id": "ba555804-0886-4ba2-9f78-745a70365afe",
+      "Name": "primary-flow",
+      "CreatedByNodeName": "derived-generator",
+      "Strategy": "sum",
+      "InputChannelNames": [
+        "sieg-send-flow",
+        "sieg-flow"
+      ],
+      "OutputUnit": "GpmX100",
+      "OutputQuantity": "FlowRate",
+      "EmissionMethod": "OnTrigger",
+      "DisplayName": "Primary Flow Gpm X 100 (sieg-send-flow + sieg-flow)",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta"
+    },
+    {
+      "TypeName": "derived.channel.gt",
+      "Version": "003",
+      "Id": "c9223514-f908-4485-be7e-4fae058176c3",
+      "Name": "usable-energy",
+      "CreatedByNodeName": "derived-generator",
+      "Strategy": "system-model",
+      "InputChannelNames": [],
+      "OutputUnit": "WattHours",
+      "OutputQuantity": "Energy",
+      "EmissionMethod": "Periodic",
+      "EmitPeriodS": 60,
+      "Parameters": {
+        "EnergyModel": {
+          "TypeName": "gw0.usable.energy.layered",
+          "Version": "000"
+        }
+      },
+      "DisplayName": "Usable Energy Wh",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta"
+    },
+    {
+      "TypeName": "derived.channel.gt",
+      "Version": "003",
+      "Id": "70bbe801-6e34-4a31-84d1-5a0ec92e4da4",
+      "Name": "required-energy",
+      "CreatedByNodeName": "derived-generator",
+      "Strategy": "system-model",
+      "InputChannelNames": [],
+      "OutputUnit": "WattHours",
+      "OutputQuantity": "Energy",
+      "EmissionMethod": "Periodic",
+      "EmitPeriodS": 60,
+      "Parameters": {
+        "EnergyModel": {
+          "TypeName": "gw0.required.energy.layered",
+          "Version": "000"
+        }
+      },
+      "DisplayName": "Required Energy Wh",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta"
+    },
+    {
+      "TypeName": "derived.channel.gt",
+      "Version": "003",
+      "Id": "8efe529b-53c4-41bc-9421-a5e209a9f009",
+      "Name": "zone1-main-heat-call",
+      "CreatedByNodeName": "derived-generator",
+      "Strategy": "heat-call",
+      "InputChannelNames": [
+        "zone1-main-whitewire-pwr"
+      ],
+      "OutputUnit": "Unitless",
+      "OutputQuantity": "Unitless",
+      "EmissionMethod": "AsyncAndPeriodic",
+      "AsyncEmitDelta": 1,
+      "EmitPeriodS": 300,
+      "Parameters": {
+        "Interpretation": "GreaterThanThreshold",
+        "Threshold": 10
+      },
+      "DisplayName": "Zone1 Main Heat Call",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta"
+    },
+    {
+      "TypeName": "derived.channel.gt",
+      "Version": "003",
+      "Id": "2dcfb96b-53ed-4af8-9e99-459d9e344b8d",
+      "Name": "buffer-depth1",
+      "CreatedByNodeName": "derived-generator",
+      "Strategy": "identity",
+      "InputChannelNames": [
+        "buffer-depth1-device"
+      ],
+      "OutputUnit": "FahrenheitX100",
+      "OutputQuantity": "Temperature",
+      "EmissionMethod": "OnTrigger",
+      "DisplayName": "Buffer Depth1 Effective Temperature",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta"
+    },
+    {
+      "TypeName": "derived.channel.gt",
+      "Version": "003",
+      "Id": "7bc2713d-c1e7-4bcf-9be9-97cb732ffe50",
+      "Name": "buffer-depth2",
+      "CreatedByNodeName": "derived-generator",
+      "Strategy": "identity",
+      "InputChannelNames": [
+        "buffer-depth2-device"
+      ],
+      "OutputUnit": "FahrenheitX100",
+      "OutputQuantity": "Temperature",
+      "EmissionMethod": "OnTrigger",
+      "DisplayName": "Buffer Depth2 Effective Temperature",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta"
+    },
+    {
+      "TypeName": "derived.channel.gt",
+      "Version": "003",
+      "Id": "5f74a316-7ef0-47a7-a518-f17205a3303e",
+      "Name": "buffer-depth3",
+      "CreatedByNodeName": "derived-generator",
+      "Strategy": "identity",
+      "InputChannelNames": [
+        "buffer-depth3-device"
+      ],
+      "OutputUnit": "FahrenheitX100",
+      "OutputQuantity": "Temperature",
+      "EmissionMethod": "OnTrigger",
+      "DisplayName": "Buffer Depth3 Effective Temperature",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta"
+    },
+    {
+      "TypeName": "derived.channel.gt",
+      "Version": "003",
+      "Id": "9e49bae5-8e3c-458b-a35d-7b5d6a133464",
+      "Name": "tank1-depth1",
+      "CreatedByNodeName": "derived-generator",
+      "Strategy": "identity",
+      "InputChannelNames": [
+        "tank1-depth1-device"
+      ],
+      "OutputUnit": "FahrenheitX100",
+      "OutputQuantity": "Temperature",
+      "EmissionMethod": "OnTrigger",
+      "DisplayName": "Tank1 Depth1 Effective Temperature",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta"
+    },
+    {
+      "TypeName": "derived.channel.gt",
+      "Version": "003",
+      "Id": "0fe4ce29-3503-4410-9471-83cb2833619f",
+      "Name": "tank1-depth2",
+      "CreatedByNodeName": "derived-generator",
+      "Strategy": "identity",
+      "InputChannelNames": [
+        "tank1-depth2-device"
+      ],
+      "OutputUnit": "FahrenheitX100",
+      "OutputQuantity": "Temperature",
+      "EmissionMethod": "OnTrigger",
+      "DisplayName": "Tank1 Depth2 Effective Temperature",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta"
+    },
+    {
+      "TypeName": "derived.channel.gt",
+      "Version": "003",
+      "Id": "e3c300ce-0108-43a7-81c3-49db07dc756e",
+      "Name": "tank1-depth3",
+      "CreatedByNodeName": "derived-generator",
+      "Strategy": "identity",
+      "InputChannelNames": [
+        "tank1-depth3-device"
+      ],
+      "OutputUnit": "FahrenheitX100",
+      "OutputQuantity": "Temperature",
+      "EmissionMethod": "OnTrigger",
+      "DisplayName": "Tank1 Depth3 Effective Temperature",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta"
+    },
+    {
+      "TypeName": "derived.channel.gt",
+      "Version": "003",
+      "Id": "0a5dd487-3739-4e7d-bd6c-ed6e81305f30",
+      "Name": "zone1-main-set",
+      "CreatedByNodeName": "derived-generator",
+      "Strategy": "simple-falling-edge-setpoint",
+      "InputChannelNames": [
+        "zone1-main-temp",
+        "zone1-main-heat-call"
+      ],
+      "OutputUnit": "FahrenheitX100",
+      "OutputQuantity": "Temperature",
+      "EmissionMethod": "AsyncAndPeriodic",
+      "AsyncEmitDelta": 20,
+      "EmitPeriodS": 300,
+      "Parameters": {
+        "SetpointThresholdFX100": 200
+      },
+      "DisplayName": "Zone1 Main Predicted Setpoint",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.willow1.ta"
+    }
+  ],
+  "Components": [
+    {
+      "TypeName": "electric.meter.component.gt",
+      "Version": "001",
+      "ComponentId": "6fb726dc-0cc0-4be2-aa7b-242747d090c7",
+      "DeviceType": "SimPowerMeter",
+      "ConfigList": [
+        {
+          "TypeName": "electric.meter.channel.config",
+          "Version": "000",
+          "ChannelName": "hp-odu-pwr"
+        },
+        {
+          "TypeName": "electric.meter.channel.config",
+          "Version": "000",
+          "ChannelName": "hp-idu-pwr"
+        },
+        {
+          "TypeName": "electric.meter.channel.config",
+          "Version": "000",
+          "ChannelName": "primary-pump-pwr"
+        },
+        {
+          "TypeName": "electric.meter.channel.config",
+          "Version": "000",
+          "ChannelName": "store-pump-pwr"
+        },
+        {
+          "TypeName": "electric.meter.channel.config",
+          "Version": "000",
+          "ChannelName": "dist-pump-pwr"
+        },
+        {
+          "TypeName": "electric.meter.channel.config",
+          "Version": "000",
+          "ChannelName": "zone1-main-whitewire-pwr"
+        }
+      ],
+      "DisplayName": "Power Meter for Simulated Test system"
+    },
+    {
+      "TypeName": "device.component.gt",
+      "Version": "000",
+      "ComponentId": "8eb2406c-0ebd-47cf-867e-a83756682c0c",
+      "DeviceType": "SimHpOdu",
+      "DisplayName": "Sim heat-pump outdoor unit"
+    },
+    {
+      "TypeName": "device.component.gt",
+      "Version": "000",
+      "ComponentId": "3c172e2b-a7ed-438d-bac1-020ae2df6915",
+      "DeviceType": "SimHpIdu",
+      "DisplayName": "Sim heat-pump indoor unit"
+    },
+    {
+      "TypeName": "web.server.component.gt",
+      "Version": "001",
+      "ComponentId": "cfa44dd1-fdea-42a7-a5c2-b5494105fd88",
+      "DeviceType": "AbstractWebServer",
+      "WebServer": {
+        "Serve": true,
+        "Host": "0.0.0.0",
+        "Name": "default",
+        "Port": 8080,
+        "Kwargs": {}
+      },
+      "DisplayName": "Web Server default"
+    },
+    {
+      "TypeName": "sim.sensor.component.gt",
+      "Version": "000",
+      "ComponentId": "2b298429-4064-4001-b3ee-5a40a4dc94c8",
+      "DeviceType": "SimSensor",
+      "DisplayName": "Zone 1 Main Temp Sensor"
+    },
+    {
+      "TypeName": "scada.board.component.gt",
+      "Version": "000",
+      "ComponentId": "17d51461-2f09-4c4a-9ff3-88e41f52adae",
+      "DeviceType": "SimKridaDoubleRelayBoard16",
+      "I2cAddressList": [
+        32,
+        33
+      ],
+      "DisplayName": "Sim Krida relay panel"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "d703809e-ef65-4d9b-8b6e-712493697dfe",
+      "BoardComponentId": "17d51461-2f09-4c4a-9ff3-88e41f52adae",
+      "RelayName": "Relay1",
+      "ConfigList": [
+        {
+          "TypeName": "relay.control.config",
+          "Version": "000",
+          "ChannelName": "vdc-relay",
+          "ActorName": "vdc-relay",
+          "WiringConfig": "NormallyClosed",
+          "EventType": "change.relay.state",
+          "DeEnergizingEvent": "CloseRelay",
+          "EnergizingEvent": "OpenRelay",
+          "StateType": "relay.closed.or.open",
+          "DeEnergizedState": "RelayClosed",
+          "EnergizedState": "RelayOpen"
+        }
+      ],
+      "DisplayName": "5VDC Relay"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "75159f22-97a6-4c2c-93f1-858df2340c79",
+      "BoardComponentId": "17d51461-2f09-4c4a-9ff3-88e41f52adae",
+      "RelayName": "Relay2",
+      "ConfigList": [
+        {
+          "TypeName": "relay.control.config",
+          "Version": "000",
+          "ChannelName": "tstat-common-relay",
+          "ActorName": "tstat-common-relay",
+          "WiringConfig": "NormallyClosed",
+          "EventType": "change.relay.state",
+          "DeEnergizingEvent": "CloseRelay",
+          "EnergizingEvent": "OpenRelay",
+          "StateType": "relay.closed.or.open",
+          "DeEnergizedState": "RelayClosed",
+          "EnergizedState": "RelayOpen"
+        }
+      ],
+      "DisplayName": "TStat Common Relay"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "60afa64a-3a58-498b-bab0-7e94db848b71",
+      "BoardComponentId": "17d51461-2f09-4c4a-9ff3-88e41f52adae",
+      "RelayName": "Relay3",
+      "ConfigList": [
+        {
+          "TypeName": "relay.control.config",
+          "Version": "000",
+          "ChannelName": "charge-discharge-relay",
+          "ActorName": "charge-discharge-relay",
+          "WiringConfig": "NormallyOpen",
+          "EventType": "change.store.flow.relay",
+          "DeEnergizingEvent": "DischargeStore",
+          "EnergizingEvent": "ChargeStore",
+          "StateType": "store.flow.relay",
+          "DeEnergizedState": "DischargingStore",
+          "EnergizedState": "ChargingStore"
+        }
+      ],
+      "DisplayName": "Store Charge/Discharge Relay"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "4b1ead2d-6fa7-4083-946f-6f3d3a667d04",
+      "BoardComponentId": "17d51461-2f09-4c4a-9ff3-88e41f52adae",
+      "RelayName": "Relay5",
+      "ConfigList": [
+        {
+          "TypeName": "relay.control.config",
+          "Version": "000",
+          "ChannelName": "hp-failsafe-relay",
+          "ActorName": "hp-failsafe-relay",
+          "WiringConfig": "DoubleThrow",
+          "EventType": "change.heat.pump.control",
+          "DeEnergizingEvent": "SwitchToTankAquastat",
+          "EnergizingEvent": "SwitchToScada",
+          "StateType": "heat.pump.control",
+          "DeEnergizedState": "BufferTankAquastat",
+          "EnergizedState": "Scada"
+        }
+      ],
+      "DisplayName": "Hp Failsafe Relay"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "f85b6dc5-f24b-43d3-8a80-2e47163a38b7",
+      "BoardComponentId": "17d51461-2f09-4c4a-9ff3-88e41f52adae",
+      "RelayName": "Relay6",
+      "ConfigList": [
+        {
+          "TypeName": "relay.control.config",
+          "Version": "000",
+          "ChannelName": "hp-scada-ops-relay",
+          "ActorName": "hp-scada-ops-relay",
+          "WiringConfig": "NormallyClosed",
+          "EventType": "change.relay.state",
+          "DeEnergizingEvent": "CloseRelay",
+          "EnergizingEvent": "OpenRelay",
+          "StateType": "relay.closed.or.open",
+          "DeEnergizedState": "RelayClosed",
+          "EnergizedState": "RelayOpen"
+        }
+      ],
+      "DisplayName": "Hp Scada Ops Relay"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "e72b7059-a868-4e1c-8972-2300b8c52851",
+      "BoardComponentId": "17d51461-2f09-4c4a-9ff3-88e41f52adae",
+      "RelayName": "Relay8",
+      "ConfigList": [
+        {
+          "TypeName": "relay.control.config",
+          "Version": "000",
+          "ChannelName": "aquastat-ctrl-relay",
+          "ActorName": "aquastat-ctrl-relay",
+          "WiringConfig": "DoubleThrow",
+          "EventType": "change.aquastat.control",
+          "DeEnergizingEvent": "SwitchToBoiler",
+          "EnergizingEvent": "SwitchToScada",
+          "StateType": "aquastat.control.state",
+          "DeEnergizedState": "Boiler",
+          "EnergizedState": "Scada"
+        }
+      ],
+      "DisplayName": "Aquastat Ctrl Relay"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "837ea64e-b23c-4394-8f12-f247374b0c3d",
+      "BoardComponentId": "17d51461-2f09-4c4a-9ff3-88e41f52adae",
+      "RelayName": "Relay9",
+      "ConfigList": [
+        {
+          "TypeName": "relay.control.config",
+          "Version": "000",
+          "ChannelName": "store-pump-relay",
+          "ActorName": "store-pump-relay",
+          "WiringConfig": "NormallyOpen",
+          "EventType": "change.relay.state",
+          "DeEnergizingEvent": "OpenRelay",
+          "EnergizingEvent": "CloseRelay",
+          "StateType": "relay.closed.or.open",
+          "DeEnergizedState": "RelayOpen",
+          "EnergizedState": "RelayClosed"
+        }
+      ],
+      "DisplayName": "Store Pump Relay"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "54f91fdd-8bef-4029-bf8d-5c3330ea8aff",
+      "BoardComponentId": "17d51461-2f09-4c4a-9ff3-88e41f52adae",
+      "RelayName": "Relay12",
+      "ConfigList": [
+        {
+          "TypeName": "relay.control.config",
+          "Version": "000",
+          "ChannelName": "primary-pump-failsafe-relay",
+          "ActorName": "primary-pump-failsafe-relay",
+          "WiringConfig": "DoubleThrow",
+          "EventType": "change.primary.pump.control",
+          "DeEnergizingEvent": "SwitchToHeatPump",
+          "EnergizingEvent": "SwitchToScada",
+          "StateType": "primary.pump.control",
+          "DeEnergizedState": "HeatPump",
+          "EnergizedState": "Scada"
+        }
+      ],
+      "DisplayName": "Primary Pump Failsafe"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "b79d9522-75ec-4b11-9174-c8c3f0152d66",
+      "BoardComponentId": "17d51461-2f09-4c4a-9ff3-88e41f52adae",
+      "RelayName": "Relay11",
+      "ConfigList": [
+        {
+          "TypeName": "relay.control.config",
+          "Version": "000",
+          "ChannelName": "primary-pump-scada-ops-relay",
+          "ActorName": "primary-pump-scada-ops-relay",
+          "WiringConfig": "NormallyOpen",
+          "EventType": "change.relay.state",
+          "DeEnergizingEvent": "OpenRelay",
+          "EnergizingEvent": "CloseRelay",
+          "StateType": "relay.closed.or.open",
+          "DeEnergizedState": "RelayOpen",
+          "EnergizedState": "RelayClosed"
+        }
+      ],
+      "DisplayName": "Primary Pump SCADA Ops"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "4b1a59c7-dbfe-4fcf-983d-985936a73bb5",
+      "BoardComponentId": "17d51461-2f09-4c4a-9ff3-88e41f52adae",
+      "RelayName": "Relay14",
+      "ConfigList": [
+        {
+          "TypeName": "relay.control.config",
+          "Version": "000",
+          "ChannelName": "hp-loop-on-off-relay",
+          "ActorName": "hp-loop-on-off-relay",
+          "WiringConfig": "NormallyClosed",
+          "EventType": "change.relay.state",
+          "DeEnergizingEvent": "CloseRelay",
+          "EnergizingEvent": "OpenRelay",
+          "StateType": "relay.closed.or.open",
+          "DeEnergizedState": "RelayClosed",
+          "EnergizedState": "RelayOpen"
+        }
+      ],
+      "DisplayName": "Hp Loop Valve Active/Dormant Relay"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "1ed7bbb8-b1f1-48fd-a8e0-5b8e5144fa6b",
+      "BoardComponentId": "17d51461-2f09-4c4a-9ff3-88e41f52adae",
+      "RelayName": "Relay15",
+      "ConfigList": [
+        {
+          "TypeName": "relay.control.config",
+          "Version": "000",
+          "ChannelName": "hp-loop-keep-send-relay",
+          "ActorName": "hp-loop-keep-send-relay",
+          "WiringConfig": "DoubleThrow",
+          "EventType": "change.keep.send",
+          "DeEnergizingEvent": "ChangeToKeepLess",
+          "EnergizingEvent": "ChangeToKeepMore",
+          "StateType": "hp.loop.keep.send",
+          "DeEnergizedState": "SendMore",
+          "EnergizedState": "SendLess"
+        }
+      ],
+      "DisplayName": "Hp Loop Valve SendMore/SendLess Relay"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "3f59dabc-0e7b-4475-bf98-e771e8e26e56",
+      "BoardComponentId": "17d51461-2f09-4c4a-9ff3-88e41f52adae",
+      "RelayName": "Relay17",
+      "ConfigList": [
+        {
+          "TypeName": "relay.control.config",
+          "Version": "000",
+          "ChannelName": "zone1-main-failsafe-relay",
+          "ActorName": "zone1-main-failsafe-relay",
+          "WiringConfig": "DoubleThrow",
+          "EventType": "change.zone.call.source",
+          "DeEnergizingEvent": "SwitchToWallThermostat",
+          "EnergizingEvent": "SwitchToScada",
+          "StateType": "zone.call.source",
+          "DeEnergizedState": "WallThermostat",
+          "EnergizedState": "Scada"
+        }
+      ],
+      "DisplayName": "Main Zone 1 Failsf"
+    },
+    {
+      "TypeName": "i2c.relay.component.gt",
+      "Version": "000",
+      "ComponentId": "85fa89ee-4630-4c1e-afe0-cbe7a2e8b7bf",
+      "BoardComponentId": "17d51461-2f09-4c4a-9ff3-88e41f52adae",
+      "RelayName": "Relay18",
+      "ConfigList": [
+        {
+          "TypeName": "relay.control.config",
+          "Version": "000",
+          "ChannelName": "zone1-main-ops-relay",
+          "ActorName": "zone1-main-ops-relay",
+          "WiringConfig": "NormallyOpen",
+          "EventType": "change.relay.state",
+          "DeEnergizingEvent": "OpenRelay",
+          "EnergizingEvent": "CloseRelay",
+          "StateType": "relay.closed.or.open",
+          "DeEnergizedState": "RelayOpen",
+          "EnergizedState": "RelayClosed"
+        }
+      ],
+      "DisplayName": "Main Zone Scada Ops"
+    },
+    {
+      "TypeName": "sim.pico.tank.module.component.gt",
+      "Version": "001",
+      "ComponentId": "1a8fb271-80d2-4dff-a062-9730baf82d7f",
+      "DeviceType": "SimSensor",
+      "DisplayName": "Buffer",
+      "PicoHwUid": "sim-buffer-pico",
+      "TempCalcMethod": "SimpleBeta",
+      "ThermistorBeta": 3977,
+      "SendMicroVolts": true,
+      "Samples": 1000,
+      "NumSampleAverages": 30,
+      "SerialNumber": "NA",
+      "AsyncCaptureDeltaMicroVolts": 2000,
+      "SimLifeS": 120,
+      "SimRebootS": 20,
+      "SimulatesTypeName": "pico.tank.module.component.gt",
+      "SimulatesVersion": "012"
+    },
+    {
+      "TypeName": "sim.pico.tank.module.component.gt",
+      "Version": "001",
+      "ComponentId": "304f13f3-27ef-4ea3-a94f-47d4f2170487",
+      "DeviceType": "SimSensor",
+      "DisplayName": "Tank1",
+      "PicoHwUid": "sim-tank1-pico",
+      "TempCalcMethod": "SimpleBeta",
+      "ThermistorBeta": 3977,
+      "SendMicroVolts": true,
+      "Samples": 1000,
+      "NumSampleAverages": 30,
+      "SerialNumber": "NA",
+      "AsyncCaptureDeltaMicroVolts": 2000,
+      "SimLifeS": 120,
+      "SimRebootS": 20,
+      "SimulatesTypeName": "pico.tank.module.component.gt",
+      "SimulatesVersion": "012"
+    },
+    {
+      "TypeName": "i2c.dac.output.component.gt",
+      "Version": "000",
+      "ComponentId": "e74eb971-d417-4f53-b240-de1030b6e3fd",
+      "BoardComponentId": "17d51461-2f09-4c4a-9ff3-88e41f52adae",
+      "DacName": "Dfr1",
+      "ConfigList": [
+        {
+          "TypeName": "dac.output.config",
+          "Version": "000",
+          "ChannelName": "dist-010v",
+          "ActorName": "dist-010v",
+          "DacChannel": "A"
+        }
+      ],
+      "DisplayName": "Dist Pump 010V"
+    },
+    {
+      "TypeName": "i2c.dac.output.component.gt",
+      "Version": "000",
+      "ComponentId": "eb474a0a-00c8-4260-be8a-5357e48b5e65",
+      "BoardComponentId": "17d51461-2f09-4c4a-9ff3-88e41f52adae",
+      "DacName": "Dfr1",
+      "ConfigList": [
+        {
+          "TypeName": "dac.output.config",
+          "Version": "000",
+          "ChannelName": "primary-010v",
+          "ActorName": "primary-010v",
+          "DacChannel": "B"
+        }
+      ],
+      "DisplayName": "Primary Pump 010V"
+    },
+    {
+      "TypeName": "i2c.dac.output.component.gt",
+      "Version": "000",
+      "ComponentId": "c1c2dc50-9b94-4d10-83d7-07f004fd980a",
+      "BoardComponentId": "17d51461-2f09-4c4a-9ff3-88e41f52adae",
+      "DacName": "Dfr2",
+      "ConfigList": [
+        {
+          "TypeName": "dac.output.config",
+          "Version": "000",
+          "ChannelName": "store-010v",
+          "ActorName": "store-010v",
+          "DacChannel": "A"
+        }
+      ],
+      "DisplayName": "Store Pump 010V"
+    },
+    {
+      "TypeName": "sim.sensor.component.gt",
+      "Version": "000",
+      "ComponentId": "669b626f-fed0-46ce-8e1b-910951f8654b",
+      "DeviceType": "SimSensor",
+      "DisplayName": "Dist Flow Sim Flow Meter"
+    },
+    {
+      "TypeName": "sim.sensor.component.gt",
+      "Version": "000",
+      "ComponentId": "ab4b6500-f7bf-4e2c-b617-6f5b3f6d7c6b",
+      "DeviceType": "SimSensor",
+      "DisplayName": "Store Flow Sim Flow Meter"
+    },
+    {
+      "TypeName": "sim.sensor.component.gt",
+      "Version": "000",
+      "ComponentId": "0ff4912d-b092-4a6a-b4d7-65eeb7c1d1d6",
+      "DeviceType": "SimSensor",
+      "DisplayName": "Sieg Flow Sim Flow Meter"
+    },
+    {
+      "TypeName": "sim.sensor.component.gt",
+      "Version": "000",
+      "ComponentId": "4201e86c-ba23-416f-bdf3-c53212024565",
+      "DeviceType": "SimSensor",
+      "DisplayName": "Sieg Send Flow Sim Flow Meter"
+    },
+    {
+      "TypeName": "sim.sensor.component.gt",
+      "Version": "000",
+      "ComponentId": "84013ca4-b341-4cf2-8094-eb8e08f0838c",
+      "DeviceType": "SimSensor",
+      "DisplayName": "Hp Lwt Sim Temp Sensor"
+    },
+    {
+      "TypeName": "sim.sensor.component.gt",
+      "Version": "000",
+      "ComponentId": "997e41fa-3f8e-4529-90c9-fe12a645390f",
+      "DeviceType": "SimSensor",
+      "DisplayName": "Hp Ewt Sim Temp Sensor"
+    },
+    {
+      "TypeName": "sim.sensor.component.gt",
+      "Version": "000",
+      "ComponentId": "48bf89bd-477f-401c-a173-12bcf7a31183",
+      "DeviceType": "SimSensor",
+      "DisplayName": "Dist Swt Sim Temp Sensor"
+    },
+    {
+      "TypeName": "sim.sensor.component.gt",
+      "Version": "000",
+      "ComponentId": "92022663-e9d7-475b-aaf5-34d39adcbdaa",
+      "DeviceType": "SimSensor",
+      "DisplayName": "Dist Rwt Sim Temp Sensor"
+    },
+    {
+      "TypeName": "sim.sensor.component.gt",
+      "Version": "000",
+      "ComponentId": "87784532-600f-46b8-ad9b-37e478417962",
+      "DeviceType": "SimSensor",
+      "DisplayName": "Store Hot Pipe Sim Temp Sensor"
+    },
+    {
+      "TypeName": "sim.sensor.component.gt",
+      "Version": "000",
+      "ComponentId": "7bc93705-ba7a-49f8-9247-33214fb233b5",
+      "DeviceType": "SimSensor",
+      "DisplayName": "Store Cold Pipe Sim Temp Sensor"
+    },
+    {
+      "TypeName": "sim.sensor.component.gt",
+      "Version": "000",
+      "ComponentId": "8463b98b-7297-4f39-9083-2d596be652f8",
+      "DeviceType": "SimSensor",
+      "DisplayName": "Buffer Hot Pipe Sim Temp Sensor"
+    },
+    {
+      "TypeName": "sim.sensor.component.gt",
+      "Version": "000",
+      "ComponentId": "d5766360-3af4-4cd7-974a-c6250bfb4db0",
+      "DeviceType": "SimSensor",
+      "DisplayName": "Sieg Cold Sim Temp Sensor"
+    },
+    {
+      "TypeName": "sim.sensor.component.gt",
+      "Version": "000",
+      "ComponentId": "b63afecb-6d11-45ca-ac6c-5f73d6457ab8",
+      "DeviceType": "SimSensor",
+      "DisplayName": "Sieg Hot Sim Temp Sensor"
+    }
+  ],
+  "DeviceTypes": [
+    {
+      "TypeName": "electric.meter.device.type.gt",
+      "Version": "000",
+      "DeviceType": "SimPowerMeter",
+      "DisplayName": "Gridworks Pm1 Simulated Power Meter",
+      "MinPollPeriodMs": 1000,
+      "TelemetryNameList": [
+        "PowerW"
+      ]
+    },
+    {
+      "TypeName": "gw1.scada.device.type.gt",
+      "Version": "000",
+      "DeviceType": "SimKridaDoubleRelayBoard16",
+      "DisplayName": "GridWorks simulated Krida relay panel: two 16-channel boards, markings Relay1-Relay32",
+      "MinPollPeriodMs": 200,
+      "BusList": [
+        {
+          "TypeName": "i2c.bus",
+          "Version": "000",
+          "Name": "DefaultBus",
+          "BusNumber": 1
+        }
+      ],
+      "TelemetryNameList": [
+        "RelayState"
+      ],
+      "NativeGpioInputs": [],
+      "NativeGpioOutputs": [],
+      "Expanders": [
+        {
+          "TypeName": "i2c.expander",
+          "Version": "000",
+          "ExpanderIdx": 1,
+          "I2cBus": "DefaultBus",
+          "ExpanderType": "Pcf8575",
+          "AllowedI2cAddressList": [
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39
+          ]
+        },
+        {
+          "TypeName": "i2c.expander",
+          "Version": "000",
+          "ExpanderIdx": 2,
+          "I2cBus": "DefaultBus",
+          "ExpanderType": "Pcf8575",
+          "AllowedI2cAddressList": [
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39
+          ]
+        }
+      ],
+      "Muxes": [],
+      "I2cRelays": [
+        {
+          "TypeName": "i2c.relay.capability",
+          "Version": "000",
+          "RelayName": "Relay1",
+          "ExpanderIdx": 1,
+          "RegisterIndex": 0,
+          "BitIndex": 7,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ]
+        },
+        {
+          "TypeName": "i2c.relay.capability",
+          "Version": "000",
+          "RelayName": "Relay2",
+          "ExpanderIdx": 1,
+          "RegisterIndex": 0,
+          "BitIndex": 6,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ]
+        },
+        {
+          "TypeName": "i2c.relay.capability",
+          "Version": "000",
+          "RelayName": "Relay3",
+          "ExpanderIdx": 1,
+          "RegisterIndex": 0,
+          "BitIndex": 5,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ]
+        },
+        {
+          "TypeName": "i2c.relay.capability",
+          "Version": "000",
+          "RelayName": "Relay4",
+          "ExpanderIdx": 1,
+          "RegisterIndex": 0,
+          "BitIndex": 4,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ]
+        },
+        {
+          "TypeName": "i2c.relay.capability",
+          "Version": "000",
+          "RelayName": "Relay5",
+          "ExpanderIdx": 1,
+          "RegisterIndex": 0,
+          "BitIndex": 3,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ]
+        },
+        {
+          "TypeName": "i2c.relay.capability",
+          "Version": "000",
+          "RelayName": "Relay6",
+          "ExpanderIdx": 1,
+          "RegisterIndex": 0,
+          "BitIndex": 2,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ]
+        },
+        {
+          "TypeName": "i2c.relay.capability",
+          "Version": "000",
+          "RelayName": "Relay7",
+          "ExpanderIdx": 1,
+          "RegisterIndex": 0,
+          "BitIndex": 1,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ]
+        },
+        {
+          "TypeName": "i2c.relay.capability",
+          "Version": "000",
+          "RelayName": "Relay8",
+          "ExpanderIdx": 1,
+          "RegisterIndex": 0,
+          "BitIndex": 0,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ]
+        },
+        {
+          "TypeName": "i2c.relay.capability",
+          "Version": "000",
+          "RelayName": "Relay9",
+          "ExpanderIdx": 1,
+          "RegisterIndex": 1,
+          "BitIndex": 0,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ]
+        },
+        {
+          "TypeName": "i2c.relay.capability",
+          "Version": "000",
+          "RelayName": "Relay10",
+          "ExpanderIdx": 1,
+          "RegisterIndex": 1,
+          "BitIndex": 1,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ]
+        },
+        {
+          "TypeName": "i2c.relay.capability",
+          "Version": "000",
+          "RelayName": "Relay11",
+          "ExpanderIdx": 1,
+          "RegisterIndex": 1,
+          "BitIndex": 2,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ]
+        },
+        {
+          "TypeName": "i2c.relay.capability",
+          "Version": "000",
+          "RelayName": "Relay12",
+          "ExpanderIdx": 1,
+          "RegisterIndex": 1,
+          "BitIndex": 3,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ]
+        },
+        {
+          "TypeName": "i2c.relay.capability",
+          "Version": "000",
+          "RelayName": "Relay13",
+          "ExpanderIdx": 1,
+          "RegisterIndex": 1,
+          "BitIndex": 4,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ]
+        },
+        {
+          "TypeName": "i2c.relay.capability",
+          "Version": "000",
+          "RelayName": "Relay14",
+          "ExpanderIdx": 1,
+          "RegisterIndex": 1,
+          "BitIndex": 5,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ]
+        },
+        {
+          "TypeName": "i2c.relay.capability",
+          "Version": "000",
+          "RelayName": "Relay15",
+          "ExpanderIdx": 1,
+          "RegisterIndex": 1,
+          "BitIndex": 6,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ]
+        },
+        {
+          "TypeName": "i2c.relay.capability",
+          "Version": "000",
+          "RelayName": "Relay16",
+          "ExpanderIdx": 1,
+          "RegisterIndex": 1,
+          "BitIndex": 7,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ]
+        },
+        {
+          "TypeName": "i2c.relay.capability",
+          "Version": "000",
+          "RelayName": "Relay17",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 0,
+          "BitIndex": 7,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ]
+        },
+        {
+          "TypeName": "i2c.relay.capability",
+          "Version": "000",
+          "RelayName": "Relay18",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 0,
+          "BitIndex": 6,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ]
+        },
+        {
+          "TypeName": "i2c.relay.capability",
+          "Version": "000",
+          "RelayName": "Relay19",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 0,
+          "BitIndex": 5,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ]
+        },
+        {
+          "TypeName": "i2c.relay.capability",
+          "Version": "000",
+          "RelayName": "Relay20",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 0,
+          "BitIndex": 4,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ]
+        },
+        {
+          "TypeName": "i2c.relay.capability",
+          "Version": "000",
+          "RelayName": "Relay21",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 0,
+          "BitIndex": 3,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ]
+        },
+        {
+          "TypeName": "i2c.relay.capability",
+          "Version": "000",
+          "RelayName": "Relay22",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 0,
+          "BitIndex": 2,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ]
+        },
+        {
+          "TypeName": "i2c.relay.capability",
+          "Version": "000",
+          "RelayName": "Relay23",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 0,
+          "BitIndex": 1,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ]
+        },
+        {
+          "TypeName": "i2c.relay.capability",
+          "Version": "000",
+          "RelayName": "Relay24",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 0,
+          "BitIndex": 0,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ]
+        },
+        {
+          "TypeName": "i2c.relay.capability",
+          "Version": "000",
+          "RelayName": "Relay25",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 1,
+          "BitIndex": 0,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ]
+        },
+        {
+          "TypeName": "i2c.relay.capability",
+          "Version": "000",
+          "RelayName": "Relay26",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 1,
+          "BitIndex": 1,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ]
+        },
+        {
+          "TypeName": "i2c.relay.capability",
+          "Version": "000",
+          "RelayName": "Relay27",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 1,
+          "BitIndex": 2,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ]
+        },
+        {
+          "TypeName": "i2c.relay.capability",
+          "Version": "000",
+          "RelayName": "Relay28",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 1,
+          "BitIndex": 3,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ]
+        },
+        {
+          "TypeName": "i2c.relay.capability",
+          "Version": "000",
+          "RelayName": "Relay29",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 1,
+          "BitIndex": 4,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ]
+        },
+        {
+          "TypeName": "i2c.relay.capability",
+          "Version": "000",
+          "RelayName": "Relay30",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 1,
+          "BitIndex": 5,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ]
+        },
+        {
+          "TypeName": "i2c.relay.capability",
+          "Version": "000",
+          "RelayName": "Relay31",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 1,
+          "BitIndex": 6,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ]
+        },
+        {
+          "TypeName": "i2c.relay.capability",
+          "Version": "000",
+          "RelayName": "Relay32",
+          "ExpanderIdx": 2,
+          "RegisterIndex": 1,
+          "BitIndex": 7,
+          "SupportedWiringConfigs": [
+            "NormallyClosed",
+            "NormallyOpen",
+            "DoubleThrow"
+          ]
+        }
+      ],
+      "SupportsPinReadback": false,
+      "RelayEnergizedLevel": 0,
+      "ThermistorAdcs": [],
+      "Dacs": [
+        {
+          "TypeName": "i2c.dac.capability",
+          "Version": "000",
+          "DacName": "Dfr1",
+          "I2cBus": "DefaultBus",
+          "I2cAddress": 94,
+          "DacType": "Mcp4728",
+          "Channels": 4
+        },
+        {
+          "TypeName": "i2c.dac.capability",
+          "Version": "000",
+          "DacName": "Dfr2",
+          "I2cBus": "DefaultBus",
+          "I2cAddress": 95,
+          "DacType": "Mcp4728",
+          "Channels": 4
+        }
+      ]
+    }
+  ],
+  "Hydronic": {
+    "TypeName": "gw.hydronic",
+    "Version": "000",
+    "Zones": [
+      {
+        "TypeName": "gw1.hvac.zone",
+        "Version": "000",
+        "Name": "main",
+        "Critical": true,
+        "KwhPerDegF": 1.0,
+        "PrimaryCircuitPosition": 1
+      }
+    ],
+    "ZoneCallCircuits": [
+      {
+        "TypeName": "gw1.zone.call.circuit",
+        "Version": "000",
+        "CircuitPosition": 1,
+        "Name": "main",
+        "ServesZone": "main",
+        "EmitterType": "Other",
+        "CanCool": false,
+        "SetpointSource": "Learned",
+        "Thermostat": {
+          "TypeName": "gw1.zone.thermostat",
+          "Version": "000",
+          "Kind": "MechanicalDial"
+        },
+        "WhitewireChannelName": "zone1-main-whitewire-pwr",
+        "SetpointChannelName": "zone1-main-set",
+        "TempChannelName": "zone1-main-temp",
+        "FailsafeRelayNode": "zone1-main-failsafe-relay",
+        "OpsRelayNode": "zone1-main-ops-relay"
+      }
+    ],
+    "WaterStore": {
+      "TypeName": "gw.water.store",
+      "Version": "000",
+      "TotalStoreTanks": 1
+    },
+    "Backup": {
+      "TypeName": "gw.boiler.backup",
+      "Version": "000",
+      "FailsafeRelayName": "hp-failsafe-relay",
+      "AquastatCtrlRelayName": "aquastat-ctrl-relay",
+      "InService": true
+    },
+    "PrimaryFlowSource": "DerivedSiegSum",
+    "PrimaryPumpOwner": "Scada",
+    "RefrigerantCycle": "Cascade"
+  },
+  "DisabledNodeNames": [],
+  "DisabledChannelNames": []
+}

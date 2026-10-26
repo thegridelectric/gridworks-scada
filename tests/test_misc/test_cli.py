@@ -59,12 +59,11 @@ def test_gws_cli_completes() -> None:
         ["ltn", "run", "--dry-run", "--env-file", str(env_path)],
         ["config", "--env-file", str(env_path)],
         ["layout"],
-        ["layout", "mktest", "--help"],
         ["layout", "show", "--env-file", str(env_path)],
         ["run", "--dry-run", "--env-file", str(env_path)],
         ["run", "--help", "--env-file", str(env_path)],
-        ["run-s2", "--dry-run"],
-        ["run-s2", "--help"],
+        ["run-s2", "--dry-run", "--env-file", str(env_path)],
+        ["run-s2", "--help", "--env-file", str(env_path)],
     ]:
         result = runner.invoke(scada_cli_app, command)
         result_str = (

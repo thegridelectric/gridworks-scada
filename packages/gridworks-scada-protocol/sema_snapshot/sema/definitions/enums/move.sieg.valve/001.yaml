@@ -1,0 +1,34 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/move.sieg.valve/001"
+
+title: "move.sieg.valve"
+type: "string"
+description: >
+  The sieg-loop's command vocabulary: a boss may ask it to send the heat
+  pump's whole flow out of the Siegenthaler loop, or to keep the whole
+  flow in it, or to stop where it is. Named by EventType on an fsm.event
+  addressed to sieg-loop.
+
+enum:
+  - "MoveToFullSend"
+  - "MoveToFullKeep"
+  - "StopValve"
+
+default: "MoveToFullSend"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "001"
+  value_descriptions:
+    "MoveToFullSend": >
+      Run the valve to its send stop, so all of the heat pump's flow
+      leaves the loop for the tank, and hold it there until the tree
+      changes hands.
+
+    "MoveToFullKeep": >
+      Run the valve to its keep stop, so all of the heat pump's flow
+      stays in the loop, and hold it there until the tree changes hands.
+
+    "StopValve": >
+      Stop the valve motor where it is and hold that blend of send and
+      keep until the tree changes hands.

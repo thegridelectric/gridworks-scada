@@ -5,17 +5,19 @@ import datetime
 from pathlib import Path
 from typing import Optional
 
-import pytz
-from gwsproto.data_classes.house_0_layout import House0Layout
-from gwsproto.data_classes.house_0_names import H0N
-from gwsproto.enums import SlowDispatchContractStatus
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
+from gwsproto.enums import DispatchRefusalReason, SlowDispatchContractStatus
 from gwproactor.logger import LoggerOrAdapter
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.named_types import  SlowContractHeartbeat
+from gwsproto.names.core.node_names import CoreNodeNames
 
 
 from actors.config import ScadaSettings
 
+
+# The scada's contract store, one file in its data dir.
+CONTRACT_FILE_NAME = "slow_dispatch_contract.json"
 
 class ContractHandler:
     """Handles SCADA's representation contract and dispatch contracts w Ltn"""
@@ -35,18 +37,17 @@ class ContractHandler:
     def __init__(
         self,
         settings: ScadaSettings,
-        layout: House0Layout,
-        node: ShNode,  # intended to be H0N.primary_scada
+        layout: HydronicLayout,
+        node: ShNode,  # intended to be CoreNodeNames.primary_scada
+        timezone: datetime.tzinfo,
         logger: LoggerOrAdapter,
     ):
         self.settings = settings
         self.layout = layout
         self.node = node
-        self.timezone = pytz.timezone(self.settings.timezone_str)
+        self.timezone = timezone
         self.logger = logger
-        self.contract_file = Path(
-            f"{self.settings.paths.data_dir}/slow_dispatch_contract.json"
-        )
+        self.contract_file = Path(self.settings.paths.data_dir) / CONTRACT_FILE_NAME
         self.latest_scada_hb: Optional[SlowContractHeartbeat] = None
         self.prev: Optional[SlowContractHeartbeat] = None
         self.latest_power_w: int = 0
@@ -98,6 +99,8 @@ class ContractHandler:
         - Returns a new SlowDispatchContract with state CompletedUnknownOutcome
         if the passing of time mandates a state change.
         - If the hb doesn't exist, doesn't load anything and returns None
+        - If the hb is in a done state (terminated or completed), keeps it
+        as prev and returns None
         - If the hb exists and covered by current time, sets self.hb
         to this heartbeat and returns None
         """
@@ -109,11 +112,15 @@ class ContractHandler:
 
         try:
             hb = SlowContractHeartbeat.model_validate(contract_data)
-            if hb.FromNode == H0N.ltn:
+            if hb.FromNode == CoreNodeNames.ltn:
                 if hb.Status not in [SlowDispatchContractStatus.TerminatedByLtn,
                                      SlowDispatchContractStatus.CompletedUnknownOutcome]:
                     return
                 self.prev = hb
+            elif hb.Status in self.DONE_STATES:
+                self.prev = hb
+                self.logger.info("Stored contract has ended; nothing to load")
+                return None
             else:
                 if time.time() > hb.Contract.contract_end_s():
                     if hb.Status not in self.DONE_STATES:
@@ -281,7 +288,7 @@ class ContractHandler:
             return final_hb
         elif ltn_hb.Status in [SlowDispatchContractStatus.Confirmed, SlowDispatchContractStatus.Active]:
             self.latest_scada_hb = SlowContractHeartbeat(
-                FromNode=H0N.primary_scada,
+                FromNode=CoreNodeNames.primary_scada,
                 Contract=ltn_hb.Contract,
                 PreviousStatus=ltn_hb.Status,
                 Status=SlowDispatchContractStatus.Active,
@@ -295,7 +302,9 @@ class ContractHandler:
         else:
             raise ValueError(f"Unexpected status from ltn_hb: {ltn_hb.Status}")
 
-    def scada_terminates_contract_hb(self, cause: str = "") -> SlowContractHeartbeat:
+    def scada_terminates_contract_hb(
+        self, reason: DispatchRefusalReason, cause: str
+    ) -> SlowContractHeartbeat:
         """Creates a heartbeat declaring scada termination of contract
 
         - Can only call if self.latest_scada_hb exists
@@ -311,6 +320,7 @@ class ContractHandler:
             PreviousStatus=self.latest_scada_hb.Status,
             Status=SlowDispatchContractStatus.TerminatedByScada,
             Cause=cause,
+            Reason=reason,
             WattHoursUsed=round(self.energy_used_wh),
             MessageCreatedMs=int(time.time() * 1000),
             MyDigit=random.choice(range(10)),

@@ -1,0 +1,44 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw.recorded.setpoints/000"
+
+title: "gw.recorded.setpoints"
+type: object
+description: >
+  The last reading each learned zone setpoint channel carried, as a scada
+  keeps it across restarts and across the setpoint's withdrawal.
+
+properties:
+  ScadaAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      GNode alias of the scada that recorded the setpoints.
+
+  SetpointList:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/single.reading/000"
+    description: >
+      One reading per setpoint channel: the last value the channel carried
+      and when the scada read it.
+
+  TypeName:
+    const: "gw.recorded.setpoints"
+
+  Version:
+    const: "000"
+
+required:
+  - ScadaAlias
+  - SetpointList
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "SetpointChannelUniqueness"
+      statement: >
+        ChannelName SHALL be unique across SetpointList.
