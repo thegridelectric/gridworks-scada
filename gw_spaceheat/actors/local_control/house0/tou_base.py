@@ -316,12 +316,13 @@ class LocalControlTouBase(House0Hydronic):
             self.the_boss_of(relay) == self.normal_node
         }
 
+        # The relays local control switches itself at init, and the relays
+        # the layout fixes under another owner (hp-boss, the sieg loop where
+        # the plant has one), are left alone.
         excluded_relays = {
             self.layout.hp_failsafe_relay,
-            self.layout.hp_scada_ops_relay, 
             self.layout.aquastat_control_relay,
-            self.layout.hp_loop_on_off,
-        }
+        } | {relay for _, relays in self.layout.fixed_subtrees for relay in relays}
 
         target_relays: List[ShNode] = list(h_normal_relays - excluded_relays)
     

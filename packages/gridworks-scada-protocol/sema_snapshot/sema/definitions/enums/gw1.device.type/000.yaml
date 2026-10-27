@@ -39,6 +39,7 @@ enum:
 - LGARNH423K3A4
 - SamsungAM048TXMDCH
 - SamsungAM048CNBFCB
+- ArcticMAHRW030ZA
 default: EgaugePowerMeter
 x-gridworks:
   owner: gridworks-energy
@@ -101,3 +102,8 @@ x-gridworks:
     SamsungAM048CNBFCB: >
       Samsung Hydro Kit AM048CNBFCB — the indoor unit that does the refrigerant-to-water
       exchange (no glycol, no plate exchanger). Fir.
+    ArcticMAHRW030ZA: >
+      Arctic Heat Pumps R32 high-temperature monobloc, model MAHRW 030ZA/(BEH2)-R32.
+      Two compressors in one outdoor unit; no indoor unit and no indoor control box.
+      The remote on/off dry contact (CN33) is on the unit. Category-level data on
+      its hp.device.type.gt record.

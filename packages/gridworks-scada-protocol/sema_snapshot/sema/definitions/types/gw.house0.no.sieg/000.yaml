@@ -1,0 +1,496 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw.house0.no.sieg/000"
+
+title: "gw.house0.no.sieg"
+type: object
+description: >
+  A complete, self-contained configuration and topology snapshot for a House0
+  hydronic space heating system with no Siegenthaler loop (elm, fir, oak):
+  George-built electronics, Hubitat hubs driving Honeywell thermostats, dual
+  Krida I2C relay banks, DFRobot 0-10V DACs, an eGauge power meter, TSnap
+  (ADS111x) multipurpose sensors, pico flow meters, and store + buffer tank
+  modules. Where the plant has a heat exchanger between the heat pump and the
+  house, hp-boss owns the secondary pump's relay and, beside it,
+  secondary-pump-hack-relay: the relay whose contacts the pump's feed still
+  passes through, energized with the pump until it is wired out.
+
+  Like gw.nolan.layout, the layout binds identity (GNodes), topology (ShNodes),
+  telemetry (DataChannels + DerivedChannels), hardware (Components), per-family
+  device-type records (DeviceTypes), and a Hydronic config block into one
+  semantically consistent, deployable artifact.
+
+  All collections plus the Hydronic block are required — a layout is a complete,
+  deployable artifact, never a partial one.
+
+properties:
+
+  GNodes:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/g.node.gt/006"
+    description: >
+      Grid Node identity objects in this layout snapshot (LeafTransactiveNode,
+      TerminalAsset, Scada).
+
+  ShNodes:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/spaceheat.node.gt/303"
+    description: >
+      Spaceheat nodes — the operational roles (scada, ltn, leaf-ally,
+      local-control, derived-generator, power-meter, pumps, pipes, relays, tank
+      depths, per-zone thermostat/whitewire nodes, ...).
+
+  DataChannels:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/data.channel.gt/004"
+    description: "Raw telemetry channels produced by the SCADA system."
+
+  DerivedChannels:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/derived.channel.gt/003"
+    description: >
+      Computed telemetry channels (calibrated tank depths, zone heat-call +
+      predicted setpoint, usable/required energy, ...).
+
+  Components:
+    type: array
+    description: "Hardware components present in the House0 system."
+    items:
+      oneOf:
+        - $ref: "https://schemas.electricity.works/types/electric.meter.component.gt/001"
+        - $ref: "https://schemas.electricity.works/types/device.component.gt/000"
+        - $ref: "https://schemas.electricity.works/types/ads111x.based.component.gt/000"
+        - $ref: "https://schemas.electricity.works/types/gpio.relay.component.gt/000"
+        - $ref: "https://schemas.electricity.works/types/gpio.sensor.component.gt/000"
+        - $ref: "https://schemas.electricity.works/types/i2c.dac.output.component.gt/000"
+        - $ref: "https://schemas.electricity.works/types/i2c.relay.component.gt/000"
+        - $ref: "https://schemas.electricity.works/types/i2c.thermistor.reader.component.gt/000"
+        - $ref: "https://schemas.electricity.works/types/pico.btu.meter.component.gt/000"
+        - $ref: "https://schemas.electricity.works/types/pico.flow.module.component.gt/001"
+        - $ref: "https://schemas.electricity.works/types/pico.tank.module.component.gt/012"
+        - $ref: "https://schemas.electricity.works/types/scada.board.component.gt/000"
+        - $ref: "https://schemas.electricity.works/types/sim.pico.tank.module.component.gt/001"
+        - $ref: "https://schemas.electricity.works/types/sim.pico.flow.module.component.gt/000"
+        - $ref: "https://schemas.electricity.works/types/sim.pico.btu.meter.component.gt/000"
+        - $ref: "https://schemas.electricity.works/types/sim.sensor.component.gt/000"
+        - $ref: "https://schemas.electricity.works/types/hubitat.component.gt/000"
+        - $ref: "https://schemas.electricity.works/types/hubitat.poller.component.gt/000"
+        - $ref: "https://schemas.electricity.works/types/web.server.component.gt/001"
+
+  DeviceTypes:
+    type: array
+    description: >
+      The specialized per-family device-type records for the
+      device categories present in `Components` that carry category-level data. A component
+      joins its record by the shared `DeviceType` value.
+    items:
+      oneOf:
+        - $ref: "https://schemas.electricity.works/types/electric.meter.device.type.gt/000"
+        - $ref: "https://schemas.electricity.works/types/ads111x.based.device.type.gt/000"
+        - $ref: "https://schemas.electricity.works/types/gw1.scada.device.type.gt/000"
+        - $ref: "https://schemas.electricity.works/types/hp.device.type.gt/000"
+
+  Hydronic:
+    $ref: "https://schemas.electricity.works/types/gw.hydronic/000"
+
+  DisabledNodeNames:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      Names of sensing nodes this word requires and the layout declares
+      whose readings are currently unavailable, pending a field visit.
+      Empty when every required node is available.
+
+  DisabledChannelNames:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      Names of channels this word requires and the layout declares whose
+      readings are currently unavailable, pending a field visit. Empty
+      when every required channel is available.
+
+  TypeName:
+    const: "gw.house0.no.sieg"
+
+  Version:
+    const: "000"
+
+required:
+  - GNodes
+  - ShNodes
+  - DataChannels
+  - DerivedChannels
+  - Components
+  - DeviceTypes
+  - Hydronic
+  - DisabledNodeNames
+  - DisabledChannelNames
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "GlobalIdUniqueness"
+      statement: >
+        ShNode.ShNodeId, Component.ComponentId, DataChannel.Id, DerivedChannel.Id and GNode.GNodeId
+        SHALL each be globally unique; no id value SHALL appear in more than one of these sets.
+    - number: 2
+      name: "CoreShNodesExistenceAndActorClass"
+      statement: >
+        ShNodes SHALL contain a node with each of the following Name / ActorClass pairs, and no
+        additional ShNode with any of these Names SHALL exist:
+          "s"                 → ActorClass "PrimaryScada"
+          "s2"                → ActorClass "SecondaryScada"
+          "power-meter"       → ActorClass "PowerMeter"
+          "ltn"               → ActorClass "NoActor"
+          "admin"             → ActorClass "NoActor"
+          "auto"              → ActorClass "NoActor"
+          "la"                → ActorClass "LeafAlly"
+          "lc"                → ActorClass "LocalControl"
+          "derived-generator" → ActorClass "DerivedGenerator"
+          "cold-watch"        → ActorClass "ColdWatch"
+        The effective handle (Handle if present, otherwise Name) of "admin" SHALL be "admin" and
+        of "auto" SHALL be "auto".
+    - number: 3
+      name: "CommandNodesExistenceAndActorClass"
+      statement: >
+        a. ShNodes SHALL contain a node with each of the following Name / ActorClass pairs,
+        and no additional ShNode with any of these Names SHALL exist:
+          "n"             → ActorClass "NoActor"
+          "cold-override" → ActorClass "NoActor"
+          "scada-blind"   → ActorClass "NoActor"
+          "standby"       → ActorClass "NoActor"
+          "five-v-boss"   → ActorClass "FiveVBoss"
+          "pico-cycler"   → ActorClass "PicoCycler"
+          "hp-boss"       → ActorClass "HpBoss"
+        b. If Hydronic.Backup is present, ShNodes SHALL contain exactly one node named
+        "backup", with ActorClass "NoActor".
+        c. If Hydronic.Backup is absent, no ShNode SHALL be named "backup".
+    - number: 4
+      name: "CircuitHeatCallChannel"
+      statement: >
+        For each circuit in Hydronic.ZoneCallCircuits, exactly one channel in DerivedChannels
+        SHALL have Strategy "heat-call" and InputChannelNames equal to [the circuit's
+        WhitewireChannelName].
+    - number: 5
+      name: "PrimaryFlowSourceChannelAgreement"
+      statement: >
+        Hydronic.PrimaryFlowSource SHALL be "Measured": a DataChannel named "primary-flow"
+        SHALL exist and no DerivedChannel named "primary-flow" SHALL exist.
+    - number: 6
+      name: "TransactivePowerChannel"
+      statement: >
+        DerivedChannels SHALL contain exactly one channel whose Strategy is "transactive-power" —
+        the metered transactive boundary, computed by the power-meter actor (not the
+        derived-generator). Each name in that channel's InputChannelNames SHALL resolve to an
+        existing DataChannel with TelemetryName "PowerW", and the AboutNode of each such DataChannel
+        SHALL carry a NameplatePowerW. No name in that channel's InputChannelNames SHALL be in
+        DisabledChannelNames. (The metered set is declared once here, replacing the former
+        per-node InPowerMetering flag; the NameplatePowerW obligation folds in spaceheat.node.gt's
+        retired InPowerMetering-requires-nameplate axiom.)
+    - number: 7
+      name: "RequiredSensing"
+      statement: >
+        For each of the names
+          "hp-odu-pwr",
+          "primary-pump-pwr",
+          "store-pump-pwr",
+          "dist-pump-pwr",
+          "hp-lwt",
+          "hp-ewt",
+          "dist-swt",
+          "dist-rwt",
+          "store-hot-pipe",
+          "store-cold-pipe",
+          "buffer-hot-pipe",
+          "dist-flow",
+          "store-flow",
+          "secondary-flow",
+          "secondary-lwt",
+          "secondary-ewt",
+          and "secondary-pump-pwr":
+        a channel with that Name SHALL exist
+        in DataChannels or in DerivedChannels. (Kind-agnostic by design — a name may migrate from
+        raw DataChannel to same-name DerivedChannel without touching this contract.)
+    - number: 8
+      name: "SystemModelEnergyChannels"
+      statement: >
+        DerivedChannels SHALL include channels named "usable-energy" and "required-energy", each
+        with CreatedByNodeName "derived-generator" and Strategy "system-model".
+        Parameters.EnergyModel.TypeName SHALL be gw0.usable.energy.layered on "usable-energy" and
+        gw0.required.energy.layered on "required-energy".
+    - number: 9
+      name: "RequiredActuators"
+      statement: >
+        a. ShNodes SHALL include nodes named
+          "vdc-relay",
+          "tstat-common-relay",
+          "charge-discharge-relay",
+          "hp-failsafe-relay",
+          "hp-scada-ops-relay",
+          "aquastat-ctrl-relay",
+          "store-pump-relay",
+          "secondary-pump-relay",
+          and "secondary-pump-hack-relay",
+        each with ActorClass "Relay", and nodes named
+          "dist-010v"
+          and "store-010v",
+        each with ActorClass "ZeroTenOutputer".
+        b. Each circuit's FailsafeRelayNode and OpsRelayNode in
+        Hydronic.ZoneCallCircuits SHALL name a ShNode in ShNodes with
+        ActorClass "Relay".
+        c. Each of "dist-010v" and "store-010v" SHALL have a ComponentId equal
+        to the ComponentId of an i2c.dac.output.component.gt in Components.
+    - number: 10
+      name: "RequiredHeatpumpEquipment"
+      statement: >
+        ShNodes SHALL include a node named "hp-odu" with a ComponentId equal to the
+        ComponentId of a Component in Components, and with ActorClass "NoActor" unless it
+        is the node Hydronic.HpCommandNodeName names, whose ActorClass CommandableHeatPump
+        governs.
+    - number: 11
+      name: "CommandableHeatPump"
+      statement: >
+        a. If Hydronic.HpCommandNodeName is present, it SHALL equal the Name of a ShNode in
+        ShNodes named "hp-odu" or "hp-ctrl-box", whose ComponentId equals the
+        ComponentId of a Component in Components, whose ActorClass is "HpTwin", and whose
+        effective handle (Handle if present, otherwise Name) has the effective handle of the
+        ShNode named "hp-boss" as its parent prefix.
+        b. Every ShNode with ActorClass "HpTwin" SHALL be the node Hydronic.HpCommandNodeName
+        names; when HpCommandNodeName is absent no ShNode SHALL have ActorClass "HpTwin".
+    - number: 12
+      name: "PrefixClosedHandles"
+      statement: >
+        Let the effective handle of an ShNode be its Handle if present,
+        otherwise its Name. The set of effective handles SHALL be prefix-closed:
+        for every ShNode in ShNodes, each dot-separated prefix of its effective
+        handle SHALL also be the effective handle of some ShNode in ShNodes.
+    - number: 13
+      name: "ActuatorLeaves"
+      statement: >
+        Let the effective handle of an ShNode be its Handle if present, otherwise
+        its Name. A leaf is an ShNode whose effective handle contains a dot and is
+        the parent prefix of no other effective handle. An actuator is an ShNode
+        whose ActorClass is "Relay", "ZeroTenOutputer" or "HpTwin". A command node
+        is an ShNode whose ActorClass is "LocalControl", "LeafAlly", "FiveVBoss",
+        "PicoCycler" or "HpBoss", or whose ActorClass is "NoActor" and whose
+        effective handle's parent prefix is the effective handle of an ShNode with
+        ActorClass "LocalControl". Local control's state nodes are named for the
+        values of gw2.lc.top.state in which local control holds the command tree:
+        "n" for Normal, "backup" for InBackup, "cold-override" for ColdOverride,
+        "scada-blind" for ScadaBlind and "standby" for Standby; Dormant has no node.
+        a. Every actuator SHALL have a dotted effective handle and SHALL be a leaf.
+        b. Every leaf SHALL be an actuator or a command node.
+        c. Every ShNode with ActorClass "NoActor" whose effective handle's parent prefix
+        is the effective handle of an ShNode with ActorClass "LocalControl" SHALL be
+        one of these state nodes: "n", "backup", "cold-override", "scada-blind" or
+        "standby".
+    - number: 14
+      name: "ComponentBinding"
+      statement: >
+        Every Component in Components SHALL have its ComponentId referenced by exactly one
+        ShNode in ShNodes. The node's Name is the component's identity within the house;
+        the ComponentId is the replaceable instance under it (a swapped part keeps the
+        name and gets a fresh id).
+    - number: 15
+      name: "BoardResolution"
+      statement: >
+        For every board-resident component in Components (i2c.relay.component.gt,
+        i2c.dac.output.component.gt): its BoardComponentId SHALL equal the ComponentId of a
+        scada.board.component.gt in Components; that board component's DeviceType SHALL match
+        the DeviceType of a gw1.scada.device.type.gt record in DeviceTypes; and the component's
+        board name (RelayName against the I2cRelays RelayNames for relays, DacName against the
+        Dacs DacNames for DAC outputs) SHALL match a name in that record.
+    - number: 16
+      name: "BufferTank"
+      statement: >
+        A House0 home has a buffer tank. For each depth i in 1..3 a channel named
+        "buffer-depth{i}" SHALL exist in DataChannels or in DerivedChannels. (The family
+        invariant lives here, in the word; scada code asks the layout and assumes nothing.)
+    - number: 17
+      name: "CircuitTempChannelResolution"
+      statement: >
+        a. Every circuit's TempChannelName in Hydronic.ZoneCallCircuits SHALL equal the
+        Name of a channel in DataChannels or in DerivedChannels.
+        b. That channel SHALL carry temperature: a DataChannel's Quantity, or a
+        DerivedChannel's OutputQuantity, SHALL be Temperature.
+    - number: 18
+      name: "CircuitWhitewireChannelResolution"
+      statement: >
+        Every circuit's WhitewireChannelName in Hydronic.ZoneCallCircuits SHALL equal the Name
+        of a channel in DataChannels.
+    - number: 19
+      name: "DerivedChannelCreatorResolution"
+      statement: >
+        a. Every channel's CreatedByNodeName in DerivedChannels SHALL equal the Name of a
+        ShNode in ShNodes.
+        b. The ShNode named by a channel's CreatedByNodeName SHALL NOT have ActorClass
+        "NoActor".
+    - number: 20
+      name: "DataChannelNodeResolution"
+      statement: >
+        a. Every channel's AboutNodeName in DataChannels SHALL equal the Name of a ShNode in
+        ShNodes.
+        b. Every channel's CapturedByNodeName in DataChannels SHALL equal the Name of a ShNode
+        in ShNodes.
+        c. The ShNode named by a channel's CapturedByNodeName SHALL NOT have ActorClass
+        "NoActor".
+    - number: 21
+      name: "DerivedChannelInputsAcyclic"
+      statement: >
+        a. Every name in a channel's InputChannelNames in DerivedChannels SHALL equal the Name
+        of a channel in DataChannels or in DerivedChannels.
+        b. No channel in DerivedChannels SHALL be reachable from itself by following
+        InputChannelNames.
+    - number: 22
+      name: "ChannelNameUniqueness"
+      statement: >
+        The Names of the channels in DataChannels and DerivedChannels, taken together, SHALL be
+        pairwise distinct.
+    - number: 23
+      name: "StoreTankTemps"
+      statement: >
+        For each tank index N in 1..Hydronic.WaterStore.TotalStoreTanks and each depth i in
+        1..3, a channel named "tank{N}-depth{i}" SHALL exist in DataChannels or in
+        DerivedChannels.
+    - number: 24
+      name: "WebServerNode"
+      statement: >
+        ShNodes SHALL contain exactly one node named "web-server", with ActorClass "NoActor".
+    - number: 25
+      name: "FloorLoopCircuitTemp"
+      statement: >
+        a. Every circuit in Hydronic.ZoneCallCircuits whose EmitterType is "RadiantSlab" SHALL
+        carry FloorTempChannelName.
+        b. Where a circuit carries FloorTempChannelName, it SHALL equal the Name of a channel in
+        DataChannels or in DerivedChannels, and that channel SHALL carry temperature: a
+        DataChannel's Quantity, or a DerivedChannel's OutputQuantity, SHALL be Temperature.
+    - number: 26
+      name: "DisabledNamesResolve"
+      statement: >
+        Every name in DisabledNodeNames SHALL equal the Name of an ShNode in ShNodes, and every
+        name in DisabledChannelNames SHALL equal the Name of a channel in DataChannels or in
+        DerivedChannels.
+    - number: 27
+      name: "DisabledNodesAreSensors"
+      statement: >
+        Every name in DisabledNodeNames SHALL be the CapturedByNodeName of at least one
+        DataChannel and SHALL NOT be the Name of an ShNode whose ActorClass is "Relay" or
+        "ZeroTenOutputer"; every DataChannel whose CapturedByNodeName is in DisabledNodeNames
+        SHALL have its Name in DisabledChannelNames; and no name in DisabledChannelNames SHALL be
+        the Name of a DataChannel whose CapturedByNodeName is such an ShNode. Disabling is a
+        sensing concept; an actuator is wired or absent.
+    - number: 28
+      name: "EnabledDerivedChannelsHaveLiveInputs"
+      statement: >
+        Every DerivedChannel whose Name is not in DisabledChannelNames SHALL have no name in its
+        InputChannelNames that is in DisabledChannelNames.
+    - number: 29
+      name: "ActuatorChannels"
+      statement: >
+        a. For every ShNode RequiredActuators names — the listed relays and 0-10V outputs,
+        and each circuit's FailsafeRelayNode and OpsRelayNode — a DataChannel with the same
+        Name SHALL exist, with AboutNodeName and CapturedByNodeName equal to that Name.
+        b. That channel's TelemetryName SHALL be "RelayState" for a node with ActorClass
+        "Relay" and "VoltsTimesTen" for a node with ActorClass "ZeroTenOutputer".
+    - number: 30
+      name: "PrimaryPumpActuators"
+      statement: >
+        If Hydronic.PrimaryPumpOwner is "Scada", ShNodes SHALL include
+        "primary-pump-failsafe-relay" and "primary-pump-scada-ops-relay" with ActorClass
+        "Relay" and "primary-010v" with ActorClass "ZeroTenOutputer" and a ComponentId
+        resolving to an i2c.dac.output.component.gt in Components, and each of the three
+        SHALL have a DataChannel of its own Name in the ActuatorChannels shape. If it is
+        "HeatPump", no ShNode and no DataChannel SHALL carry any of those three Names.
+    - number: 31
+      name: "PrimaryPumpRecordAgreement"
+      statement: >
+        Let the joined records be the hp.device.type.gt records in DeviceTypes whose
+        DeviceType equals the DeviceType of the Component that "hp-odu" binds.
+        If Hydronic.PrimaryPumpOwner is "Scada", no joined record SHALL have
+        PrimaryPumpFactoryInstalled true with PrimaryPumpOverridable false: a pump that
+        ships inside the unit and cannot be overridden is under the unit's control.
+    - number: 32
+      name: "CommandNodeHandles"
+      statement: >
+        Let the effective handle of an ShNode be its Handle if present, otherwise its
+        Name. The authored tree is the plant with no one in charge: "auto" is the root,
+        the command nodes and every actuator hang directly under it, and a fixed relay
+        hangs under the interior node that owns it. The effective handles SHALL be:
+          "five-v-boss"             → "auto.five-v-boss"
+          "pico-cycler"             → "auto.five-v-boss.pico-cycler"
+          "vdc-relay"               → "auto.five-v-boss.pico-cycler.vdc-relay"
+          "lc"                      → "auto.lc"
+          "n"                       → "auto.lc.n"
+          "backup"                  → "auto.lc.backup"
+          "cold-override"           → "auto.lc.cold-override"
+          "scada-blind"             → "auto.lc.scada-blind"
+          "standby"                 → "auto.lc.standby"
+          "hp-boss"                 → "auto.hp-boss"
+          "hp-scada-ops-relay"      → "auto.hp-boss.hp-scada-ops-relay"
+          "secondary-pump-relay"    → "auto.hp-boss.secondary-pump-relay"
+          "secondary-pump-hack-relay" → "auto.hp-boss.secondary-pump-hack-relay"
+        Every other ShNode whose ActorClass is Relay or ZeroTenOutputer SHALL have the
+        effective handle "auto.<Name>".
+    - number: 33
+      name: "HeatCallChannelBelongsToCircuit"
+      statement: >
+        Every channel in DerivedChannels whose Strategy is "heat-call" SHALL have
+        InputChannelNames equal to [the WhitewireChannelName of exactly one circuit in
+        Hydronic.ZoneCallCircuits]. With CircuitHeatCallChannel, the heat-call channels and the
+        circuits are one to one.
+    - number: 34
+      name: "CircuitSetpointChannel"
+      statement: >
+        a. Every circuit's SetpointChannelName in Hydronic.ZoneCallCircuits SHALL equal
+        the Name of a channel in DataChannels or in DerivedChannels.
+        b. That channel SHALL carry temperature: a DataChannel's Quantity, or a
+        DerivedChannel's OutputQuantity, SHALL be Temperature.
+        c. Where a circuit's SetpointSource is "Learned", its SetpointChannelName SHALL
+        name a channel in DerivedChannels.
+        d. That derived channel's InputChannelNames SHALL contain the circuit's
+        TempChannelName and the Name of the circuit's heat-call channel (the
+        CircuitHeatCallChannel axiom).
+        e. That derived channel's Strategy SHALL be "simple-falling-edge-setpoint".
+    - number: 35
+      name: "ReadThermostatChannels"
+      statement: >
+        Where a circuit's SetpointSource is "FromThermostat", the channels named by its
+        SetpointChannelName and TempChannelName SHALL each be a channel in DataChannels
+        whose CapturedByNodeName is the Name of an ShNode whose ComponentId equals the
+        circuit's Thermostat.ComponentId.
+    - number: 36
+      name: "WaterStore"
+      statement: >
+        Hydronic.WaterStore SHALL be present: a House0 home stores heat in
+        water tanks.
+    - number: 37
+      name: "BackupRelays"
+      statement: >
+        Where Hydronic.Backup is a gw.boiler.backup, its FailsafeRelayName and
+        AquastatCtrlRelayName, and where it is a gw.element.backup, each name in its
+        ElementRelayNames, SHALL equal the Name of an ShNode in ShNodes whose ActorClass
+        is "Relay".
+    - number: 38
+      name: "SecondaryPumpRunningChannel"
+      statement: >
+        a. DerivedChannels SHALL contain exactly one channel named "secondary-pump-running",
+        with Strategy "circulator-running", CreatedByNodeName "derived-generator", OutputUnit
+        "Unitless" and OutputQuantity "Unitless".
+        b. Its InputChannelNames SHALL equal ["secondary-pump-pwr"], and "secondary-pump-pwr"
+        SHALL be the Name of a DataChannel with TelemetryName "PowerW".
+        c. Its Parameters SHALL include "ThresholdW", a positive integer: the channel reads 1
+        while the input power exceeds ThresholdW and 0 otherwise.
+    - number: 39
+      name: "HpWatchNode"
+      statement: >
+        ShNodes SHALL include a node named "hp-watch" with ActorClass "HpWatch".

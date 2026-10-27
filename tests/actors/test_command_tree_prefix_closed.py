@@ -125,6 +125,8 @@ def test_boot_puts_every_actuator_under_local_control_normal(app: ScadaApp) -> N
     owned = {layout.hp_scada_ops_relay.Name: layout.hp_boss.handle}
     if layout.has_secondary_pump:
         owned[layout.secondary_pump_relay.Name] = layout.hp_boss.handle
+    if layout.is_house0_no_sieg:
+        owned[layout.secondary_pump_hack_relay.Name] = layout.hp_boss.handle
     if layout.node(HSNN.five_v_boss) is not None:
         owned[layout.vdc_relay.Name] = scada.pico_cycler.handle
     if layout.node(House0NodeNames.sieg_loop) is not None:

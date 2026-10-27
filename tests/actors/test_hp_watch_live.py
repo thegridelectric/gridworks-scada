@@ -29,7 +29,6 @@ from gwsproto.named_types import AdminDispatch, AdminReleaseControl, FsmEvent
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
-from gwsproto.names.nolan.node_names import NolanNodeNames
 from scada_app import ScadaApp
 from tests.utils.scada_live_test_helper import ScadaLiveTest, ops_word_with
 
@@ -69,7 +68,7 @@ async def test_the_pump_follows_the_heat_pump_through_the_subscriptions(
         app = h.child1_app
         scada = app.scada
         hp_watch = app.get_communicator_as_type(HSNN.hp_watch, HpWatch)
-        pump = app.get_communicator_as_type(NolanNodeNames.secondary_pump_relay, Relay)
+        pump = app.get_communicator_as_type(HSNN.secondary_pump_relay, Relay)
         meter = app.get_communicator_as_type(CoreNodeNames.asset_power_meter, PowerMeter)
         assert hp_watch is not None and pump is not None and meter is not None
         driver = typing.cast(
@@ -103,7 +102,7 @@ async def test_the_pump_follows_the_heat_pump_through_the_subscriptions(
         )
         assert scada.channel_subscribers[HCN.hp_odu_pwr] == [HSNN.hp_watch]
         assert scada.machine_state_subscribers[HSNN.hp_watch] == [HSNN.hp_boss]
-        assert pump.node.handle == f"{scada.layout.hp_boss.handle}.{NolanNodeNames.secondary_pump_relay}"
+        assert pump.node.handle == f"{scada.layout.hp_boss.handle}.{HSNN.secondary_pump_relay}"
 
         driver.fake_power_w = 700
         await h.await_for(
@@ -166,7 +165,7 @@ async def test_under_admin_the_pump_follows_the_heat_pumps_power_not_the_call(
         scada = app.scada
         hp_boss = app.get_communicator_as_type(HSNN.hp_boss, HpBoss)
         hp_watch = app.get_communicator_as_type(HSNN.hp_watch, HpWatch)
-        pump = app.get_communicator_as_type(NolanNodeNames.secondary_pump_relay, Relay)
+        pump = app.get_communicator_as_type(HSNN.secondary_pump_relay, Relay)
         call = app.get_communicator_as_type(HSNN.hp_scada_ops_relay, Relay)
         meter = app.get_communicator_as_type(CoreNodeNames.asset_power_meter, PowerMeter)
         assert hp_boss is not None and hp_watch is not None
@@ -196,7 +195,7 @@ async def test_under_admin_the_pump_follows_the_heat_pumps_power_not_the_call(
         # Admin turns the heat pump on through hp-boss: the call closes, the pump does not.
         scada.process_scada_message(scada.admin, admin_turn(TurnHpOnOff.TurnOn))
         assert hp_boss.node.handle == f"{CoreNodeNames.admin}.{HSNN.hp_boss}"
-        assert pump.node.handle == f"{hp_boss.node.handle}.{NolanNodeNames.secondary_pump_relay}"
+        assert pump.node.handle == f"{hp_boss.node.handle}.{HSNN.secondary_pump_relay}"
         await h.await_for(
             lambda: hp_boss.state == HpBossState.HpOn and call.state == RelayClosedOrOpen.RelayClosed,
             "admin TurnOn: hp-boss HpOn and the call closed",

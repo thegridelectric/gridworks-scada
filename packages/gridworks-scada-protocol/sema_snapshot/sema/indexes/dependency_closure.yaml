@@ -475,6 +475,115 @@ types:
       - spaceheat.telemetry.quantity.projection:001
       - web.server.component.gt:001
       versionless_types: []
+  gw.house0.no.sieg:
+    '000':
+      enums:
+      - base.g.node.class:000
+      - change.relay.state:000
+      - g.node.status:000
+      - gpio.sense.mode:000
+      - gpm.from.hz.method:000
+      - gw.primary.flow.source:000
+      - gw.primary.pump.owner:000
+      - gw.refrigerant.cycle:000
+      - gw.zone.emitter.type:000
+      - gw1.actor.class:014
+      - gw1.emission.method:000
+      - gw1.quantity:003
+      - gw1.unit:003
+      - gw2.lc.top.state:000
+      - hz.calc.method:001
+      - i2c.adc.channel:000
+      - i2c.adc.type:000
+      - i2c.dac.channel:000
+      - i2c.dac.type:000
+      - i2c.expander.type:000
+      - i2c.mux.type:000
+      - pico.board.variant:000
+      - relay.closed.or.open:000
+      - relay.wiring.config:000
+      - spaceheat.telemetry.name:007
+      - spaceheat.unit:001
+      - temp.calc.method:000
+      - thermistor.data.method:000
+      - thermostat.kind:000
+      - zone.setpoint.source:000
+      formats:
+      - handle.name
+      - left.right.dot
+      - mac.address
+      - non.empty.string
+      - non.negative.int
+      - pascal.case
+      - positive.float
+      - positive.int
+      - spaceheat.name
+      - utc.seconds
+      - uuid4.str
+      types:
+      - ads.channel.config:000
+      - ads111x.based.component.gt:000
+      - ads111x.based.device.type.gt:000
+      - dac.output.config:000
+      - data.channel.gt:004
+      - derived.channel.gt:003
+      - device.component.gt:000
+      - egauge.register.config:000
+      - electric.meter.channel.config:000
+      - electric.meter.component.gt:001
+      - electric.meter.device.type.gt:000
+      - g.node.gt:006
+      - gpio.relay.component.gt:000
+      - gpio.sensor.component.gt:000
+      - gw.boiler.backup:000
+      - gw.element.backup:000
+      - gw.hydronic:000
+      - gw.native.gpio.pin:000
+      - gw.water.store:000
+      - gw0.required.energy.layered:000
+      - gw0.usable.energy.layered:000
+      - gw1.hvac.zone:000
+      - gw1.scada.device.type.gt:000
+      - gw1.unit.quantity.projection:001
+      - gw1.zone.call.circuit:000
+      - gw1.zone.thermostat:000
+      - hp.device.type.gt:000
+      - hubitat.component.gt:000
+      - hubitat.gt:000
+      - hubitat.poller.component.gt:000
+      - hubitat.poller.gt:001
+      - i2c.bus:000
+      - i2c.ct.interface.capability:000
+      - i2c.dac.capability:000
+      - i2c.dac.output.component.gt:000
+      - i2c.expander:000
+      - i2c.mux:000
+      - i2c.relay.capability:000
+      - i2c.relay.component.gt:000
+      - i2c.thermistor.channel.config:000
+      - i2c.thermistor.interface.capability:000
+      - i2c.thermistor.reader.component.gt:000
+      - maker.api.attribute.gt:001
+      - pico.btu.meter.component.gt:000
+      - pico.flow.module.component.gt:001
+      - pico.tank.module.component.gt:012
+      - relay.control.config:000
+      - scada.board.component.gt:000
+      - sim.pico.btu.meter.component.gt:000
+      - sim.pico.flow.module.component.gt:000
+      - sim.pico.tank.module.component.gt:001
+      - sim.sensor.component.gt:000
+      - spaceheat.node.gt:303
+      - spaceheat.telemetry.quantity.projection:001
+      - web.server.component.gt:001
+      versionless_types: []
+  gw.house0.no.sieg.family.params:
+    '000':
+      enums:
+      - gw1.seasonal.storage.mode:000
+      formats: []
+      types: []
+      versionless_types: []
   gw.hydronic:
     '000':
       enums:
@@ -623,6 +732,7 @@ types:
       - cop.curve:000
       - gw.dispatch.hold:000
       - gw.house0.family.params:000
+      - gw.house0.no.sieg.family.params:000
       - gw.nolan.family.params:000
       - gw.tou.tariff:000
       - gw.tou.window:000

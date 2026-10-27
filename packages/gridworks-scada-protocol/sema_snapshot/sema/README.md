@@ -53,6 +53,8 @@ Staging words in this snapshot:
 - type gw.element.backup:000
 - type gw.house0.family.params:000
 - type gw.house0.layout:000
+- type gw.house0.no.sieg.family.params:000
+- type gw.house0.no.sieg:000
 - type gw.hydronic:000
 - type gw.native.gpio.pin:000
 - type gw.nolan.family.params:000

@@ -69,6 +69,7 @@ from gwsproto.type_helpers.circuit_channel_axioms import (
     check_read_thermostat_channels,
 )
 from gwsproto.type_helpers.command_tree_axioms import (
+    COMMAND_CLASSES_WITH_SIEG_LOOP,
     check_actuator_leaves,
     check_prefix_closed_handles,
 )
@@ -605,7 +606,11 @@ class House0Layout(GwsprotoSemaType):
         "backup" (InBackup), "scada-blind" (ScadaBlind) or
         "standby" (Standby).
         """
-        check_actuator_leaves(self.ShNodes, "Axiom 14 (ActuatorLeaves)")
+        check_actuator_leaves(
+            self.ShNodes,
+            "Axiom 14 (ActuatorLeaves)",
+            command_classes=COMMAND_CLASSES_WITH_SIEG_LOOP,
+        )
         return self
 
     @model_validator(mode="after")

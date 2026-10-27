@@ -59,11 +59,18 @@ class HydronicSpaceheatNodeNames:
     primary_pump = "primary-pump"
     store_pump = "store-pump"
 
+    # backup heat
+    oil_boiler = "oil-boiler"
+
     # required pipe temperatures
     dist_swt = "dist-swt"
     dist_rwt = "dist-rwt"
     hp_lwt = "hp-lwt"
     hp_ewt = "hp-ewt"
+    # The house side of a plate heat exchanger between the heat pump and
+    # the plant, where the layout word requires one.
+    secondary_lwt = "secondary-lwt"
+    secondary_ewt = "secondary-ewt"
     store_hot_pipe = "store-hot-pipe"
     store_cold_pipe = "store-cold-pipe"
     buffer_hot_pipe = "buffer-hot-pipe"
@@ -75,6 +82,7 @@ class HydronicSpaceheatNodeNames:
     dist_flow = "dist-flow"
     store_flow = "store-flow"
     primary_flow = "primary-flow"
+    secondary_flow = "secondary-flow"
 
     # dac outputs
     dist_010v = "dist-010v"
@@ -85,6 +93,9 @@ class HydronicSpaceheatNodeNames:
     vdc_relay = "vdc-relay"
     hp_scada_ops_relay = "hp-scada-ops-relay"
     store_pump_relay = "store-pump-relay"
+    # The secondary pump's relay, hp-boss's fixed relay wherever the plant
+    # has a heat exchanger (gw.nolan.layout, gw.house0.no.sieg).
+    secondary_pump_relay = "secondary-pump-relay"
 
     # buffer tank
     buffer = BufferNodeNames()  # set below
@@ -98,6 +109,7 @@ class HydronicSpaceheatNodeNames:
     # instrumentation
     dist_btu = "dist-btu"
     primary_btu = "primary-btu"
+    secondary_btu = "secondary-btu"
     store_btu = "store-btu"
 
 class HydronicSpaceheatZoneNodeNames:

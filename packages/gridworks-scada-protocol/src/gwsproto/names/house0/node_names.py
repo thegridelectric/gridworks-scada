@@ -12,6 +12,10 @@ class House0NodeNames:
     aquastat_ctrl_relay = "aquastat-ctrl-relay"
     primary_pump_scada_ops = "primary-pump-scada-ops-relay"
     primary_pump_failsafe = "primary-pump-failsafe-relay"
+    # gw.house0.no.sieg only: the relay whose contacts the secondary pump's
+    # feed still passes through, energized with the pump until it is wired
+    # out. hp-boss's third relay, beside the call relay and the pump relay.
+    secondary_pump_hack_relay = "secondary-pump-hack-relay"
     hp_loop_on_off = "hp-loop-on-off-relay"
     hp_loop_keep_send = "hp-loop-keep-send-relay"
 

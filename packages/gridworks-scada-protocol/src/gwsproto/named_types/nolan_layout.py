@@ -71,6 +71,7 @@ from gwsproto.type_helpers.circuit_channel_axioms import (
     check_read_thermostat_channels,
 )
 from gwsproto.type_helpers.command_tree_axioms import (
+    COMMAND_CLASSES,
     check_actuator_leaves,
     check_prefix_closed_handles,
 )
@@ -528,7 +529,9 @@ class NolanLayout(GwsprotoSemaType):
         "backup" (InBackup), "scada-blind" (ScadaBlind) or
         "standby" (Standby).
         """
-        check_actuator_leaves(self.ShNodes, "Axiom 12 (ActuatorLeaves)")
+        check_actuator_leaves(
+            self.ShNodes, "Axiom 12 (ActuatorLeaves)", command_classes=COMMAND_CLASSES
+        )
         return self
 
     @model_validator(mode="after")

@@ -588,7 +588,7 @@ class NolanLayout(SemaType):
         a dot and is the parent prefix of no other effective handle. An actuator is an
         ShNode whose ActorClass is "Relay", "ZeroTenOutputer" or "HpTwin". A command
         node is an ShNode whose ActorClass is "LocalControl", "LeafAlly", "FiveVBoss",
-        "PicoCycler", "HpBoss" or "SiegLoop", or whose ActorClass is "NoActor" and whose
+        "PicoCycler" or "HpBoss", or whose ActorClass is "NoActor" and whose
         effective handle's parent prefix is the effective handle of an ShNode with
         ActorClass "LocalControl". Local control's state nodes are named for the values
         of gw2.lc.top.state in which local control holds the command tree: "n" for
@@ -607,7 +607,6 @@ class NolanLayout(SemaType):
             "FiveVBoss",
             "PicoCycler",
             "HpBoss",
-            "SiegLoop",
         }
         by_handle = {
             (node.handle if node.handle is not None else node.name): node

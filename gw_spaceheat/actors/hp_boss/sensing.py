@@ -79,6 +79,7 @@ def validated_hp_traits(rows: dict[AnyDeviceType, HpTraits]) -> dict[AnyDeviceTy
 
 HP_TRAITS: dict[AnyDeviceType, HpTraits] = validated_hp_traits({
     DeviceType.SamsungAE055FCYDCG: HpTraits(500, 80, 120),
+    DeviceType.ArcticMAHRW030ZA: HpTraits(700, 400, 120),
     SimDeviceType.SimHpOdu: HpTraits(500, 80, 120),
 })
 """By the hp-odu component's DeviceType. The only source of these values:
@@ -86,7 +87,11 @@ a Nolan layout whose heat pump has no row stops the scada at load. Hand-kept
 until the heat-pump state machine and hp.device.type.gt carrying the three
 values retire this table. The Samsung lead is provisional: the unit's stop lag is unmeasured
 (the spruce journal shows stops within a minute of the call opening and
-one at four minutes on a young run)."""
+one at four minutes on a young run). The Arctic lines sit between its
+standby draw (up to about 66 W, crankcase heater on) and its first
+running sample (above 1.1 kW); the lead is the Samsung value until the
+unit's stop lag is measured (elm, 2026-10-26: below 400 W about 52 s
+after the call opened)."""
 
 
 class DefrostSignature(NamedTuple):

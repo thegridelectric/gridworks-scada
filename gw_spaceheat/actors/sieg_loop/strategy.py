@@ -21,10 +21,12 @@ class SiegLoopReady(BaseModel):
 
 
 def selected_strategy(ops: OperationalParams) -> Optional[SiegLoopStrategy]:
-    """The strategy the loop runs under this ops word: the House0 family's
+    """The strategy a loop runs under this ops word: the House0 family's
     SiegLoopStrategy, except that Standby runs HoldFullSend whatever the
     field says, since the power-less posture is full send. None for a
-    family with no loop."""
+    family other than House0. Whether the plant has a loop to run it is
+    the layout's fact (`has_sieg_loop`); a sieg-less House0 home names a
+    strategy nothing runs."""
     family = ops.FamilyParams
     if not isinstance(family, House0FamilyParams):
         return None

@@ -95,6 +95,7 @@ class DerivedGenerator(ShNodeActor):
             "sum": self.handle_sum,
             "difference": self.handle_difference,
             "heat-call": self.handle_heat_call,
+            "circulator-running": self.handle_circulator_running,
             "simple-falling-edge-setpoint": self.handle_simple_falling_edge_setpoint,
             "system-model": self.handle_system_model,
         }
@@ -483,6 +484,43 @@ class DerivedGenerator(ShNodeActor):
                 self._advance_period_boundary(dc.Name, now, period)
 
         self._dispatch_derived_input(heat_call_reading)
+
+    def handle_circulator_running(
+        self, dc: DerivedChannel, payload: SingleReading | None = None
+    ) -> None:
+        """Emit 1 while the circulator's power input exceeds
+        Parameters.ThresholdW and 0 otherwise: on every change and on the
+        period boundary."""
+        if payload is None:
+            return
+
+        assert dc.Parameters is not None
+        assert dc.EmitPeriodS is not None
+        value = 1 if payload.Value > dc.Parameters["ThresholdW"] else 0
+
+        now = time.time()
+        last = self.last_emitted.get(dc.Name)
+        changed = last is None or value != last
+
+        period = dc.EmitPeriodS
+        next_ts = self.next_period_boundary_ts.get(dc.Name)
+        if next_ts is None:
+            next_ts = self._next_period_boundary(now, period)
+            self.next_period_boundary_ts[dc.Name] = next_ts
+        periodic_due = now >= next_ts
+
+        if not (changed or periodic_due):
+            return
+        self.emit_derived(
+            SingleReading(
+                ChannelName=dc.Name,
+                Value=value,
+                ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs,
+            )
+        )
+        self.last_emitted[dc.Name] = value
+        if periodic_due:
+            self._advance_period_boundary(dc.Name, now, period)
 
     def heat_call_value(
             self, 

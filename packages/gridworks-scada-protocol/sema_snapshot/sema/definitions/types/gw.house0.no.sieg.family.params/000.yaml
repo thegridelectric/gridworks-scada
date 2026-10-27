@@ -1,0 +1,55 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw.house0.no.sieg.family.params/000"
+
+title: "gw.house0.no.sieg.family.params"
+type: object
+description: >
+  The sieg-less House0-family block of gw.operational.params: the
+  operational knobs that only mean something against a gw.house0.no.sieg
+  layout, a home with a heat exchanger and a secondary pump, a buffer tank,
+  and water store tanks.
+
+properties:
+  KeepBufferFull:
+    type: boolean
+    description: >
+      When true, the buffer is kept near full rather than used as storage.
+      The leaf ally cycles it on its bottom sensor, charging when depth3 is
+      below the required return-water temperature and stopping when it is
+      above, so only a small slice of the tank swings between heat pump
+      runs, and the LTN reports zero buffer-available kWh. The FLO then
+      plans on the store alone, at the cost of the buffer's volume and more
+      frequent heat pump cycling. When false, the buffer drains from its top
+      sensor before a recharge and its energy counts toward what the FLO can
+      use. Local control does not read this flag.
+
+  SeasonalStorageMode:
+    $ref: "https://schemas.electricity.works/enums/gw1.seasonal.storage.mode/000"
+    description: >
+      Which thermal stores participate in the current season's operation.
+
+  TypeName:
+    const: "gw.house0.no.sieg.family.params"
+
+  Version:
+    const: "000"
+
+required:
+  - KeepBufferFull
+  - SeasonalStorageMode
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "KeepBufferFull": false,
+      "SeasonalStorageMode": "AllTanks",
+      "TypeName": "gw.house0.no.sieg.family.params",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"

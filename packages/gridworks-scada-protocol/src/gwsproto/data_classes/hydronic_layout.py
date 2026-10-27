@@ -22,7 +22,7 @@ from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.data_classes.derived_channel import DerivedChannel
 
 from gwsproto.enums import ActorClass, GNodeClass, TelemetryName, Unit, EmissionMethod
-from gwsproto.named_types import House0Layout, NolanLayout
+from gwsproto.named_types import House0Layout, House0NoSiegLayout, NolanLayout
 
 from gwsproto.named_types import (
     CaptureTuning,
@@ -120,6 +120,7 @@ class ChannelRegistry:
 
 
 HOUSE0_LAYOUT_TYPE_NAME = House0Layout.type_name_value()
+HOUSE0_NO_SIEG_LAYOUT_TYPE_NAME = House0NoSiegLayout.type_name_value()
 NOLAN_LAYOUT_TYPE_NAME = NolanLayout.type_name_value()
 
 
@@ -609,7 +610,7 @@ class HydronicLayout:
 
     def __init__(  # noqa: PLR0913
         self,
-        sema_layout: "House0Layout | NolanLayout",
+        sema_layout: "House0Layout | House0NoSiegLayout | NolanLayout",
         *,
         device_types: dict[str, Any],  # by DeviceType
         components: dict[str, Component],  # by id
@@ -759,6 +760,45 @@ class HydronicLayout:
                         errors.append(
                             f"DerivedChannel '{dc.Name}' uses strategy 'heat-call' "
                             "but must use EmissionMethod.AsyncAndPeriodic"
+                        )
+
+                case "circulator-running":
+                    # 1 while one PowerW input exceeds Parameters.ThresholdW,
+                    # 0 otherwise: a circulator's on-or-off as a layout fact.
+                    if len(dc.InputChannelNames) != 1:
+                        errors.append(
+                            f"DerivedChannel '{dc.Name}' uses strategy "
+                            "'circulator-running' but does not declare exactly one "
+                            "InputChannelName"
+                        )
+                    elif self.channel_registry.unit(dc.InputChannelNames[0]) != TelemetryName.PowerW:
+                        errors.append(
+                            f"DerivedChannel '{dc.Name}' uses strategy "
+                            f"'circulator-running' but its InputChannelName "
+                            f"'{dc.InputChannelNames[0]}' is not a DataChannel with "
+                            "TelemetryName PowerW"
+                        )
+                    threshold = (dc.Parameters or {}).get("ThresholdW")
+                    if (
+                        not isinstance(threshold, int)
+                        or isinstance(threshold, bool)
+                        or threshold <= 0
+                    ):
+                        errors.append(
+                            f"DerivedChannel '{dc.Name}' uses strategy "
+                            "'circulator-running' but Parameters.ThresholdW is missing "
+                            "or not a positive integer"
+                        )
+                    if dc.OutputUnit != Unit.Unitless:
+                        errors.append(
+                            f"DerivedChannel '{dc.Name}' uses strategy "
+                            "'circulator-running' but must use OutputUnit Unitless"
+                        )
+                    if dc.EmissionMethod != EmissionMethod.AsyncAndPeriodic:
+                        errors.append(
+                            f"DerivedChannel '{dc.Name}' uses strategy "
+                            "'circulator-running' but must use "
+                            "EmissionMethod.AsyncAndPeriodic"
                         )
 
                 case "simple-falling-edge-setpoint":
@@ -1327,7 +1367,7 @@ class HydronicLayout:
     @classmethod
     def from_sema(  # noqa: PLR0913
         cls,
-        layout_sema_type: "House0Layout | NolanLayout",
+        layout_sema_type: "House0Layout | House0NoSiegLayout | NolanLayout",
         *,
         capture_tuning: Optional[List[CaptureTuning]] = None,
         included_node_names: Optional[set[str]] = None,
@@ -1482,11 +1522,18 @@ class HydronicLayout:
         return n
 
     @property
+    def has_sieg_loop(self) -> bool:
+        """The plant has a Siegenthaler loop: a sieg-loop node is in the
+        layout. The word decides it (gw.house0.layout requires the node;
+        gw.house0.no.sieg and gw.nolan.layout have none)."""
+        return self.node(House0NodeNames.sieg_loop, None) is not None
+
+    @property
     def has_secondary_pump(self) -> bool:
         """A plant with a heat exchanger between the heat pump and the
-        house has a secondary pump on the house side (Nolan); House0 has
-        none."""
-        return self.node(NolanNodeNames.secondary_pump_relay, None) is not None
+        house has a secondary pump on the house side (gw.nolan.layout,
+        gw.house0.no.sieg); gw.house0.layout has none."""
+        return self.node(HSNN.secondary_pump_relay, None) is not None
 
     @property
     def fixed_subtrees(self) -> list[tuple[ShNode, list[ShNode]]]:
@@ -1500,6 +1547,8 @@ class HydronicLayout:
         hp_boss_relays = [self.hp_scada_ops_relay]
         if self.has_secondary_pump:
             hp_boss_relays.append(self.secondary_pump_relay)
+        if self.is_house0_no_sieg:
+            hp_boss_relays.append(self.secondary_pump_hack_relay)
         subtrees = [(self.hp_boss, hp_boss_relays)]
         sieg_loop = self.node(House0NodeNames.sieg_loop, None)
         if sieg_loop is not None:
@@ -1561,9 +1610,15 @@ class HydronicLayout:
 
     @property
     def is_house0(self) -> bool:
-            """Layout has sema type gw.house0.layout"""
-            return self.layout_type_name == HOUSE0_LAYOUT_TYPE_NAME
-    
+        """Layout has sema type gw.house0.layout"""
+        return self.layout_type_name == HOUSE0_LAYOUT_TYPE_NAME
+
+    @property
+    def is_house0_no_sieg(self) -> bool:
+        """Layout has sema type gw.house0.no.sieg: a House0 plant with no
+        Siegenthaler loop and a heat exchanger with a secondary pump."""
+        return self.layout_type_name == HOUSE0_NO_SIEG_LAYOUT_TYPE_NAME
+
     @property
     def is_nolan(self) -> bool:
         """Layout has sema type gw.nolan.layout"""
@@ -1621,7 +1676,7 @@ class HydronicLayout:
     @property
     def vdc_relay(self) -> ShNode:
         """Relay that power-cycles the 5VDC bus where all the pico's live"""
-        if self.is_nolan or self.is_house0:
+        if self.is_nolan or self.is_house0 or self.is_house0_no_sieg:
             return self.required_node(HSNN.vdc_relay)
         raise NotImplementedError(f"Unknown if {self.layout_type_name}"
                                   "has a vdc_relay")
@@ -1664,28 +1719,28 @@ class HydronicLayout:
     @property
     def store_pump_relay(self) -> ShNode:
         """Turns the store pump on and off."""
-        if self.is_nolan or self.is_house0:
+        if self.is_nolan or self.is_house0 or self.is_house0_no_sieg:
             return self.required_node(HSNN.store_pump_relay)
 
-    # --- House0 plant only ---
+    # --- House0 words only ---
 
     @property
     def tstat_common_relay(self) -> ShNode:
-        if self.is_house0:
+        if self.is_house0 or self.is_house0_no_sieg:
             return self.required_node(House0NodeNames.tstat_common_relay)
         raise DcError(f"a {self.layout_type_name} plant has no tstat common relay")
 
     @property
     def hp_failsafe_relay(self) -> ShNode:
         """Hands heat-pump control to the scada or back to the tank aquastat."""
-        if self.is_house0:
+        if self.is_house0 or self.is_house0_no_sieg:
             return self.required_node(House0NodeNames.hp_failsafe_relay)
         raise DcError(f"a {self.layout_type_name} plant has no hp failsafe relay")
 
     @property
     def aquastat_control_relay(self) -> ShNode:
         """Hands the aquastat to the scada or back to the oil boiler."""
-        if self.is_house0:
+        if self.is_house0 or self.is_house0_no_sieg:
             return self.required_node(House0NodeNames.aquastat_ctrl_relay)
         raise DcError(f"a {self.layout_type_name} plant has no aquastat ctrl relay")
 
@@ -1718,15 +1773,24 @@ class HydronicLayout:
             return self.required_node(House0NodeNames.hp_loop_keep_send)
         raise DcError(f"a {self.layout_type_name} plant has no hp loop keep/send relay")
 
-    # --- Nolan plant only ---
-
     @property
     def secondary_pump_relay(self) -> ShNode:
-        """Turns the secondary (heat-exchanger side) pump on and off. House0
-        has no heat exchanger, so no such pump."""
-        if self.is_nolan:
-            return self.required_node(NolanNodeNames.secondary_pump_relay)
+        """Turns the secondary (heat-exchanger side) pump on and off, where
+        the plant has a heat exchanger (`has_secondary_pump`)."""
+        if self.has_secondary_pump:
+            return self.required_node(HSNN.secondary_pump_relay)
         raise DcError(f"a {self.layout_type_name} plant has no secondary pump relay")
+
+    @property
+    def secondary_pump_hack_relay(self) -> ShNode:
+        """The relay whose contacts the secondary pump's feed still passes
+        through, energized with the pump; a gw.house0.no.sieg plant has it
+        until the relay is wired out."""
+        if self.is_house0_no_sieg:
+            return self.required_node(House0NodeNames.secondary_pump_hack_relay)
+        raise DcError(f"a {self.layout_type_name} plant has no secondary pump hack relay")
+
+    # --- Nolan plant only ---
 
     @property
     def store_top_elt_relay(self) -> ShNode:

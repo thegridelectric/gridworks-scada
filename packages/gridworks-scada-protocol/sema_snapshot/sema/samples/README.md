@@ -5,7 +5,7 @@ an `examples:` block. Generated from the authored examples (never edited
 by hand) and consumed by `roundtrip.py`. A type version without a sample
 is silently untested by the round-trip, so its absence is recorded here.
 
-Coverage: **107 of 137** seeded type versions have a sample.
+Coverage: **108 of 139** seeded type versions have a sample.
 
 Seeded type versions lacking a sample (no `examples:`):
 
@@ -18,6 +18,7 @@ Seeded type versions lacking a sample (no `examples:`):
 - `fsm.full.report.001`
 - `glitch.000`
 - `gw.house0.layout.000`
+- `gw.house0.no.sieg.000`
 - `gw.native.gpio.pin.000`
 - `gw.nolan.layout.000`
 - `gw.recorded.setpoints.000`

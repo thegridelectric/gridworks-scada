@@ -20,12 +20,12 @@ class NolanNodeNames:
 
     charge_valve_relay = "charge-valve-relay"
 
-    # Plant relays gw.nolan.layout axiom 5 (RequiredActuators) forces to
-    # exist — these constants mirror the sema contract, which is the
-    # authority on the names. The third, hp-scada-ops-relay, is shared with
-    # House0 and so lives in HydronicSpaceheatNodeNames.
+    # A plant relay gw.nolan.layout axiom 5 (RequiredActuators) forces to
+    # exist — the constant mirrors the sema contract, which is the
+    # authority on the names. The other two, hp-scada-ops-relay and
+    # secondary-pump-relay, are shared with House0 words and so live in
+    # HydronicSpaceheatNodeNames.
     iso_valve_relay = "iso-valve-relay"
-    secondary_pump_relay = "secondary-pump-relay"
     # The secondary pump's 0-10V speed input: a board DAC channel driven
     # as an actuator (ZeroTenOutputer with an i2c.dac.output component).
     secondary_010v = "secondary-010v"

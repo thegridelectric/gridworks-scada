@@ -1,0 +1,1161 @@
+from collections import Counter
+from typing import Literal
+
+from pydantic import model_validator
+from typing_extensions import Self
+
+from gwsproto.enums import (
+    ActorClass,
+    GwZoneEmitterType,
+    PrimaryPumpOwner,
+    Quantity,
+    TelemetryName,
+    Unit,
+)
+
+from gwsproto.named_types.data_channel_gt import DataChannelGt
+from gwsproto.named_types.derived_channel_gt import DerivedChannelGt
+from gwsproto.named_types.g_node_gt import GNodeGt
+from gwsproto.named_types.house0_layout import House0Component, House0DeviceType
+from gwsproto.named_types.hp_device_type_gt import HpDeviceTypeGt
+from gwsproto.named_types.hydronic import Hydronic
+from gwsproto.named_types.i2c_dac_output_component_gt import I2cDacOutputComponentGt
+from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
+from gwsproto.names.hydronic_spaceheat.node_names import (
+    HydronicSpaceheatNodeNames as HSNN,
+)
+from gwsproto.property_format import SpaceheatName
+from gwsproto.type_helpers.backup_axioms import check_backup_node, check_backup_relays
+from gwsproto.type_helpers.board_resolution import (
+    I2C_DAC_OUTPUT,
+    I2C_RELAY,
+    check_board_resolution,
+)
+from gwsproto.type_helpers.channel_integrity_axioms import (
+    check_channel_name_uniqueness,
+    check_data_channel_node_resolution,
+    check_derived_channel_creator_resolution,
+    check_derived_channel_inputs_acyclic,
+)
+from gwsproto.type_helpers.circuit_channel_axioms import (
+    check_circuit_heat_call_channel,
+    check_circuit_setpoint_channel,
+    check_circuit_temp_channel_resolution,
+    check_circuit_whitewire_channel_resolution,
+    check_read_thermostat_channels,
+)
+from gwsproto.type_helpers.command_tree_axioms import (
+    COMMAND_CLASSES,
+    check_actuator_leaves,
+    check_prefix_closed_handles,
+)
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
+
+class House0NoSiegLayout(GwsprotoSemaType):
+    """
+    Sema: https://schemas.electricity.works/types/gw.house0.no.sieg/000
+    """
+
+    GNodes: list[GNodeGt]
+    ShNodes: list[SpaceheatNodeGt]
+    DataChannels: list[DataChannelGt]
+    DerivedChannels: list[DerivedChannelGt]
+    Components: list[House0Component]
+    DeviceTypes: list[House0DeviceType]
+    Hydronic: Hydronic
+    DisabledNodeNames: list[SpaceheatName]
+    DisabledChannelNames: list[SpaceheatName]
+    TypeName: Literal["gw.house0.no.sieg"] = "gw.house0.no.sieg"
+    Version: Literal["000"] = "000"
+
+    @model_validator(mode="after")
+    def check_axiom_1(self) -> Self:
+        """
+        Axiom 1: GlobalIdUniqueness
+        ShNode.ShNodeId, Component.ComponentId, DataChannel.Id, DerivedChannel.Id
+        and GNode.GNodeId SHALL each be globally unique; no id value SHALL appear
+        in more than one of these sets.
+        """
+        ids: list[str] = []
+        ids += [n.ShNodeId for n in (self.ShNodes or [])]
+        ids += [c.ComponentId for c in (self.Components or [])]
+        ids += [d.Id for d in (self.DataChannels or [])]
+        ids += [d.Id for d in (self.DerivedChannels or [])]
+        ids += [g.GNodeId for g in (self.GNodes or [])]
+        seen: set[str] = set()
+        dupes: set[str] = set()
+        for i in ids:
+            if i in seen:
+                dupes.add(i)
+            seen.add(i)
+        if dupes:
+            raise ValueError(
+                f"Axiom 1 (GlobalIdUniqueness) failed: duplicate ids {sorted(dupes)}"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_2(self) -> Self:
+        """
+        Axiom 2: CoreShNodesExistenceAndActorClass
+        ShNodes SHALL contain a node with each of the following Name /
+        ActorClass pairs, and no additional ShNode with any of these Names
+        SHALL exist:
+          "s"                 → ActorClass "PrimaryScada"
+          "s2"                → ActorClass "SecondaryScada"
+          "power-meter"       → ActorClass "PowerMeter"
+          "ltn"               → ActorClass "NoActor"
+          "admin"             → ActorClass "NoActor"
+          "auto"              → ActorClass "NoActor"
+          "la"                → ActorClass "LeafAlly"
+          "lc"                → ActorClass "LocalControl"
+          "derived-generator" → ActorClass "DerivedGenerator"
+          "cold-watch"        → ActorClass "ColdWatch"
+        The effective handle (Handle if present, otherwise Name) of "admin"
+        SHALL be "admin" and of "auto" SHALL be "auto".
+        """
+        if not self.ShNodes:
+            return self
+        pairs = {
+            "s": ActorClass.PrimaryScada,
+            "s2": ActorClass.SecondaryScada,
+            "power-meter": ActorClass.PowerMeter,
+            "ltn": ActorClass.NoActor,
+            "admin": ActorClass.NoActor,
+            "auto": ActorClass.NoActor,
+            "la": ActorClass.LeafAlly,
+            "lc": ActorClass.LocalControl,
+            "derived-generator": ActorClass.DerivedGenerator,
+            "cold-watch": ActorClass.ColdWatch,
+        }
+        nodes_by_name: dict[str, list] = {}
+        for n in self.ShNodes:
+            nodes_by_name.setdefault(n.Name, []).append(n)
+        for name, actor_class in pairs.items():
+            matches = nodes_by_name.get(name, [])
+            if len(matches) != 1 or matches[0].ActorClass != actor_class:
+                raise ValueError(
+                    f"Axiom 2 (CoreShNodesExistenceAndActorClass) failed: expected exactly one "
+                    f"ShNode {name!r} with ActorClass {actor_class}."
+                )
+        for name, handle in (("admin", "admin"), ("auto", "auto")):
+            node = nodes_by_name[name][0]
+            effective = node.Handle if node.Handle is not None else node.Name
+            if effective != handle:
+                raise ValueError(
+                    f"Axiom 2 (CoreShNodesExistenceAndActorClass) failed: {name!r} effective "
+                    f"handle is {effective!r}, expected {handle!r}."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_3(self) -> Self:
+        """
+        Axiom 3: CommandNodesExistenceAndActorClass
+        a. ShNodes SHALL contain a node with each of the following Name /
+        ActorClass pairs, and no additional ShNode with any of these Names
+        SHALL exist:
+          "n"             → ActorClass "NoActor"
+          "cold-override" → ActorClass "NoActor"
+          "scada-blind"   → ActorClass "NoActor"
+          "standby"       → ActorClass "NoActor"
+          "five-v-boss"   → ActorClass "FiveVBoss"
+          "pico-cycler"   → ActorClass "PicoCycler"
+          "hp-boss"       → ActorClass "HpBoss"
+        b. If Hydronic.Backup is present, ShNodes SHALL contain exactly one
+        node named "backup", with ActorClass "NoActor".
+        c. If Hydronic.Backup is absent, no ShNode SHALL be named "backup".
+        """
+        if not self.ShNodes:
+            return self
+        pairs = {
+            "n": ActorClass.NoActor,
+            "cold-override": ActorClass.NoActor,
+            "scada-blind": ActorClass.NoActor,
+            "standby": ActorClass.NoActor,
+            "five-v-boss": ActorClass.FiveVBoss,
+            "pico-cycler": ActorClass.PicoCycler,
+            "hp-boss": ActorClass.HpBoss,
+        }
+        nodes_by_name: dict[str, list] = {}
+        for n in self.ShNodes:
+            nodes_by_name.setdefault(n.Name, []).append(n)
+        for name, actor_class in pairs.items():
+            matches = nodes_by_name.get(name, [])
+            if len(matches) != 1 or matches[0].ActorClass != actor_class:
+                raise ValueError(
+                    f"Axiom 3 (CommandNodesExistenceAndActorClass) failed: expected exactly one "
+                    f"ShNode {name!r} with ActorClass {actor_class}."
+                )
+        check_backup_node(
+            self.ShNodes, self.Hydronic.Backup, "Axiom 3 (CommandNodesExistenceAndActorClass)"
+        )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_4(self) -> Self:
+        """
+        Axiom 4: CircuitHeatCallChannel
+        For each circuit in Hydronic.ZoneCallCircuits, exactly one channel in DerivedChannels
+        SHALL have Strategy "heat-call" and InputChannelNames equal to [the circuit's
+        WhitewireChannelName].
+        """
+        check_circuit_heat_call_channel(
+            self.Hydronic.ZoneCallCircuits, self.DerivedChannels,
+            "Axiom 4 (CircuitHeatCallChannel)",
+        )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_5(self) -> Self:
+        """
+        Axiom 5: PrimaryFlowSourceChannelAgreement
+        Hydronic.PrimaryFlowSource SHALL be "Measured": a DataChannel named
+        "primary-flow" SHALL exist and no DerivedChannel named "primary-flow"
+        SHALL exist.
+        """
+        if self.Hydronic is None:
+            return self
+        source = self.Hydronic.PrimaryFlowSource
+        has_data = any(d.Name == "primary-flow" for d in (self.DataChannels or []))
+        derived = [d for d in (self.DerivedChannels or []) if d.Name == "primary-flow"]
+        if source != "Measured":
+            raise ValueError(
+                "Axiom 5 (PrimaryFlowSourceChannelAgreement) failed: PrimaryFlowSource "
+                f"SHALL be Measured, not {source}."
+            )
+        if not has_data:
+            raise ValueError(
+                "Axiom 5 (PrimaryFlowSourceChannelAgreement) failed: Measured requires a "
+                "'primary-flow' DataChannel."
+            )
+        if derived:
+            raise ValueError(
+                "Axiom 5 (PrimaryFlowSourceChannelAgreement) failed: Measured forbids a "
+                "'primary-flow' DerivedChannel."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_7(self) -> Self:
+        """
+        Axiom 7: RequiredSensing
+        For each required sensing name, a channel with that Name SHALL exist
+        in DataChannels or in DerivedChannels (kind-agnostic).
+        """
+        if not self.ShNodes:
+            return self
+        names = {c.Name for c in (self.DataChannels or [])} | {
+            c.Name for c in (self.DerivedChannels or [])
+        }
+        required = {
+            "hp-odu-pwr",
+            "primary-pump-pwr", "store-pump-pwr", "dist-pump-pwr",
+            "hp-lwt", "hp-ewt", "dist-swt", "dist-rwt",
+            "store-hot-pipe", "store-cold-pipe", "buffer-hot-pipe",
+            "dist-flow", "store-flow",
+            "secondary-flow", "secondary-lwt", "secondary-ewt", "secondary-pump-pwr",
+        }
+        missing = sorted(required - names)
+        if missing:
+            raise ValueError(
+                f"Axiom 7 (RequiredSensing) failed: missing channel(s) {missing}."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_6(self) -> Self:
+        """
+        Axiom 6: TransactivePowerChannel
+        Exactly one transactive-power DerivedChannel; each input resolves to
+        a PowerW DataChannel whose AboutNode carries a NameplatePowerW and
+        is not in DisabledChannelNames.
+        """
+        if not self.ShNodes:
+            return self
+        transactive = [
+            d for d in (self.DerivedChannels or [])
+            if d.Strategy == "transactive-power"
+        ]
+        if len(transactive) != 1:
+            raise ValueError(
+                "Axiom 6 (TransactivePowerChannel) failed: expected exactly one "
+                f"transactive-power DerivedChannel, found {len(transactive)}."
+            )
+        data_by_name = {d.Name: d for d in (self.DataChannels or [])}
+        node_by_name = {n.Name: n for n in (self.ShNodes or [])}
+        for name in transactive[0].InputChannelNames:
+            ch = data_by_name.get(name)
+            if ch is None:
+                raise ValueError(
+                    f"Axiom 6 (TransactivePowerChannel) failed: input '{name}' is not a DataChannel."
+                )
+            if ch.TelemetryName != "PowerW":
+                raise ValueError(
+                    f"Axiom 6 (TransactivePowerChannel) failed: input '{name}' must be PowerW, "
+                    f"got '{ch.TelemetryName}'."
+                )
+            node = node_by_name.get(ch.AboutNodeName)
+            if node is None or node.NameplatePowerW is None:
+                raise ValueError(
+                    f"Axiom 6 (TransactivePowerChannel) failed: about-node "
+                    f"'{ch.AboutNodeName}' of input '{name}' has no NameplatePowerW."
+                )
+            if name in self.DisabledChannelNames:
+                raise ValueError(
+                    f"Axiom 6 (TransactivePowerChannel) failed: input '{name}' "
+                    "is in DisabledChannelNames."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_8(self) -> Self:
+        """
+        Axiom 8: SystemModelEnergyChannels
+        usable-energy and required-energy DerivedChannels from the
+        derived-generator with Strategy system-model, naming exactly
+        gw0.usable.energy.layered and gw0.required.energy.layered.
+        """
+        if not self.ShNodes:
+            return self
+        expected_models = {
+            "gw0.usable.energy.layered",
+            "gw0.required.energy.layered",
+        }
+        derived_by_name = {d.Name: d for d in (self.DerivedChannels or [])}
+        seen: set = set()
+        for name in ("usable-energy", "required-energy"):
+            channel = derived_by_name.get(name)
+            if channel is None:
+                raise ValueError(
+                    "Axiom 8 (SystemModelEnergyChannels) failed: DerivedChannel "
+                    f"'{name}' is absent."
+                )
+            if channel.CreatedByNodeName != "derived-generator":
+                raise ValueError(
+                    f"Axiom 8 (SystemModelEnergyChannels) failed: '{name}' must be "
+                    f"created by 'derived-generator', got '{channel.CreatedByNodeName}'."
+                )
+            if channel.Strategy != "system-model":
+                raise ValueError(
+                    f"Axiom 8 (SystemModelEnergyChannels) failed: '{name}' must use "
+                    f"Strategy 'system-model', got '{channel.Strategy}'."
+                )
+            model = (channel.Parameters or {}).get("EnergyModel") or {}
+            type_name = model.get("TypeName")
+            if not type_name:
+                raise ValueError(
+                    f"Axiom 8 (SystemModelEnergyChannels) failed: '{name}' has no "
+                    "Parameters.EnergyModel.TypeName."
+                )
+            if type_name not in expected_models:
+                raise ValueError(
+                    f"Axiom 8 (SystemModelEnergyChannels) failed: '{name}' names "
+                    f"unsupported EnergyModel '{type_name}'."
+                )
+            seen.add(type_name)
+        if seen != expected_models:
+            raise ValueError(
+                "Axiom 8 (SystemModelEnergyChannels) failed: the two channels must "
+                f"name one of each model; got {sorted(seen)}."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_9(self) -> Self:
+        """
+        Axiom 9: RequiredActuators
+        a. The nine plant relays exist with ActorClass Relay and the two
+        *-010v outputs with ActorClass ZeroTenOutputer. b. Each circuit's relay
+        pair names a Relay ShNode. c. Each
+        *-010v output's ComponentId is an i2c.dac.output.component.gt in
+        Components.
+        """
+        actor_class_by_name = {n.Name: n.ActorClass for n in self.ShNodes}
+
+        def class_or_raise(node_name: str, expected: ActorClass, role: str) -> None:
+            actor_class = actor_class_by_name.get(node_name)
+            if actor_class is None:
+                raise ValueError(
+                    f"Axiom 9 (RequiredActuators) failed: no ShNode named "
+                    f"{node_name} ({role})."
+                )
+            if actor_class != expected:
+                raise ValueError(
+                    f"Axiom 9 (RequiredActuators) failed: {node_name} ({role}) "
+                    f"has ActorClass {actor_class}, not {expected.value}."
+                )
+
+        for required in (
+            "vdc-relay",
+            "tstat-common-relay",
+            "charge-discharge-relay",
+            "hp-failsafe-relay",
+            "hp-scada-ops-relay",
+            "aquastat-ctrl-relay",
+            "store-pump-relay",
+            "secondary-pump-relay",
+            "secondary-pump-hack-relay",
+        ):
+            class_or_raise(required, ActorClass.Relay, "plant relay")
+        for required in ("dist-010v", "store-010v"):
+            class_or_raise(required, ActorClass.ZeroTenOutputer, "0-10V output")
+        for circuit in self.Hydronic.ZoneCallCircuits:
+            class_or_raise(
+                circuit.FailsafeRelayNode, ActorClass.Relay, "circuit failsafe relay"
+            )
+            class_or_raise(circuit.OpsRelayNode, ActorClass.Relay, "circuit ops relay")
+        dac_output_ids = {
+            c.ComponentId
+            for c in self.Components
+            if isinstance(c, I2cDacOutputComponentGt)
+        }
+        component_id_by_name = {n.Name: n.ComponentId for n in self.ShNodes}
+        for output in ("dist-010v", "store-010v"):
+            if component_id_by_name.get(output) not in dac_output_ids:
+                raise ValueError(
+                    f"Axiom 9 (RequiredActuators) failed: {output} ComponentId "
+                    f"{component_id_by_name.get(output)} is not an "
+                    "i2c.dac.output.component.gt in Components."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_10(self) -> Self:
+        """
+        Axiom 10: RequiredHeatpumpEquipment
+        hp-odu exists, bound to a Component, NoActor unless it is the
+        declared HpCommandNodeName (CommandableHeatPump).
+        """
+        component_ids = {c.ComponentId for c in self.Components}
+        nodes = {n.Name: n for n in self.ShNodes}
+        for name in ("hp-odu",):
+            node = nodes.get(name)
+            if node is None:
+                raise ValueError(
+                    f"Axiom 10 (RequiredHeatpumpEquipment) failed: no ShNode named {name!r}."
+                )
+            if node.ComponentId is None or node.ComponentId not in component_ids:
+                raise ValueError(
+                    f"Axiom 10 (RequiredHeatpumpEquipment) failed: {name!r} has no "
+                    "ComponentId resolving to a Component."
+                )
+            if name == self.Hydronic.HpCommandNodeName:
+                continue  # ActorClass governed by CommandableHeatPump
+            if node.ActorClass != ActorClass.NoActor:
+                raise ValueError(
+                    f"Axiom 10 (RequiredHeatpumpEquipment) failed: {name!r} has "
+                    f"ActorClass {node.ActorClass}, expected NoActor."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_11(self) -> Self:
+        """
+        Axiom 11: CommandableHeatPump.
+        a. If Hydronic.HpCommandNodeName is present, it names an ShNode called
+        hp-odu or hp-ctrl-box, bound to a Component, with ActorClass
+        HpTwin, whose effective handle sits directly under hp-boss's.
+        b. Every HpTwin-classed ShNode is the declared node; none when absent.
+        """
+        declared = self.Hydronic.HpCommandNodeName
+        nodes = {n.Name: n for n in self.ShNodes}
+        if declared is not None:
+            node = nodes.get(declared)
+            if node is None or declared not in ("hp-odu", "hp-ctrl-box"):
+                raise ValueError(
+                    f"Axiom 11 (CommandableHeatPump) failed: HpCommandNodeName "
+                    f"{declared!r} is not an ShNode named hp-odu or hp-ctrl-box."
+                )
+            component_ids = {c.ComponentId for c in self.Components}
+            if node.ComponentId is None or node.ComponentId not in component_ids:
+                raise ValueError(
+                    f"Axiom 11 (CommandableHeatPump) failed: {declared!r} has no "
+                    "ComponentId resolving to a Component."
+                )
+            if node.ActorClass != ActorClass.HpTwin:
+                raise ValueError(
+                    f"Axiom 11 (CommandableHeatPump) failed: {declared!r} has "
+                    f"ActorClass {node.ActorClass}, expected HpTwin."
+                )
+            hp_boss = nodes.get("hp-boss")
+            boss_handle = (hp_boss.Handle or hp_boss.Name) if hp_boss is not None else None
+            handle = node.Handle or node.Name
+            if "." not in handle or handle.rsplit(".", 1)[0] != boss_handle:
+                raise ValueError(
+                    f"Axiom 11 (CommandableHeatPump) failed: {declared!r} handle "
+                    f"{handle!r} is not directly under hp-boss ({boss_handle!r})."
+                )
+        for n in self.ShNodes:
+            if n.ActorClass == ActorClass.HpTwin and n.Name != declared:
+                raise ValueError(
+                    f"Axiom 11 (CommandableHeatPump) failed: {n.Name!r} has "
+                    f"ActorClass HpTwin but HpCommandNodeName is {declared!r}."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_12(self) -> Self:
+        """
+        Axiom 12: PrefixClosedHandles.
+        The authored handles are the initial command tree: every dot-separated
+        prefix of an effective handle is the effective handle of some ShNode.
+        """
+        check_prefix_closed_handles(self.ShNodes, "Axiom 12 (PrefixClosedHandles)")
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_13(self) -> Self:
+        """
+        Axiom 13: ActuatorLeaves.
+        a. Every actuator SHALL have a dotted effective handle and SHALL be a
+        leaf. b. Every leaf SHALL be an actuator or a command node.
+        c. Every NoActor ShNode directly under the LocalControl ShNode SHALL be
+        one of local control's state nodes, named for the gw2.lc.top.state
+        values in which local control holds the command tree: "n" (Normal),
+        "backup" (InBackup), "scada-blind" (ScadaBlind) or
+        "standby" (Standby).
+        """
+        check_actuator_leaves(
+            self.ShNodes, "Axiom 13 (ActuatorLeaves)", command_classes=COMMAND_CLASSES
+        )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_14(self) -> Self:
+        """
+        Axiom 14: ComponentBinding
+        Every Component in Components SHALL have its ComponentId referenced by
+        exactly one ShNode in ShNodes.
+        """
+        refs = Counter(n.ComponentId for n in self.ShNodes if n.ComponentId)
+        violations = {
+            c.ComponentId: refs.get(c.ComponentId, 0)
+            for c in self.Components
+            if refs.get(c.ComponentId, 0) != 1
+        }
+        if violations:
+            raise ValueError(
+                "Axiom 14 (ComponentBinding) failed: components not referenced by "
+                f"exactly one ShNode (id: reference count) {violations}."
+            )
+        return self
+
+
+    @model_validator(mode="after")
+    def check_axiom_15(self) -> Self:
+        """
+        Axiom 15: BoardResolution
+        Every i2c.relay.component.gt and i2c.dac.output.component.gt resolves
+        through its BoardComponentId to a scada.board.component.gt, that
+        board's DeviceType to a gw1.scada.device.type.gt record, and its
+        RelayName / DacName to a name in that record.
+        """
+        check_board_resolution(
+            self.Components,
+            self.DeviceTypes,
+            {
+                "i2c.relay.component.gt": I2C_RELAY,
+                "i2c.dac.output.component.gt": I2C_DAC_OUTPUT,
+            },
+            "Axiom 15 (BoardResolution)",
+            every_board_resident=False,
+        )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_16(self) -> Self:
+        """
+        Axiom 16: BufferTank
+        A House0 home has a buffer tank. For each depth i in 1..3 a channel
+        named "buffer-depth{i}" SHALL exist in DataChannels or in
+        DerivedChannels.
+        """
+        channels = {c.Name for c in self.DataChannels} | {
+            c.Name for c in self.DerivedChannels
+        }
+        missing = [
+            f"buffer-depth{i}" for i in (1, 2, 3) if f"buffer-depth{i}" not in channels
+        ]
+        if missing:
+            raise ValueError(
+                f"Axiom 16 (BufferTank) failed: missing buffer channel(s) {missing}."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_17(self) -> Self:
+        """
+        Axiom 17: CircuitTempChannelResolution
+        a. Every circuit's TempChannelName in Hydronic.ZoneCallCircuits SHALL equal the
+        Name of a channel in DataChannels or in DerivedChannels.
+        b. That channel SHALL carry temperature: a DataChannel's Quantity, or a
+        DerivedChannel's OutputQuantity, SHALL be Temperature.
+        """
+        check_circuit_temp_channel_resolution(
+            self.Hydronic.ZoneCallCircuits, self.DataChannels, self.DerivedChannels,
+            "Axiom 17 (CircuitTempChannelResolution)",
+        )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_18(self) -> Self:
+        """
+        Axiom 18: CircuitWhitewireChannelResolution
+        Every circuit's WhitewireChannelName in Hydronic.ZoneCallCircuits SHALL equal the Name
+        of a channel in DataChannels.
+        """
+        check_circuit_whitewire_channel_resolution(
+            self.Hydronic.ZoneCallCircuits, self.DataChannels,
+            "Axiom 18 (CircuitWhitewireChannelResolution)",
+        )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_19(self) -> Self:
+        """
+        Axiom 19: DerivedChannelCreatorResolution
+        a. Every channel's CreatedByNodeName in DerivedChannels SHALL equal the Name of a
+        ShNode in ShNodes.
+        b. The ShNode named by a channel's CreatedByNodeName SHALL NOT have ActorClass
+        "NoActor".
+        """
+        check_derived_channel_creator_resolution(
+            self.ShNodes, self.DerivedChannels,
+            "Axiom 19 (DerivedChannelCreatorResolution)",
+        )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_20(self) -> Self:
+        """
+        Axiom 20: DataChannelNodeResolution
+        a. Every channel's AboutNodeName in DataChannels SHALL equal the Name of a ShNode in
+        ShNodes.
+        b. Every channel's CapturedByNodeName in DataChannels SHALL equal the Name of a ShNode
+        in ShNodes.
+        c. The ShNode named by a channel's CapturedByNodeName SHALL NOT have ActorClass
+        "NoActor".
+        """
+        check_data_channel_node_resolution(
+            self.ShNodes, self.DataChannels,
+            "Axiom 20 (DataChannelNodeResolution)",
+        )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_21(self) -> Self:
+        """
+        Axiom 21: DerivedChannelInputsAcyclic
+        a. Every name in a channel's InputChannelNames in DerivedChannels SHALL equal the Name
+        of a channel in DataChannels or in DerivedChannels.
+        b. No channel in DerivedChannels SHALL be reachable from itself by following
+        InputChannelNames.
+        """
+        check_derived_channel_inputs_acyclic(
+            self.DataChannels, self.DerivedChannels,
+            "Axiom 21 (DerivedChannelInputsAcyclic)",
+        )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_22(self) -> Self:
+        """
+        Axiom 22: ChannelNameUniqueness
+        The Names of the channels in DataChannels and DerivedChannels, taken together, SHALL be
+        pairwise distinct.
+        """
+        check_channel_name_uniqueness(
+            self.DataChannels, self.DerivedChannels,
+            "Axiom 22 (ChannelNameUniqueness)",
+        )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_23(self) -> Self:
+        """
+        Axiom 23: StoreTankTemps
+        For each tank index N in 1..Hydronic.WaterStore.TotalStoreTanks and each
+        depth i in 1..3, a channel named "tank{N}-depth{i}" SHALL exist in
+        DataChannels or in DerivedChannels.
+        """
+        store = self.Hydronic.WaterStore
+        total_tanks = store.TotalStoreTanks if store is not None else 0
+        channels = {c.Name for c in self.DataChannels} | {
+            c.Name for c in self.DerivedChannels
+        }
+        missing = [
+            f"tank{tank}-depth{depth}"
+            for tank in range(1, total_tanks + 1)
+            for depth in (1, 2, 3)
+            if f"tank{tank}-depth{depth}" not in channels
+        ]
+        if missing:
+            raise ValueError(
+                f"Axiom 23 (StoreTankTemps) failed: missing store tank channel(s) "
+                f"{missing}."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_24(self) -> Self:
+        """
+        Axiom 24: WebServerNode
+        ShNodes SHALL contain exactly one node named "web-server", with
+        ActorClass "NoActor".
+        """
+        matches = [node for node in self.ShNodes if node.Name == "web-server"]
+        if len(matches) != 1 or matches[0].ActorClass != ActorClass.NoActor:
+            raise ValueError(
+                f"Axiom 24 (WebServerNode) failed: expected exactly one ShNode "
+                f"'web-server' with ActorClass NoActor, got {matches}."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_25(self) -> Self:
+        """
+        Axiom 25: FloorLoopCircuitTemp
+        a. Every circuit in Hydronic.ZoneCallCircuits whose EmitterType is
+        "RadiantSlab" SHALL carry FloorTempChannelName. b. Where a circuit
+        carries FloorTempChannelName, it SHALL equal the Name of a channel in
+        DataChannels or in DerivedChannels, and that channel SHALL carry
+        temperature: a DataChannel's Quantity, or a DerivedChannel's
+        OutputQuantity, SHALL be Temperature.
+        """
+        quantity_by_name = {d.Name: d.Quantity for d in self.DataChannels}
+        quantity_by_name.update(
+            {d.Name: d.OutputQuantity for d in self.DerivedChannels}
+        )
+        for circuit in self.Hydronic.ZoneCallCircuits:
+            floor_channel = circuit.FloorTempChannelName
+            if floor_channel is None:
+                if circuit.EmitterType == GwZoneEmitterType.RadiantSlab:
+                    raise ValueError(
+                        "Axiom 25 (FloorLoopCircuitTemp) failed: circuit at position "
+                        f"{circuit.CircuitPosition} has EmitterType "
+                        f"{circuit.EmitterType}, so it SHALL carry FloorTempChannelName."
+                    )
+                continue
+            if floor_channel not in quantity_by_name:
+                raise ValueError(
+                    "Axiom 25 (FloorLoopCircuitTemp) failed: circuit at position "
+                    f"{circuit.CircuitPosition} names FloorTempChannelName "
+                    f"{floor_channel!r}, which is not a channel in DataChannels or "
+                    "DerivedChannels."
+                )
+            if quantity_by_name[floor_channel] != Quantity.Temperature:
+                raise ValueError(
+                    "Axiom 25 (FloorLoopCircuitTemp) failed: circuit at position "
+                    f"{circuit.CircuitPosition} names {floor_channel!r}, whose "
+                    f"quantity is {quantity_by_name[floor_channel]}, not Temperature."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_26(self) -> Self:
+        """
+        Axiom 26: DisabledNamesResolve
+        Every name in DisabledNodeNames SHALL equal the Name of an ShNode in
+        ShNodes, and every name in DisabledChannelNames SHALL equal the Name of
+        a channel in DataChannels or in DerivedChannels.
+        """
+        node_names = {node.Name for node in self.ShNodes}
+        channel_names = {c.Name for c in self.DataChannels} | {
+            c.Name for c in self.DerivedChannels
+        }
+        for name in self.DisabledNodeNames:
+            if name not in node_names:
+                raise ValueError(
+                    "Axiom 26 (DisabledNamesResolve) failed: "
+                    f"DisabledNodeNames names '{name}', which is no ShNode."
+                )
+        for name in self.DisabledChannelNames:
+            if name not in channel_names:
+                raise ValueError(
+                    "Axiom 26 (DisabledNamesResolve) failed: "
+                    f"DisabledChannelNames names '{name}', which is no channel."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_27(self) -> Self:
+        """
+        Axiom 27: DisabledNodesAreSensors
+        Every name in DisabledNodeNames SHALL be the CapturedByNodeName of at
+        least one DataChannel and SHALL NOT be a Relay or ZeroTenOutputer
+        node; every DataChannel whose CapturedByNodeName is in
+        DisabledNodeNames SHALL have its Name in DisabledChannelNames; no name
+        in DisabledChannelNames SHALL be a DataChannel captured by such a
+        node. Disabling is a sensing concept; an actuator is wired or absent.
+        """
+        disabled_nodes = set(self.DisabledNodeNames)
+        disabled_channels = set(self.DisabledChannelNames)
+        capturing = {c.CapturedByNodeName for c in self.DataChannels}
+        actuators = {
+            n.Name for n in self.ShNodes
+            if n.ActorClass in (ActorClass.Relay, ActorClass.ZeroTenOutputer)
+        }
+        for name in disabled_nodes:
+            if name not in capturing:
+                raise ValueError(
+                    "Axiom 27 (DisabledNodesAreSensors) failed: "
+                    f"'{name}' captures no DataChannel."
+                )
+            if name in actuators:
+                raise ValueError(
+                    "Axiom 27 (DisabledNodesAreSensors) failed: "
+                    f"'{name}' is an actuator; an actuator is wired or absent."
+                )
+        for c in self.DataChannels:
+            if c.CapturedByNodeName in disabled_nodes and c.Name not in disabled_channels:
+                raise ValueError(
+                    "Axiom 27 (DisabledNodesAreSensors) failed: "
+                    f"'{c.Name}' is captured by disabled node "
+                    f"'{c.CapturedByNodeName}' but is not in DisabledChannelNames."
+                )
+            if c.Name in disabled_channels and c.CapturedByNodeName in actuators:
+                raise ValueError(
+                    "Axiom 27 (DisabledNodesAreSensors) failed: "
+                    f"'{c.Name}' is captured by actuator '{c.CapturedByNodeName}'."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_28(self) -> Self:
+        """
+        Axiom 28: EnabledDerivedChannelsHaveLiveInputs
+        Every DerivedChannel whose Name is not in DisabledChannelNames SHALL
+        have no name in its InputChannelNames that is in DisabledChannelNames.
+        """
+        disabled = set(self.DisabledChannelNames)
+        for d in self.DerivedChannels:
+            if d.Name in disabled:
+                continue
+            dead = [name for name in d.InputChannelNames if name in disabled]
+            if dead:
+                raise ValueError(
+                    f"Axiom 28 (EnabledDerivedChannelsHaveLiveInputs) failed: "
+                    f"'{d.Name}' is enabled but reads disabled inputs {dead}."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_29(self) -> Self:
+        """
+        Axiom 29: ActuatorChannels
+        a. Every ShNode RequiredActuators names — the listed relays and 0-10V
+        outputs, and each circuit's FailsafeRelayNode and OpsRelayNode — has a
+        DataChannel of the same Name, about and captured by that node.
+        b. That channel's TelemetryName is RelayState for a Relay and
+        VoltsTimesTen for a ZeroTenOutputer.
+        """
+        relays = [
+            "vdc-relay",
+            "tstat-common-relay",
+            "charge-discharge-relay",
+            "hp-failsafe-relay",
+            "hp-scada-ops-relay",
+            "aquastat-ctrl-relay",
+            "store-pump-relay",
+            "secondary-pump-relay",
+            "secondary-pump-hack-relay",
+        ]
+        for circuit in self.Hydronic.ZoneCallCircuits or []:
+            relays.extend((circuit.FailsafeRelayNode, circuit.OpsRelayNode))
+        outputs = ["dist-010v", "store-010v"]
+        channel_by_name = {c.Name: c for c in (self.DataChannels or [])}
+        for name, telemetry in [(r, TelemetryName.RelayState) for r in relays] + [
+            (o, TelemetryName.VoltsTimesTen) for o in outputs
+        ]:
+            channel = channel_by_name.get(name)
+            if channel is None:
+                raise ValueError(
+                    f"Axiom 29 (ActuatorChannels) failed: actuator '{name}' has no "
+                    "DataChannel of the same Name."
+                )
+            if channel.AboutNodeName != name or channel.CapturedByNodeName != name:
+                raise ValueError(
+                    f"Axiom 29 (ActuatorChannels) failed: channel '{name}' is about "
+                    f"'{channel.AboutNodeName}', captured by "
+                    f"'{channel.CapturedByNodeName}'; both SHALL be '{name}'."
+                )
+            if channel.TelemetryName != telemetry:
+                raise ValueError(
+                    f"Axiom 29 (ActuatorChannels) failed: channel '{name}' has "
+                    f"TelemetryName {channel.TelemetryName}, not {telemetry.value}."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_30(self) -> Self:
+        """
+        Axiom 30: PrimaryPumpActuators
+        Under Hydronic.PrimaryPumpOwner Scada the primary-pump failsafe and
+        scada-ops relays and primary-010v exist (Relay / ZeroTenOutputer on a
+        DAC output component), each with its own-name DataChannel; under
+        HeatPump none of the three names exists as a node or channel.
+        """
+        wanted = {
+            "primary-pump-failsafe-relay": (ActorClass.Relay, TelemetryName.RelayState),
+            "primary-pump-scada-ops-relay": (ActorClass.Relay, TelemetryName.RelayState),
+            "primary-010v": (ActorClass.ZeroTenOutputer, TelemetryName.VoltsTimesTen),
+        }
+        nodes = {n.Name: n for n in self.ShNodes}
+        channels = {c.Name: c for c in self.DataChannels}
+        if self.Hydronic.PrimaryPumpOwner == PrimaryPumpOwner.HeatPump:
+            present = sorted(name for name in wanted if name in nodes or name in channels)
+            if present:
+                raise ValueError(
+                    "Axiom 30 (PrimaryPumpActuators) failed: PrimaryPumpOwner is "
+                    f"HeatPump but {present} exist as ShNodes or DataChannels."
+                )
+            return self
+        dac_output_ids = {
+            c.ComponentId for c in self.Components if isinstance(c, I2cDacOutputComponentGt)
+        }
+        for name, (actor_class, telemetry) in wanted.items():
+            node = nodes.get(name)
+            if node is None or node.ActorClass != actor_class:
+                raise ValueError(
+                    "Axiom 30 (PrimaryPumpActuators) failed: PrimaryPumpOwner is Scada "
+                    f"but no ShNode named {name!r} with ActorClass {actor_class.value}."
+                )
+            if actor_class == ActorClass.ZeroTenOutputer and node.ComponentId not in dac_output_ids:
+                raise ValueError(
+                    "Axiom 30 (PrimaryPumpActuators) failed: primary-010v ComponentId "
+                    f"{node.ComponentId} is not an i2c.dac.output.component.gt."
+                )
+            channel = channels.get(name)
+            if (
+                channel is None
+                or channel.AboutNodeName != name
+                or channel.CapturedByNodeName != name
+                or channel.TelemetryName != telemetry
+            ):
+                raise ValueError(
+                    f"Axiom 30 (PrimaryPumpActuators) failed: actuator {name!r} has no "
+                    "DataChannel of its own Name about and captured by itself with "
+                    f"TelemetryName {telemetry.value}."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_31(self) -> Self:
+        """
+        Axiom 31: PrimaryPumpRecordAgreement
+        Under Hydronic.PrimaryPumpOwner Scada, no hp.device.type.gt record
+        joined (by DeviceType) to the component hp-odu binds has
+        PrimaryPumpFactoryInstalled true with PrimaryPumpOverridable false.
+        """
+        if self.Hydronic.PrimaryPumpOwner != PrimaryPumpOwner.Scada:
+            return self
+        component_by_id = {c.ComponentId: c for c in self.Components}
+        device_types: set[str] = set()
+        for n in self.ShNodes:
+            if n.Name == "hp-odu" and n.ComponentId in component_by_id:
+                device_type = getattr(component_by_id[n.ComponentId], "DeviceType", None)
+                if device_type is not None:
+                    device_types.add(device_type)
+        for r in self.DeviceTypes:
+            if not isinstance(r, HpDeviceTypeGt) or r.DeviceType not in device_types:
+                continue
+            if r.PrimaryPumpFactoryInstalled and not r.PrimaryPumpOverridable:
+                raise ValueError(
+                    "Axiom 31 (PrimaryPumpRecordAgreement) failed: PrimaryPumpOwner is "
+                    f"Scada but record {r.DeviceType!r} ships its primary pump inside "
+                    "the unit with no override."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_32(self) -> Self:
+        """
+        Axiom 32: CommandNodeHandles
+        The authored tree is the plant with no one in charge: "auto" is the
+        root, the command nodes and every actuator hang directly under it,
+        and a fixed relay hangs under the interior node that owns it. The
+        effective handles of the command nodes and fixed relays SHALL be the
+        declared ones; every other ShNode whose ActorClass is Relay or
+        ZeroTenOutputer SHALL have the effective handle "auto.<Name>".
+        """
+        expected = {
+            "five-v-boss": "auto.five-v-boss",
+            "pico-cycler": "auto.five-v-boss.pico-cycler",
+            "vdc-relay": "auto.five-v-boss.pico-cycler.vdc-relay",
+            "lc": "auto.lc",
+            "n": "auto.lc.n",
+            "backup": "auto.lc.backup",
+            "cold-override": "auto.lc.cold-override",
+            "scada-blind": "auto.lc.scada-blind",
+            "standby": "auto.lc.standby",
+            "hp-boss": "auto.hp-boss",
+            "hp-scada-ops-relay": "auto.hp-boss.hp-scada-ops-relay",
+            "secondary-pump-relay": "auto.hp-boss.secondary-pump-relay",
+            "secondary-pump-hack-relay": "auto.hp-boss.secondary-pump-hack-relay",
+        }
+        for n in self.ShNodes:
+            effective = n.Handle if n.Handle is not None else n.Name
+            if n.Name in expected:
+                want = expected[n.Name]
+            elif n.ActorClass in (ActorClass.Relay, ActorClass.ZeroTenOutputer):
+                want = f"auto.{n.Name}"
+            else:
+                continue
+            if effective != want:
+                raise ValueError(
+                    f"Axiom 32 (CommandNodeHandles) failed: {n.Name!r} has effective "
+                    f"handle {effective!r}, expected {want!r}."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_33(self) -> Self:
+        """
+        Axiom 33: HeatCallChannelBelongsToCircuit
+        Every heat-call DerivedChannel's InputChannelNames SHALL equal [the
+        WhitewireChannelName of exactly one circuit in
+        Hydronic.ZoneCallCircuits]; with CircuitHeatCallChannel, heat calls
+        and circuits are one to one.
+        """
+        whitewires = [c.WhitewireChannelName for c in self.Hydronic.ZoneCallCircuits]
+        for d in self.DerivedChannels:
+            if d.Strategy != "heat-call":
+                continue
+            if (
+                len(d.InputChannelNames) != 1
+                or whitewires.count(d.InputChannelNames[0]) != 1
+            ):
+                raise ValueError(
+                    f"Axiom 33 (HeatCallChannelBelongsToCircuit) failed: heat-call "
+                    f"channel '{d.Name}' has inputs {d.InputChannelNames}, not exactly "
+                    "one circuit's whitewire."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_34(self) -> Self:
+        """
+        Axiom 34: CircuitSetpointChannel
+        a. Every circuit's SetpointChannelName in Hydronic.ZoneCallCircuits SHALL equal
+        the Name of a channel in DataChannels or in DerivedChannels.
+        b. That channel SHALL carry temperature: a DataChannel's Quantity, or a
+        DerivedChannel's OutputQuantity, SHALL be Temperature.
+        c. Where a circuit's SetpointSource is "Learned", its SetpointChannelName SHALL
+        name a channel in DerivedChannels.
+        d. That derived channel's InputChannelNames SHALL contain the circuit's
+        TempChannelName and the Name of the circuit's heat-call channel (the
+        CircuitHeatCallChannel axiom).
+        e. That derived channel's Strategy SHALL be "simple-falling-edge-setpoint".
+        """
+        check_circuit_setpoint_channel(
+            self.Hydronic.ZoneCallCircuits, self.DataChannels, self.DerivedChannels,
+            "Axiom 34 (CircuitSetpointChannel)",
+        )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_35(self) -> Self:
+        """
+        Axiom 35: ReadThermostatChannels
+        Where a circuit's SetpointSource is "FromThermostat", the channels named by its
+        SetpointChannelName and TempChannelName SHALL each be a channel in DataChannels
+        whose CapturedByNodeName is the Name of an ShNode whose ComponentId equals the
+        circuit's Thermostat.ComponentId.
+        """
+        check_read_thermostat_channels(
+            self.Hydronic.ZoneCallCircuits, self.DataChannels, self.ShNodes,
+            "Axiom 35 (ReadThermostatChannels)",
+        )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_36(self) -> Self:
+        """
+        Axiom 36: WaterStore
+        Hydronic.WaterStore SHALL be present: a House0 home stores heat in
+        water tanks.
+        """
+        if self.Hydronic.WaterStore is None:
+            raise ValueError("Axiom 36 (WaterStore) failed: Hydronic.WaterStore is absent.")
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_37(self) -> Self:
+        """
+        Axiom 37: BackupRelays
+        Where Hydronic.Backup is a gw.boiler.backup, its FailsafeRelayName and
+        AquastatCtrlRelayName, and where it is a gw.element.backup, each name
+        in its ElementRelayNames, SHALL equal the Name of an ShNode in ShNodes
+        whose ActorClass is "Relay".
+        """
+        check_backup_relays(self.ShNodes, self.Hydronic.Backup, "Axiom 37 (BackupRelays)")
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_38(self) -> Self:
+        """
+        Axiom 38: SecondaryPumpRunningChannel
+        a. DerivedChannels SHALL contain exactly one channel named
+        "secondary-pump-running", with Strategy "circulator-running",
+        CreatedByNodeName "derived-generator", OutputUnit "Unitless" and
+        OutputQuantity "Unitless".
+        b. Its InputChannelNames SHALL equal ["secondary-pump-pwr"], and
+        "secondary-pump-pwr" SHALL be the Name of a DataChannel with
+        TelemetryName "PowerW".
+        c. Its Parameters SHALL include "ThresholdW", a positive integer: the
+        channel reads 1 while the input power exceeds ThresholdW and 0
+        otherwise.
+        """
+        matches = [d for d in self.DerivedChannels if d.Name == "secondary-pump-running"]
+        if len(matches) != 1:
+            raise ValueError(
+                "Axiom 38 (SecondaryPumpRunningChannel) failed: expected exactly one "
+                f"DerivedChannel 'secondary-pump-running', found {len(matches)}."
+            )
+        d = matches[0]
+        if (
+            d.Strategy != "circulator-running"
+            or d.CreatedByNodeName != "derived-generator"
+            or d.OutputUnit != Unit.Unitless
+            or d.OutputQuantity != Quantity.Unitless
+        ):
+            raise ValueError(
+                "Axiom 38 (SecondaryPumpRunningChannel) failed: 'secondary-pump-running' "
+                "SHALL have Strategy circulator-running, CreatedByNodeName derived-generator "
+                f"and Unitless output; got Strategy {d.Strategy!r}, CreatedByNodeName "
+                f"{d.CreatedByNodeName!r}, OutputUnit {d.OutputUnit}, OutputQuantity "
+                f"{d.OutputQuantity}."
+            )
+        if list(d.InputChannelNames) != ["secondary-pump-pwr"]:
+            raise ValueError(
+                "Axiom 38 (SecondaryPumpRunningChannel) failed: InputChannelNames SHALL be "
+                f"['secondary-pump-pwr'], got {list(d.InputChannelNames)}."
+            )
+        pwr = next((c for c in self.DataChannels if c.Name == "secondary-pump-pwr"), None)
+        if pwr is None or pwr.TelemetryName != TelemetryName.PowerW:
+            raise ValueError(
+                "Axiom 38 (SecondaryPumpRunningChannel) failed: 'secondary-pump-pwr' SHALL "
+                "be a DataChannel with TelemetryName PowerW."
+            )
+        threshold = (d.Parameters or {}).get("ThresholdW")
+        if isinstance(threshold, bool) or not isinstance(threshold, int) or threshold <= 0:
+            raise ValueError(
+                "Axiom 38 (SecondaryPumpRunningChannel) failed: Parameters.ThresholdW SHALL "
+                f"be a positive integer, got {threshold!r}."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_39(self) -> Self:
+        """
+        Axiom 39: HpWatchNode
+        ShNodes SHALL include a node named "hp-watch" with ActorClass "HpWatch".
+        """
+        node = next((n for n in self.ShNodes if n.Name == HSNN.hp_watch), None)
+        if node is None or node.ActorClass != ActorClass.HpWatch:
+            raise ValueError(
+                "Axiom 39 (HpWatchNode) failed: no ShNode named 'hp-watch' with "
+                "ActorClass 'HpWatch'."
+            )
+        return self
