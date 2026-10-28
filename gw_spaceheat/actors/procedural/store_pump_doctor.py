@@ -80,7 +80,7 @@ class StorePumpDoctor:
 
             # Set 0-10 to zero
             h._send_to(
-                h.primary_scada,
+                h.store_010v,
                 AnalogDispatch(
                         FromGNodeAlias=h.layout.ltn_g_node_alias,
                         FromHandle=h.command_node.handle,
