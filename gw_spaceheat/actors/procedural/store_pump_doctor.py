@@ -1,8 +1,7 @@
 from typing import TYPE_CHECKING
-import uuid
 import time
 from gwsproto.enums import LogLevel
-from gwsproto.named_types import AnalogDispatch, Glitch
+from gwsproto.named_types import Glitch
 from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 
 
@@ -79,18 +78,7 @@ class StorePumpDoctor:
             h.turn_off_store_pump(command_node=h.command_node)
 
             # Set 0-10 to zero
-            h._send_to(
-                h.store_010v,
-                AnalogDispatch(
-                        FromGNodeAlias=h.layout.ltn_g_node_alias,
-                        FromHandle=h.command_node.handle,
-                        ToHandle=h.store_010v.handle,
-                        AboutName=h.store_010v.name,
-                        Value=0,
-                        TriggerId=str(uuid.uuid4()),
-                        UnixTimeMs=int(time.time() * 1000),
-                ),
-            )
+            h.set_010_level(h.store_010v, 0, command_node=h.command_node)
 
             await h.await_with_watchdog(15)
 

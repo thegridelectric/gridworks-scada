@@ -1,9 +1,8 @@
-import uuid
 import time
 from typing import TYPE_CHECKING
 
 from gwsproto.enums import LogLevel
-from gwsproto.named_types import AnalogDispatch, Glitch
+from gwsproto.named_types import Glitch
 from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 
 
@@ -82,20 +81,8 @@ class DistPumpDoctor:
                 h.heatcall_ctrl_to_scada(circuit, command_node=h.command_node)
 
             # Set 0-10 to zero
-            
-            h._send_to(
-                h.dist_010v,
-                AnalogDispatch(
-                        FromGNodeAlias=h.layout.ltn_g_node_alias,
-                        FromHandle=h.command_node.handle,
-                        ToHandle=h.dist_010v.handle,
-                        AboutName=h.dist_010v.name,
-                        Value=0,
-                        TriggerId=str(uuid.uuid4()),
-                        UnixTimeMs=int(time.time() * 1000),
-                    ),
-            )
-        
+            h.set_010_level(h.dist_010v, 0, command_node=h.command_node)
+
             await h.await_with_watchdog(15)
 
             for circuit in h.layout.hydronic.ZoneCallCircuits:

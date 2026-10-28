@@ -13,12 +13,13 @@ import pytest
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import ActorClass
-from gwsproto.named_types import AnalogDispatch, ZoneCallCircuit
+from gwsproto.named_types import AnalogDispatch, DispatchAck, Glitch, ZoneCallCircuit
 from gwsproto.names.core.node_names import CoreNodeNames
 
 from actors.procedural.dist_pump_doctor import DistPumpDoctor
 from actors.procedural.dist_pump_monitor import DistPumpMonitor
 from actors.procedural.store_pump_doctor import StorePumpDoctor
+from actors.zero_ten_outputer import code_from_volts_times_ten
 from scada_app import ScadaApp
 from sema_to_dc import zero_ten_power_on_volts_times_ten
 
@@ -95,6 +96,56 @@ def test_set_010_defaults_from_the_host_itself_sends_nothing(host) -> None:
     assert restores_after(h, before) == {}
 
 
+@pytest.mark.parametrize("doctor_cls, flow_wait, pump", [
+    (DistPumpDoctor, "wait_for_dist_flow", "dist"),
+    (StorePumpDoctor, "wait_for_store_flow", "store"),
+])
+def test_doctor_zeroes_its_010v_through_the_command_tree(host, doctor_cls, flow_wait, pump) -> None:
+    """The doctor's first move is the pump's 0-10 V output to zero. Delivered
+    the way the proactor delivers an in-process message (the scada's router),
+    that dispatch has to reach the output and be taken: the scada's own
+    handler raises on a payload it does not expect and the proactor stops
+    (elm, 2026-10-28 04:15 ET, eight boots in a row), and the output drops
+    a dispatch whose wire source is not its FromHandle. Relay events and
+    glitches stay captured: a relay's reply needs a running proactor."""
+    h = host
+    scada = h.services.prime_actor
+    out = h.services.get_communicator(getattr(h, f"{pump}_010v").name)
+    out_sent: list = []
+    out._send_to = lambda dst, payload, src=None: out_sent.append((dst.name, payload))
+    scada_failures: list = []
+
+    def route(dst: ShNode, payload, src: ShNode | None = None) -> None:
+        if isinstance(payload, AnalogDispatch) or dst.name == scada.name:
+            try:
+                scada._send_to(dst, payload, h.node if src is None else src)
+            except Exception as e:  # noqa: BLE001
+                scada_failures.append((dst.name, type(payload).__name__, repr(e)))
+        else:
+            h.sent.append((dst.name, payload))
+
+    h._send_to = route
+    levels: list[int] = []
+
+    async def record_level(total_seconds: float, pat_every: float = 20.0) -> None:
+        levels.append(out.target_code)
+
+    h.await_with_watchdog = record_level
+    doctor = doctor_cls(host=h)
+
+    async def flow_seen(*args, **kwargs) -> bool:
+        return True
+
+    setattr(doctor, flow_wait, flow_seen)
+    asyncio.run(doctor.run())
+    assert scada_failures == []
+    assert [p.Summary for _, p in out_sent if isinstance(p, Glitch)] == []
+    assert levels[0] == code_from_volts_times_ten(0, out.facts)
+    assert out.target_code == out.power_on_code
+    acks = [p for _, p in out_sent if isinstance(p, DispatchAck)]
+    assert [a.ToHandle for a in acks] == [h.command_node.handle, h.command_node.handle]
+
+
 # --- circuits are looked up, not named by position ---------------------------
 
 
@@ -123,7 +174,6 @@ class CircuitHost:
         self.node = layout.node(CoreNodeNames.local_control)
         self.command_node = layout.node(CoreNodeNames.local_control_normal)
         self.ltn = self.node
-        self.primary_scada = self.node
         self.dist_010v = layout.node("secondary-010v")
 
     def log(self, note: str) -> None:
@@ -136,6 +186,9 @@ class CircuitHost:
         return None
 
     def set_010_defaults(self, command_node: ShNode | None = None) -> None:
+        pass
+
+    def set_010_level(self, dfr_node: ShNode, volts_times_ten: int, command_node: ShNode | None = None) -> None:
         pass
 
     def heatcall_ctrl_to_scada(self, circuit: ZoneCallCircuit, command_node: ShNode | None = None) -> None:
