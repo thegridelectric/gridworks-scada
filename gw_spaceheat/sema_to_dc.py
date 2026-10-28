@@ -33,6 +33,8 @@ from gwsproto.named_types import (
     NolanFamilyParams,
     NolanLayout,
     OperationalParams,
+    PicoTankModuleComponentGt,
+    SimPicoTankModuleComponentGt,
     TaDeed,
 )
 from gwsproto.names.hydronic_spaceheat.node_names import (
@@ -199,6 +201,50 @@ def check_hp_traits(word: SemaLayout) -> None:
         )
 
 
+def check_tank_capture_deltas(word: SemaLayout, ops_word: OperationalParams) -> None:
+    """A tank pico reads one voltage per depth and reports the depth's
+    temperature channel and micro-volt channel together, so the pair has
+    one asynchronous trigger: the temperature channel's AsyncCaptureDelta,
+    in CelsiusTimes100, which the tank actor translates to the micro-volt
+    threshold the pico is told. The pico has one threshold for its three
+    depths. So, for every tank-module node: no micro-volt channel's tuning
+    states a delta, and the three temperature channels' deltas are present
+    and equal, disabled or not, since a disabled pico that posts is still
+    answered. Raises naming the channel."""
+    tuning_by_channel = {t.ChannelName: t for t in ops_word.CaptureTuningList}
+    tank_components = {
+        c.ComponentId
+        for c in word.Components
+        if isinstance(c, (PicoTankModuleComponentGt, SimPicoTankModuleComponentGt))
+    }
+    for node in word.ShNodes:
+        if node.ComponentId not in tank_components:
+            continue
+        deltas: dict[str, int | None] = {}
+        for depth in (1, 2, 3):
+            micro_v = f"{node.Name}-depth{depth}-micro-v"
+            tuning = tuning_by_channel.get(micro_v)
+            if tuning is not None and tuning.AsyncCaptureDelta is not None:
+                raise ValueError(
+                    f"tank capture delta: {micro_v!r} states an AsyncCaptureDelta; the "
+                    "trigger is the depth's temperature channel's, in CelsiusTimes100"
+                )
+            temp = f"{node.Name}-depth{depth}-device"
+            if temp in tuning_by_channel:
+                deltas[temp] = tuning_by_channel[temp].AsyncCaptureDelta
+        missing = sorted(name for name, delta in deltas.items() if delta is None)
+        if missing:
+            raise ValueError(
+                f"tank capture delta: {missing} state no AsyncCaptureDelta; a tank "
+                "pico's temperature channels each state one"
+            )
+        if len(set(deltas.values())) > 1:
+            raise ValueError(
+                f"tank capture delta: {node.Name}'s temperature channels state "
+                f"different deltas {deltas}; the pico has one threshold for its depths"
+            )
+
+
 def decode_operational_params(ops: dict[str, Any]) -> OperationalParams:
     """Decode the operational-params artifact."""
     type_name = ops.get("TypeName")
@@ -279,6 +325,7 @@ def ops_and_sema_to_dc(
     check_energized_standby_relays(ops_word, static)
     check_hp_traits(word)
     check_backup_when_cold(word, ops_word)
+    check_tank_capture_deltas(word, ops_word)
     return HydronicLayout.from_sema(
         word, capture_tuning=ops_word.CaptureTuningList, **load_kwargs
     )

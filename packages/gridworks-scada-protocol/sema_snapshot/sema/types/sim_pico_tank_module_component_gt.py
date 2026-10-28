@@ -24,7 +24,6 @@ class SimPicoTankModuleComponentGt(SemaType):
     num_sample_averages: PositiveInt
     pico_k_ohms: PositiveInt | None = None
     serial_number: str
-    async_capture_delta_micro_volts: StrictInt
     sensor_order: list[StrictInt] | None = None
     sim_life_s: PositiveInt | None = None
     sim_reboot_s: PositiveInt | None = None

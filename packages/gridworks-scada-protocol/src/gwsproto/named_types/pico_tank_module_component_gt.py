@@ -18,7 +18,6 @@ class PicoTankModuleComponentGt(DeviceComponentBase):
     NumSampleAverages: PositiveInt
     PicoKOhms: PositiveInt | None = None
     SerialNumber: str
-    AsyncCaptureDeltaMicroVolts: int
     SensorOrder: list[int] | None = None
     PicoBoardVariant: PicoBoardVariant
     MicropythonVersion: Optional[str] = None

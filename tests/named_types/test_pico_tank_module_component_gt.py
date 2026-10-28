@@ -15,7 +15,6 @@ def component() -> dict:
         "Samples": 1,
         "NumSampleAverages": 1,
         "SerialNumber": "example",
-        "AsyncCaptureDeltaMicroVolts": 0,
         "PicoBoardVariant": "PicoRaspberryWifi2040",
         "TypeName": "pico.tank.module.component.gt",
         "Version": "012",

@@ -18,7 +18,6 @@ class SimPicoTankModuleComponentGt(DeviceComponentBase):
     NumSampleAverages: PositiveInt
     PicoKOhms: PositiveInt | None = None
     SerialNumber: str
-    AsyncCaptureDeltaMicroVolts: int
     SensorOrder: list[int] | None = None
     SimLifeS: PositiveInt | None = None
     SimRebootS: PositiveInt | None = None
