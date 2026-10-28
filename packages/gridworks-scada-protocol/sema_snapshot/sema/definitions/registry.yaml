@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-10-27T15:35:00Z"
+  last_updated: "2026-10-28T17:45:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -1818,7 +1818,7 @@ types:
     versions:
       "000":
         schema_url: "https://schemas.electricity.works/types/gw.house0.layout/000"
-        created: "2026-10-15T16:00:00Z"
+        created: "2026-10-28T17:45:00Z"
         status: "staging"
         summary: "The complete deployable artifact for a House0-fleet home: every collection and Hydronic required. The word MEANS has-a-siegenthaler-loop (beech, maple); sieg-less homes are gw.house0.no.sieg. Components: eGauge, ADS111x thermistor snaps, the House0 board record (Krida expanders and GP8403 DACs) with per-relay and per-output components, pico flow and BTU meters, tank modules real and sim, Hubitat with poller, web-server, all over the DeviceType record model. The axioms carry the layout invariants; wording is identical across layout words where the axiom name is shared. The cold-override command node is required; the backup command node exists if and only if Hydronic.Backup is present, and the relays a backup names are Relay ShNodes (axiom BackupRelays)."
         direct_dependencies:
@@ -1872,7 +1872,7 @@ types:
     versions:
       "000":
         schema_url: "https://schemas.electricity.works/types/gw.house0.no.sieg/000"
-        created: "2026-10-27T12:30:00Z"
+        created: "2026-10-28T17:45:00Z"
         status: "staging"
         summary: "The complete deployable artifact for a House0-fleet home with no Siegenthaler loop (elm, fir, oak): every collection and Hydronic required. Homes with a loop are gw.house0.layout. No sieg-loop command node, sieg channels or sieg relays are required; PrimaryFlowSource is Measured. RequiredActuators names secondary-pump-relay and secondary-pump-hack-relay, both of which hp-boss owns beside the call relay (a plant with a heat exchanger between the heat pump and the house has a secondary pump; the hack relay is the one whose contacts the pump feed still passes through, energized with the pump until it is wired out). Components: eGauge, ADS111x thermistor snaps, the House0 board record (Krida expanders and GP8403 DACs) with per-relay and per-output components, pico flow and BTU meters, tank modules real and sim, Hubitat with poller, web-server, all over the DeviceType record model. The axioms carry the layout invariants; wording is identical across layout words where the axiom name is shared. The cold-override command node is required; the backup command node exists if and only if Hydronic.Backup is present, and the relays a backup names are Relay ShNodes (axiom BackupRelays). Axiom 39 HpWatchNode: an hp-watch node, whose sensed running state hp-boss runs the secondary pump from."
         direct_dependencies:
@@ -2000,7 +2000,7 @@ types:
     versions:
       "000":
         schema_url: "https://schemas.electricity.works/types/gw.nolan.layout/000"
-        created: "2026-10-26T18:10:00Z"
+        created: "2026-10-28T17:45:00Z"
         status: "staging"
         summary: "The complete deployable artifact for a Nolan home: monobloc heat pump, one store tank, the gw108 board. Components are the cac-free DeviceType versions; DeviceTypes holds the per-family device-type records; every relay is a per-relay component against the board record. The axioms carry the layout invariants; wording is identical across layout words where the axiom name is shared. The cold-override command node is required; the backup command node exists if and only if Hydronic.Backup is present, and the relays a backup names are Relay ShNodes (axiom BackupRelays)."
         direct_dependencies:
@@ -3189,7 +3189,7 @@ types:
     versions:
       "012":
         schema_url: "https://schemas.electricity.works/types/pico.tank.module.component.gt/012"
-        created: "2026-09-21T19:50:00Z"
+        created: "2026-10-28T17:45:00Z"
         status: "staging"
         summary: "- ComponentAttributeClassId (cac UUID) -> DeviceType (gw1.device.type value, pascal.case). Context-dependent: the device type lived on the referenced cac, not the component."
         direct_dependencies:
@@ -3438,7 +3438,7 @@ types:
     versions:
       "001":
         schema_url: "https://schemas.electricity.works/types/sim.pico.tank.module.component.gt/001"
-        created: "2026-06-26T03:40:00Z"
+        created: "2026-10-28T17:45:00Z"
         status: "staging"
         summary: "- ComponentAttributeClassId (cac UUID) -> DeviceType (gw1.device.type value, pascal.case); SimulatesVersion 011 -> 012. Context-dependent: the device type lived on the referenced cac, not the component. Optional SimLifeS / SimRebootS (positive.int seconds) script the simulated pico's liveness."
         direct_dependencies:

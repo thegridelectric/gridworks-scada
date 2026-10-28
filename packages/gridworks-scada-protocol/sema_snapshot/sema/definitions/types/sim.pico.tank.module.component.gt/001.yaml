@@ -61,9 +61,6 @@ properties:
   SerialNumber:
     type: string
 
-  AsyncCaptureDeltaMicroVolts:
-    type: integer
-
   SensorOrder:
     type: array
     items:
@@ -103,7 +100,6 @@ required:
   - Samples
   - NumSampleAverages
   - SerialNumber
-  - AsyncCaptureDeltaMicroVolts
   - SimulatesTypeName
   - SimulatesVersion
   - TypeName
@@ -122,7 +118,6 @@ examples:
       "Samples": 1,
       "NumSampleAverages": 1,
       "SerialNumber": "example",
-      "AsyncCaptureDeltaMicroVolts": 0,
       "SimulatesTypeName": "pico.tank.module.component.gt",
       "SimulatesVersion": "012",
       "TypeName": "sim.pico.tank.module.component.gt",

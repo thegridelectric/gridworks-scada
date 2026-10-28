@@ -15,7 +15,6 @@ def component() -> dict:
         "Samples": 1,
         "NumSampleAverages": 1,
         "SerialNumber": "example",
-        "AsyncCaptureDeltaMicroVolts": 0,
         "SimulatesTypeName": "pico.tank.module.component.gt",
         "SimulatesVersion": "012",
         "TypeName": "sim.pico.tank.module.component.gt",

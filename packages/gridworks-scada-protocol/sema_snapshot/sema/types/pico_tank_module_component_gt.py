@@ -25,7 +25,6 @@ class PicoTankModuleComponentGt(SemaType):
     num_sample_averages: PositiveInt
     pico_k_ohms: PositiveInt | None = None
     serial_number: str
-    async_capture_delta_micro_volts: StrictInt
     sensor_order: list[StrictInt] | None = None
     pico_board_variant: PicoBoardVariant
     micropython_version: str | None = None

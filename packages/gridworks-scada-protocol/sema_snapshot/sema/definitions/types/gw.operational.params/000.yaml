@@ -302,3 +302,11 @@ x-gridworks:
     rewiring hardware. Home identity (the GNodes) lives in the layout. The
     assembly step merges this artifact with the static layout to build the
     runtime layout the device actors read, so the actors see one layout.
+
+    A pico tank module reads one voltage per depth and reports the depth's
+    temperature channel and micro-volt channel together, so the pair has one
+    asynchronous trigger: the temperature channel's AsyncCaptureDelta, in its
+    own units. The micro-volt channel's tuning states no AsyncCaptureDelta.
+    The SCADA translates the temperature delta into the micro-volt threshold
+    the pico compares against, matched at the middle of the tank range
+    (130 °F), and refuses at assembly a micro-volt tuning that states one.

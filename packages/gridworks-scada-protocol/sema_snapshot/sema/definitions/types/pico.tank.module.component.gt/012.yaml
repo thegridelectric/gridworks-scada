@@ -54,9 +54,6 @@ properties:
   SerialNumber:
     type: string
 
-  AsyncCaptureDeltaMicroVolts:
-    type: integer
-
   SensorOrder:
     type: array
     items:
@@ -88,7 +85,6 @@ required:
   - Samples
   - NumSampleAverages
   - SerialNumber
-  - AsyncCaptureDeltaMicroVolts
   - PicoBoardVariant
   - TypeName
   - Version
@@ -106,7 +102,6 @@ examples:
       "Samples": 1,
       "NumSampleAverages": 1,
       "SerialNumber": "example",
-      "AsyncCaptureDeltaMicroVolts": 0,
       "PicoBoardVariant": "PicoRaspberryWifi2040",
       "TypeName": "pico.tank.module.component.gt",
       "Version": "012",

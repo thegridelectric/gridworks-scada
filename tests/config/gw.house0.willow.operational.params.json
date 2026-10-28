@@ -195,15 +195,14 @@
       "ChannelName": "buffer-depth1-device",
       "CapturePeriodS": 60,
       "AsyncCapture": true,
-      "AsyncCaptureDelta": 200
+      "AsyncCaptureDelta": 14
     },
     {
       "TypeName": "capture.tuning",
       "Version": "000",
       "ChannelName": "buffer-depth1-micro-v",
       "CapturePeriodS": 60,
-      "AsyncCapture": true,
-      "AsyncCaptureDelta": 2000
+      "AsyncCapture": true
     },
     {
       "TypeName": "capture.tuning",
@@ -211,15 +210,14 @@
       "ChannelName": "buffer-depth2-device",
       "CapturePeriodS": 60,
       "AsyncCapture": true,
-      "AsyncCaptureDelta": 200
+      "AsyncCaptureDelta": 14
     },
     {
       "TypeName": "capture.tuning",
       "Version": "000",
       "ChannelName": "buffer-depth2-micro-v",
       "CapturePeriodS": 60,
-      "AsyncCapture": true,
-      "AsyncCaptureDelta": 2000
+      "AsyncCapture": true
     },
     {
       "TypeName": "capture.tuning",
@@ -227,15 +225,14 @@
       "ChannelName": "buffer-depth3-device",
       "CapturePeriodS": 60,
       "AsyncCapture": true,
-      "AsyncCaptureDelta": 200
+      "AsyncCaptureDelta": 14
     },
     {
       "TypeName": "capture.tuning",
       "Version": "000",
       "ChannelName": "buffer-depth3-micro-v",
       "CapturePeriodS": 60,
-      "AsyncCapture": true,
-      "AsyncCaptureDelta": 2000
+      "AsyncCapture": true
     },
     {
       "TypeName": "capture.tuning",
@@ -243,15 +240,14 @@
       "ChannelName": "tank1-depth1-device",
       "CapturePeriodS": 60,
       "AsyncCapture": true,
-      "AsyncCaptureDelta": 200
+      "AsyncCaptureDelta": 14
     },
     {
       "TypeName": "capture.tuning",
       "Version": "000",
       "ChannelName": "tank1-depth1-micro-v",
       "CapturePeriodS": 60,
-      "AsyncCapture": true,
-      "AsyncCaptureDelta": 2000
+      "AsyncCapture": true
     },
     {
       "TypeName": "capture.tuning",
@@ -259,15 +255,14 @@
       "ChannelName": "tank1-depth2-device",
       "CapturePeriodS": 60,
       "AsyncCapture": true,
-      "AsyncCaptureDelta": 200
+      "AsyncCaptureDelta": 14
     },
     {
       "TypeName": "capture.tuning",
       "Version": "000",
       "ChannelName": "tank1-depth2-micro-v",
       "CapturePeriodS": 60,
-      "AsyncCapture": true,
-      "AsyncCaptureDelta": 2000
+      "AsyncCapture": true
     },
     {
       "TypeName": "capture.tuning",
@@ -275,15 +270,14 @@
       "ChannelName": "tank1-depth3-device",
       "CapturePeriodS": 60,
       "AsyncCapture": true,
-      "AsyncCaptureDelta": 200
+      "AsyncCaptureDelta": 14
     },
     {
       "TypeName": "capture.tuning",
       "Version": "000",
       "ChannelName": "tank1-depth3-micro-v",
       "CapturePeriodS": 60,
-      "AsyncCapture": true,
-      "AsyncCaptureDelta": 2000
+      "AsyncCapture": true
     },
     {
       "TypeName": "capture.tuning",

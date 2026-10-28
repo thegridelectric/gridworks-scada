@@ -31,6 +31,10 @@ THERMISTOR_T0 = 298  # i.e. 25 degrees
 THERMISTOR_R0_KOHMS = 10  # The R0 of the NTC thermistor - an industry standard
 PICO_VOLTS = 3.3
 OPEN_THERMISTOR_REPORT_S = 24 * 3600  # an open thermistor is reported once a day
+# The tank temperature the authored capture delta is matched at: the middle
+# of the tank range, so one authored delta means the same thing on every
+# module whatever its beta.
+CAPTURE_DELTA_MATCH_C = (130 - 32) * 5 / 9
 # A tank at rest, stratified: depth1 is the top. Fixed until the plant drives
 # tank temperatures.
 SIM_TANK_AT_REST_C: dict[int, float] = {1: 55.0, 2: 50.0, 3: 45.0}
@@ -56,6 +60,17 @@ def microvolts_at_c(temp_c: float, beta: int) -> int:
     )
     volts = PICO_VOLTS * r_therm_kohms / (R_FIXED_KOHMS + r_therm_kohms)
     return int(round(volts * 1e6))
+
+
+def micro_volt_capture_delta(delta_celsius_x100: int, beta: int) -> int:
+    """The micro-volt threshold a tank pico compares its readings against,
+    for the authored temperature delta (CelsiusTimes100) of its depth
+    channels: the divider drop across that delta at CAPTURE_DELTA_MATCH_C
+    through the thermistor's beta."""
+    return abs(
+        microvolts_at_c(CAPTURE_DELTA_MATCH_C, beta)
+        - microvolts_at_c(CAPTURE_DELTA_MATCH_C + delta_celsius_x100 / 100, beta)
+    )
 
 
 class ApiTankModule(ShNodeActor):
@@ -140,6 +155,27 @@ class ApiTankModule(ShNodeActor):
             )
             if not self.layout.channel_disabled(name)
         }
+        # The pico has one asynchronous threshold for its depths, translated
+        # from the depth channels' authored temperature delta, which the
+        # assembly step holds present and equal across the three depths.
+        deltas: set[int] = {
+            delta
+            for depth in (1, 2, 3)
+            if (
+                delta := self.layout.capture_tuning_by_channel[
+                    f"{self.name}-depth{depth}-device"
+                ].AsyncCaptureDelta
+            )
+            is not None
+        }
+        if len(deltas) != 1:
+            raise DcError(
+                f"{self.name}: its depth channels state AsyncCaptureDelta {deltas}; "
+                "one temperature delta, in CelsiusTimes100, is what the pico's threshold is from"
+            )
+        self.async_capture_delta_micro_volts = micro_volt_capture_delta(
+            deltas.pop(), self._component.gt.ThermistorBeta
+        )
         self.electrical_channels: dict[int, str] = {}
         if self._component.gt.SendMicroVolts:
             self.electrical_channels = {
@@ -232,7 +268,7 @@ class ApiTankModule(ShNodeActor):
                 CapturePeriodS=tuning.CapturePeriodS,
                 Samples=self._component.gt.Samples,
                 NumSampleAverages=self._component.gt.NumSampleAverages,
-                AsyncCaptureDeltaMicroVolts=self._component.gt.AsyncCaptureDeltaMicroVolts,
+                AsyncCaptureDeltaMicroVolts=self.async_capture_delta_micro_volts,
                 CaptureOffsetS=offset,
                 PicoBoardVariant=params.PicoBoardVariant,
                 MicropythonVersion=params.MicropythonVersion,
