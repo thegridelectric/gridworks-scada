@@ -468,20 +468,32 @@ class House0Hydronic(ColdJudgmentNode):
 
         for dfr_node in commanded_010s:
             level = zero_ten_power_on_volts_times_ten(self.ops, dfr_node.name)
-            self._send_to(
-                dst=dfr_node,
-                payload=AnalogDispatch(
-                    FromGNodeAlias=self.layout.scada_g_node_alias,
-                    FromHandle=command_node.handle,
-                    ToHandle=dfr_node.handle,
-                    AboutName=dfr_node.Name,
-                    Value=level,
-                    TriggerId=str(uuid.uuid4()),
-                    UnixTimeMs=int(time.time() * 1000),
-                ),
-                src=command_node
-            )
-            self.log(f"Just set {dfr_node.handle} to {level} from {command_node.handle} ")
+            self.set_010_level(dfr_node, level, command_node=command_node)
+
+    def set_010_level(
+        self, dfr_node: ShNode, volts_times_ten: int, command_node: ShNode | None = None
+    ) -> None:
+        """
+        Dispatches one 0-10V level to an output from the command node: the
+        wire source and the FromHandle both name it, which is what the
+        output checks before it takes a dispatch.
+        """
+        if command_node is None:
+            command_node = self.node
+        self._send_to(
+            dst=dfr_node,
+            payload=AnalogDispatch(
+                FromGNodeAlias=self.layout.scada_g_node_alias,
+                FromHandle=command_node.handle,
+                ToHandle=dfr_node.handle,
+                AboutName=dfr_node.Name,
+                Value=volts_times_ten,
+                TriggerId=str(uuid.uuid4()),
+                UnixTimeMs=int(time.time() * 1000),
+            ),
+            src=command_node,
+        )
+        self.log(f"Just set {dfr_node.handle} to {volts_times_ten} from {command_node.handle} ")
 
     @property
     def sieg_loop(self) -> ShNode:
