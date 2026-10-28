@@ -55,6 +55,10 @@
 #   actual-spruce     -> tlayouts actual-spruce
 #   td/generalized-flo -> tlayouts legacy (the FLO work on oak: legacy's layout,
 #                                          an LTN that differs)
+#   any other branch  -> tlayouts main (a branch off main tried on a house
+#                                       reads the house's main layout; a
+#                                       layout change the branch needs goes
+#                                       to tlayouts main first)
 # The source is the tlayouts REMOTE (git show origin/<branch>:<path> after a
 # fetch), so only pushed JSON can reach a box, whatever the laptop's tlayouts
 # checkout is doing. The box's scada checkout likewise moves only to a pushed
@@ -82,11 +86,13 @@
 # on actual-spruce and is disabled when the box moves off that line, enabled
 # again when it moves back, so a reboot never runs two controllers.
 #
-# Requirements and units: if gw_spaceheat/requirements/ or the pi's unit
-# files (service/ on the first pi, service2/ on the second) differ between the
-# box's current SHA and the target, the roll stops before the checkout and
-# says so; the venv is rebuilt (tools/mkenv.sh) or the units reinstalled
-# (service/install, service2/install) by hand on the box, and the roll re-run.
+# Requirements and units: if the runtime requirements (base.txt, drivers.txt,
+# the packages' pyproject.toml) or the pi's unit files (service/ on the first
+# pi, service2/ on the second) differ between the box's current SHA and the
+# target, the roll stops before the checkout and says so; the venv is rebuilt
+# (tools/mkenv.sh) or the units reinstalled (service/install, service2/install)
+# by hand on the box, and the roll re-run. The test and dev requirements are
+# not compared: nothing the box runs imports them.
 set -euo pipefail
 
 HOUSE="${1:-}"; VERB="${2:-}"; TARGET="${3:-}"
@@ -103,6 +109,8 @@ FORWARD_LINE=main
 # gwltn@.service is the ltn box's.
 PI_UNITS='service/gwspaceheat.service service/gwspaceheat-restart.service service/gwspaceheat-restart.timer'
 PI2_UNITS='service2/gwspaceheat2.service service2/gwspaceheat2-restart.service service2/gwspaceheat2-restart.timer'
+# What the box's venv must match: the runtime requirements and the editable packages.
+RUNTIME_REQS='gw_spaceheat/requirements/base.txt gw_spaceheat/requirements/drivers.txt packages/*/pyproject.toml'
 STAMP="$(date +%Y-%m-%d)"
 
 usage() { sed -n '2,20p' "$0"; exit 1; }
@@ -140,19 +148,20 @@ tl_branch() {
     legacy) echo legacy ;;
     actual-spruce) echo actual-spruce ;;
     td/generalized-flo) echo legacy ;;
-    *) return 1 ;;
+    *) echo main ;;
   esac
 }
-reads_ops() { [ "$1" = main ]; }
+# The main line reads the ops word and needs the deed.
+reads_ops() { [ "$(tl_branch "$1")" = main ]; }
 
 # The committed path of a file on a tlayouts branch: the deployed name first,
 # then the names the tlayouts gens emit.
 committed_path() { # <tlayouts-branch> <layout|ops>
   local b="$1" kind="$2" candidates
   if [ "$kind" = layout ]; then
-    candidates="hardware-layout.json hardware-layout.generated.json gw.nolan.layout.json gw.house0.layout.json"
+    candidates="hardware-layout.json hardware-layout.generated.json gw.nolan.layout.json gw.house0.layout.json gw.house0.no.sieg.json"
   else
-    candidates="operational-params.json operational-params.generated.json gw.nolan.operational.params.json gw.house0.operational.params.json"
+    candidates="operational-params.json operational-params.generated.json gw.nolan.operational.params.json gw.house0.operational.params.json gw.house0.no.sieg.operational.params.json"
   fi
   for c in $candidates; do
     if git -C "$TLAYOUTS" cat-file -e "origin/$b:output/$HOUSE/$c" 2>/dev/null; then echo "output/$HOUSE/$c"; return 0; fi
@@ -196,7 +205,7 @@ verify_file() { # <host> <label> <config-dir> <tlayouts-branch> <layout|ops>
 # committed files on both pis, the ta.deed on the first pi only.
 verify_pi() { # <pi> <scada-branch>
   local pi="$1" branch="$2" tlb cdir rc=0
-  tlb="$(tl_branch "$branch")" || { echo "  $pi: no tlayouts branch for scada branch $branch"; return 1; }
+  tlb="$(tl_branch "$branch")"
   cdir="$(config_dir "$pi")"
   verify_file "$pi" "$pi" "$cdir" "$tlb" layout || rc=1
   if reads_ops "$branch"; then
@@ -211,7 +220,7 @@ verify_pi() { # <pi> <scada-branch>
 # Verify the LTN's pair, the same committed JSON the pi runs.
 verify_ltn() { # <scada-branch>
   local branch="$1" tlb rc=0
-  tlb="$(tl_branch "$branch")" || { echo "  ltn: no tlayouts branch for scada branch $branch"; return 1; }
+  tlb="$(tl_branch "$branch")"
   verify_file "$LTN_BOX" ltn "$LTN_CONFIG" "$tlb" layout || rc=1
   if reads_ops "$branch"; then verify_file "$LTN_BOX" ltn "$LTN_CONFIG" "$tlb" ops || rc=1; fi
   return $rc
@@ -259,7 +268,6 @@ if [ "$VERB" = check ]; then
 fi
 
 # ---- to <scada-branch> ----
-tl_branch "$TARGET" > /dev/null || { echo "no tlayouts branch for scada branch $TARGET"; exit 1; }
 echo "== ltn ($HOUSE)"
 ssh -n "$LTN_BOX" "systemctl cat -q $LTN_UNIT" > /dev/null 2>&1 || { echo "ltn: no unit $LTN_UNIT on $LTN_BOX; install service/gwltn@.service first"; exit 1; }
 ssh -n "$LTN_BOX" "git -C $LTN_REPO fetch -q origin"
@@ -267,7 +275,7 @@ ssh -n "$LTN_BOX" "git -C $LTN_REPO fetch -q origin"
 ssh -n "$LTN_BOX" "git -C $LTN_REPO rev-parse --verify -q origin/$TARGET" > /dev/null || { echo "ltn: origin/$TARGET not on the box's remote; refusing"; exit 1; }
 [ "$(ssh -n "$LTN_BOX" "git -C $LTN_REPO rev-list --count origin/$TARGET..$TARGET 2>/dev/null || echo 0")" = 0 ] || { echo "ltn: local $TARGET is ahead of origin/$TARGET; refusing"; exit 1; }
 ltn_cur="$(ltn_sha)"
-if [ -n "$(ssh -n "$LTN_BOX" "git -C $LTN_REPO diff --stat $ltn_cur origin/$TARGET -- gw_spaceheat/requirements packages/*/pyproject.toml")" ]; then
+if [ -n "$(ssh -n "$LTN_BOX" "git -C $LTN_REPO diff --stat $ltn_cur origin/$TARGET -- $RUNTIME_REQS")" ]; then
   echo "ltn: requirements differ between $ltn_cur and origin/$TARGET; rebuild the venv in $LTN_REPO (tools/mkenv.sh) after the checkout, by hand, then re-run"
   exit 1
 fi
@@ -283,9 +291,9 @@ for pi in $PIS; do
     echo "$pi: service unit files differ between $cur and origin/$TARGET; root must reinstall them after the checkout, by hand, then re-run"
     exit 1
   fi
-  if [ -n "$(ssh -n "$pi" "git -C $BOX_REPO diff --stat $cur origin/$TARGET -- gw_spaceheat/requirements packages/*/pyproject.toml")" ]; then
+  if [ -n "$(ssh -n "$pi" "git -C $BOX_REPO diff --stat $cur origin/$TARGET -- $RUNTIME_REQS")" ]; then
     echo "$pi: requirements differ between $cur and origin/$TARGET; rebuild the venv on the box (tools/mkenv.sh) after the checkout, by hand, then re-run"
-    ssh -n "$pi" "git -C $BOX_REPO diff --stat $cur origin/$TARGET -- gw_spaceheat/requirements packages/*/pyproject.toml"
+    ssh -n "$pi" "git -C $BOX_REPO diff --stat $cur origin/$TARGET -- $RUNTIME_REQS"
     exit 1
   fi
   ssh -n "$pi" "git -C $BOX_REPO checkout -q $TARGET && git -C $BOX_REPO merge -q --ff-only origin/$TARGET" || { echo "$pi: checkout or fast-forward failed (local branch ahead of origin?); refusing"; exit 1; }

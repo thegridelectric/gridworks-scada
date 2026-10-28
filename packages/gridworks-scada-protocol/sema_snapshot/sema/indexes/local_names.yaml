@@ -123,6 +123,8 @@ types:
   gw.house.operating.status: house.operating.status
   gw.house0.family.params: house0.family.params
   gw.house0.layout: house0.layout
+  gw.house0.no.sieg: house0.no.sieg
+  gw.house0.no.sieg.family.params: house0.no.sieg.family.params
   gw.hydronic: hydronic
   gw.native.gpio.pin: native.gpio.pin
   gw.nolan.family.params: nolan.family.params

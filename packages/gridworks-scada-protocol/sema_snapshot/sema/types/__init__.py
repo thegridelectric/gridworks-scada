@@ -51,6 +51,10 @@ from sema_snapshot.sema.types.heating_curve import HeatingCurve
 from sema_snapshot.sema.types.heating_forecast import HeatingForecast
 from sema_snapshot.sema.types.house0_family_params import House0FamilyParams
 from sema_snapshot.sema.types.house0_layout import House0Layout
+from sema_snapshot.sema.types.house0_no_sieg import House0NoSieg
+from sema_snapshot.sema.types.house0_no_sieg_family_params import (
+    House0NoSiegFamilyParams,
+)
 from sema_snapshot.sema.types.house_operating_status import HouseOperatingStatus
 from sema_snapshot.sema.types.hp_control_box_device_type_gt import (
     HpControlBoxDeviceTypeGt,
@@ -222,6 +226,8 @@ __all__ = [
     "HeatingForecast",
     "House0FamilyParams",
     "House0Layout",
+    "House0NoSieg",
+    "House0NoSiegFamilyParams",
     "HouseOperatingStatus",
     "HpControlBoxDeviceTypeGt",
     "HpDeviceTypeGt",

@@ -21,12 +21,13 @@ from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatCha
 from actors.command_node import CommandNode
 from actors.scada_data import ScadaData
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
-from gwsproto.named_types import House0Layout, NolanLayout
+from gwsproto.named_types import House0Layout, House0NoSiegLayout, NolanLayout
 
 # The channels each family's control needs to judge the buffer, by the
 # layout word: House0 the effective buffer depths, Nolan the band.
 DISPATCH_CHANNELS_BY_LAYOUT: dict[str, tuple[str, ...]] = {
     House0Layout.type_name_value(): tuple(sorted(HCN.buffer.effective)),
+    House0NoSiegLayout.type_name_value(): tuple(sorted(HCN.buffer.effective)),
     NolanLayout.type_name_value(): (HCN.buffer.depth1, HCN.buffer.depth3),
 }
 

@@ -75,7 +75,8 @@ class CommandNode(ShNodeActor):
         boss
         ├── hp-boss
         │     ├── hp-scada-ops-relay
-        │     └── secondary-pump-relay   (where the plant has one)
+        │     ├── secondary-pump-relay   (where the plant has one)
+        │     └── secondary-pump-hack-relay   (gw.house0.no.sieg, until wired out)
         ├── sieg-loop                 (only when the scada runs the loop)
         │     ├── hp-loop-on-off
         │     └── hp-loop-keep-send

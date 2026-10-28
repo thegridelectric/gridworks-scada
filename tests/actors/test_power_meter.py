@@ -274,6 +274,45 @@ async def test_whitewire_power_through_the_sim_meter_becomes_the_zone_heat_call(
         )
 
 
+@pytest.mark.asyncio
+async def test_secondary_pump_power_through_the_sim_meter_becomes_secondary_pump_running(
+    request: pytest.FixtureRequest,
+) -> None:
+    """The sieg-less House0 hazel derives secondary-pump-running from
+    secondary-pump-pwr (circulator-running, ThresholdW 20), a channel the
+    power meter captures."""
+    config = Path(__file__).parent.parent / "config"
+    settings = ScadaApp.get_settings()
+    settings.paths.hardware_layout = config / "gw.house0.no.sieg.hazel.layout.json"
+    settings.paths.operational_params = config / "gw.house0.no.sieg.hazel.operational.params.json"
+    async with ScadaLiveTest(request=request, child_app_settings=settings) as h:
+        h.start_child1()
+        data = h.child1_app.scada.data
+        p = typing.cast(
+            PowerMeterDriverThread,
+            h.child1_app.get_communicator_as_type(
+                CoreNodeNames.asset_power_meter, PowerMeter
+            )._sync_thread,
+        )
+        assert HCN.secondary_pump_pwr in {ch.Name for ch in p.derived_input_channels}
+        driver = typing.cast(GridworksSimPm1_PowerMeterDriver, p.driver)
+
+        await h.await_for(
+            lambda: data.latest_channel_values.get(HCN.secondary_pump_running) == 0,
+            "secondary pump off at 0 W",
+        )
+        driver.fake_power_w = 50
+        await h.await_for(
+            lambda: data.latest_channel_values.get(HCN.secondary_pump_running) == 1,
+            "secondary pump running at 50 W",
+        )
+        driver.fake_power_w = 20
+        await h.await_for(
+            lambda: data.latest_channel_values.get(HCN.secondary_pump_running) == 0,
+            "secondary pump off at the threshold",
+        )
+
+
 WILLOW_LAYOUT = Path(__file__).parent.parent / "config" / "gw.house0.willow.layout.json"
 WILLOW_OPS = Path(__file__).parent.parent / "config" / "gw.house0.willow.operational.params.json"
 WHITEWIRE = "zone1-main-whitewire-pwr"

@@ -201,3 +201,21 @@ def test_back_sends_a_house0_house_to_legacy(maple_env: dict[str, str]) -> None:
 def test_forward_sends_a_house_to_main(maple_env: dict[str, str]) -> None:
     r = run_roll(maple_env, "forward", answers="y\n")
     assert "maple: rolling forward to main" in r.stdout
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="needs git")
+def test_to_a_branch_off_main_reads_the_main_record(maple_env: dict[str, str]) -> None:
+    """A scada branch not in the line table is on the main line: its pair is
+    tlayouts main's, it reads the ops word, and the box checks out the branch."""
+    work = Path(maple_env["TLAYOUTS_DIR"])
+    git(work, "checkout", "-q", "-b", "main")
+    (work / "output" / "maple" / "operational-params.json").write_text('{"Ops": "maple-test"}\n')
+    git(work, "add", ".")
+    git(work, "commit", "-q", "-m", "maple main record")
+    git(work, "push", "-q", "origin", "main")
+    r = run_roll(maple_env, "to", "jm/trial", answers="y\ny\ny\n")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "maple hardware-layout: matches tlayouts main output/maple/hardware-layout.json" in r.stdout
+    assert "maple operational-params:" in r.stdout
+    log = Path(maple_env["ROLL_STUB_LOG"]).read_text().splitlines()
+    assert "maple: git -C ~/gridworks-scada checkout -q jm/trial && git -C ~/gridworks-scada merge -q --ff-only origin/jm/trial" in log

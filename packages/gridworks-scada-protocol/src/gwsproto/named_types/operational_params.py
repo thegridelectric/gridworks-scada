@@ -9,6 +9,7 @@ from gwsproto.named_types.cop_curve import CopCurve
 from gwsproto.named_types.dispatch_hold import DispatchHold
 from gwsproto.named_types.heating_curve import HeatingCurve
 from gwsproto.named_types.house0_family_params import House0FamilyParams
+from gwsproto.named_types.house0_no_sieg_family_params import House0NoSiegFamilyParams
 from gwsproto.named_types.nolan_family_params import NolanFamilyParams
 from gwsproto.named_types.tou_tariff import TouTariff
 from gwsproto.named_types.zero_ten_power_on import ZeroTenPowerOn
@@ -21,7 +22,7 @@ class OperationalParams(GwsprotoSemaType):
 
     ScadaAlias: LeftRightDotStr
     FamilyParams: Annotated[
-        Union[House0FamilyParams, NolanFamilyParams],
+        Union[House0FamilyParams, House0NoSiegFamilyParams, NolanFamilyParams],
         Field(discriminator="TypeName"),
     ]
     CaptureTuningList: List[CaptureTuning]
@@ -93,13 +94,13 @@ class OperationalParams(GwsprotoSemaType):
         """
         Axiom 4: PostureRelaysPerFamily.
         StandbyPosture fixes EnergizedStandbyRelays for the family named by
-        FamilyParams.TypeName: MonitorOnly means an empty list; House0
-        NoHeatingOrCooling means exactly hp-failsafe-relay and
+        FamilyParams.TypeName: MonitorOnly means an empty list; House0 and
+        House0NoSieg NoHeatingOrCooling means exactly hp-failsafe-relay and
         aquastat-ctrl-relay; Nolan NoHeatingOrCooling means an empty list.
         """
         if self.StandbyPosture is StandbyPosture.MonitorOnly:
             expected: List[str] = []
-        elif isinstance(self.FamilyParams, House0FamilyParams):
+        elif isinstance(self.FamilyParams, (House0FamilyParams, House0NoSiegFamilyParams)):
             expected = ["hp-failsafe-relay", "aquastat-ctrl-relay"]
         else:
             expected = []

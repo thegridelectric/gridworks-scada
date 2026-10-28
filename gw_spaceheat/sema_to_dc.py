@@ -27,7 +27,9 @@ from gwsproto.enums import ActorClass, GNodeClass, SiegLoopStrategy, TaValidatio
 from gwsproto.named_types import (
     ElementBackup,
     House0FamilyParams,
+    House0NoSiegFamilyParams,
     House0Layout,
+    House0NoSiegLayout,
     NolanFamilyParams,
     NolanLayout,
     OperationalParams,
@@ -39,8 +41,9 @@ from gwsproto.names.hydronic_spaceheat.node_names import (
 from gwsproto.property_format import LeftRightDotStr
 
 # The authored static artifact names its sema layout type; dispatch on it.
-SEMA_LAYOUT_BY_TYPENAME: dict[LeftRightDotStr, type[House0Layout] | type[NolanLayout]] = {
-    word.type_name_value(): word for word in (House0Layout, NolanLayout)
+SemaLayout = House0Layout | House0NoSiegLayout | NolanLayout
+SEMA_LAYOUT_BY_TYPENAME: dict[LeftRightDotStr, type[SemaLayout]] = {
+    word.type_name_value(): word for word in (House0Layout, House0NoSiegLayout, NolanLayout)
 }
 
 # The ONLY layout ⊕ family-params pairings a scada may boot. The operational
@@ -53,6 +56,7 @@ APPROVED_PAIRS: dict[LeftRightDotStr, LeftRightDotStr] = TypeAdapter(
 ).validate_python(
     {
         House0Layout.type_name_value(): House0FamilyParams.type_name_value(),
+        House0NoSiegLayout.type_name_value(): House0NoSiegFamilyParams.type_name_value(),
         NolanLayout.type_name_value(): NolanFamilyParams.type_name_value(),
     }
 )
@@ -76,7 +80,7 @@ def check_approved_pair(layout_type_name: str, family_type_name: str) -> None:
 
 
 def check_scada_alias(
-    word: House0Layout | NolanLayout, ops_word: OperationalParams
+    word: SemaLayout, ops_word: OperationalParams
 ) -> None:
     """The ops word names the Scada it tunes; refuse a pair whose ScadaAlias is
     not the alias of the layout's Scada GNode."""
@@ -150,7 +154,7 @@ def check_energized_standby_relays(ops_word: OperationalParams, static: dict[str
             )
 
 
-def check_backup_when_cold(word: House0Layout | NolanLayout, ops_word: OperationalParams) -> None:
+def check_backup_when_cold(word: SemaLayout, ops_word: OperationalParams) -> None:
     """UsesBackupWhenCold true in the params requires a Backup in the
     layout with InService true, and at a Nolan layout an element backup:
     the Nolan machine has no boiler branch. Raises on a pair that would
@@ -175,7 +179,7 @@ def check_backup_when_cold(word: House0Layout | NolanLayout, ops_word: Operation
         )
 
 
-def check_hp_traits(word: House0Layout | NolanLayout) -> None:
+def check_hp_traits(word: SemaLayout) -> None:
     """A Nolan layout's hp-odu device type has an HP_TRAITS row: the
     heat-pump threshold machine runs on its lines whichever local control
     is selected. Raises naming the device type, the supported heat pumps

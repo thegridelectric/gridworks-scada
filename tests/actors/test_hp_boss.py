@@ -39,7 +39,6 @@ from gwsproto.named_types import (
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from gwsproto.names.house0.node_names import House0NodeNames
-from gwsproto.names.nolan.node_names import NolanNodeNames
 from scada_app import ScadaApp
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -47,6 +46,7 @@ PAIRS = {
     "nolan": ("gw.nolan.layout.json", "gw.nolan.operational.params.json"),
     "house0-willow": ("gw.house0.willow.layout.json", "gw.house0.willow.operational.params.json"),
     "house0-orange": ("gw.house0.orange.layout.json", "gw.house0.orange.operational.params.json"),
+    "house0-no-sieg-hazel": ("gw.house0.no.sieg.hazel.layout.json", "gw.house0.no.sieg.hazel.operational.params.json"),
 }
 
 
@@ -158,7 +158,10 @@ def test_hp_boss_in_every_tree(app: ScadaApp, boss: str) -> None:
             assert scada.layout.node(name).handle == f"{sieg_loop.handle}.{name}"
     if scada.layout.has_secondary_pump:
         pump = scada.layout.secondary_pump_relay
-        assert pump.handle == f"{hp_boss.handle}.{NolanNodeNames.secondary_pump_relay}"
+        assert pump.handle == f"{hp_boss.handle}.{HSNN.secondary_pump_relay}"
+    if scada.layout.is_house0_no_sieg:
+        hack = scada.layout.secondary_pump_hack_relay
+        assert hack.handle == f"{hp_boss.handle}.{House0NodeNames.secondary_pump_hack_relay}"
     assert scada.hp_boss is hp_boss
 
 
@@ -173,14 +176,15 @@ def test_hp_boss_boots_off_and_reports_it(app: ScadaApp) -> None:
     relay = app.scada.layout.hp_scada_ops_relay
     assert reported_states(sent) == [HpBossState.HpOff]
     if app.scada.layout.has_secondary_pump:
-        # The pump runs until hp-watch says the unit is off: on at boot.
-        pump = app.scada.layout.secondary_pump_relay
+        # The pump runs until hp-watch says the unit is off: on at boot,
+        # and the hack relay with it where the layout has one.
+        pumps = pump_relays(app)
         assert relay_events(sent) == [
             (actor.node.handle, relay.handle, ChangeRelayState.OpenRelay),
-            (actor.node.handle, pump.handle, ChangeRelayState.CloseRelay),
+            *[(actor.node.handle, p.handle, ChangeRelayState.CloseRelay) for p in pumps],
         ]
         assert [dst for dst, _ in sent] == [
-            relay.name, actor.primary_scada.name, actor.primary_scada.name, pump.name
+            relay.name, actor.primary_scada.name, actor.primary_scada.name, *[p.name for p in pumps]
         ]
         assert [
             p.NodeName for _, p in sent if isinstance(p, MachineStateSubscribe)
@@ -208,6 +212,16 @@ def hp_watch_says(actor: HpBoss, state: SpruceHackHpState) -> None:
 
 def pump_events(sent: list, pump) -> list[str]:
     return [e for _, to, e in relay_events(sent) if to == pump.handle]
+
+
+def pump_relays(app: ScadaApp) -> list:
+    """The pump relay and, on a gw.house0.no.sieg layout, the hack relay
+    whose contacts the pump's feed still passes through."""
+    layout = app.scada.layout
+    relays = [layout.secondary_pump_relay]
+    if layout.is_house0_no_sieg:
+        relays.append(layout.secondary_pump_hack_relay)
+    return relays
 
 
 def test_the_secondary_pump_follows_the_sensed_heat_pump_not_the_call(app: ScadaApp) -> None:
@@ -252,21 +266,52 @@ def test_the_secondary_pump_follows_the_sensed_heat_pump_not_the_call(app: Scada
     )
 
 
+def test_the_secondary_pump_hack_relay_is_energized_iff_the_pump_is(app: ScadaApp) -> None:
+    """On a gw.house0.no.sieg layout the pump's feed still passes through the
+    contacts of secondary-pump-hack-relay, so hp-boss sends it every command
+    the pump relay gets, each under its own id."""
+    if not app.scada.layout.is_house0_no_sieg:
+        pytest.skip("no hack relay in this plant")
+    scada = app.scada
+    capture(scada)
+    scada.set_command_tree(scada.local_control)
+    actor = hp_boss_actor(app)
+    pump, hack = pump_relays(app)
+    assert hack.handle == f"{actor.node.handle}.{House0NodeNames.secondary_pump_hack_relay}"
+    sent = capture(actor)
+    actor.start()
+    for state in (
+        SpruceHackHpState.HpDetectedOff,
+        SpruceHackHpState.HpDetectedOn,
+        SpruceHackHpState.HpDetectedOff,
+        SpruceHackHpState.Unknown,
+    ):
+        hp_watch_says(actor, state)
+    assert pump_events(sent, pump) == [
+        ChangeRelayState.CloseRelay, ChangeRelayState.OpenRelay, ChangeRelayState.CloseRelay,
+        ChangeRelayState.OpenRelay, ChangeRelayState.CloseRelay,
+    ]
+    assert pump_events(sent, hack) == pump_events(sent, pump)
+    ids = [p.TriggerId for dst, p in sent if isinstance(p, FsmEvent) and dst in (pump.name, hack.name)]
+    assert len(ids) == len(set(ids)) == 10
+
+
 def test_the_pumps_report_goes_to_the_scada_as_it_is(app: ScadaApp) -> None:
-    """The pump relay reports to hp-boss, its commander; hp-boss passes the
-    report on unchanged rather than folding it into a call command."""
+    """The pump relay (and the hack relay with it) reports to hp-boss, its
+    commander; hp-boss passes the report on unchanged rather than folding it
+    into a call command."""
     if not app.scada.layout.has_secondary_pump:
         pytest.skip("no secondary pump in this plant")
     actor = hp_boss_actor(app)
-    pump = app.scada.layout.secondary_pump_relay
     sent = capture(actor)
     actor.start()
-    cmd = next(p for dst, p in sent if dst == pump.name)
-    sent.clear()
-    report = relay_report(pump, cmd)
-    deliver(actor, pump.name, report)
-    assert full_reports(sent) == [(actor.primary_scada.name, report)]
-    assert actor.trigger_id is not None  # the call command's record is untouched
+    cmds = {pump.name: next(p for dst, p in sent if dst == pump.name) for pump in pump_relays(app)}
+    for pump in pump_relays(app):
+        sent.clear()
+        report = relay_report(pump, cmds[pump.name])
+        deliver(actor, pump.name, report)
+        assert full_reports(sent) == [(actor.primary_scada.name, report)]
+        assert actor.trigger_id is not None  # the call command's record is untouched
 
 
 def test_turn_off_opens_call_relay_from_hp_boss(app: ScadaApp) -> None:
@@ -324,7 +369,7 @@ async def test_turn_on_follows_the_layout_strategy(app: ScadaApp) -> None:
     relay = scada.layout.hp_scada_ops_relay
     deliver(actor, boss.name, turn(boss.handle, actor.node.handle, TurnHpOnOff.TurnOn))
     close = (actor.node.handle, relay.handle, ChangeRelayState.CloseRelay)
-    if selected_strategy(actor.ops) is SiegLoopStrategy.StratProtect:
+    if scada.layout.has_sieg_loop and selected_strategy(actor.ops) is SiegLoopStrategy.StratProtect:
         assert call_relay_events(sent, relay) == []
         assert actor.state == HpBossState.PreparingToTurnOn
         assert reported_states(sent) == [HpBossState.PreparingToTurnOn]
@@ -404,13 +449,16 @@ async def test_admin_turns_heat_pump_on_and_off_through_hp_boss(app: ScadaApp) -
     if scada.layout.has_secondary_pump:
         # The pump stays hp-boss's under admin and takes nothing from the call.
         pump = scada.layout.secondary_pump_relay
-        assert pump.handle == f"{hp_boss_handle}.{NolanNodeNames.secondary_pump_relay}"
+        assert pump.handle == f"{hp_boss_handle}.{HSNN.secondary_pump_relay}"
+    if scada.layout.is_house0_no_sieg:
+        hack = scada.layout.secondary_pump_hack_relay
+        assert hack.handle == f"{hp_boss_handle}.{House0NodeNames.secondary_pump_hack_relay}"
     assert len(relay_events(sent)) == 1
     assert actor.state == HpBossState.HpOff
 
     sent.clear()
     scada.process_admin_dispatch(scada.admin, admin_turn(TurnHpOnOff.TurnOn))
-    if selected_strategy(actor.ops) is SiegLoopStrategy.StratProtect:
+    if scada.layout.has_sieg_loop and selected_strategy(actor.ops) is SiegLoopStrategy.StratProtect:
         assert actor.state == HpBossState.PreparingToTurnOn
         deliver(actor, House0NodeNames.sieg_loop, SiegLoopReady())
     assert [e for e in relay_events(sent) if e[1] == relay.handle] == [

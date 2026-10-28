@@ -41,7 +41,9 @@ class HpBoss(ShNodeActor):
     Direct Reports:
     HpBoss
         ├── HpScadaOps
-        └── SecondaryPump   (where the plant has one)
+        ├── SecondaryPump       (where the plant has one)
+        └── SecondaryPumpHack   (gw.house0.no.sieg: the relay whose contacts
+                                 the pump's feed still passes through)
 
     Every command to the call relay rides under one TriggerId: the boss's
     when a TurnHpOnOff command drives it, one hp-boss mints when it acts on
@@ -55,7 +57,8 @@ class HpBoss(ShNodeActor):
     not know, off while it senses the unit off. The call says what the
     scada asked for; the pump runs on what the unit is doing. Each pump
     command is its own minted id, and the pump relay's full report goes on
-    to the scada as it is.
+    to the scada as it is. The hack relay, where the layout has one, gets
+    every command the pump gets, under its own id, and reports the same way.
     """
     TURN_ON_ANYWAY_S = 120 # turn on the heat pump after 2 minutes without strat-boss
     def __init__(self, name: str, services: ScadaAppInterface):
@@ -73,6 +76,10 @@ class HpBoss(ShNodeActor):
         # The secondary pump relay, where the plant has one.
         self.pump: Optional[ShNode] = (
             self.layout.secondary_pump_relay if self.layout.has_secondary_pump else None
+        )
+        # The relay the pump's feed still passes through, energized with the pump.
+        self.pump_hack: Optional[ShNode] = (
+            self.layout.secondary_pump_hack_relay if self.layout.is_house0_no_sieg else None
         )
         # The heat pump as hp-watch last reported it; Unknown until a state arrives.
         self.hp_sensed: SpruceHackHpState = SpruceHackHpState.Unknown
@@ -187,7 +194,10 @@ class HpBoss(ShNodeActor):
             self.transition(HpBossState.HpOff, TurnHpOnOff.TurnOff)
         elif self.state == HpBossState.HpOff:
             self.begin(payload.TriggerId)
-            if selected_strategy(self.ops) is SiegLoopStrategy.StratProtect:
+            if (
+                self.layout.has_sieg_loop
+                and selected_strategy(self.ops) is SiegLoopStrategy.StratProtect
+            ):
                 # The loop protects the start: HpOff -> PreparingToTurnOn;
                 # the relay closes when the loop reports ready.
                 self.transition(HpBossState.PreparingToTurnOn, TurnHpOnOff.TurnOn)
@@ -230,7 +240,7 @@ class HpBoss(ShNodeActor):
         """The call relay's report under the command in flight folds into
         hp-boss's own, which then goes to the scada; the pump relay's goes
         to the scada as it is."""
-        if self.pump is not None and from_node.Name == self.pump.Name:
+        if from_node.Name in {r.Name for r in (self.pump, self.pump_hack) if r is not None}:
             self._send_to(self.primary_scada, payload)
             return
         if from_node.Name != self.layout.hp_scada_ops_relay.Name:
@@ -318,17 +328,20 @@ class HpBoss(ShNodeActor):
         if wanted == self.pump_on:
             return
         event_name = ChangeRelayState.CloseRelay if wanted else ChangeRelayState.OpenRelay
-        event = FsmEvent(
-            FromHandle=self.node.handle,
-            ToHandle=self.pump.handle,
-            EventType=ChangeRelayState.enum_name(),
-            EventName=event_name,
-            SendTimeUnixMs=int(time.time() * 1000),
-            TriggerId=str(uuid.uuid4()),
-        )
-        self._send_to(self.pump, event)
+        for relay in (self.pump, self.pump_hack):
+            if relay is None:
+                continue
+            event = FsmEvent(
+                FromHandle=self.node.handle,
+                ToHandle=relay.handle,
+                EventType=ChangeRelayState.enum_name(),
+                EventName=event_name,
+                SendTimeUnixMs=int(time.time() * 1000),
+                TriggerId=str(uuid.uuid4()),
+            )
+            self._send_to(relay, event)
+            self.log(
+                f"{self.node.handle} sending {event_name} to {relay.handle} "
+                f"(call {self.state}, sensed {self.hp_sensed})"
+            )
         self.pump_on = wanted
-        self.log(
-            f"{self.node.handle} sending {event_name} to {self.pump.handle} "
-            f"(call {self.state}, sensed {self.hp_sensed})"
-        )

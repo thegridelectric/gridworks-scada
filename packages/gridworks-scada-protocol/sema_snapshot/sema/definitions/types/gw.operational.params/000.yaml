@@ -29,6 +29,7 @@ properties:
   FamilyParams:
     oneOf:
       - $ref: "https://schemas.electricity.works/types/gw.house0.family.params/000"
+      - $ref: "https://schemas.electricity.works/types/gw.house0.no.sieg.family.params/000"
       - $ref: "https://schemas.electricity.works/types/gw.nolan.family.params/000"
     description: >
       The layout-family block: the knobs that only mean something against a
@@ -284,6 +285,9 @@ x-gridworks:
         c. If FamilyParams.TypeName is gw.nolan.family.params and
            StandbyPosture is NoHeatingOrCooling, EnergizedStandbyRelays
            SHALL be empty.
+        d. If FamilyParams.TypeName is gw.house0.no.sieg.family.params and
+           StandbyPosture is NoHeatingOrCooling, EnergizedStandbyRelays
+           SHALL be exactly hp-failsafe-relay and aquastat-ctrl-relay.
 
     - number: 5
       name: "StandbyHoldsFullSend"

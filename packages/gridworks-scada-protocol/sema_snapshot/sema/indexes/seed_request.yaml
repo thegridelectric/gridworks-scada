@@ -104,7 +104,11 @@ initial_targets:
       versions: ["000"]
     gw.house0.family.params:
       versions: ["000"]
+    gw.house0.no.sieg.family.params:
+      versions: ["000"]
     gw.house0.layout:
+      versions: ["000"]
+    gw.house0.no.sieg:
       versions: ["000"]
     gw.hydronic:
       versions: ["000"]

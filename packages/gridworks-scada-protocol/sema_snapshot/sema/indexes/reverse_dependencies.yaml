@@ -10,10 +10,12 @@ types:
     '000':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
   ads111x.based.device.type.gt:
     '000':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
       - gw.nolan.layout:000
   capture.tuning:
     '000':
@@ -35,6 +37,7 @@ types:
     '004':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
       - gw.nolan.layout:000
       - layout.lite:013
       - scada.control.capabilities:002
@@ -42,12 +45,14 @@ types:
     '003':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
       - gw.nolan.layout:000
       - layout.lite:013
   device.component.gt:
     '000':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
       - gw.nolan.layout:000
   egauge.register.config:
     '000':
@@ -61,11 +66,13 @@ types:
     '001':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
       - gw.nolan.layout:000
   electric.meter.device.type.gt:
     '000':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
       - gw.nolan.layout:000
   fsm.atomic.report:
     '001':
@@ -79,21 +86,25 @@ types:
     '006':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
       - gw.nolan.layout:000
   gpio.relay.component.gt:
     '000':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
       - gw.nolan.layout:000
   gpio.sensor.component.gt:
     '000':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
       - gw.nolan.layout:000
   gw.boiler.backup:
     '000':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
       - gw.hydronic:000
       - gw.nolan.layout:000
   gw.command.interface:
@@ -112,9 +123,14 @@ types:
     '000':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
       - gw.hydronic:000
       - gw.nolan.layout:000
   gw.house0.family.params:
+    '000':
+      used_by:
+      - gw.operational.params:000
+  gw.house0.no.sieg.family.params:
     '000':
       used_by:
       - gw.operational.params:000
@@ -122,6 +138,7 @@ types:
     '000':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
       - gw.nolan.layout:000
   gw.native.gpio.pin:
     '000':
@@ -167,10 +184,12 @@ types:
     '000':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
   gw0.usable.energy.layered:
     '000':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
   gw1.hvac.zone:
     '000':
       used_by:
@@ -179,6 +198,7 @@ types:
     '000':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
       - gw.nolan.layout:000
   gw1.tank.temp.calibration:
     '001':
@@ -208,11 +228,13 @@ types:
     '000':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
       - gw.nolan.layout:000
   hubitat.component.gt:
     '000':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
   hubitat.gt:
     '000':
       used_by:
@@ -221,6 +243,7 @@ types:
     '000':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
   hubitat.poller.gt:
     '001':
       used_by:
@@ -246,6 +269,7 @@ types:
     '000':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
       - gw.nolan.layout:000
   i2c.expander:
     '000':
@@ -268,6 +292,7 @@ types:
     '000':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
       - gw.nolan.layout:000
   i2c.thermistor.channel.config:
     '000':
@@ -281,6 +306,7 @@ types:
     '000':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
       - gw.nolan.layout:000
   machine.states:
     '000':
@@ -294,15 +320,18 @@ types:
     '000':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
       - gw.nolan.layout:000
   pico.flow.module.component.gt:
     '001':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
   pico.tank.module.component.gt:
     '012':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
       - gw.nolan.layout:000
   price.quantity.unitless:
     '001':
@@ -321,26 +350,31 @@ types:
     '000':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
       - gw.nolan.layout:000
   sim.pico.btu.meter.component.gt:
     '000':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
       - gw.nolan.layout:000
   sim.pico.flow.module.component.gt:
     '000':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
       - gw.nolan.layout:000
   sim.pico.tank.module.component.gt:
     '001':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
       - gw.nolan.layout:000
   sim.sensor.component.gt:
     '000':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
       - gw.nolan.layout:000
   single.machine.state:
     '000':
@@ -359,6 +393,7 @@ types:
     '303':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
       - gw.nolan.layout:000
       - layout.lite:013
       - new.command.tree:003
@@ -379,6 +414,7 @@ types:
     '001':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
       - gw.nolan.layout:000
   zero.ten.power.on:
     '000':
@@ -456,12 +492,14 @@ enums:
     '000':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
       - gw.nolan.layout:000
       - gw1.zone.call.circuit:000
   gw1.actor.class:
     '014':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
       - gw.nolan.layout:000
       - new.command.tree:003
       - scada.control.capabilities:002
@@ -476,6 +514,7 @@ enums:
       - data.channel.gt:004
       - derived.channel.gt:003
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
       - gw.nolan.layout:000
       - gw.weather.channel.gt:002
       - gw.weather.forecast.series:000
@@ -486,6 +525,7 @@ enums:
       used_by:
       - gw.house.operating.status:000
       - gw.house0.family.params:000
+      - gw.house0.no.sieg.family.params:000
       - gw.nolan.family.params:000
   gw1.service.mode:
     '000':
@@ -506,6 +546,7 @@ enums:
     '000':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
       - gw.nolan.layout:000
   hp.boss.state:
     '000':
@@ -649,6 +690,7 @@ enums:
     '000':
       used_by:
       - gw.house0.layout:000
+      - gw.house0.no.sieg:000
       - gw.nolan.layout:000
       - gw1.zone.call.circuit:000
 formats:
@@ -875,6 +917,7 @@ formats:
     - gw.command.interface:000
     - gw.element.backup:000
     - gw.house0.layout:000
+    - gw.house0.no.sieg:000
     - gw.hydronic:000
     - gw.nolan.layout:000
     - gw.operational.params:000

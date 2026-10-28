@@ -72,6 +72,8 @@ def expected_handles(scada: Scada, boss_handle: str) -> dict[str, str]:
     parents = {layout.hp_scada_ops_relay.Name: hp_boss}
     if layout.has_secondary_pump:
         parents[layout.secondary_pump_relay.Name] = hp_boss
+    if layout.is_house0_no_sieg:
+        parents[layout.secondary_pump_hack_relay.Name] = hp_boss
     if layout.node(HSNN.five_v_boss) is not None:
         five_v_boss = f"{root}.{HSNN.five_v_boss}"
         cycler = f"{five_v_boss}.{HSNN.pico_cycler}"

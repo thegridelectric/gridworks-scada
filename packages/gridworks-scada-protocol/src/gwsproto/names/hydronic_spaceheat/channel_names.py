@@ -88,12 +88,15 @@ class HydronicSpaceheatChannelNames:
     secondary_pump_pwr = f"{HSNN.secondary_pump}-pwr"
     primary_pump_pwr = f"{HSNN.primary_pump}-pwr"
     store_pump_pwr = f"{HSNN.store_pump}-pwr"
+    oil_boiler_pwr = f"{HSNN.oil_boiler}-pwr"
 
     # Temperature Channels
     dist_swt = HSNN.dist_swt
     dist_rwt = HSNN.dist_rwt
     hp_lwt = HSNN.hp_lwt
     hp_ewt = HSNN.hp_ewt
+    secondary_lwt = HSNN.secondary_lwt
+    secondary_ewt = HSNN.secondary_ewt
     store_hot_pipe = HSNN.store_hot_pipe
     store_cold_pipe = HSNN.store_cold_pipe
     buffer_hot_pipe = HSNN.buffer_hot_pipe
@@ -104,10 +107,16 @@ class HydronicSpaceheatChannelNames:
     dist_flow = HSNN.dist_flow
     primary_flow = HSNN.primary_flow
     store_flow = HSNN.store_flow
+    secondary_flow = HSNN.secondary_flow
 
     dist_flow_hz = f"{HSNN.dist_flow}-hz"
     primary_flow_hz = f"{HSNN.primary_flow}-hz"
     store_flow_hz = f"{HSNN.store_flow}-hz"
+    secondary_flow_hz = f"{HSNN.secondary_flow}-hz"
+
+    # 1 while the secondary pump draws more than the layout's ThresholdW,
+    # 0 otherwise: the derived channel on the circulator-running strategy.
+    secondary_pump_running = f"{HSNN.secondary_pump}-running"
 
     required_energy = "required-energy"
     usable_energy = "usable-energy"
@@ -119,6 +128,7 @@ class HydronicSpaceheatChannelNames:
     # relay state channels
     vdc_relay_state = "vdc-relay"
     hp_scada_ops_relay_state = "hp-scada-ops-relay"
+    secondary_pump_relay_state = HSNN.secondary_pump_relay
     buffer_top_elt_relay_state = "buffer-top-elt-relay"
     buffer_bottom_elt_relay_state = "buffer-bottom-elt-relay"
 

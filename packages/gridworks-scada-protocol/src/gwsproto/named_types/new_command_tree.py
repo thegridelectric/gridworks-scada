@@ -5,6 +5,7 @@ from pydantic import model_validator
 from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
 from gwsproto.property_format import LeftRightDotStr, UTCMilliseconds
 from gwsproto.type_helpers.command_tree_axioms import (
+    COMMAND_CLASSES_WITH_SIEG_LOOP,
     check_actuator_leaves,
     check_prefix_closed_handles,
 )
@@ -41,5 +42,9 @@ class NewCommandTree(GwsprotoSemaType):
         or a command node (LocalControl, LeafAlly, FiveVBoss, PicoCycler, HpBoss, SiegLoop,
         or a NoActor whose handle parent is the LocalControl node).
         """
-        check_actuator_leaves(self.ShNodes, "Axiom 2 (ActuatorLeaves)")
+        check_actuator_leaves(
+            self.ShNodes,
+            "Axiom 2 (ActuatorLeaves)",
+            command_classes=COMMAND_CLASSES_WITH_SIEG_LOOP,
+        )
         return self

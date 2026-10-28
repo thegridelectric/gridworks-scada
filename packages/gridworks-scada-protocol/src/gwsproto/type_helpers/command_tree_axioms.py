@@ -17,14 +17,16 @@ LOCAL_CONTROL_STATE_NODES = {
     CoreNodeNames.local_control_scada_blind,
     CoreNodeNames.local_control_standby,
 }
+# The command classes of a plant with no Siegenthaler loop (gw.nolan.layout,
+# gw.house0.no.sieg); a word whose plant has the loop adds SiegLoop.
 COMMAND_CLASSES = {
     ActorClass.LocalControl,
     ActorClass.LeafAlly,
     ActorClass.FiveVBoss,
     ActorClass.PicoCycler,
     ActorClass.HpBoss,
-    ActorClass.SiegLoop,
 }
+COMMAND_CLASSES_WITH_SIEG_LOOP = COMMAND_CLASSES | {ActorClass.SiegLoop}
 
 
 def effective_handle(node: SpaceheatNodeGt) -> str:
@@ -46,10 +48,13 @@ def check_prefix_closed_handles(nodes: Iterable[SpaceheatNodeGt], axiom: str) ->
                 )
 
 
-def check_actuator_leaves(nodes: Iterable[SpaceheatNodeGt], axiom: str) -> None:
+def check_actuator_leaves(
+    nodes: Iterable[SpaceheatNodeGt], axiom: str, *, command_classes: set[ActorClass]
+) -> None:
     """a. every actuator has a dotted effective handle and is a leaf;
-    b. every dotted-handle leaf is an actuator or a command node (a
-    command class, or a NoActor directly under the LocalControl node);
+    b. every dotted-handle leaf is an actuator or a command node (one of
+    the word's command_classes, or a NoActor directly under the
+    LocalControl node);
     c. the NoActor nodes directly under the LocalControl node are named
     n, backup, scada-blind or standby."""
     by_handle = {effective_handle(n): n for n in nodes}
@@ -67,7 +72,7 @@ def check_actuator_leaves(nodes: Iterable[SpaceheatNodeGt], axiom: str) -> None:
             )
         if is_leaf(handle):
             parent = handle.rsplit(".", 1)[0]
-            is_command = node.ActorClass in COMMAND_CLASSES or (
+            is_command = node.ActorClass in command_classes or (
                 node.ActorClass == ActorClass.NoActor and parent in lc_handles
             )
             if node.ActorClass not in ACTUATOR_CLASSES and not is_command:

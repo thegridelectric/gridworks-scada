@@ -42,6 +42,18 @@ def app(request: pytest.FixtureRequest) -> ScadaApp:
 
 
 @pytest.fixture
+def hazel_app() -> ScadaApp:
+    """The sieg-less House0 hazel app: the layout with a secondary pump."""
+    settings = ScadaApp.get_settings()
+    settings.paths.hardware_layout = CONFIG / "gw.house0.no.sieg.hazel.layout.json"
+    settings.paths.operational_params = CONFIG / "gw.house0.no.sieg.hazel.operational.params.json"
+    settings.paths.mkdirs()
+    scada_app = ScadaApp(app_settings=settings)
+    scada_app.instantiate()
+    return scada_app
+
+
+@pytest.fixture
 def sim_weather_app() -> ScadaApp:
     """The willow app on the simulated weather source."""
     settings = ScadaApp.get_settings()
@@ -375,3 +387,39 @@ async def test_a_forecast_filled_for_want_of_a_wind_series_raises_a_warning_glit
     assert "WindSpeed" in details and weather.bundle.Name in details
     assert actor.data.heating_forecast is not None
     assert actor.weather_forecast is fill
+
+
+def test_circulator_running_emits_on_change_and_on_the_period(
+    hazel_app: ScadaApp, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """secondary-pump-running reads 1 above ThresholdW and 0 at or below it,
+    and goes to the scada on every change and on each period boundary."""
+    actor = hazel_app.get_communicator_as_type(CoreNodeNames.derived_generator, DerivedGenerator)
+    dc = actor.layout.derived_channels[HCN.secondary_pump_running]
+    assert dc.Strategy == "circulator-running"
+    threshold = dc.Parameters["ThresholdW"]
+    sent: list[SingleReading] = []
+    monkeypatch.setattr(actor, "_send_to", lambda dst, msg: sent.append(msg))
+
+    def pump_pwr(watts: int) -> SingleReading:
+        return SingleReading(
+            ChannelName=HCN.secondary_pump_pwr,
+            Value=watts,
+            ScadaReadTimeUnixMs=int(time.time() * 1000),
+        )
+
+    # First reading always emits; a repeat of the same state does not.
+    actor.handle_circulator_running(dc, pump_pwr(0))
+    actor.handle_circulator_running(dc, pump_pwr(threshold))
+    assert [r.Value for r in sent] == [0]
+    # Crossing the threshold emits 1; back down emits 0.
+    actor.handle_circulator_running(dc, pump_pwr(threshold + 1))
+    actor.handle_circulator_running(dc, pump_pwr(threshold + 1))
+    actor.handle_circulator_running(dc, pump_pwr(threshold))
+    assert [r.Value for r in sent] == [0, 1, 0]
+    assert all(r.ChannelName == HCN.secondary_pump_running for r in sent)
+    # An unchanged state emits again once the period boundary passes.
+    actor.next_period_boundary_ts[dc.Name] = time.time() - 1
+    actor.handle_circulator_running(dc, pump_pwr(0))
+    assert [r.Value for r in sent] == [0, 1, 0, 0]
+    assert actor.next_period_boundary_ts[dc.Name] > time.time()

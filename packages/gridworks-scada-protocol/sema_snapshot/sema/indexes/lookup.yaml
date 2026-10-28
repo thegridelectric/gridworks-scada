@@ -204,6 +204,16 @@ types:
     versioning_strategy: literal
     versions:
       '000': definitions/types/gw.house0.layout/000.yaml
+  gw.house0.no.sieg:
+    latest_version: '000'
+    versioning_strategy: literal
+    versions:
+      '000': definitions/types/gw.house0.no.sieg/000.yaml
+  gw.house0.no.sieg.family.params:
+    latest_version: '000'
+    versioning_strategy: literal
+    versions:
+      '000': definitions/types/gw.house0.no.sieg.family.params/000.yaml
   gw.hydronic:
     latest_version: '000'
     versioning_strategy: literal

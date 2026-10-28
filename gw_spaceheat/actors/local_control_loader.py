@@ -20,6 +20,9 @@ class LocalControl(ShNodeActor):
         layout = services.hardware_layout
         standby = self.ops.Standby
         nolan = isinstance(layout.sema_layout, NolanLayout)
+        # The House0 machines are for the two House0 words, with and without
+        # the Siegenthaler loop; any other word has no machine here.
+        house0 = layout.is_house0 or layout.is_house0_no_sieg
         seasonal_storage_mode = self.ops.FamilyParams.SeasonalStorageMode
         service_mode = self.ops.ServiceMode
 
@@ -35,10 +38,10 @@ class LocalControl(ShNodeActor):
         elif nolan and service_mode == ServiceMode.Heating and seasonal_storage_mode == SeasonalStorageMode.BufferOnly:
             module = importlib.import_module("actors.local_control.nolan.buffer_only_tou")
             impl_class = getattr(module, "NolanBufferOnlyTou")
-        elif not nolan and service_mode == ServiceMode.Heating and seasonal_storage_mode == SeasonalStorageMode.AllTanks:
+        elif house0 and service_mode == ServiceMode.Heating and seasonal_storage_mode == SeasonalStorageMode.AllTanks:
             module = importlib.import_module("actors.local_control.house0.all_tanks_tou")
             impl_class = getattr(module, "AllTanksTouLocalControl")
-        elif not nolan and service_mode == ServiceMode.Heating and seasonal_storage_mode == SeasonalStorageMode.BufferOnly:
+        elif house0 and service_mode == ServiceMode.Heating and seasonal_storage_mode == SeasonalStorageMode.BufferOnly:
             module = importlib.import_module("actors.local_control.house0.buffer_only_tou")
             impl_class = getattr(module, "BufferOnlyTouLocalControl")
         else:

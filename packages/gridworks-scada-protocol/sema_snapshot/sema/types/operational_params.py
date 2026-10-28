@@ -14,6 +14,9 @@ from sema_snapshot.sema.types.cop_curve import CopCurve
 from sema_snapshot.sema.types.dispatch_hold import DispatchHold
 from sema_snapshot.sema.types.heating_curve import HeatingCurve
 from sema_snapshot.sema.types.house0_family_params import House0FamilyParams
+from sema_snapshot.sema.types.house0_no_sieg_family_params import (
+    House0NoSiegFamilyParams,
+)
 from sema_snapshot.sema.types.nolan_family_params import NolanFamilyParams
 from sema_snapshot.sema.types.tou_tariff import TouTariff
 from sema_snapshot.sema.types.zero_ten_power_on import ZeroTenPowerOn
@@ -23,7 +26,7 @@ class OperationalParams(SemaType):
     """Sema: https://schemas.electricity.works/types/gw.operational.params/000"""
 
     scada_alias: LeftRightDot
-    family_params: House0FamilyParams | NolanFamilyParams
+    family_params: House0FamilyParams | House0NoSiegFamilyParams | NolanFamilyParams
     capture_tuning_list: list[CaptureTuning]
     zero_ten_power_on_list: list[ZeroTenPowerOn]
     standby: bool
@@ -95,7 +98,9 @@ class OperationalParams(SemaType):
         EnergizedStandbyRelays SHALL be exactly hp-failsafe-relay and
         aquastat-ctrl-relay. c. If FamilyParams.TypeName is gw.nolan.family.params
         and StandbyPosture is NoHeatingOrCooling, EnergizedStandbyRelays SHALL be
-        empty.
+        empty. d. If FamilyParams.TypeName is gw.house0.no.sieg.family.params and
+        StandbyPosture is NoHeatingOrCooling, EnergizedStandbyRelays SHALL be
+        exactly hp-failsafe-relay and aquastat-ctrl-relay.
         """
         posture = self.standby_posture
         relays = set(self.energized_standby_relays)
@@ -108,6 +113,10 @@ class OperationalParams(SemaType):
         if posture is StandbyPosture.NoHeatingOrCooling:
             expected = {
                 "gw.house0.family.params": {"hp-failsafe-relay", "aquastat-ctrl-relay"},
+                "gw.house0.no.sieg.family.params": {
+                    "hp-failsafe-relay",
+                    "aquastat-ctrl-relay",
+                },
                 "gw.nolan.family.params": set(),
             }[family]
             if relays != expected:

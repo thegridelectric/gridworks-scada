@@ -72,6 +72,9 @@ KNOWN_UNTESTED_AXIOMS: set[str] = {
     "gpio.relay.component.gt/000:1",
     "gw.house0.layout/000:1",
     "gw.house0.layout/000:5",
+    # PrimaryPumpRecordAgreement binds the Scada owner; the hazel sim pair's
+    # heat pump runs the pump, so the rejecting case lives on gw.house0.layout.
+    "gw.house0.no.sieg/000:31",
     "gw.tou.window/000:1",
     "gw.tou.window/000:2",
     "gw1.scada.device.type.gt/000:1",
