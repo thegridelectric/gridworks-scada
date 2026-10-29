@@ -60,6 +60,7 @@ def cycler_capabilities() -> ScadaControlCapabilities:
         ControlChannels=[],
         CommandInterfaces=[
             CommandInterface(
+                AdminMayTake=False,
                 ActorName=HSNN.pico_cycler,
                 EventType=RebootPicos.enum_name(),
                 StateType=PicoCyclerState.enum_name(),

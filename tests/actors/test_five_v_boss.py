@@ -445,8 +445,9 @@ def test_wake_up_at_rest_does_nothing(app: ScadaApp) -> None:
 
 
 def test_scada_wakes_five_v_boss_on_admin_release(app: ScadaApp) -> None:
-    """AutoWakesUp sends five-v-boss the wake.up LocalControl gets, and a
-    tree rewritten while the hold is on keeps the relay under the boss."""
+    """AutoWakesUp sends five-v-boss the wake.up LocalControl gets (and
+    hp-boss, for the secondary pump), and a tree rewritten while the hold
+    is on keeps the relay under the boss."""
     scada = app.scada
     sent = capture(scada)
     scada.auto_trigger(MainAutoEvent.AutoGoesDormant)
@@ -461,7 +462,7 @@ def test_scada_wakes_five_v_boss_on_admin_release(app: ScadaApp) -> None:
     assert scada.layout.vdc_relay.handle == f"{CoreNodeNames.auto}.{HSNN.five_v_boss}.{HSNN.vdc_relay}"
     assert scada.layout.pico_cycler.handle == f"{CoreNodeNames.auto}.{HSNN.five_v_boss}.{HSNN.pico_cycler}"
     wakes = {dst for dst, p in sent if isinstance(p, WakeUp)}
-    assert wakes == {CoreNodeNames.local_control, HSNN.five_v_boss}
+    assert wakes == {CoreNodeNames.local_control, HSNN.five_v_boss, HSNN.hp_boss}
 
 
 # ---------------------------------------------------------------------------

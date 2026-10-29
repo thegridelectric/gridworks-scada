@@ -305,7 +305,7 @@ types:
       types: []
       versionless_types: []
   gw.command.interface:
-    '000':
+    '001':
       enums:
       - change.relay.state:000
       - hp.boss.state:000
@@ -1468,7 +1468,7 @@ types:
       types: []
       versionless_types: []
   scada.control.capabilities:
-    '002':
+    '003':
       enums:
       - change.relay.state:000
       - gw1.actor.class:014
@@ -1490,7 +1490,7 @@ types:
       - uuid4.str
       types:
       - data.channel.gt:004
-      - gw.command.interface:000
+      - gw.command.interface:001
       - gw.command.transition:000
       - spaceheat.node.gt:303
       - spaceheat.telemetry.quantity.projection:001

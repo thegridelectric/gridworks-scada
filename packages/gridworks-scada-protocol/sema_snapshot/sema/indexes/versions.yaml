@@ -232,11 +232,13 @@ types:
         summary: "PumpNodeName and RunningChannelName (spaceheat.name) and Role (gw.circulator.role) required; FlowChannelName, PowerChannelName, CtChannelName and ZeroTenNodeName optional. Axiom InputDeclared: at least one of PowerChannelName and CtChannelName is present. Relays are not here. Carried by gw.hydronic as Circulators."
 
   gw.command.interface:
-    latest_version: "000"
+    latest_version: "001"
     versioning_strategy: "literal"
     versions:
-      "000":
-        summary: "Initial version."
+      "001":
+        summary: >
+          - AdminMayTake (boolean, required) added: whether admin may take the
+            node out from under its owner for an admin session; false on upgrade
 
   gw.command.transition:
     latest_version: "000"
@@ -847,15 +849,14 @@ types:
         summary: "- Initial version. ComponentId, DeviceType (gw1.device.type board kind), optional I2cAddressList (field-chosen addresses, index-aligned with the record's Expanders), DisplayName, HwUid."
 
   scada.control.capabilities:
-    latest_version: "002"
+    latest_version: "003"
     versioning_strategy: "literal"
     versions:
-      "002":
+      "003":
         summary: >
-          - ControlChannels[]: data.channel.gt 003 -> 004
-          - RelayNodes[], DacNodes[], CommandNodes[]: spaceheat.node.gt:302 -> 303
-          - A node may carry more than one CommandInterfaces entry, one per
-            command vocabulary (five-v-boss: turn.5v.on.off and reboot.picos)
+          - CommandInterfaces[]: gw.command.interface 000 -> 001
+          - A relay under an interior command node whose interface has
+            AdminMayTake true is in the cover (axiom 4)
 
   send.control.capabilities:
     latest_version: "000"

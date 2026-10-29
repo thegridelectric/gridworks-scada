@@ -1,6 +1,6 @@
 {
   "TypeName": "scada.control.capabilities",
-  "Version": "002",
+  "Version": "003",
   "FromGNodeAlias": "hw1.isone.me.versant.keene.beech.scada",
   "MessageCreatedMs": 1757286000000,
   "RelayNodes": [
@@ -25,6 +25,17 @@
       "DisplayName": "5VDC Relay",
       "ComponentId": "6d1c8a1e-2f4b-4c7a-9e3d-0b5a7c2e4f61",
       "ShNodeId": "c2e7b9d4-8a1f-4e6b-b3c5-7d9e1f0a2b4c"
+    },
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "secondary-pump-relay",
+      "ActorHierarchyName": "s.secondary-pump-relay",
+      "Handle": "admin.hp-boss.secondary-pump-relay",
+      "ActorClass": "Relay",
+      "DisplayName": "Secondary Pump Relay",
+      "ComponentId": "6d1c8a1e-2f4b-4c7a-9e3d-0b5a7c2e4f61",
+      "ShNodeId": "5b1d7e2a-4c9f-4a3e-8d6b-2f0c4e8a1b3d"
     }
   ],
   "DacNodes": [
@@ -90,6 +101,18 @@
     {
       "TypeName": "data.channel.gt",
       "Version": "004",
+      "Name": "secondary-pump-relay",
+      "DisplayName": "Secondary Pump Relay State",
+      "AboutNodeName": "secondary-pump-relay",
+      "CapturedByNodeName": "secondary-pump-relay",
+      "TelemetryName": "RelayState",
+      "Quantity": "Unitless",
+      "TerminalAssetAlias": "hw1.isone.me.versant.keene.beech.ta",
+      "Id": "7e1a3c5b-9d2f-4b8e-a6c4-0f3d5b7e9a1c"
+    },
+    {
+      "TypeName": "data.channel.gt",
+      "Version": "004",
       "Name": "secondary-010v",
       "DisplayName": "Secondary Pump 0-10V",
       "AboutNodeName": "secondary-010v",
@@ -103,7 +126,7 @@
   "CommandInterfaces": [
     {
       "TypeName": "gw.command.interface",
-      "Version": "000",
+      "Version": "001",
       "ActorName": "zone1-bedrooms-ops-relay",
       "EventType": "change.relay.state",
       "StateType": "relay.closed.or.open",
@@ -120,11 +143,12 @@
           "Event": "OpenRelay",
           "ToState": "RelayOpen"
         }
-      ]
+      ],
+      "AdminMayTake": false
     },
     {
       "TypeName": "gw.command.interface",
-      "Version": "000",
+      "Version": "001",
       "ActorName": "five-v-boss",
       "EventType": "turn.5v.on.off",
       "StateType": "five.v.boss.state",
@@ -141,11 +165,12 @@
           "Event": "TurnOn",
           "ToState": "PicoCycler"
         }
-      ]
+      ],
+      "AdminMayTake": false
     },
     {
       "TypeName": "gw.command.interface",
-      "Version": "000",
+      "Version": "001",
       "ActorName": "five-v-boss",
       "EventType": "reboot.picos",
       "StateType": "five.v.boss.state",
@@ -156,11 +181,12 @@
           "Event": "RebootPicos",
           "ToState": "PicoCycler"
         }
-      ]
+      ],
+      "AdminMayTake": false
     },
     {
       "TypeName": "gw.command.interface",
-      "Version": "000",
+      "Version": "001",
       "ActorName": "hp-boss",
       "EventType": "turn.hp.on.off",
       "StateType": "hp.boss.state",
@@ -177,7 +203,30 @@
           "Event": "TurnOff",
           "ToState": "HpOff"
         }
-      ]
+      ],
+      "AdminMayTake": false
+    },
+    {
+      "TypeName": "gw.command.interface",
+      "Version": "001",
+      "ActorName": "secondary-pump-relay",
+      "EventType": "change.relay.state",
+      "StateType": "relay.closed.or.open",
+      "Commands": [
+        {
+          "TypeName": "gw.command.transition",
+          "Version": "000",
+          "Event": "CloseRelay",
+          "ToState": "RelayClosed"
+        },
+        {
+          "TypeName": "gw.command.transition",
+          "Version": "000",
+          "Event": "OpenRelay",
+          "ToState": "RelayOpen"
+        }
+      ],
+      "AdminMayTake": true
     }
   ]
 }

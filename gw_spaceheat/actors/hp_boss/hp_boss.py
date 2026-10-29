@@ -25,6 +25,7 @@ from gwsproto.named_types import (
     FsmEvent,
     FsmFullReport,
     SingleMachineState,
+    WakeUp,
 )
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from result import Ok, Result
@@ -59,6 +60,14 @@ class HpBoss(ShNodeActor):
     command is its own minted id, and the pump relay's full report goes on
     to the scada as it is. The hack relay, where the layout has one, gets
     every command the pump gets, under its own id, and reports the same way.
+
+    Admin may take the pump out from under hp-boss for an admin session
+    (the scada moves the relay's handle to admin.<name>). hp-boss reads the
+    move off the pump node's handle: while the pump is not its own it
+    commands the pump nothing and refuses TurnOn, since the heat pump runs
+    only with hp-boss driving the pump from the watch. The tree rebuild at
+    admin's exit returns the pump, and the scada's WakeUp has hp-boss
+    enforce it from the watch's current state at once.
     """
     TURN_ON_ANYWAY_S = 120 # turn on the heat pump after 2 minutes without strat-boss
     def __init__(self, name: str, services: ScadaAppInterface):
@@ -138,6 +147,8 @@ class HpBoss(ShNodeActor):
                 ):
                     self.hp_sensed = SpruceHackHpState(payload.State)
                     self.enforce_pump()
+            case WakeUp():
+                self.wake_up()
             case _:
                 self.log(f"{self.name} received unexpected message: {message.Header}"
             )
@@ -176,6 +187,16 @@ class HpBoss(ShNodeActor):
                 command_reply.nack(
                     self.node.handle, payload.FromHandle, payload.TriggerId,
                     ScadaCmdRefusalReason.UnknownEvent,
+                ),
+            )
+            return
+        if payload.EventName == TurnHpOnOff.TurnOn and not self.pump_is_mine():
+            self.log(f"Refusing TurnOn: admin has {self.pump.name if self.pump else 'the pump'}")
+            self._send_to(
+                from_node,
+                command_reply.nack(
+                    self.node.handle, payload.FromHandle, payload.TriggerId,
+                    ScadaCmdRefusalReason.Busy,
                 ),
             )
             return
@@ -319,10 +340,23 @@ class HpBoss(ShNodeActor):
         it running and while it does not know. The call plays no part."""
         return self.hp_sensed != SpruceHackHpState.HpDetectedOff
 
+    def pump_is_mine(self) -> bool:
+        """Whether the pump relay hangs under hp-boss in the live tree:
+        true on a plant with no pump, false while admin has taken it."""
+        return self.pump is None or self.pump.handle.startswith(f"{self.node.handle}.")
+
+    def wake_up(self) -> None:
+        """The scada's WakeUp after a tree rebuild: the pump is hp-boss's
+        again, and what admin last commanded it is unknown, so it is
+        commanded from the watch's current state."""
+        self.pump_on = None
+        self.enforce_pump()
+
     def enforce_pump(self) -> None:
         """Command the pump when what is wanted differs from what was last
-        commanded; each command under its own minted id."""
-        if self.pump is None:
+        commanded; each command under its own minted id. Nothing while
+        admin has the pump."""
+        if self.pump is None or not self.pump_is_mine():
             return
         wanted = self.pump_wanted()
         if wanted == self.pump_on:

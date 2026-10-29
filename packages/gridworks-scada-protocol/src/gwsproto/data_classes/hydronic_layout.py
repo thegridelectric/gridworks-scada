@@ -1554,6 +1554,19 @@ class HydronicLayout:
         if sieg_loop is not None:
             subtrees.append((sieg_loop, [self.hp_loop_on_off, self.hp_loop_keep_send]))
         return subtrees
+
+    @property
+    def admin_may_take(self) -> list[ShNode]:
+        """The fixed relays admin may take out from under their owner for
+        an admin session: the secondary pump where the plant has one and,
+        on gw.house0.no.sieg, the hack relay that moves with it. The call
+        relay and the loop pair stay with their owners under every root."""
+        relays: list[ShNode] = []
+        if self.has_secondary_pump:
+            relays.append(self.secondary_pump_relay)
+        if self.is_house0_no_sieg:
+            relays.append(self.secondary_pump_hack_relay)
+        return relays
     
     @property
     def leaf_ally(self) -> ShNode:

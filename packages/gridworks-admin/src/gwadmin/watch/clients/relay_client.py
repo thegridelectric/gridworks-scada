@@ -44,7 +44,10 @@ class RelayConfig(BaseModel):
     """One row of the panel: a node the scada reports state for, with the
     commands the operator may send it. A relay owned by an interior command
     node (hp-boss's ops relay, the cycler's vdc relay) has no commands and
-    shows state only; the interior node's row carries the commands."""
+    shows state only; the interior node's row has the commands. The
+    exception is a relay whose interface says admin may take it (the
+    secondary pump under hp-boss): its row offers the relay's own events,
+    and the scada moves it under admin on the first one."""
     about_node_name: SpaceheatName
     owner: Optional[SpaceheatName] = None
     """The interior command node whose Handle this node's Handle extends

@@ -1,6 +1,6 @@
 metadata:
   generated_from: indexes/public_registry.yaml
-  generated_at: '2026-10-29T13:37:06Z'
+  generated_at: '2026-10-29T21:55:47Z'
   note: Transitive closure of initial_targets
 initial_targets:
 - ads.channel.config:000
@@ -33,7 +33,7 @@ initial_targets:
 - gpio.relay.component.gt:000
 - gpio.sensor.component.gt:000
 - gw.boiler.backup:000
-- gw.command.interface:000
+- gw.command.interface:001
 - gw.command.transition:000
 - gw.dispatch.ack:000
 - gw.dispatch.hold:000
@@ -116,7 +116,7 @@ initial_targets:
 - report:003
 - report.event:004
 - scada.board.component.gt:000
-- scada.control.capabilities:002
+- scada.control.capabilities:003
 - send.control.capabilities:000
 - send.layout:001
 - setpoint.belief:000
@@ -621,8 +621,8 @@ worklist:
       '000':
         path: definitions/types/gw.circulator/000.yaml
     gw.command.interface:
-      '000':
-        path: definitions/types/gw.command.interface/000.yaml
+      '001':
+        path: definitions/types/gw.command.interface/001.yaml
     gw.command.transition:
       '000':
         path: definitions/types/gw.command.transition/000.yaml
@@ -870,8 +870,8 @@ worklist:
       '000':
         path: definitions/types/scada.board.component.gt/000.yaml
     scada.control.capabilities:
-      '002':
-        path: definitions/types/scada.control.capabilities/002.yaml
+      '003':
+        path: definitions/types/scada.control.capabilities/003.yaml
     send.control.capabilities:
       '000':
         path: definitions/types/send.control.capabilities/000.yaml
