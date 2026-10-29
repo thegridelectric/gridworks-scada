@@ -520,6 +520,7 @@ def test_gw_nolan_layout_axiom_15_second_heat_call(assembled: dict) -> None:
 # parenthesis so "Axiom 2" cannot be satisfied by "Axiom 20".
 PINNED_STRATEGIES = {
     "transactive-power", "heat-call", "system-model", "simple-falling-edge-setpoint",
+    "circulator-running",
 }
 
 
@@ -964,4 +965,64 @@ def test_gw_nolan_layout_axiom_35(assembled: dict) -> None:
         d["Hydronic"]["Backup"]["ElementRelayNames"] = ["buffer-top-elt"]
 
     reject(assembled, mutate, r"Axiom 35 \(BackupRelays\)")
+
+def running_channel(d: dict, name: str) -> dict:
+    return next(c for c in d["DerivedChannels"] if c["Name"] == name)
+
+
+def test_gw_nolan_layout_axiom_36_a_running_channel_missing(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        d["DerivedChannels"].remove(running_channel(d, "secondary-pump-running"))
+
+    reject(assembled, mutate, r"Axiom 36 \(CirculatorRunningChannels\) a\.")
+
+
+def test_gw_nolan_layout_axiom_36_a_wrong_strategy(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        running_channel(d, "secondary-pump-running")["Strategy"] = "sum"
+
+    reject(assembled, mutate, r"Axiom 36 \(CirculatorRunningChannels\) a\.")
+
+
+def test_gw_nolan_layout_axiom_36_b_input_is_the_declared_power_channel(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        running_channel(d, "secondary-pump-running")["InputChannelNames"] = ["hp-odu-pwr"]
+
+    reject(assembled, mutate, r"Axiom 36 \(CirculatorRunningChannels\) b\.")
+
+
+def test_gw_nolan_layout_axiom_36_b_declared_input_is_not_a_derived_channel(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        circ = next(c for c in d["Hydronic"]["Circulators"] if c["PumpNodeName"] == "secondary-pump")
+        circ["PowerChannelName"] = "zone1-bedrooms-heat-call"
+        running_channel(d, "secondary-pump-running")["InputChannelNames"] = ["zone1-bedrooms-heat-call"]
+
+    reject(assembled, mutate, r"Axiom 36 \(CirculatorRunningChannels\) b\.")
+
+
+def test_gw_nolan_layout_axiom_36_b_ct_input_when_no_power_channel(assembled: dict) -> None:
+    """The spruce secondary pump has a CT beside its power channel: without the
+    power channel the running channel reads the CT, so reading power fails."""
+
+    def mutate(d: dict) -> None:
+        circ = next(c for c in d["Hydronic"]["Circulators"] if c["PumpNodeName"] == "secondary-pump")
+        del circ["PowerChannelName"]
+
+    reject(assembled, mutate, r"Axiom 36 \(CirculatorRunningChannels\) b\.")
+
+
+def test_gw_hydronic_axiom_5(assembled: dict) -> None:
+    """Two circulators on one pump node."""
+    def mutate(h: dict) -> None:
+        h["Circulators"][1]["PumpNodeName"] = h["Circulators"][0]["PumpNodeName"]
+
+    reject_hydronic(assembled, mutate, r"Axiom 5 \(CirculatorDistinctness\)")
+
+
+def test_gw_hydronic_circulators_required(assembled: dict) -> None:
+    from gwsproto.named_types import Hydronic
+
+    h = json.loads(json.dumps(assembled["Hydronic"]))
+    del h["Circulators"]
+    assert_refused(Hydronic, h, match="Circulators")
 

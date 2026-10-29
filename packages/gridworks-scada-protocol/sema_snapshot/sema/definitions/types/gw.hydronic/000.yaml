@@ -32,6 +32,14 @@ properties:
       every circuit serves exactly one zone and every zone is served by at
       least its primary circuit.
 
+  Circulators:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/gw.circulator/000"
+    description: >
+      The circulator pumps, each with the loop it serves and the channels
+      that read it. No two entries name the same pump node.
+
   WaterStore:
     $ref: "https://schemas.electricity.works/types/gw.water.store/000"
     description: >
@@ -86,6 +94,7 @@ properties:
 required:
   - Zones
   - ZoneCallCircuits
+  - Circulators
   - PrimaryFlowSource
   - PrimaryPumpOwner
   - RefrigerantCycle
@@ -136,6 +145,11 @@ examples:
           "Version": "000"
         }
       ],
+      "Circulators": [
+        {"PumpNodeName": "dist-pump", "Role": "Dist", "RunningChannelName": "dist-pump-running", "FlowChannelName": "dist-flow", "PowerChannelName": "dist-pump-pwr", "ZeroTenNodeName": "dist-010v", "TypeName": "gw.circulator", "Version": "000"},
+        {"PumpNodeName": "primary-pump", "Role": "Primary", "RunningChannelName": "primary-pump-running", "FlowChannelName": "primary-flow", "PowerChannelName": "primary-pump-pwr", "ZeroTenNodeName": "primary-010v", "TypeName": "gw.circulator", "Version": "000"},
+        {"PumpNodeName": "store-pump", "Role": "Store", "RunningChannelName": "store-pump-running", "FlowChannelName": "store-flow", "PowerChannelName": "store-pump-pwr", "ZeroTenNodeName": "store-010v", "TypeName": "gw.circulator", "Version": "000"}
+      ],
       "WaterStore": {"TotalStoreTanks": 3, "TypeName": "gw.water.store", "Version": "000"},
       "PrimaryFlowSource": "Measured",
       "PrimaryPumpOwner": "Scada",
@@ -172,3 +186,7 @@ x-gridworks:
         SetpointChannelName. d. No two circuits SHALL share a
         TempChannelName. e. No two circuits SHALL share a FailsafeRelayNode.
         f. No two circuits SHALL share an OpsRelayNode.
+    - number: 5
+      name: "CirculatorDistinctness"
+      statement: >
+        No two circulators SHALL share a PumpNodeName.

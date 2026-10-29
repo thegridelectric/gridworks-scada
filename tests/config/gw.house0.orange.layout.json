@@ -1508,6 +1508,69 @@
     {
       "TypeName": "derived.channel.gt",
       "Version": "003",
+      "Id": "a5f94b05-bfbb-4112-82be-17e7fe0f1468",
+      "Name": "dist-pump-running",
+      "CreatedByNodeName": "derived-generator",
+      "Strategy": "circulator-running",
+      "InputChannelNames": [
+        "dist-pump-pwr"
+      ],
+      "OutputUnit": "Unitless",
+      "OutputQuantity": "Unitless",
+      "EmissionMethod": "AsyncAndPeriodic",
+      "AsyncEmitDelta": 1,
+      "EmitPeriodS": 300,
+      "Parameters": {
+        "ThresholdW": 4
+      },
+      "DisplayName": "Dist Pump Running",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta"
+    },
+    {
+      "TypeName": "derived.channel.gt",
+      "Version": "003",
+      "Id": "6b059d4d-67e9-4cf5-bf04-ce7277c72440",
+      "Name": "primary-pump-running",
+      "CreatedByNodeName": "derived-generator",
+      "Strategy": "circulator-running",
+      "InputChannelNames": [
+        "primary-pump-pwr"
+      ],
+      "OutputUnit": "Unitless",
+      "OutputQuantity": "Unitless",
+      "EmissionMethod": "AsyncAndPeriodic",
+      "AsyncEmitDelta": 1,
+      "EmitPeriodS": 300,
+      "Parameters": {
+        "ThresholdW": 4
+      },
+      "DisplayName": "Primary Pump Running",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta"
+    },
+    {
+      "TypeName": "derived.channel.gt",
+      "Version": "003",
+      "Id": "1fb92e90-ffef-4ff0-bde5-c3ec659b4126",
+      "Name": "store-pump-running",
+      "CreatedByNodeName": "derived-generator",
+      "Strategy": "circulator-running",
+      "InputChannelNames": [
+        "store-pump-pwr"
+      ],
+      "OutputUnit": "Unitless",
+      "OutputQuantity": "Unitless",
+      "EmissionMethod": "AsyncAndPeriodic",
+      "AsyncEmitDelta": 1,
+      "EmitPeriodS": 300,
+      "Parameters": {
+        "ThresholdW": 4
+      },
+      "DisplayName": "Store Pump Running",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta"
+    },
+    {
+      "TypeName": "derived.channel.gt",
+      "Version": "003",
       "Id": "150ff3a5-7454-434a-9450-e351033107cf",
       "Name": "zone1-main-set",
       "CreatedByNodeName": "derived-generator",
@@ -2635,6 +2698,38 @@
         "TempChannelName": "zone1-main-temp",
         "FailsafeRelayNode": "zone1-main-failsafe-relay",
         "OpsRelayNode": "zone1-main-ops-relay"
+      }
+    ],
+    "Circulators": [
+      {
+        "TypeName": "gw.circulator",
+        "Version": "000",
+        "PumpNodeName": "dist-pump",
+        "Role": "Dist",
+        "RunningChannelName": "dist-pump-running",
+        "FlowChannelName": "dist-flow",
+        "PowerChannelName": "dist-pump-pwr",
+        "ZeroTenNodeName": "dist-010v"
+      },
+      {
+        "TypeName": "gw.circulator",
+        "Version": "000",
+        "PumpNodeName": "primary-pump",
+        "Role": "Primary",
+        "RunningChannelName": "primary-pump-running",
+        "FlowChannelName": "primary-flow",
+        "PowerChannelName": "primary-pump-pwr",
+        "ZeroTenNodeName": "primary-010v"
+      },
+      {
+        "TypeName": "gw.circulator",
+        "Version": "000",
+        "PumpNodeName": "store-pump",
+        "Role": "Store",
+        "RunningChannelName": "store-pump-running",
+        "FlowChannelName": "store-flow",
+        "PowerChannelName": "store-pump-pwr",
+        "ZeroTenNodeName": "store-010v"
       }
     ],
     "WaterStore": {

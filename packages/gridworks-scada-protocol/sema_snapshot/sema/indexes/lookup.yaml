@@ -159,6 +159,11 @@ types:
     versioning_strategy: literal
     versions:
       '000': definitions/types/gw.boiler.backup/000.yaml
+  gw.circulator:
+    latest_version: '000'
+    versioning_strategy: literal
+    versions:
+      '000': definitions/types/gw.circulator/000.yaml
   gw.command.interface:
     latest_version: '000'
     versioning_strategy: literal
@@ -751,6 +756,11 @@ enums:
     latest_version: '000'
     versions:
       '000': definitions/enums/gpm.from.hz.method/000.yaml
+  gw.circulator.role:
+    enum_type: versioned
+    latest_version: '000'
+    versions:
+      '000': definitions/enums/gw.circulator.role/000.yaml
   gw.dispatch.refusal.reason:
     enum_type: versioned
     latest_version: '000'

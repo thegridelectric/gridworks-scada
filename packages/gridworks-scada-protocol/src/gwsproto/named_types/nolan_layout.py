@@ -49,6 +49,7 @@ from gwsproto.names.hydronic_spaceheat.node_names import (
 )
 from gwsproto.property_format import SpaceheatName
 from gwsproto.type_helpers.backup_axioms import check_backup_node, check_backup_relays
+from gwsproto.type_helpers.circulator_axioms import check_circulator_running_channels
 from gwsproto.type_helpers.board_resolution import (
     GPIO_RELAY,
     GPIO_SENSOR,
@@ -1028,4 +1029,25 @@ class NolanLayout(GwsprotoSemaType):
         whose ActorClass is "Relay".
         """
         check_backup_relays(self.ShNodes, self.Hydronic.Backup, "Axiom 35 (BackupRelays)")
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_36(self) -> "NolanLayout":
+        """
+        Axiom 36: CirculatorRunningChannels
+        For each circulator in Hydronic.Circulators:
+        a. exactly one channel in DerivedChannels SHALL have Name equal to its
+        RunningChannelName, with Strategy "circulator-running", CreatedByNodeName
+        "derived-generator", OutputUnit "Unitless" and OutputQuantity "Unitless";
+        b. that channel's InputChannelNames SHALL equal [PowerChannelName] when
+        PowerChannelName is present and [CtChannelName] otherwise, and the input
+        SHALL be the Name of a DataChannel, with TelemetryName "PowerW" when it is
+        PowerChannelName.
+        """
+        check_circulator_running_channels(
+            self.DerivedChannels,
+            self.DataChannels,
+            self.Hydronic.Circulators,
+            "Axiom 36 (CirculatorRunningChannels)",
+        )
         return self

@@ -5,6 +5,7 @@ from typing_extensions import Self
 
 from gwsproto.enums import PrimaryFlowSource, PrimaryPumpOwner, RefrigerantCycle
 from gwsproto.named_types.boiler_backup import BoilerBackup
+from gwsproto.named_types.circulator import Circulator
 from gwsproto.named_types.element_backup import ElementBackup
 from gwsproto.named_types.hvac_zone import HvacZone
 from gwsproto.named_types import water_store
@@ -20,6 +21,7 @@ class Hydronic(GwsprotoSemaType):
 
     Zones: List[HvacZone]
     ZoneCallCircuits: List[ZoneCallCircuit]
+    Circulators: List[Circulator]
     # The class attribute shadows the type name inside the class body, so the
     # annotation goes through the module.
     WaterStore: Optional[water_store.WaterStore] = None
@@ -131,4 +133,18 @@ class Hydronic(GwsprotoSemaType):
                     f"Axiom 4 (CircuitDistinctness) failed: {field} values {values} "
                     "are not distinct."
                 )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_5(self) -> Self:
+        """
+        Axiom 5: CirculatorDistinctness
+        No two circulators SHALL share a PumpNodeName.
+        """
+        names = [c.PumpNodeName for c in self.Circulators]
+        if len(names) != len(set(names)):
+            raise ValueError(
+                f"Axiom 5 (CirculatorDistinctness) failed: PumpNodeName values {names} "
+                "are not distinct."
+            )
         return self

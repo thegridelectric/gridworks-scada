@@ -2120,6 +2120,90 @@
     {
       "TypeName": "derived.channel.gt",
       "Version": "003",
+      "Id": "d1ebfdf6-c821-4292-ae53-9afc0f510e3b",
+      "Name": "dist-pump-running",
+      "CreatedByNodeName": "derived-generator",
+      "Strategy": "circulator-running",
+      "InputChannelNames": [
+        "dist-pump-pwr"
+      ],
+      "OutputUnit": "Unitless",
+      "OutputQuantity": "Unitless",
+      "EmissionMethod": "AsyncAndPeriodic",
+      "AsyncEmitDelta": 1,
+      "EmitPeriodS": 300,
+      "Parameters": {
+        "ThresholdW": 4
+      },
+      "DisplayName": "Dist Pump Running",
+      "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta"
+    },
+    {
+      "TypeName": "derived.channel.gt",
+      "Version": "003",
+      "Id": "c8b33386-3328-4f86-9931-366347bcaa37",
+      "Name": "primary-pump-running",
+      "CreatedByNodeName": "derived-generator",
+      "Strategy": "circulator-running",
+      "InputChannelNames": [
+        "primary-pump-pwr"
+      ],
+      "OutputUnit": "Unitless",
+      "OutputQuantity": "Unitless",
+      "EmissionMethod": "AsyncAndPeriodic",
+      "AsyncEmitDelta": 1,
+      "EmitPeriodS": 300,
+      "Parameters": {
+        "ThresholdW": 4
+      },
+      "DisplayName": "Primary Pump Running",
+      "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta"
+    },
+    {
+      "TypeName": "derived.channel.gt",
+      "Version": "003",
+      "Id": "bb33a122-ea60-40a1-86e4-50b6649650fa",
+      "Name": "store-pump-running",
+      "CreatedByNodeName": "derived-generator",
+      "Strategy": "circulator-running",
+      "InputChannelNames": [
+        "store-pump-pwr"
+      ],
+      "OutputUnit": "Unitless",
+      "OutputQuantity": "Unitless",
+      "EmissionMethod": "AsyncAndPeriodic",
+      "AsyncEmitDelta": 1,
+      "EmitPeriodS": 300,
+      "Parameters": {
+        "ThresholdW": 4
+      },
+      "DisplayName": "Store Pump Running",
+      "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta"
+    },
+    {
+      "TypeName": "derived.channel.gt",
+      "Version": "003",
+      "Id": "5e91844f-48eb-4dc8-8f76-35e333cacff5",
+      "Name": "secondary-pump-running",
+      "CreatedByNodeName": "derived-generator",
+      "Strategy": "circulator-running",
+      "InputChannelNames": [
+        "secondary-pump-pwr"
+      ],
+      "OutputUnit": "Unitless",
+      "OutputQuantity": "Unitless",
+      "EmissionMethod": "AsyncAndPeriodic",
+      "AsyncEmitDelta": 1,
+      "EmitPeriodS": 300,
+      "Parameters": {
+        "ThresholdW": 4
+      },
+      "DisplayName": "Secondary Pump Running",
+      "TerminalAssetAlias": "d1.isone.me.versant.keene.spruce.ta"
+    },
+    {
+      "TypeName": "derived.channel.gt",
+      "Version": "003",
       "Id": "621a3ff0-f0b9-476b-92df-5bf56529a42c",
       "Name": "zone1-bedrooms-heat-call",
       "CreatedByNodeName": "derived-generator",
@@ -4113,6 +4197,46 @@
         "OpsRelayNode": "zone5-living-rm-fancoil-ops-relay"
       }
     ],
+    "Circulators": [
+      {
+        "TypeName": "gw.circulator",
+        "Version": "000",
+        "PumpNodeName": "dist-pump",
+        "Role": "Dist",
+        "RunningChannelName": "dist-pump-running",
+        "FlowChannelName": "dist-flow",
+        "PowerChannelName": "dist-pump-pwr"
+      },
+      {
+        "TypeName": "gw.circulator",
+        "Version": "000",
+        "PumpNodeName": "primary-pump",
+        "Role": "Primary",
+        "RunningChannelName": "primary-pump-running",
+        "FlowChannelName": "primary-flow",
+        "PowerChannelName": "primary-pump-pwr"
+      },
+      {
+        "TypeName": "gw.circulator",
+        "Version": "000",
+        "PumpNodeName": "store-pump",
+        "Role": "Store",
+        "RunningChannelName": "store-pump-running",
+        "FlowChannelName": "store-flow",
+        "PowerChannelName": "store-pump-pwr"
+      },
+      {
+        "TypeName": "gw.circulator",
+        "Version": "000",
+        "PumpNodeName": "secondary-pump",
+        "Role": "Secondary",
+        "RunningChannelName": "secondary-pump-running",
+        "FlowChannelName": "secondary-flow",
+        "PowerChannelName": "secondary-pump-pwr",
+        "CtChannelName": "secondary-pump-ct",
+        "ZeroTenNodeName": "secondary-010v"
+      }
+    ],
     "WaterStore": {
       "TypeName": "gw.water.store",
       "Version": "000",
@@ -4140,6 +4264,10 @@
     "buffer-cold-pipe",
     "store-hot-pipe",
     "store-cold-pipe",
-    "fancoil-depth3-device"
+    "fancoil-depth3-device",
+    "secondary-pump-ct",
+    "dist-pump-running",
+    "primary-pump-running",
+    "store-pump-running"
   ]
 }

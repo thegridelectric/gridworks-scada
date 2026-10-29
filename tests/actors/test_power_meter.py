@@ -241,7 +241,8 @@ async def test_whitewire_power_through_the_sim_meter_becomes_the_zone_heat_call(
     request: pytest.FixtureRequest,
 ) -> None:
     """House0 willow derives zone1-main-heat-call from zone1-main-whitewire-pwr
-    (GreaterThanThreshold, 10 W), a channel the power meter captures."""
+    (GreaterThanThreshold, 10 W), a channel the power meter captures, beside the
+    three pump power channels the circulators' running channels read."""
     config = Path(__file__).parent.parent / "config"
     settings = ScadaApp.get_settings()
     settings.paths.hardware_layout = config / "gw.house0.willow.layout.json"
@@ -255,7 +256,12 @@ async def test_whitewire_power_through_the_sim_meter_becomes_the_zone_heat_call(
                 CoreNodeNames.asset_power_meter, PowerMeter
             )._sync_thread,
         )
-        assert {ch.Name for ch in p.derived_input_channels} == {"zone1-main-whitewire-pwr"}
+        assert {ch.Name for ch in p.derived_input_channels} == {
+            "zone1-main-whitewire-pwr",
+            "dist-pump-pwr",
+            "primary-pump-pwr",
+            "store-pump-pwr",
+        }
         driver = typing.cast(GridworksSimPm1_PowerMeterDriver, p.driver)
 
         await h.await_for(

@@ -107,6 +107,10 @@ types:
       - gw.house0.no.sieg:000
       - gw.hydronic:000
       - gw.nolan.layout:000
+  gw.circulator:
+    '000':
+      used_by:
+      - gw.hydronic:000
   gw.command.interface:
     '000':
       used_by:
@@ -453,6 +457,10 @@ enums:
       - pico.flow.module.component.gt:001
       - sim.pico.btu.meter.component.gt:000
       - sim.pico.flow.module.component.gt:000
+  gw.circulator.role:
+    '000':
+      used_by:
+      - gw.circulator:000
   gw.dispatch.refusal.reason:
     '000':
       used_by:
@@ -914,6 +922,7 @@ formats:
     - fsm.full.report:001
     - glitch:000
     - gw.boiler.backup:000
+    - gw.circulator:000
     - gw.command.interface:000
     - gw.element.backup:000
     - gw.house0.layout:000

@@ -62,6 +62,38 @@
       "OpsRelayNode": "zone2-up-ops-relay"
     }
   ],
+  "Circulators": [
+    {
+      "TypeName": "gw.circulator",
+      "Version": "000",
+      "PumpNodeName": "dist-pump",
+      "Role": "Dist",
+      "RunningChannelName": "dist-pump-running",
+      "FlowChannelName": "dist-flow",
+      "PowerChannelName": "dist-pump-pwr",
+      "ZeroTenNodeName": "dist-010v"
+    },
+    {
+      "TypeName": "gw.circulator",
+      "Version": "000",
+      "PumpNodeName": "primary-pump",
+      "Role": "Primary",
+      "RunningChannelName": "primary-pump-running",
+      "FlowChannelName": "primary-flow",
+      "PowerChannelName": "primary-pump-pwr",
+      "ZeroTenNodeName": "primary-010v"
+    },
+    {
+      "TypeName": "gw.circulator",
+      "Version": "000",
+      "PumpNodeName": "store-pump",
+      "Role": "Store",
+      "RunningChannelName": "store-pump-running",
+      "FlowChannelName": "store-flow",
+      "PowerChannelName": "store-pump-pwr",
+      "ZeroTenNodeName": "store-010v"
+    }
+  ],
   "WaterStore": {
     "TypeName": "gw.water.store",
     "Version": "000",

@@ -11,6 +11,7 @@ Staging words in this snapshot:
 - enum change.zone.call.source
 - enum day.of.week
 - enum gpio.sense.mode:000
+- enum gw.circulator.role:000
 - enum gw.primary.flow.source:000
 - enum gw.primary.pump.owner:000
 - enum gw.refrigerant.cycle:000
@@ -49,6 +50,7 @@ Staging words in this snapshot:
 - type gpio.relay.component.gt:000
 - type gpio.sensor.component.gt:000
 - type gw.boiler.backup:000
+- type gw.circulator:000
 - type gw.dispatch.hold:000
 - type gw.element.backup:000
 - type gw.house0.family.params:000

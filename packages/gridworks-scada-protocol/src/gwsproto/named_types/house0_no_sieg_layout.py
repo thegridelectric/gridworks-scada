@@ -10,7 +10,6 @@ from gwsproto.enums import (
     PrimaryPumpOwner,
     Quantity,
     TelemetryName,
-    Unit,
 )
 
 from gwsproto.named_types.data_channel_gt import DataChannelGt
@@ -26,6 +25,7 @@ from gwsproto.names.hydronic_spaceheat.node_names import (
 )
 from gwsproto.property_format import SpaceheatName
 from gwsproto.type_helpers.backup_axioms import check_backup_node, check_backup_relays
+from gwsproto.type_helpers.circulator_axioms import check_circulator_running_channels
 from gwsproto.type_helpers.board_resolution import (
     I2C_DAC_OUTPUT,
     I2C_RELAY,
@@ -1095,55 +1095,22 @@ class House0NoSiegLayout(GwsprotoSemaType):
     @model_validator(mode="after")
     def check_axiom_38(self) -> Self:
         """
-        Axiom 38: SecondaryPumpRunningChannel
-        a. DerivedChannels SHALL contain exactly one channel named
-        "secondary-pump-running", with Strategy "circulator-running",
-        CreatedByNodeName "derived-generator", OutputUnit "Unitless" and
-        OutputQuantity "Unitless".
-        b. Its InputChannelNames SHALL equal ["secondary-pump-pwr"], and
-        "secondary-pump-pwr" SHALL be the Name of a DataChannel with
-        TelemetryName "PowerW".
-        c. Its Parameters SHALL include "ThresholdW", a positive integer: the
-        channel reads 1 while the input power exceeds ThresholdW and 0
-        otherwise.
+        Axiom 38: CirculatorRunningChannels
+        For each circulator in Hydronic.Circulators:
+        a. exactly one channel in DerivedChannels SHALL have Name equal to its
+        RunningChannelName, with Strategy "circulator-running", CreatedByNodeName
+        "derived-generator", OutputUnit "Unitless" and OutputQuantity "Unitless";
+        b. that channel's InputChannelNames SHALL equal [PowerChannelName] when
+        PowerChannelName is present and [CtChannelName] otherwise, and the input
+        SHALL be the Name of a DataChannel, with TelemetryName "PowerW" when it is
+        PowerChannelName.
         """
-        matches = [d for d in self.DerivedChannels if d.Name == "secondary-pump-running"]
-        if len(matches) != 1:
-            raise ValueError(
-                "Axiom 38 (SecondaryPumpRunningChannel) failed: expected exactly one "
-                f"DerivedChannel 'secondary-pump-running', found {len(matches)}."
-            )
-        d = matches[0]
-        if (
-            d.Strategy != "circulator-running"
-            or d.CreatedByNodeName != "derived-generator"
-            or d.OutputUnit != Unit.Unitless
-            or d.OutputQuantity != Quantity.Unitless
-        ):
-            raise ValueError(
-                "Axiom 38 (SecondaryPumpRunningChannel) failed: 'secondary-pump-running' "
-                "SHALL have Strategy circulator-running, CreatedByNodeName derived-generator "
-                f"and Unitless output; got Strategy {d.Strategy!r}, CreatedByNodeName "
-                f"{d.CreatedByNodeName!r}, OutputUnit {d.OutputUnit}, OutputQuantity "
-                f"{d.OutputQuantity}."
-            )
-        if list(d.InputChannelNames) != ["secondary-pump-pwr"]:
-            raise ValueError(
-                "Axiom 38 (SecondaryPumpRunningChannel) failed: InputChannelNames SHALL be "
-                f"['secondary-pump-pwr'], got {list(d.InputChannelNames)}."
-            )
-        pwr = next((c for c in self.DataChannels if c.Name == "secondary-pump-pwr"), None)
-        if pwr is None or pwr.TelemetryName != TelemetryName.PowerW:
-            raise ValueError(
-                "Axiom 38 (SecondaryPumpRunningChannel) failed: 'secondary-pump-pwr' SHALL "
-                "be a DataChannel with TelemetryName PowerW."
-            )
-        threshold = (d.Parameters or {}).get("ThresholdW")
-        if isinstance(threshold, bool) or not isinstance(threshold, int) or threshold <= 0:
-            raise ValueError(
-                "Axiom 38 (SecondaryPumpRunningChannel) failed: Parameters.ThresholdW SHALL "
-                f"be a positive integer, got {threshold!r}."
-            )
+        check_circulator_running_channels(
+            self.DerivedChannels,
+            self.DataChannels,
+            self.Hydronic.Circulators,
+            "Axiom 38 (CirculatorRunningChannels)",
+        )
         return self
 
     @model_validator(mode="after")

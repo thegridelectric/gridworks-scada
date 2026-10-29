@@ -471,6 +471,7 @@ def test_gw_house0_layout_axiom_4_second_heat_call(assembled: dict) -> None:
 # parenthesis so "Axiom 2" cannot be satisfied by "Axiom 20".
 PINNED_STRATEGIES = {
     "transactive-power", "heat-call", "system-model", "simple-falling-edge-setpoint",
+    "circulator-running",
 }
 
 
@@ -913,3 +914,57 @@ def test_gw_house0_layout_axiom_38(assembled: dict) -> None:
 
     reject(assembled, mutate, r"Axiom 38 \(BackupRelays\)")
 
+
+
+def running_channel(d: dict, name: str) -> dict:
+    return next(c for c in d["DerivedChannels"] if c["Name"] == name)
+
+
+def test_gw_house0_layout_axiom_39_a_running_channel_missing(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        d["DerivedChannels"].remove(running_channel(d, "dist-pump-running"))
+
+    reject(assembled, mutate, r"Axiom 39 \(CirculatorRunningChannels\) a\.")
+
+
+def test_gw_house0_layout_axiom_39_a_wrong_strategy(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        running_channel(d, "dist-pump-running")["Strategy"] = "sum"
+
+    reject(assembled, mutate, r"Axiom 39 \(CirculatorRunningChannels\) a\.")
+
+
+def test_gw_house0_layout_axiom_39_b_input_is_the_declared_power_channel(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        running_channel(d, "dist-pump-running")["InputChannelNames"] = ["hp-odu-pwr"]
+
+    reject(assembled, mutate, r"Axiom 39 \(CirculatorRunningChannels\) b\.")
+
+
+def test_gw_house0_layout_axiom_39_b_declared_input_is_not_a_derived_channel(assembled: dict) -> None:
+    def mutate(d: dict) -> None:
+        circ = next(c for c in d["Hydronic"]["Circulators"] if c["PumpNodeName"] == "dist-pump")
+        circ["PowerChannelName"] = "store-pump-running"
+        running_channel(d, "dist-pump-running")["InputChannelNames"] = ["store-pump-running"]
+
+    reject(assembled, mutate, r"Axiom 39 \(CirculatorRunningChannels\) b\.")
+
+
+def test_gw_house0_layout_axiom_39_b_ct_input_when_no_power_channel(assembled: dict) -> None:
+    """A circulator with only a CT reads the CT; reading the power channel fails."""
+
+    def mutate(d: dict) -> None:
+        circ = next(c for c in d["Hydronic"]["Circulators"] if c["PumpNodeName"] == "dist-pump")
+        del circ["PowerChannelName"]
+        circ["CtChannelName"] = "dist-pump-ct"
+        d["DataChannels"].append(
+            {
+                **next(c for c in d["DataChannels"] if c["Name"] == "dist-pump-pwr"),
+                "Name": "dist-pump-ct",
+                "TelemetryName": "VoltsTimes100",
+                "Quantity": "Voltage",
+                "Id": "7d2e6c1a-5b3f-4a8e-9c0d-1e2f3a4b5c6d",
+            }
+        )
+
+    reject(assembled, mutate, r"Axiom 39 \(CirculatorRunningChannels\) b\.")

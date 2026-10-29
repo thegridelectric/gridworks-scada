@@ -1459,62 +1459,61 @@ class House0NoSieg(SemaType):
     @model_validator(mode="after")
     def check_axiom_38(self) -> Self:
         """
-        Axiom 38: SecondaryPumpRunningChannel a. DerivedChannels SHALL contain exactly
-        one channel named "secondary-pump-running", with Strategy "circulator-running",
-        CreatedByNodeName "derived-generator", OutputUnit "Unitless" and OutputQuantity
-        "Unitless". b. Its InputChannelNames SHALL equal ["secondary-pump-pwr"], and
-        "secondary-pump-pwr" SHALL be the Name of a DataChannel with TelemetryName
-        "PowerW". c. Its Parameters SHALL include "ThresholdW", a positive integer: the
-        channel reads 1 while the input power exceeds ThresholdW and 0 otherwise.
+        Axiom 38: CirculatorRunningChannels For each circulator in Hydronic.Circulators:
+        a. exactly one channel in DerivedChannels SHALL have Name equal to its
+        RunningChannelName, with Strategy "circulator-running", CreatedByNodeName
+        "derived-generator", OutputUnit "Unitless" and OutputQuantity "Unitless";
+        b. that channel's InputChannelNames SHALL equal [PowerChannelName] when
+        PowerChannelName is present and [CtChannelName] otherwise, and the input SHALL be
+        the Name of a DataChannel, with TelemetryName "PowerW" when it is PowerChannelName.
         """
-        matches = [
-            d
-            for d in (self.derived_channels or [])
-            if d.name == "secondary-pump-running"
-        ]
-        if len(matches) != 1:
-            raise ValueError(
-                "Axiom 38 (SecondaryPumpRunningChannel) failed: expected exactly one "
-                f"DerivedChannel 'secondary-pump-running', found {len(matches)}."
-            )
-        d = matches[0]
-        if (
-            d.strategy != "circulator-running"
-            or d.created_by_node_name != "derived-generator"
-            or str(d.output_unit) != "Unitless"
-            or str(d.output_quantity) != "Unitless"
-        ):
-            raise ValueError(
-                "Axiom 38 (SecondaryPumpRunningChannel) failed: 'secondary-pump-running' "
-                "SHALL have Strategy circulator-running, CreatedByNodeName derived-generator and "
-                f"Unitless output; got Strategy {d.strategy!r}, CreatedByNodeName "
-                f"{d.created_by_node_name!r}, OutputUnit {d.output_unit}, OutputQuantity "
-                f"{d.output_quantity}."
-            )
-        if list(d.input_channel_names or []) != ["secondary-pump-pwr"]:
-            raise ValueError(
-                "Axiom 38 (SecondaryPumpRunningChannel) failed: InputChannelNames SHALL be "
-                f"['secondary-pump-pwr'], got {list(d.input_channel_names or [])}."
-            )
-        pwr = next(
-            (c for c in (self.data_channels or []) if c.name == "secondary-pump-pwr"),
-            None,
-        )
-        if pwr is None or str(pwr.telemetry_name) != "PowerW":
-            raise ValueError(
-                "Axiom 38 (SecondaryPumpRunningChannel) failed: 'secondary-pump-pwr' SHALL "
-                "be a DataChannel with TelemetryName PowerW."
-            )
-        threshold = (d.parameters or {}).get("ThresholdW")
-        if (
-            isinstance(threshold, bool)
-            or not isinstance(threshold, int)
-            or threshold <= 0
-        ):
-            raise ValueError(
-                "Axiom 38 (SecondaryPumpRunningChannel) failed: Parameters.ThresholdW SHALL "
-                f"be a positive integer, got {threshold!r}."
-            )
+        if self.hydronic is None:
+            return self
+        data_by_name = {d.name: d for d in (self.data_channels or [])}
+        for circ in self.hydronic.circulators or []:
+            matches = [
+                d
+                for d in (self.derived_channels or [])
+                if d.name == circ.running_channel_name
+            ]
+            if len(matches) != 1:
+                raise ValueError(
+                    f"Axiom 38 (CirculatorRunningChannels) a. failed: circulator "
+                    f"{circ.pump_node_name!r} needs exactly one DerivedChannel named "
+                    f"{circ.running_channel_name!r}, found {len(matches)}."
+                )
+            d = matches[0]
+            if (
+                d.strategy != "circulator-running"
+                or d.created_by_node_name != "derived-generator"
+                or str(d.output_unit) != "Unitless"
+                or str(d.output_quantity) != "Unitless"
+            ):
+                raise ValueError(
+                    f"Axiom 38 (CirculatorRunningChannels) a. failed: {d.name!r} SHALL have "
+                    "Strategy circulator-running, CreatedByNodeName derived-generator and "
+                    f"Unitless output; got Strategy {d.strategy!r}, CreatedByNodeName "
+                    f"{d.created_by_node_name!r}, OutputUnit {d.output_unit}, "
+                    f"OutputQuantity {d.output_quantity}."
+                )
+            is_power = circ.power_channel_name is not None
+            expected = circ.power_channel_name if is_power else circ.ct_channel_name
+            if list(d.input_channel_names) != [expected]:
+                raise ValueError(
+                    f"Axiom 38 (CirculatorRunningChannels) b. failed: {d.name!r} SHALL read "
+                    f"[{expected!r}], got {list(d.input_channel_names)}."
+                )
+            inp = data_by_name.get(expected)
+            if inp is None:
+                raise ValueError(
+                    f"Axiom 38 (CirculatorRunningChannels) b. failed: input {expected!r} of "
+                    f"{d.name!r} is not the Name of a DataChannel."
+                )
+            if is_power and str(inp.telemetry_name) != "PowerW":
+                raise ValueError(
+                    f"Axiom 38 (CirculatorRunningChannels) b. failed: PowerChannelName "
+                    f"{expected!r} SHALL have TelemetryName PowerW, got {inp.telemetry_name}."
+                )
         return self
 
     @model_validator(mode="after")

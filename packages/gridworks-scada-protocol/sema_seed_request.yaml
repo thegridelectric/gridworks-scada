@@ -102,6 +102,8 @@ initial_targets:
       versions: ["000"]
     gw.house.operating.status:
       versions: ["000"]
+    gw.circulator:
+      versions: ["000"]
     gw.house0.family.params:
       versions: ["000"]
     gw.house0.no.sieg.family.params:
@@ -321,6 +323,8 @@ initial_targets:
     gpio.sense.mode:
       versions: ["000"]
     gpm.from.hz.method:
+      versions: ["000"]
+    gw.circulator.role:
       versions: ["000"]
     gw.dispatch.refusal.reason:
       versions: ["000"]

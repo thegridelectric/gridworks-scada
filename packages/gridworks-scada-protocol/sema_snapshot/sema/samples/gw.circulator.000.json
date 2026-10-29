@@ -1,0 +1,10 @@
+{
+  "TypeName": "gw.circulator",
+  "Version": "000",
+  "PumpNodeName": "dist-pump",
+  "Role": "Dist",
+  "RunningChannelName": "dist-pump-running",
+  "FlowChannelName": "dist-flow",
+  "PowerChannelName": "dist-pump-pwr",
+  "ZeroTenNodeName": "dist-010v"
+}
