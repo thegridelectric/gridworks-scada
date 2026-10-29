@@ -1,4 +1,4 @@
-"""Tests gw.command.interface type, version 000: the sema example round-trips and
+"""Tests gw.command.interface type, version 001: the sema example round-trips and
 each axiom rejects its counterexample."""
 
 import copy
@@ -7,6 +7,7 @@ from gwsproto.named_types import CommandInterface
 from tests.named_types.sema_oracle import assert_refused
 
 EXAMPLE = {'ActorName': 'hp-boss',
+ 'AdminMayTake': False,
  'Commands': [{'Event': 'TurnOn',
                'ToState': 'HpOn',
                'TypeName': 'gw.command.transition',
@@ -18,7 +19,11 @@ EXAMPLE = {'ActorName': 'hp-boss',
  'EventType': 'turn.hp.on.off',
  'StateType': 'hp.boss.state',
  'TypeName': 'gw.command.interface',
- 'Version': '000'}
+ 'Version': '001'}
+
+
+def test_gw_command_interface_example_round_trips() -> None:
+    assert CommandInterface.model_validate(EXAMPLE).model_dump(by_alias=True) == EXAMPLE
 
 
 def test_gw_command_interface_axiom_1_empty_commands() -> None:

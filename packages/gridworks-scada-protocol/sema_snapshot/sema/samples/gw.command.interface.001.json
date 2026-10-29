@@ -1,6 +1,6 @@
 {
   "TypeName": "gw.command.interface",
-  "Version": "000",
+  "Version": "001",
   "ActorName": "hp-boss",
   "EventType": "turn.hp.on.off",
   "StateType": "hp.boss.state",
@@ -17,5 +17,6 @@
       "Event": "TurnOff",
       "ToState": "HpOff"
     }
-  ]
+  ],
+  "AdminMayTake": false
 }

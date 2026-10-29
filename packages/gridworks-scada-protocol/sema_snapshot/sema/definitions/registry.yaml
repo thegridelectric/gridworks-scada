@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-10-29T12:25:00Z"
+  last_updated: "2026-10-29T21:45:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -1690,17 +1690,18 @@ types:
             - "spaceheat.name"
 
   gw.command.interface:
-    latest_version: "000"
+    latest_version: "001"
     owner: gridworks-energy
     versioning_strategy: "literal"
     description: "The commands one Spaceheat node takes and the states it reports back: event vocabulary, state vocabulary, and the transitions a command asks for."
 
     versions:
-      "000":
-        schema_url: "https://schemas.electricity.works/types/gw.command.interface/000"
-        created: "2026-09-07T23:30:00Z"
+      "001":
+        schema_url: "https://schemas.electricity.works/types/gw.command.interface/001"
+        created: "2026-10-29T21:15:00Z"
         status: "published"
-        summary: "Initial version."
+        summary: "- AdminMayTake (boolean, required) added: whether admin may take the
+  node out from under its owner for an admin session; false on upgrade"
         direct_dependencies:
           structural:
             - "gw.command.transition:000"
@@ -3343,22 +3344,22 @@ types:
             - "uuid4.str"
 
   scada.control.capabilities:
-    latest_version: "002"
+    latest_version: "003"
     owner: gridworks-energy
     versioning_strategy: "literal"
     description: "Projection of the SCADA control surface: the nodes the tree root commands, their state channels, and each node's command interface; the cover of the live command tree."
 
     versions:
-      "002":
-        schema_url: "https://schemas.electricity.works/types/scada.control.capabilities/002"
-        created: "2026-10-15T16:00:00Z"
+      "003":
+        schema_url: "https://schemas.electricity.works/types/scada.control.capabilities/003"
+        created: "2026-10-29T21:15:00Z"
         status: "published"
-        summary: "- ControlChannels[]: data.channel.gt 003 -> 004 - RelayNodes[], DacNodes[], CommandNodes[]: spaceheat.node.gt:302 -> 303 - A node may carry more than one CommandInterfaces entry, one per
-  command vocabulary (five-v-boss: turn.5v.on.off and reboot.picos)"
+        summary: "- CommandInterfaces[]: gw.command.interface 000 -> 001 - A relay under an interior command node whose interface has
+  AdminMayTake true is in the cover (axiom 4)"
         direct_dependencies:
           structural:
             - "data.channel.gt:004"
-            - "gw.command.interface:000"
+            - "gw.command.interface:001"
             - "left.right.dot"
             - "spaceheat.node.gt:303"
             - "utc.milliseconds"

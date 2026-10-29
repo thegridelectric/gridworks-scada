@@ -10,7 +10,7 @@ from sema_snapshot.sema.types.spaceheat_node_gt import SpaceheatNodeGt
 
 
 class ScadaControlCapabilities(SemaType):
-    """Sema: https://schemas.electricity.works/types/scada.control.capabilities/002"""
+    """Sema: https://schemas.electricity.works/types/scada.control.capabilities/003"""
 
     from_g_node_alias: LeftRightDot
     message_created_ms: UTCMilliseconds
@@ -20,7 +20,7 @@ class ScadaControlCapabilities(SemaType):
     control_channels: list[DataChannelGt]
     command_interfaces: list[CommandInterface]
     type_name: Literal["scada.control.capabilities"] = "scada.control.capabilities"
-    version: Literal["002"] = "002"
+    version: Literal["003"] = "003"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> "ScadaControlCapabilities":
@@ -97,11 +97,26 @@ class ScadaControlCapabilities(SemaType):
         a. The set of CommandInterfaces.ActorName values SHALL equal the set of Name
         values of the nodes in RelayNodes and CommandNodes whose Handle does not extend
         the Handle of any CommandNodes entry (a Handle extends another when it equals
-        that Handle followed by a dot and further tokens).
+        that Handle followed by a dot and further tokens), together with the Name
+        values of the RelayNodes entries that have a CommandInterfaces entry with
+        AdminMayTake true.
         b. No two CommandInterfaces entries SHALL share both an ActorName and an
         EventType; a node with more than one command vocabulary carries one
         entry per vocabulary.
+        c. Every CommandInterfaces entry with AdminMayTake true SHALL have an
+        ActorName equal to the Name of a RelayNodes entry.
         """
+        relay_names = {node.name for node in self.relay_nodes}
+        taken = {
+            interface.actor_name
+            for interface in self.command_interfaces
+            if interface.admin_may_take
+        }
+        if not taken <= relay_names:
+            raise ValueError(
+                "Axiom 4 (CommandInterfacesCoverTheTree, clause c) failed: an interface with admin_may_take must name a "
+                "relay_nodes entry."
+            )
         owner_prefixes = [
             f"{node.handle}." for node in self.command_nodes if node.handle is not None
         ]
@@ -114,10 +129,11 @@ class ScadaControlCapabilities(SemaType):
         interface_names = [
             interface.actor_name for interface in self.command_interfaces
         ]
-        if set(interface_names) != directly_commanded:
+        if set(interface_names) != directly_commanded | taken:
             raise ValueError(
-                "Axiom 4 failed: command_interfaces actor_name values must equal the "
-                "names of the relay and command nodes the root commands directly."
+                "Axiom 4 (CommandInterfacesCoverTheTree, clause a) failed: command_interfaces actor_name values must equal the "
+                "names of the relay and command nodes the root commands directly, "
+                "with the relays admin may take."
             )
         pairs = [
             (interface.actor_name, interface.event_type)
@@ -125,7 +141,7 @@ class ScadaControlCapabilities(SemaType):
         ]
         if len(pairs) != len(set(pairs)):
             raise ValueError(
-                "Axiom 4 failed: no two command_interfaces entries may share both "
+                "Axiom 4 (CommandInterfacesCoverTheTree, clause b) failed: no two command_interfaces entries may share both "
                 "actor_name and event_type."
             )
         return self

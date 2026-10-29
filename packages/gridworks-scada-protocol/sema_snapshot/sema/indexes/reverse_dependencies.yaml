@@ -40,7 +40,7 @@ types:
       - gw.house0.no.sieg:000
       - gw.nolan.layout:000
       - layout.lite:013
-      - scada.control.capabilities:002
+      - scada.control.capabilities:003
   derived.channel.gt:
     '003':
       used_by:
@@ -112,13 +112,13 @@ types:
       used_by:
       - gw.hydronic:000
   gw.command.interface:
-    '000':
+    '001':
       used_by:
-      - scada.control.capabilities:002
+      - scada.control.capabilities:003
   gw.command.transition:
     '000':
       used_by:
-      - gw.command.interface:000
+      - gw.command.interface:001
   gw.dispatch.hold:
     '000':
       used_by:
@@ -401,7 +401,7 @@ types:
       - gw.nolan.layout:000
       - layout.lite:013
       - new.command.tree:003
-      - scada.control.capabilities:002
+      - scada.control.capabilities:003
   spaceheat.telemetry.quantity.projection:
     '001':
       used_by:
@@ -432,7 +432,7 @@ enums:
   change.relay.state:
     '000':
       used_by:
-      - gw.command.interface:000
+      - gw.command.interface:001
       - relay.control.config:000
   day.of.week:
     '000':
@@ -510,7 +510,7 @@ enums:
       - gw.house0.no.sieg:000
       - gw.nolan.layout:000
       - new.command.tree:003
-      - scada.control.capabilities:002
+      - scada.control.capabilities:003
       - spaceheat.node.gt:303
   gw1.emission.method:
     '000':
@@ -559,7 +559,7 @@ enums:
   hp.boss.state:
     '000':
       used_by:
-      - gw.command.interface:000
+      - gw.command.interface:001
   hz.calc.method:
     '001':
       used_by:
@@ -621,15 +621,15 @@ enums:
   pico.cycler.state:
     '000':
       used_by:
-      - gw.command.interface:000
+      - gw.command.interface:001
   reboot.picos:
     '000':
       used_by:
-      - gw.command.interface:000
+      - gw.command.interface:001
   relay.closed.or.open:
     '000':
       used_by:
-      - gw.command.interface:000
+      - gw.command.interface:001
       - machine.states:000
       - relay.control.config:000
       - single.machine.state:000
@@ -689,7 +689,7 @@ enums:
   turn.hp.on.off:
     '000':
       used_by:
-      - gw.command.interface:000
+      - gw.command.interface:001
   zone.circuit.governance.event:
     '000':
       used_by:
@@ -737,7 +737,7 @@ formats:
     - fsm.event:000
     - g.node.gt:006
     - glitch:000
-    - gw.command.interface:000
+    - gw.command.interface:001
     - gw.house.operating.status:000
     - gw.operational.params:000
     - gw.recorded.setpoints:000
@@ -758,7 +758,7 @@ formats:
     - relay.control.config:000
     - report.event:004
     - report:003
-    - scada.control.capabilities:002
+    - scada.control.capabilities:003
     - send.control.capabilities:000
     - send.layout:001
     - single.machine.state:000
@@ -923,7 +923,7 @@ formats:
     - glitch:000
     - gw.boiler.backup:000
     - gw.circulator:000
-    - gw.command.interface:000
+    - gw.command.interface:001
     - gw.element.backup:000
     - gw.house0.layout:000
     - gw.house0.no.sieg:000
@@ -982,7 +982,7 @@ formats:
     - new.command.tree:003
     - report.event:004
     - report:003
-    - scada.control.capabilities:002
+    - scada.control.capabilities:003
     - send.control.capabilities:000
     - send.layout:001
     - single.machine.state:000

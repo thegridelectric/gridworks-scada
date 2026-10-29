@@ -13,7 +13,7 @@ from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 class ScadaControlCapabilities(GwsprotoSemaType):
     """
-    Sema: https://schemas.electricity.works/types/scada.control.capabilities/002
+    Sema: https://schemas.electricity.works/types/scada.control.capabilities/003
     """
 
     FromGNodeAlias: LeftRightDotStr
@@ -24,7 +24,7 @@ class ScadaControlCapabilities(GwsprotoSemaType):
     ControlChannels: List[DataChannelGt]
     CommandInterfaces: List[CommandInterface]
     TypeName: Literal["scada.control.capabilities"] = "scada.control.capabilities"
-    Version: Literal["002"] = "002"
+    Version: Literal["003"] = "003"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
@@ -93,30 +93,42 @@ class ScadaControlCapabilities(GwsprotoSemaType):
         Name values of the nodes in RelayNodes and CommandNodes whose Handle
         does not extend the Handle of any CommandNodes entry (a Handle extends
         another when it equals that Handle followed by a dot and further
-        tokens).
+        tokens), together with the Name values of the RelayNodes entries that
+        have a CommandInterfaces entry with AdminMayTake true.
         b. No two CommandInterfaces entries SHALL share both an ActorName and
         an EventType; a node with more than one command vocabulary carries
         one entry per vocabulary.
+        c. Every CommandInterfaces entry with AdminMayTake true SHALL have an
+        ActorName equal to the Name of a RelayNodes entry.
         """
+        relay_names = {n.Name for n in self.RelayNodes}
+        taken = {i.ActorName for i in self.CommandInterfaces if i.AdminMayTake}
+        if not taken <= relay_names:
+            raise ValueError(
+                "Axiom 4 (CommandInterfacesCoverTheTree, clause c) failed: AdminMayTake is "
+                f"set on an interface for a node that is not a relay: {sorted(taken - relay_names)}"
+            )
         owner_prefixes = [f"{n.Handle}." for n in self.CommandNodes if n.Handle]
         directly_commanded = {
             n.Name
             for n in self.RelayNodes + self.CommandNodes
             if n.Handle and not any(n.Handle.startswith(p) for p in owner_prefixes)
         }
+        covered = directly_commanded | taken
         interface_names = [i.ActorName for i in self.CommandInterfaces]
-        if set(interface_names) != directly_commanded:
-            missing = sorted(directly_commanded - set(interface_names))
-            extra = sorted(set(interface_names) - directly_commanded)
+        if set(interface_names) != covered:
+            missing = sorted(covered - set(interface_names))
+            extra = sorted(set(interface_names) - covered)
             raise ValueError(
-                "Axiom 4 (CommandInterfacesCoverTheTree) failed: CommandInterfaces must "
-                "cover exactly the relay and command nodes not under an interior command node. "
+                "Axiom 4 (CommandInterfacesCoverTheTree, clause a) failed: CommandInterfaces must "
+                "cover exactly the relay and command nodes not under an interior command node, "
+                "with the relays admin may take. "
                 f"MissingInterfacesFor={missing} ExtraInterfacesFor={extra}"
             )
         keys = [(i.ActorName, i.EventType) for i in self.CommandInterfaces]
         if len(keys) != len(set(keys)):
             raise ValueError(
-                "Axiom 4 (CommandInterfacesCoverTheTree) failed: CommandInterfaces "
+                "Axiom 4 (CommandInterfacesCoverTheTree, clause b) failed: CommandInterfaces "
                 f"(ActorName, EventType) pairs must be unique: {sorted(keys)}"
             )
         return self

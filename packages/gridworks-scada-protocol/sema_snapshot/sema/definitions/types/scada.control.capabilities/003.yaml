@@ -1,5 +1,5 @@
 $schema: "https://json-schema.org/draft/2020-12/schema"
-$id: "https://schemas.electricity.works/types/scada.control.capabilities/002"
+$id: "https://schemas.electricity.works/types/scada.control.capabilities/003"
 
 title: "scada.control.capabilities"
 type: object
@@ -12,7 +12,8 @@ description: >
   This is the cover of the live command tree, not the tree: each entry
   binds a command vocabulary to the node that executes it. A relay owned
   by an interior command node (the vdc relay under five-v-boss, hp-boss's
-  ops relay) is listed for its state but is commanded through its owner. It
+  ops relay) is listed for its state but is commanded through its owner,
+  unless its interface says admin may take it. It
   is a control-focused projection and does not represent the full system
   topology.
 
@@ -72,13 +73,13 @@ properties:
       directly: the event vocabulary, the state vocabulary and the
       transitions a command asks for.
     items:
-      $ref: "https://schemas.electricity.works/types/gw.command.interface/000"
+      $ref: "https://schemas.electricity.works/types/gw.command.interface/001"
 
   TypeName:
     const: "scada.control.capabilities"
 
   Version:
-    const: "002"
+    const: "003"
 
 required:
   - FromGNodeAlias
@@ -118,6 +119,17 @@ examples:
           "DisplayName": "5VDC Relay",
           "ComponentId": "6d1c8a1e-2f4b-4c7a-9e3d-0b5a7c2e4f61",
           "ShNodeId": "c2e7b9d4-8a1f-4e6b-b3c5-7d9e1f0a2b4c",
+          "TypeName": "spaceheat.node.gt",
+          "Version": "303"
+        },
+        {
+          "Name": "secondary-pump-relay",
+          "ActorHierarchyName": "s.secondary-pump-relay",
+          "Handle": "admin.hp-boss.secondary-pump-relay",
+          "ActorClass": "Relay",
+          "DisplayName": "Secondary Pump Relay",
+          "ComponentId": "6d1c8a1e-2f4b-4c7a-9e3d-0b5a7c2e4f61",
+          "ShNodeId": "5b1d7e2a-4c9f-4a3e-8d6b-2f0c4e8a1b3d",
           "TypeName": "spaceheat.node.gt",
           "Version": "303"
         }
@@ -183,6 +195,18 @@ examples:
           "Version": "004"
         },
         {
+          "Name": "secondary-pump-relay",
+          "DisplayName": "Secondary Pump Relay State",
+          "AboutNodeName": "secondary-pump-relay",
+          "CapturedByNodeName": "secondary-pump-relay",
+          "TelemetryName": "RelayState",
+          "Quantity": "Unitless",
+          "TerminalAssetAlias": "hw1.isone.me.versant.keene.beech.ta",
+          "Id": "7e1a3c5b-9d2f-4b8e-a6c4-0f3d5b7e9a1c",
+          "TypeName": "data.channel.gt",
+          "Version": "004"
+        },
+        {
           "Name": "secondary-010v",
           "DisplayName": "Secondary Pump 0-10V",
           "AboutNodeName": "secondary-010v",
@@ -202,10 +226,11 @@ examples:
             {"Event": "CloseRelay", "ToState": "RelayClosed", "TypeName": "gw.command.transition", "Version": "000"},
             {"Event": "OpenRelay", "ToState": "RelayOpen", "TypeName": "gw.command.transition", "Version": "000"}
           ],
+          "AdminMayTake": false,
           "EventType": "change.relay.state",
           "StateType": "relay.closed.or.open",
           "TypeName": "gw.command.interface",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "ActorName": "five-v-boss",
@@ -213,20 +238,22 @@ examples:
             {"Event": "TurnOff", "ToState": "FiveVOff", "TypeName": "gw.command.transition", "Version": "000"},
             {"Event": "TurnOn", "ToState": "PicoCycler", "TypeName": "gw.command.transition", "Version": "000"}
           ],
+          "AdminMayTake": false,
           "EventType": "turn.5v.on.off",
           "StateType": "five.v.boss.state",
           "TypeName": "gw.command.interface",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "ActorName": "five-v-boss",
           "Commands": [
             {"Event": "RebootPicos", "ToState": "PicoCycler", "TypeName": "gw.command.transition", "Version": "000"}
           ],
+          "AdminMayTake": false,
           "EventType": "reboot.picos",
           "StateType": "five.v.boss.state",
           "TypeName": "gw.command.interface",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "ActorName": "hp-boss",
@@ -234,14 +261,27 @@ examples:
             {"Event": "TurnOn", "ToState": "HpOn", "TypeName": "gw.command.transition", "Version": "000"},
             {"Event": "TurnOff", "ToState": "HpOff", "TypeName": "gw.command.transition", "Version": "000"}
           ],
+          "AdminMayTake": false,
           "EventType": "turn.hp.on.off",
           "StateType": "hp.boss.state",
           "TypeName": "gw.command.interface",
-          "Version": "000"
+          "Version": "001"
+        },
+        {
+          "ActorName": "secondary-pump-relay",
+          "Commands": [
+            {"Event": "CloseRelay", "ToState": "RelayClosed", "TypeName": "gw.command.transition", "Version": "000"},
+            {"Event": "OpenRelay", "ToState": "RelayOpen", "TypeName": "gw.command.transition", "Version": "000"}
+          ],
+          "AdminMayTake": true,
+          "EventType": "change.relay.state",
+          "StateType": "relay.closed.or.open",
+          "TypeName": "gw.command.interface",
+          "Version": "001"
         }
       ],
       "TypeName": "scada.control.capabilities",
-      "Version": "002"
+      "Version": "003"
     }
 
 x-gridworks:
@@ -275,16 +315,22 @@ x-gridworks:
         Name values of the nodes in RelayNodes and CommandNodes whose Handle
         does not extend the Handle of any CommandNodes entry (a Handle extends
         another when it equals that Handle followed by a dot and further
-        tokens).
+        tokens), together with the Name values of the RelayNodes entries that
+        have a CommandInterfaces entry with AdminMayTake true.
         b. No two CommandInterfaces entries SHALL share both an ActorName and an
         EventType; a node with more than one command vocabulary carries one
         entry per vocabulary.
+        c. Every CommandInterfaces entry with AdminMayTake true SHALL have an
+        ActorName equal to the Name of a RelayNodes entry.
 
   extended_description: >
     Axiom 4 is what makes the message the cover of the tree. A node that
     sits under no interior command node is commanded by the tree's
     authority directly and gets an interface; a relay under an interior
-    node belongs to it and is commanded through that node's interface.
+    node belongs to it and is commanded through that node's interface,
+    except where the interface says admin may take the relay: that relay
+    is listed with its interface while still under its owner, so an
+    operator can ask for it without the panel knowing the plant.
     The rule reads the same whichever authority holds the tree, since
     Handles carry the live tree. DacNodes take an analog value rather
     than an event and so carry no interface.

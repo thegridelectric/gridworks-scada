@@ -18,6 +18,7 @@ from actors.power_meter import PowerMeter, PowerMeterDriverThread
 from actors.relay import Relay
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import GridworksSimPm1_PowerMeterDriver
 from gwsproto.enums import (
+    ChangeRelayState,
     HpBossState,
     RelayClosedOrOpen,
     SeasonalStorageMode,
@@ -232,3 +233,91 @@ async def test_under_admin_the_pump_follows_the_heat_pumps_power_not_the_call(
             err_str_f=where,
         )
         scada.process_scada_message(scada.admin, AdminReleaseControl())
+
+
+def admin_pump(name: ChangeRelayState) -> AdminDispatch:
+    """The admin client's wire shape for the pump row: the relay under admin."""
+    return AdminDispatch(
+        DispatchTrigger=FsmEvent(
+            FromHandle=CoreNodeNames.admin,
+            ToHandle=f"{CoreNodeNames.admin}.{HSNN.secondary_pump_relay}",
+            EventType=ChangeRelayState.enum_name(),
+            EventName=name,
+            SendTimeUnixMs=int(time.time() * 1000),
+            TriggerId=str(uuid.uuid4()),
+        ),
+        TimeoutSeconds=120,
+    )
+
+
+@pytest.mark.asyncio
+async def test_admin_takes_the_pump_with_the_heat_pump_off_and_release_returns_it(
+    request: pytest.FixtureRequest, tmp_path: Path
+) -> None:
+    """Admin takes the tree with the unit sensed off and closes the pump
+    from the panel: the scada moves the relay under admin and the pump
+    runs alone. A TurnOn through hp-boss is refused and the call stays
+    open. Release rebuilds the tree, the pump returns under hp-boss, and
+    hp-boss opens it on the watch's HpDetectedOff."""
+    settings = heating_settings(tmp_path, lost_after_s=1.0)
+    async with ScadaLiveTest(
+        request=request,
+        child_app_settings=settings,
+        ops_path=settings.paths.operational_params,
+    ) as h:
+        h.start_child1()
+        app = h.child1_app
+        scada = app.scada
+        hp_boss = app.get_communicator_as_type(HSNN.hp_boss, HpBoss)
+        hp_watch = app.get_communicator_as_type(HSNN.hp_watch, HpWatch)
+        pump = app.get_communicator_as_type(HSNN.secondary_pump_relay, Relay)
+        call = app.get_communicator_as_type(HSNN.hp_scada_ops_relay, Relay)
+        assert hp_boss is not None and hp_watch is not None
+        assert pump is not None and call is not None
+
+        def where() -> str:
+            return (
+                f"hp-watch {hp_watch.state}, hp-boss {hp_boss.state}, call {call.state}, "
+                f"pump {pump.state} at {pump.node.handle}"
+            )
+
+        await h.await_for(
+            lambda: hp_watch.state == SpruceHackHpState.HpDetectedOff
+            and pump.state == RelayClosedOrOpen.RelayOpen
+            and hp_boss.state == HpBossState.HpOff,
+            "0 W: HpDetectedOff, pump off, hp-boss HpOff",
+            timeout=10,
+            err_str_f=where,
+        )
+
+        # The panel closes the pump: the scada takes it from hp-boss and the relay closes.
+        scada.process_scada_message(scada.admin, admin_pump(ChangeRelayState.CloseRelay))
+        assert pump.node.handle == f"{CoreNodeNames.admin}.{HSNN.secondary_pump_relay}"
+        assert not hp_boss.pump_is_mine()
+        await h.await_for(
+            lambda: pump.state == RelayClosedOrOpen.RelayClosed,
+            "admin CloseRelay: the pump closed under admin",
+            timeout=10,
+            err_str_f=where,
+        )
+
+        # TurnOn through hp-boss is refused while admin has the pump.
+        scada.process_scada_message(scada.admin, admin_turn(TurnHpOnOff.TurnOn))
+        await h.await_for(
+            lambda: hp_boss.state == HpBossState.HpOff and call.state == RelayClosedOrOpen.RelayOpen,
+            "admin TurnOn refused: hp-boss HpOff and the call open",
+            timeout=5,
+            err_str_f=where,
+        )
+        assert pump.state == RelayClosedOrOpen.RelayClosed
+
+        # Release: the pump returns under hp-boss, which opens it on the watch's off.
+        scada.process_scada_message(scada.admin, AdminReleaseControl())
+        assert pump.node.handle == f"{hp_boss.node.handle}.{HSNN.secondary_pump_relay}"
+        assert hp_boss.pump_is_mine()
+        await h.await_for(
+            lambda: pump.state == RelayClosedOrOpen.RelayOpen,
+            "release: hp-boss opened the pump from HpDetectedOff",
+            timeout=10,
+            err_str_f=where,
+        )

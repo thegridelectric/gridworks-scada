@@ -38,6 +38,7 @@ from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.named_types import FsmFullReport, HouseOperatingStatus, PowerWatts, ScadaCommit, SendSnap, ReportEvent
 
 from actors import command_reply
+from gwsproto.enums import ScadaCmdRefusalReason
 
 
 from gwsproto.named_types import (
@@ -71,7 +72,7 @@ from gwsproto.enums import (FiveVBossState, HpBossState, LeafAllyBufferOnlyState
 
 from gwsproto.named_types import ( ActuatorsReady,
     AdminDispatch, AdminAnalogDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
-    Glitch, GoDormant, CommandInterface, CommandTransition, LayoutLite, NoNewContractWarning,
+    FsmEvent, Glitch, GoDormant, CommandInterface, CommandTransition, LayoutLite, NoNewContractWarning,
     ResetHpKeepValue, ScadaControlCapabilities,
     SendControlCapabilities, SendLayout, SetLwtControlParams, SetTargetLwt, SiegLoopEndpointValveAdjustment,
     SiegTargetTooLow, SingleMachineState, SlowContractHeartbeat, SlowContractRejection, SlowDispatchContract, SuitUp, WakeUp,
@@ -517,6 +518,8 @@ class Scada(PrimeActor, ScadaInterface):
         self.log(f"AdminDispatch {event.EventName} to {event.ToHandle}")
 
         to_name = event.ToHandle.split(".")[-1]
+        if not self.admin_takes(to_name, event):
+            return
         # TODO: change this to work if relays etc are NOT on primary scada
         if communicator := self.get_communicator(to_name):
             communicator.process_message(
@@ -529,6 +532,39 @@ class Scada(PrimeActor, ScadaInterface):
                     Payload=event,
                 )
             )
+
+    def admin_takes(self, to_name: str, event: FsmEvent) -> bool:
+        """A dispatch to a relay admin may take (the layout's
+        `admin_may_take`) while it still hangs under its owner asks for
+        the move: with hp-boss last reported HpOff the relay's handle goes
+        to admin.<name>, the tree is published and the dispatch goes on
+        to the relay. Otherwise the dispatch is nacked Busy to admin and
+        not forwarded. A dispatch to any other node, or to a relay already
+        taken, is forwarded as it is. The relay returns to its owner on
+        the next tree rebuild, at admin's release or timeout."""
+        to_node = next((n for n in self.layout.admin_may_take if n.Name == to_name), None)
+        if to_node is None:
+            return True
+        taken_handle = f"{self.admin.handle}.{to_node.Name}"
+        if to_node.handle == taken_handle:
+            return True
+        latest = self._data.latest_machine_state.get(HSNN.hp_boss)
+        if latest is None or latest.State != HpBossState.HpOff:
+            self.log(
+                f"Admin may not take {to_node.Name}: hp-boss is "
+                f"{latest.State if latest is not None else 'unreported'}"
+            )
+            self._send_to(
+                self.admin,
+                command_reply.nack(
+                    to_node.handle, event.FromHandle, event.TriggerId, ScadaCmdRefusalReason.Busy
+                ),
+            )
+            return False
+        to_node.Handle = taken_handle
+        self._send_to(self.ltn, build_command_tree(self.layout))
+        self.log(f"Admin takes {to_node.Name}: {to_node.handle}")
+        return True
 
     def process_admin_analog_dispatch(
         self, from_node: ShNode, payload: AdminAnalogDispatch
@@ -1097,6 +1133,9 @@ class Scada(PrimeActor, ScadaInterface):
             five_v_boss = self.layout.node(HSNN.five_v_boss)
             if five_v_boss is not None:
                 self._send_to(five_v_boss, WakeUp(ToName=five_v_boss.Name))
+            # The tree rebuild returned the secondary pump to hp-boss, which
+            # re-enforces it from hp-watch if admin had taken it.
+            self._send_to(self.hp_boss, WakeUp(ToName=self.hp_boss.Name))
 
     def auto_wakes_up(self) -> None:
         """Dormant -> LocalControl. The scada holds no contract here: admin
@@ -2038,6 +2077,7 @@ class Scada(PrimeActor, ScadaInterface):
                     (config.DeEnergizingEvent, config.DeEnergizedState),
                 ],
             )]
+        admin_may_take = node.Name in {n.Name for n in self.layout.admin_may_take}
         return [
             CommandInterface(
                 ActorName=node.name,
@@ -2047,6 +2087,7 @@ class Scada(PrimeActor, ScadaInterface):
                     CommandTransition(Event=event, ToState=to_state)
                     for event, to_state in commands
                 ],
+                AdminMayTake=admin_may_take,
             )
             for event_type, state_type, commands in vocabularies
         ]
@@ -2057,7 +2098,8 @@ class Scada(PrimeActor, ScadaInterface):
         address, their state channels, and an interface for every relay or
         command node not under an interior command node (a relay under
         hp-boss, or the cycler and its relay under five-v-boss, is
-        commanded through its owner)."""
+        commanded through its owner), plus one for each relay admin may
+        take from its owner, flagged AdminMayTake."""
         relay_nodes = [
             node for node in self.layout.nodes.values()
             if node.ActorClass == ActorClass.Relay
@@ -2077,10 +2119,12 @@ class Scada(PrimeActor, ScadaInterface):
             if channel.AboutNodeName in control_node_names
         ]
         owner_prefixes = [f"{node.handle}." for node in command_nodes]
+        admin_may_take = {n.Name for n in self.layout.admin_may_take}
         interfaces = [
             interface
             for node in relay_nodes + command_nodes
-            if not any(node.handle.startswith(p) for p in owner_prefixes)
+            if node.Name in admin_may_take
+            or not any(node.handle.startswith(p) for p in owner_prefixes)
             for interface in self.command_interfaces(node)
         ]
         return ScadaControlCapabilities(

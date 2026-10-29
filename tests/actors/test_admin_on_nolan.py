@@ -62,9 +62,9 @@ def test_control_capabilities_on_nolan(app: ScadaApp) -> None:
     tree: every relay and the 0-10V output are in the projection, hp-boss
     and five-v-boss are command-node rows with their own vocabulary
     (five-v-boss with two: the hold and the forwarded reboot),
-    and the relays they own (hp-scada-ops-relay and the secondary pump
-    under hp-boss, vdc-relay under the cycler) carry no interface of
-    their own."""
+    and the relays they own (hp-scada-ops-relay under hp-boss, vdc-relay
+    under the cycler) have no interface of their own; the secondary pump
+    under hp-boss has one, flagged for admin to take."""
     scada = app.scada
     layout = scada.layout
     capabilities = scada.control_capabilities
@@ -78,8 +78,12 @@ def test_control_capabilities_on_nolan(app: ScadaApp) -> None:
         DAC_NODE
     }
     interfaces = {i.ActorName: i for i in capabilities.CommandInterfaces}
-    owned = {HSNN.hp_scada_ops_relay, HSNN.secondary_pump_relay, HSNN.vdc_relay}
+    owned = {HSNN.hp_scada_ops_relay, HSNN.vdc_relay}
     assert set(interfaces) == (relay_names - owned) | {HSNN.hp_boss, HSNN.five_v_boss}
+    # The pump is hp-boss's and listed anyway: admin may take it.
+    assert interfaces[HSNN.secondary_pump_relay].AdminMayTake
+    assert layout.secondary_pump_relay.handle.endswith(f".{HSNN.hp_boss}.{HSNN.secondary_pump_relay}")
+    assert {n for n, i in interfaces.items() if i.AdminMayTake} == {HSNN.secondary_pump_relay}
     hp_boss = interfaces[HSNN.hp_boss]
     assert hp_boss.EventType == TurnHpOnOff.enum_name()
     assert hp_boss.StateType == HpBossState.enum_name()

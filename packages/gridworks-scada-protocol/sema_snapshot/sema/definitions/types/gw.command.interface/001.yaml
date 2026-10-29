@@ -1,5 +1,5 @@
 $schema: "https://json-schema.org/draft/2020-12/schema"
-$id: "https://schemas.electricity.works/types/gw.command.interface/000"
+$id: "https://schemas.electricity.works/types/gw.command.interface/001"
 
 title: "gw.command.interface"
 type: object
@@ -37,17 +37,25 @@ properties:
     items:
       $ref: "https://schemas.electricity.works/types/gw.command.transition/000"
 
+  AdminMayTake:
+    type: boolean
+    description: >
+      Whether admin may command this node directly for the span of an
+      admin session, taking it out from under its owner in the command
+      tree. False for a node its owner keeps whoever holds the tree.
+
   TypeName:
     const: "gw.command.interface"
 
   Version:
-    const: "000"
+    const: "001"
 
 required:
   - ActorName
   - EventType
   - StateType
   - Commands
+  - AdminMayTake
   - TypeName
   - Version
 
@@ -57,6 +65,7 @@ examples:
   - |
     {
       "ActorName": "hp-boss",
+      "AdminMayTake": false,
       "Commands": [
         {
           "Event": "TurnOn",
@@ -74,7 +83,7 @@ examples:
       "EventType": "turn.hp.on.off",
       "StateType": "hp.boss.state",
       "TypeName": "gw.command.interface",
-      "Version": "000"
+      "Version": "001"
     }
 
 x-gridworks:
@@ -105,7 +114,10 @@ x-gridworks:
   extended_description: >
     Authority is not declared here. Which boss may send a command is the
     command tree's business (new.command.tree and each node's Handle);
-    the interface says only what the node understands. A relay's interface
+    the interface says only what the node understands. AdminMayTake is the
+    one exception: it names a node under an interior owner that admin may
+    take out from under that owner for an admin session, so a boss can
+    offer the node without knowing the plant. A relay's interface
     carries the same two events and two states as its relay.control.config,
     which also holds the relay's wiring facts; the interface is the
     wiring-free projection a boss needs.

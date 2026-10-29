@@ -89,7 +89,7 @@ initial_targets:
     gw.boiler.backup:
       versions: ["000"]
     gw.command.interface:
-      versions: ["000"]
+      versions: ["001"]
     gw.command.transition:
       versions: ["000"]
     gw.dispatch.ack:
@@ -255,7 +255,7 @@ initial_targets:
     scada.board.component.gt:
       versions: ["000"]
     scada.control.capabilities:
-      versions: ["002"]
+      versions: ["003"]
     send.control.capabilities:
       versions: ["000"]
     send.layout:

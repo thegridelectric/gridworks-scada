@@ -34,15 +34,16 @@ STATE_VOCABULARY: dict[str, set[str]] = {
 
 class CommandInterface(GwsprotoSemaType):
     """
-    Sema: https://schemas.electricity.works/types/gw.command.interface/000
+    Sema: https://schemas.electricity.works/types/gw.command.interface/001
     """
 
     ActorName: SpaceheatName
     EventType: LeftRightDotStr
     StateType: LeftRightDotStr
     Commands: List[CommandTransition]
+    AdminMayTake: bool
     TypeName: Literal["gw.command.interface"] = "gw.command.interface"
-    Version: Literal["000"] = "000"
+    Version: Literal["001"] = "001"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

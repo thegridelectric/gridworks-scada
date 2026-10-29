@@ -30,11 +30,15 @@ from gwsproto.enums import (
 )
 from gwsproto.named_types import (
     AdminDispatch,
+    AdminReleaseControl,
+    DispatchNack,
     FsmAtomicReport,
     FsmEvent,
     FsmFullReport,
     Glitch,
+    NewCommandTree,
     SingleMachineState,
+    WakeUp,
 )
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
@@ -466,3 +470,149 @@ async def test_admin_turns_heat_pump_on_and_off_through_hp_boss(app: ScadaApp) -
     ]
     assert actor.state == HpBossState.HpOn
     scada.admin_times_out()
+
+
+# ----------------------------------------------------------------------
+# Admin takes the secondary pump
+# ----------------------------------------------------------------------
+
+
+def admin_relay_dispatch(relay, event_name: ChangeRelayState) -> AdminDispatch:
+    """The admin client's wire shape for a relay row: the relay under admin."""
+    return AdminDispatch(
+        DispatchTrigger=FsmEvent(
+            FromHandle=CoreNodeNames.admin,
+            ToHandle=f"{CoreNodeNames.admin}.{relay.Name}",
+            EventType=ChangeRelayState.enum_name(),
+            EventName=event_name,
+            SendTimeUnixMs=int(time.time() * 1000),
+            TriggerId=str(uuid.uuid4()),
+        ),
+        TimeoutSeconds=120,
+    )
+
+
+def hp_boss_reported(app: ScadaApp, state: HpBossState) -> None:
+    """hp-boss's last reported state, as the scada's latest-state list has it."""
+    app.scada._data.latest_machine_state[HSNN.hp_boss] = SingleMachineState(
+        MachineHandle=app.scada.layout.hp_boss.handle,
+        StateEnum=HpBossState.enum_name(),
+        State=state,
+        UnixMs=int(time.time() * 1000),
+    )
+
+
+def nacks_to_admin(sent: list) -> list[DispatchNack]:
+    return [p for d, p in sent if d == CoreNodeNames.admin and isinstance(p, DispatchNack)]
+
+
+def test_capabilities_flag_the_relays_admin_may_take(app: ScadaApp) -> None:
+    """The secondary pump, and on gw.house0.no.sieg the hack relay, are
+    listed with an interface while under hp-boss, flagged AdminMayTake;
+    the call relay has none, and nothing else is flagged."""
+    layout = app.scada.layout
+    caps = app.scada.control_capabilities
+    interfaces = {i.ActorName: i for i in caps.CommandInterfaces}
+    expected = {r.Name for r in pump_relays(app)} if layout.has_secondary_pump else set()
+    assert {n for n, i in interfaces.items() if i.AdminMayTake} == expected
+    assert HSNN.hp_scada_ops_relay not in interfaces
+    for name in expected:
+        assert interfaces[name].EventType == ChangeRelayState.enum_name()
+        assert layout.node(name).handle.startswith(f"{layout.hp_boss.handle}.")
+
+
+@pytest.mark.asyncio
+async def test_admin_takes_the_pump_only_with_the_heat_pump_off(app: ScadaApp) -> None:
+    """A relay event to the pump under admin asks for the move. With hp-boss
+    last reported HpOn the scada nacks it Busy and the pump stays under
+    hp-boss; with HpOff the pump's handle moves to admin.<name>, the tree is
+    published and the event goes on to the relay. The hack relay, where the
+    layout has one, moves on its own event."""
+    if not app.scada.layout.has_secondary_pump:
+        pytest.skip("no secondary pump in this plant")
+    scada = app.scada
+    sent = capture(scada)
+    hp_boss_handle = f"{CoreNodeNames.admin}.{HSNN.hp_boss}"
+    hp_boss_reported(app, HpBossState.HpOn)
+    for relay in pump_relays(app):
+        dispatch = admin_relay_dispatch(relay, ChangeRelayState.CloseRelay)
+        scada.process_admin_dispatch(scada.admin, dispatch)
+        assert relay.handle == f"{hp_boss_handle}.{relay.Name}"
+        nack = nacks_to_admin(sent)[-1]
+        assert (nack.TriggerId, nack.Reason) == (dispatch.DispatchTrigger.TriggerId, ScadaCmdRefusalReason.Busy)
+    sent.clear()
+    hp_boss_reported(app, HpBossState.HpOff)
+    for relay in pump_relays(app):
+        scada.process_admin_dispatch(scada.admin, admin_relay_dispatch(relay, ChangeRelayState.CloseRelay))
+        assert relay.handle == f"{CoreNodeNames.admin}.{relay.Name}"
+        trees = [p for d, p in sent if isinstance(p, NewCommandTree)]
+        assert {n.Handle for n in trees[-1].ShNodes if n.Name == relay.Name} == {relay.handle}
+    assert nacks_to_admin(sent) == []
+    assert scada.layout.hp_scada_ops_relay.handle == f"{hp_boss_handle}.{HSNN.hp_scada_ops_relay}"
+    # A second event to the taken relay is forwarded as it is.
+    scada.process_admin_dispatch(scada.admin, admin_relay_dispatch(pump_relays(app)[0], ChangeRelayState.OpenRelay))
+    assert nacks_to_admin(sent) == []
+    scada.admin_times_out()
+
+
+@pytest.mark.asyncio
+async def test_hp_boss_refuses_turn_on_and_leaves_the_pump_alone_while_admin_has_it(app: ScadaApp) -> None:
+    """With the pump taken, TurnOn is nacked Busy (the heat pump runs only
+    with hp-boss driving the pump from the watch), TurnOff is taken as
+    always, and hp-watch's state changes command the pump nothing."""
+    if not app.scada.layout.has_secondary_pump:
+        pytest.skip("no secondary pump in this plant")
+    scada = app.scada
+    capture(scada)
+    actor = hp_boss_actor(app)
+    hp_boss_reported(app, HpBossState.HpOff)
+    scada.process_admin_dispatch(scada.admin, admin_relay_dispatch(scada.layout.secondary_pump_relay, ChangeRelayState.CloseRelay))
+    assert not actor.pump_is_mine()
+    sent = capture(actor)
+    scada.process_admin_dispatch(scada.admin, admin_turn(TurnHpOnOff.TurnOn))
+    assert actor.state == HpBossState.HpOff
+    assert relay_events(sent) == []
+    nack = nacks_to_admin(sent)[-1]
+    assert nack.Reason == ScadaCmdRefusalReason.Busy
+    for state in (SpruceHackHpState.HpDetectedOn, SpruceHackHpState.HpDetectedOff, SpruceHackHpState.Unknown):
+        hp_watch_says(actor, state)
+    assert relay_events(sent) == []
+    sent.clear()
+    scada.process_admin_dispatch(scada.admin, admin_turn(TurnHpOnOff.TurnOff))
+    assert nacks_to_admin(sent) == []
+    assert actor.state == HpBossState.HpOff
+    scada.admin_times_out()
+
+
+@pytest.mark.asyncio
+async def test_release_returns_the_pump_and_hp_boss_re_enforces_it(app: ScadaApp) -> None:
+    """Admin's release rebuilds the tree, which puts the pump back under
+    hp-boss, and the scada sends hp-boss WakeUp; hp-boss then commands the
+    pump from the watch's current state whatever admin left it at, and
+    takes TurnOn again."""
+    if not app.scada.layout.has_secondary_pump:
+        pytest.skip("no secondary pump in this plant")
+    scada = app.scada
+    scada_sent = capture(scada)
+    actor = hp_boss_actor(app)
+    hp_boss_reported(app, HpBossState.HpOff)
+    for relay in pump_relays(app):
+        scada.process_admin_dispatch(scada.admin, admin_relay_dispatch(relay, ChangeRelayState.CloseRelay))
+    assert not actor.pump_is_mine()
+    sent = capture(actor)
+    hp_watch_says(actor, SpruceHackHpState.HpDetectedOff)
+    actor.pump_on = True  # what hp-boss last commanded before the hold
+    scada.process_admin_release_control(scada.admin, AdminReleaseControl())
+    for relay in pump_relays(app):
+        assert relay.handle == f"{actor.node.handle}.{relay.Name}"
+    assert actor.pump_is_mine()
+    wake_ups = [p for d, p in scada_sent if d == HSNN.hp_boss and isinstance(p, WakeUp)]
+    assert len(wake_ups) == 1
+    deliver(actor, scada.name, wake_ups[0])
+    for relay in pump_relays(app):
+        assert pump_events(sent, relay) == [ChangeRelayState.OpenRelay]
+    sent.clear()
+    boss = scada.local_control
+    deliver(actor, boss.name, turn(boss.handle, actor.node.handle, TurnHpOnOff.TurnOn))
+    assert nacks_to_admin(sent) == []
+    assert actor.state in (HpBossState.HpOn, HpBossState.PreparingToTurnOn)
