@@ -223,7 +223,7 @@ wheels = [
 
 [[package]]
 name = "gridworks-admin"
-version = "1.2.2"
+version = "1.3.1"
 source = { editable = "." }
 dependencies = [
     { name = "gridworks-proactor" },
@@ -294,7 +294,7 @@ wheels = [
 
 [[package]]
 name = "gridworks-scada-protocol"
-version = "1.2.1"
+version = "1.3.0"
 source = { editable = "../gridworks-scada-protocol" }
 dependencies = [
     { name = "gridworks-protocol" },
