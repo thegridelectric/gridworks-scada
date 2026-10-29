@@ -256,9 +256,10 @@ async def test_admin_takes_the_pump_with_the_heat_pump_off_and_release_returns_i
 ) -> None:
     """Admin takes the tree with the unit sensed off and closes the pump
     from the panel: the scada moves the relay under admin and the pump
-    runs alone. A TurnOn through hp-boss is refused and the call stays
-    open. Release rebuilds the tree, the pump returns under hp-boss, and
-    hp-boss opens it on the watch's HpDetectedOff."""
+    runs alone. The panel's TurnOn to hp-boss hands the pump back: it
+    returns under admin.hp-boss, hp-boss opens it on the watch's
+    HpDetectedOff and closes the call. Release rebuilds the tree under
+    auto with the pump still hp-boss's."""
     settings = heating_settings(tmp_path, lost_after_s=1.0)
     async with ScadaLiveTest(
         request=request,
@@ -301,23 +302,22 @@ async def test_admin_takes_the_pump_with_the_heat_pump_off_and_release_returns_i
             err_str_f=where,
         )
 
-        # TurnOn through hp-boss is refused while admin has the pump.
+        # TurnOn through hp-boss hands the pump back: it returns under
+        # admin.hp-boss, which opens it on the watch's off and closes the call.
         scada.process_scada_message(scada.admin, admin_turn(TurnHpOnOff.TurnOn))
-        await h.await_for(
-            lambda: hp_boss.state == HpBossState.HpOff and call.state == RelayClosedOrOpen.RelayOpen,
-            "admin TurnOn refused: hp-boss HpOff and the call open",
-            timeout=5,
-            err_str_f=where,
-        )
-        assert pump.state == RelayClosedOrOpen.RelayClosed
-
-        # Release: the pump returns under hp-boss, which opens it on the watch's off.
-        scada.process_scada_message(scada.admin, AdminReleaseControl())
-        assert pump.node.handle == f"{hp_boss.node.handle}.{HSNN.secondary_pump_relay}"
+        assert pump.node.handle == f"{CoreNodeNames.admin}.{HSNN.hp_boss}.{HSNN.secondary_pump_relay}"
         assert hp_boss.pump_is_mine()
         await h.await_for(
-            lambda: pump.state == RelayClosedOrOpen.RelayOpen,
-            "release: hp-boss opened the pump from HpDetectedOff",
+            lambda: hp_boss.state == HpBossState.HpOn
+            and call.state == RelayClosedOrOpen.RelayClosed
+            and pump.state == RelayClosedOrOpen.RelayOpen,
+            "admin TurnOn: the pump handed back and opened from HpDetectedOff, the call closed",
             timeout=10,
             err_str_f=where,
         )
+
+        # Release: the tree is rebuilt under auto with the pump still hp-boss's.
+        scada.process_scada_message(scada.admin, AdminReleaseControl())
+        assert pump.node.handle == f"{hp_boss.node.handle}.{HSNN.secondary_pump_relay}"
+        assert hp_boss.pump_is_mine()
+        assert pump.state == RelayClosedOrOpen.RelayOpen
