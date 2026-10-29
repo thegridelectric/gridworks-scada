@@ -11,6 +11,7 @@ enums:
   g.node.status: g.node.status
   gpio.sense.mode: gpio.sense.mode
   gpm.from.hz.method: gpm.from.hz.method
+  gw.circulator.role: circulator.role
   gw.dispatch.refusal.reason: dispatch.refusal.reason
   gw.g.node.class: g.node.class
   gw.primary.flow.source: primary.flow.source
@@ -114,6 +115,7 @@ types:
   gpio.relay.component.gt: gpio.relay.component.gt
   gpio.sensor.component.gt: gpio.sensor.component.gt
   gw.boiler.backup: boiler.backup
+  gw.circulator: circulator
   gw.command.interface: command.interface
   gw.command.transition: command.transition
   gw.dispatch.ack: dispatch.ack

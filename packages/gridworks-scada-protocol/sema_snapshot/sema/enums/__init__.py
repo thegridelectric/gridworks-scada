@@ -5,6 +5,7 @@ from sema_snapshot.sema.enums.change_relay_pin import ChangeRelayPin
 from sema_snapshot.sema.enums.change_relay_state import ChangeRelayState
 from sema_snapshot.sema.enums.change_valve_state import ChangeValveState
 from sema_snapshot.sema.enums.change_zone_call_source import ChangeZoneCallSource
+from sema_snapshot.sema.enums.circulator_role import CirculatorRole
 from sema_snapshot.sema.enums.day_of_week import DayOfWeek
 from sema_snapshot.sema.enums.device_type import DeviceType
 from sema_snapshot.sema.enums.dispatch_refusal_reason import DispatchRefusalReason
@@ -101,6 +102,7 @@ __all__ = [
     "ChangeRelayState",
     "ChangeValveState",
     "ChangeZoneCallSource",
+    "CirculatorRole",
     "DayOfWeek",
     "DeviceType",
     "DispatchRefusalReason",

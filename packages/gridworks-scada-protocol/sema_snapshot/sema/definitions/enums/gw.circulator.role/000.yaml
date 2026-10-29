@@ -1,0 +1,36 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/gw.circulator.role/000"
+
+title: "gw.circulator.role"
+type: "string"
+description: >
+  The hydronic loop a circulator pump moves water through: the distribution
+  loop to the emitters, the primary loop at the heat pump, the store loop
+  through the thermal store, or the secondary loop on the house side of a
+  heat exchanger.
+
+enum:
+  - "Unknown"
+  - "Dist"
+  - "Primary"
+  - "Store"
+  - "Secondary"
+
+default: "Unknown"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "Unknown": >
+      A role this version does not know. The default, so a consumer acts on
+      no circulator whose role it cannot place.
+    "Dist": >
+      Moves water through the distribution loop to the emitters.
+    "Primary": >
+      Moves water through the primary loop at the heat pump.
+    "Store": >
+      Moves water through the thermal store, charging or discharging it.
+    "Secondary": >
+      Moves water through the house side of a heat exchanger between the heat
+      pump and the house.

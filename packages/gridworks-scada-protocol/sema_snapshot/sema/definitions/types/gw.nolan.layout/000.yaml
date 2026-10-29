@@ -479,5 +479,15 @@ x-gridworks:
         AquastatCtrlRelayName, and where it is a gw.element.backup, each name in its
         ElementRelayNames, SHALL equal the Name of an ShNode in ShNodes whose ActorClass
         is "Relay".
+    - number: 36
+      name: "CirculatorRunningChannels"
+      statement: >
+        For each circulator in Hydronic.Circulators:
+        a. exactly one channel in DerivedChannels SHALL have Name equal to its
+        RunningChannelName, with Strategy "circulator-running", CreatedByNodeName
+        "derived-generator", OutputUnit "Unitless" and OutputQuantity "Unitless";
+        b. that channel's InputChannelNames SHALL equal [PowerChannelName] when
+        PowerChannelName is present and [CtChannelName] otherwise, and the input SHALL be
+        the Name of a DataChannel, with TelemetryName "PowerW" when it is PowerChannelName.
   extended_description: >
     TODO: add Nolan specific information (e.g. radiant floor heating, Gw108).

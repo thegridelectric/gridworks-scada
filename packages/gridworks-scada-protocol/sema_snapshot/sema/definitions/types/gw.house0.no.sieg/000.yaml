@@ -481,15 +481,15 @@ x-gridworks:
         ElementRelayNames, SHALL equal the Name of an ShNode in ShNodes whose ActorClass
         is "Relay".
     - number: 38
-      name: "SecondaryPumpRunningChannel"
+      name: "CirculatorRunningChannels"
       statement: >
-        a. DerivedChannels SHALL contain exactly one channel named "secondary-pump-running",
-        with Strategy "circulator-running", CreatedByNodeName "derived-generator", OutputUnit
-        "Unitless" and OutputQuantity "Unitless".
-        b. Its InputChannelNames SHALL equal ["secondary-pump-pwr"], and "secondary-pump-pwr"
-        SHALL be the Name of a DataChannel with TelemetryName "PowerW".
-        c. Its Parameters SHALL include "ThresholdW", a positive integer: the channel reads 1
-        while the input power exceeds ThresholdW and 0 otherwise.
+        For each circulator in Hydronic.Circulators:
+        a. exactly one channel in DerivedChannels SHALL have Name equal to its
+        RunningChannelName, with Strategy "circulator-running", CreatedByNodeName
+        "derived-generator", OutputUnit "Unitless" and OutputQuantity "Unitless";
+        b. that channel's InputChannelNames SHALL equal [PowerChannelName] when
+        PowerChannelName is present and [CtChannelName] otherwise, and the input SHALL be
+        the Name of a DataChannel, with TelemetryName "PowerW" when it is PowerChannelName.
     - number: 39
       name: "HpWatchNode"
       statement: >

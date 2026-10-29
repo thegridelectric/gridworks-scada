@@ -10,6 +10,7 @@ from sema_snapshot.sema.types.bid import Bid
 from sema_snapshot.sema.types.boiler_backup import BoilerBackup
 from sema_snapshot.sema.types.capture_tuning import CaptureTuning
 from sema_snapshot.sema.types.channel_readings import ChannelReadings
+from sema_snapshot.sema.types.circulator import Circulator
 from sema_snapshot.sema.types.command_interface import CommandInterface
 from sema_snapshot.sema.types.command_transition import CommandTransition
 from sema_snapshot.sema.types.cop_curve import CopCurve
@@ -193,6 +194,7 @@ __all__ = [
     "BoilerBackup",
     "CaptureTuning",
     "ChannelReadings",
+    "Circulator",
     "CommandInterface",
     "CommandTransition",
     "CopCurve",

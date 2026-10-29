@@ -265,10 +265,7 @@ class ApiTankModule(ShNodeActor):
                 HwUid=params.HwUid,
                 ActorNodeName=self.name,
                 PicoAB=params.PicoAB,
-                CapturePeriodS=tuning.CapturePeriodS,
-                Samples=self._component.gt.Samples,
-                NumSampleAverages=self._component.gt.NumSampleAverages,
-                AsyncCaptureDeltaMicroVolts=self.async_capture_delta_micro_volts,
+                **self.answered_params(),
                 CaptureOffsetS=offset,
                 PicoBoardVariant=params.PicoBoardVariant,
                 MicropythonVersion=params.MicropythonVersion,
@@ -296,6 +293,37 @@ class ApiTankModule(ShNodeActor):
         ):
             self.send_warning(
                 summary=d.summary(self.name), details=d.details(params.HwUid)
+            )
+
+    def answered_params(self) -> dict[str, int]:
+        """The capture values a params post is answered with, by field name."""
+        return {
+            "CapturePeriodS": self.layout.capture_tuning_by_channel[
+                f"{self.name}-depth1-device"
+            ].CapturePeriodS,
+            "Samples": self._component.gt.Samples,
+            "NumSampleAverages": self._component.gt.NumSampleAverages,
+            "AsyncCaptureDeltaMicroVolts": self.async_capture_delta_micro_volts,
+        }
+
+    def check_pico_params(self, params: TankModuleParams) -> None:
+        """Sends an Info glitch naming each capture value the pico posted
+        that differs from the one it is answered with. A pico posts at boot
+        what it runs, so a difference is the pico taking new values (a
+        fresh pico boots on the firmware defaults) or an answer it did not
+        apply."""
+        posted = params.model_dump(by_alias=True)
+        differing = {
+            name: (posted[name], answered)
+            for name, answered in self.answered_params().items()
+            if posted[name] != answered
+        }
+        if differing:
+            self.send_info(
+                summary=f"{self.name} pico params differ from the answer: {', '.join(differing)}",
+                details=f"{params.HwUid} posted/answered " + ", ".join(
+                    f"{name} {p}/{a}" for name, (p, a) in differing.items()
+                ),
             )
 
     async def _handle_microvolts_post(self, request: Request) -> Response:
@@ -391,6 +419,7 @@ class ApiTankModule(ShNodeActor):
                 self._process_microvolts(message.Payload)
             case TankModuleParams():
                 self.check_pico_identity(message.Payload)
+                self.check_pico_params(message.Payload)
             case Glitch():
                 self._send_to(self.ltn, message.Payload)
         return Ok(True)

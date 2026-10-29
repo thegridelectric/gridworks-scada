@@ -62,6 +62,7 @@ from gwsproto.named_types.house0_no_sieg_layout import House0NoSiegLayout
 from gwsproto.named_types.house0_family_params import House0FamilyParams
 from gwsproto.named_types.house0_no_sieg_family_params import House0NoSiegFamilyParams
 from gwsproto.named_types.house_operating_status import HouseOperatingStatus
+from gwsproto.named_types.circulator import Circulator
 from gwsproto.named_types.hydronic import Hydronic
 from gwsproto.named_types.hp_control_box_device_type_gt import HpControlBoxDeviceTypeGt
 from gwsproto.named_types.hp_device_type_gt import HpDeviceTypeGt
@@ -257,6 +258,7 @@ __all__ = [
     "HubitatPollerComponentGt",
     "HubitatPollerGt",
     "HvacZone",
+    "Circulator",
     "Hydronic",
     "I2cCtInterfaceCapability",
     "I2cBitAddress",

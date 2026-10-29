@@ -1,0 +1,88 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw.circulator/000"
+
+title: "gw.circulator"
+type: object
+description: >
+  One circulator pump of a hydronic space-heating layout: its node, the
+  loop it serves, the channel that reads whether it is running, and the
+  channels and node that sense and drive it. Declared in the layout so a
+  consumer finds the pumps and their channels by reading the list. The
+  relays that switch a pump are not here.
+
+properties:
+  PumpNodeName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      The ShNode that is the pump.
+
+  Role:
+    $ref: "https://schemas.electricity.works/enums/gw.circulator.role/000"
+    description: >
+      The loop the pump moves water through.
+
+  RunningChannelName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      The derived channel that reads 1 while the pump runs and 0 otherwise,
+      from the pump's power or current.
+
+  FlowChannelName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      The channel that measures flow in the pump's loop. Absent when the loop
+      has no flow meter.
+
+  PowerChannelName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      The channel that measures the pump's electrical power. Absent when no
+      meter reads the pump.
+
+  CtChannelName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      The channel that reads a current transformer on the pump's feed. Absent
+      when the pump has no CT.
+
+  ZeroTenNodeName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      The ShNode whose 0-10 V output sets the pump's speed. Absent when the
+      scada does not set the speed.
+
+  TypeName:
+    const: "gw.circulator"
+
+  Version:
+    const: "000"
+
+required:
+  - PumpNodeName
+  - Role
+  - RunningChannelName
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "PumpNodeName": "dist-pump",
+      "Role": "Dist",
+      "RunningChannelName": "dist-pump-running",
+      "FlowChannelName": "dist-flow",
+      "PowerChannelName": "dist-pump-pwr",
+      "ZeroTenNodeName": "dist-010v",
+      "TypeName": "gw.circulator",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "InputDeclared"
+      statement: >
+        At least one of PowerChannelName and CtChannelName SHALL be present.

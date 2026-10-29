@@ -50,6 +50,7 @@ from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
 from gwsproto.named_types.web_server_component_gt import WebServerComponentGt
 from gwsproto.property_format import SpaceheatName
 from gwsproto.type_helpers.backup_axioms import check_backup_node, check_backup_relays
+from gwsproto.type_helpers.circulator_axioms import check_circulator_running_channels
 from gwsproto.type_helpers.board_resolution import (
     I2C_DAC_OUTPUT,
     I2C_RELAY,
@@ -1183,4 +1184,25 @@ class House0Layout(GwsprotoSemaType):
         whose ActorClass is "Relay".
         """
         check_backup_relays(self.ShNodes, self.Hydronic.Backup, "Axiom 38 (BackupRelays)")
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_39(self) -> Self:
+        """
+        Axiom 39: CirculatorRunningChannels
+        For each circulator in Hydronic.Circulators:
+        a. exactly one channel in DerivedChannels SHALL have Name equal to its
+        RunningChannelName, with Strategy "circulator-running", CreatedByNodeName
+        "derived-generator", OutputUnit "Unitless" and OutputQuantity "Unitless";
+        b. that channel's InputChannelNames SHALL equal [PowerChannelName] when
+        PowerChannelName is present and [CtChannelName] otherwise, and the input
+        SHALL be the Name of a DataChannel, with TelemetryName "PowerW" when it is
+        PowerChannelName.
+        """
+        check_circulator_running_channels(
+            self.DerivedChannels,
+            self.DataChannels,
+            self.Hydronic.Circulators,
+            "Axiom 39 (CirculatorRunningChannels)",
+        )
         return self

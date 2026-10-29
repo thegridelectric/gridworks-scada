@@ -114,8 +114,11 @@ class HydronicSpaceheatChannelNames:
     store_flow_hz = f"{HSNN.store_flow}-hz"
     secondary_flow_hz = f"{HSNN.secondary_flow}-hz"
 
-    # 1 while the secondary pump draws more than the layout's ThresholdW,
-    # 0 otherwise: the derived channel on the circulator-running strategy.
+    # 1 while a circulator draws more than its running threshold, 0
+    # otherwise: the derived channels on the circulator-running strategy.
+    dist_pump_running = f"{HSNN.dist_pump}-running"
+    primary_pump_running = f"{HSNN.primary_pump}-running"
+    store_pump_running = f"{HSNN.store_pump}-running"
     secondary_pump_running = f"{HSNN.secondary_pump}-running"
 
     required_energy = "required-energy"

@@ -4,7 +4,7 @@ Each counterexample is a typed mutation of the assembled fixture pair,
 re-validated at the boundary — chosen so the intended axiom fires. The word
 is gw.house0.layout without the Siegenthaler loop and with the secondary
 pump: the shared axioms are tested as there, the ones that differ (3, 5, 7,
-9, 13, 32) on the sieg-less surface, and 38 on the pump's running channel."""
+9, 13, 32) on the sieg-less surface, and 38 on the circulators' running channels."""
 
 import json
 import uuid
@@ -486,6 +486,7 @@ def test_gw_house0_no_sieg_axiom_4_second_heat_call(assembled: dict) -> None:
 # parenthesis so "Axiom 2" cannot be satisfied by "Axiom 19".
 PINNED_STRATEGIES = {
     "transactive-power", "heat-call", "system-model", "simple-falling-edge-setpoint",
+    "circulator-running",
 }
 
 
@@ -919,37 +920,58 @@ def test_gw_house0_no_sieg_axiom_37(assembled: dict) -> None:
 
     reject(assembled, mutate, r"Axiom 37 \(BackupRelays\)")
 
+def running_channel(d: dict, name: str) -> dict:
+    return next(c for c in d["DerivedChannels"] if c["Name"] == name)
 
-def running_channel(d: dict) -> dict:
-    return next(c for c in d["DerivedChannels"] if c["Name"] == "secondary-pump-running")
 
-
-def test_gw_house0_no_sieg_axiom_38_missing(assembled: dict) -> None:
+def test_gw_house0_no_sieg_axiom_38_a_running_channel_missing(assembled: dict) -> None:
     def mutate(d: dict) -> None:
-        d["DerivedChannels"] = [c for c in d["DerivedChannels"] if c["Name"] != "secondary-pump-running"]
+        d["DerivedChannels"].remove(running_channel(d, "secondary-pump-running"))
 
-    reject(assembled, mutate, r"Axiom 38 \(SecondaryPumpRunningChannel\)")
+    reject(assembled, mutate, r"Axiom 38 \(CirculatorRunningChannels\) a\.")
 
 
 def test_gw_house0_no_sieg_axiom_38_a_wrong_strategy(assembled: dict) -> None:
     def mutate(d: dict) -> None:
-        running_channel(d)["Strategy"] = "sum"
+        running_channel(d, "secondary-pump-running")["Strategy"] = "sum"
 
-    reject(assembled, mutate, r"Axiom 38 \(SecondaryPumpRunningChannel\)")
+    reject(assembled, mutate, r"Axiom 38 \(CirculatorRunningChannels\) a\.")
 
 
-def test_gw_house0_no_sieg_axiom_38_b_wrong_input(assembled: dict) -> None:
+def test_gw_house0_no_sieg_axiom_38_b_input_is_the_declared_power_channel(assembled: dict) -> None:
     def mutate(d: dict) -> None:
-        running_channel(d)["InputChannelNames"] = ["dist-pump-pwr"]
+        running_channel(d, "secondary-pump-running")["InputChannelNames"] = ["hp-odu-pwr"]
 
-    reject(assembled, mutate, r"Axiom 38 \(SecondaryPumpRunningChannel\)")
+    reject(assembled, mutate, r"Axiom 38 \(CirculatorRunningChannels\) b\.")
 
 
-def test_gw_house0_no_sieg_axiom_38_c_threshold_not_positive(assembled: dict) -> None:
+def test_gw_house0_no_sieg_axiom_38_b_declared_input_is_not_a_derived_channel(assembled: dict) -> None:
     def mutate(d: dict) -> None:
-        running_channel(d)["Parameters"] = {"ThresholdW": 0}
+        circ = next(c for c in d["Hydronic"]["Circulators"] if c["PumpNodeName"] == "secondary-pump")
+        circ["PowerChannelName"] = "store-pump-running"
+        running_channel(d, "secondary-pump-running")["InputChannelNames"] = ["store-pump-running"]
 
-    reject(assembled, mutate, r"Axiom 38 \(SecondaryPumpRunningChannel\)")
+    reject(assembled, mutate, r"Axiom 38 \(CirculatorRunningChannels\) b\.")
+
+
+def test_gw_house0_no_sieg_axiom_38_b_ct_input_when_no_power_channel(assembled: dict) -> None:
+    """A circulator with only a CT reads the CT; reading the power channel fails."""
+
+    def mutate(d: dict) -> None:
+        circ = next(c for c in d["Hydronic"]["Circulators"] if c["PumpNodeName"] == "secondary-pump")
+        del circ["PowerChannelName"]
+        circ["CtChannelName"] = "secondary-pump-ct"
+        d["DataChannels"].append(
+            {
+                **next(c for c in d["DataChannels"] if c["Name"] == "secondary-pump-pwr"),
+                "Name": "secondary-pump-ct",
+                "TelemetryName": "VoltsTimes100",
+                "Quantity": "Voltage",
+                "Id": "7d2e6c1a-5b3f-4a8e-9c0d-1e2f3a4b5c6d",
+            }
+        )
+
+    reject(assembled, mutate, r"Axiom 38 \(CirculatorRunningChannels\) b\.")
 
 
 def test_gw_house0_no_sieg_axiom_39_hp_watch_absent(assembled: dict) -> None:

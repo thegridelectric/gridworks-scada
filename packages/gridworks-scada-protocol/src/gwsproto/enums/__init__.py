@@ -81,6 +81,7 @@ from gwsproto.enums.market_quantity_unit import MarketQuantityUnit
 from gwsproto.enums.market_type_name import MarketTypeName
 from gwsproto.enums.pico_board_variant import PicoBoardVariant
 from gwsproto.enums.primary_flow_source import PrimaryFlowSource
+from gwsproto.enums.circulator_role import CirculatorRole
 from gwsproto.enums.primary_pump_owner import PrimaryPumpOwner
 from gwsproto.enums.refrigerant_cycle import RefrigerantCycle
 from gwsproto.enums.pico_cycler_event import PicoCyclerEvent
@@ -206,6 +207,7 @@ __all__ = [
     "MarketTypeName",
     "PicoBoardVariant",
     "PrimaryFlowSource",
+    "CirculatorRole",
     "PrimaryPumpOwner",
     "RefrigerantCycle",
     "PicoCyclerEvent",

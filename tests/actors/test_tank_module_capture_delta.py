@@ -11,8 +11,9 @@ from actors.api_tank_module import (
     micro_volt_capture_delta,
     microvolts_at_c,
 )
-from gwsproto.enums import PicoBoardVariant
-from gwsproto.named_types import TankModuleParams
+from gwproto import Message
+from gwsproto.enums import LogLevel, PicoBoardVariant
+from gwsproto.named_types import Glitch, TankModuleParams
 from scada_app import ScadaApp
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -69,3 +70,42 @@ def test_sim_tank_module_answers_a_params_post_with_the_translated_delta(tmp_pat
     response = asyncio.run(actor._handle_params_post(Post(posted.model_dump(mode="json"))))
     answered = TankModuleParams.model_validate_json(response.text)
     assert answered.AsyncCaptureDeltaMicroVolts == expected
+
+
+def test_a_post_that_differs_from_the_answer_sends_an_info_glitch() -> None:
+    settings = ScadaApp.get_settings()
+    settings.paths.hardware_layout = CONFIG / PAIR[0]
+    settings.paths.operational_params = CONFIG / PAIR[1]
+    settings.paths.mkdirs()
+    app = ScadaApp(app_settings=settings)
+    app.instantiate()
+    actor = app.get_communicator_as_type("tank1", ApiTankModule)
+    assert actor is not None
+    sent: list = []
+    actor._send_to = lambda dst, payload, src=None: sent.append(payload)
+    answered = actor.answered_params()
+
+    def post(**changes: int) -> None:
+        actor.process_message(
+            Message(
+                Src="tank1",
+                Dst="tank1",
+                Payload=TankModuleParams(
+                    HwUid=actor._component.gt.PicoHwUid,
+                    ActorNodeName="tank1",
+                    PicoAB="a",
+                    PicoBoardVariant=PicoBoardVariant.PicoRaspberryWifi2040,
+                    MicropythonVersion="1.24.1",
+                    **{**answered, **changes},
+                ),
+            )
+        )
+
+    post()
+    assert sent == []
+    post(AsyncCaptureDeltaMicroVolts=500, CapturePeriodS=answered["CapturePeriodS"] + 1)
+    infos = [p for p in sent if isinstance(p, Glitch) and p.Type == LogLevel.Info]
+    assert len(infos) == 1
+    assert "AsyncCaptureDeltaMicroVolts" in infos[0].Summary
+    assert "CapturePeriodS" in infos[0].Summary
+    assert f"AsyncCaptureDeltaMicroVolts 500/{answered['AsyncCaptureDeltaMicroVolts']}" in infos[0].Details

@@ -1,6 +1,6 @@
 metadata:
   generated_from: indexes/public_registry.yaml
-  generated_at: '2026-10-28T18:58:21Z'
+  generated_at: '2026-10-29T13:37:06Z'
   note: Transitive closure of initial_targets
 initial_targets:
 - ads.channel.config:000
@@ -40,6 +40,7 @@ initial_targets:
 - gw.dispatch.nack:000
 - gw.element.backup:000
 - gw.house.operating.status:000
+- gw.circulator:000
 - gw.house0.family.params:000
 - gw.house0.no.sieg.family.params:000
 - gw.house0.layout:000
@@ -153,6 +154,7 @@ initial_targets:
 - g.node.status:000
 - gpio.sense.mode:000
 - gpm.from.hz.method:000
+- gw.circulator.role:000
 - gw.dispatch.refusal.reason:000
 - gw.g.node.class:000
 - gw.primary.flow.source:000
@@ -305,6 +307,9 @@ worklist:
     gpm.from.hz.method:
       '000':
         path: definitions/enums/gpm.from.hz.method/000.yaml
+    gw.circulator.role:
+      '000':
+        path: definitions/enums/gw.circulator.role/000.yaml
     gw.dispatch.refusal.reason:
       '000':
         path: definitions/enums/gw.dispatch.refusal.reason/000.yaml
@@ -612,6 +617,9 @@ worklist:
     gw.boiler.backup:
       '000':
         path: definitions/types/gw.boiler.backup/000.yaml
+    gw.circulator:
+      '000':
+        path: definitions/types/gw.circulator/000.yaml
     gw.command.interface:
       '000':
         path: definitions/types/gw.command.interface/000.yaml
