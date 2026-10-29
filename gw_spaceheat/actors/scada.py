@@ -520,6 +520,7 @@ class Scada(PrimeActor, ScadaInterface):
         to_name = event.ToHandle.split(".")[-1]
         if not self.admin_takes(to_name, event):
             return
+        self.admin_returns(to_name, event)
         # TODO: change this to work if relays etc are NOT on primary scada
         if communicator := self.get_communicator(to_name):
             communicator.process_message(
@@ -565,6 +566,24 @@ class Scada(PrimeActor, ScadaInterface):
         self._send_to(self.ltn, build_command_tree(self.layout))
         self.log(f"Admin takes {to_node.Name}: {to_node.handle}")
         return True
+
+    def admin_returns(self, to_name: str, event: FsmEvent) -> None:
+        """Admin's TurnOn to hp-boss hands back every relay admin has
+        taken: the handles go under hp-boss again, the tree is published
+        and hp-boss gets WakeUp, so it commands the pump from hp-watch
+        before the TurnOn reaches it. The heat pump runs only with hp-boss
+        driving the pump, and the operator's TurnOn says that is what they
+        want. Any other dispatch leaves the taken relays where they are."""
+        if to_name != HSNN.hp_boss or event.EventName != TurnHpOnOff.TurnOn:
+            return
+        taken = [n for n in self.layout.admin_may_take if n.handle == f"{self.admin.handle}.{n.Name}"]
+        if not taken:
+            return
+        for node in taken:
+            node.Handle = f"{self.hp_boss.handle}.{node.Name}"
+        self._send_to(self.ltn, build_command_tree(self.layout))
+        self._send_to(self.hp_boss, WakeUp(ToName=self.hp_boss.Name))
+        self.log(f"Admin returns {', '.join(n.Name for n in taken)} to {self.hp_boss.handle}")
 
     def process_admin_analog_dispatch(
         self, from_node: ShNode, payload: AdminAnalogDispatch

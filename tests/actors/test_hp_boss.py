@@ -557,9 +557,11 @@ async def test_admin_takes_the_pump_only_with_the_heat_pump_off(app: ScadaApp) -
 
 @pytest.mark.asyncio
 async def test_hp_boss_refuses_turn_on_and_leaves_the_pump_alone_while_admin_has_it(app: ScadaApp) -> None:
-    """With the pump taken, TurnOn is nacked Busy (the heat pump runs only
-    with hp-boss driving the pump from the watch), TurnOff is taken as
-    always, and hp-watch's state changes command the pump nothing."""
+    """With the pump taken, a TurnOn that reaches hp-boss is nacked Busy
+    (the heat pump runs only with hp-boss driving the pump from the watch),
+    TurnOff is taken as always, and hp-watch's state changes command the
+    pump nothing. The scada hands the pump back ahead of admin's own
+    TurnOn, so the refusal is hp-boss's guard, reached here directly."""
     if not app.scada.layout.has_secondary_pump:
         pytest.skip("no secondary pump in this plant")
     scada = app.scada
@@ -569,7 +571,7 @@ async def test_hp_boss_refuses_turn_on_and_leaves_the_pump_alone_while_admin_has
     scada.process_admin_dispatch(scada.admin, admin_relay_dispatch(scada.layout.secondary_pump_relay, ChangeRelayState.CloseRelay))
     assert not actor.pump_is_mine()
     sent = capture(actor)
-    scada.process_admin_dispatch(scada.admin, admin_turn(TurnHpOnOff.TurnOn))
+    deliver(actor, CoreNodeNames.admin, turn(CoreNodeNames.admin, actor.node.handle, TurnHpOnOff.TurnOn))
     assert actor.state == HpBossState.HpOff
     assert relay_events(sent) == []
     nack = nacks_to_admin(sent)[-1]
@@ -581,6 +583,46 @@ async def test_hp_boss_refuses_turn_on_and_leaves_the_pump_alone_while_admin_has
     scada.process_admin_dispatch(scada.admin, admin_turn(TurnHpOnOff.TurnOff))
     assert nacks_to_admin(sent) == []
     assert actor.state == HpBossState.HpOff
+    scada.admin_times_out()
+
+
+@pytest.mark.asyncio
+async def test_admin_turn_on_returns_the_pump_and_starts_the_heat_pump(app: ScadaApp) -> None:
+    """Admin's TurnOn to hp-boss while admin has the pump hands it back:
+    every taken relay goes under hp-boss again, the tree is published,
+    hp-boss gets WakeUp and re-enforces the pump from the watch, and then
+    takes the TurnOn. A TurnOff hands nothing back."""
+    if not app.scada.layout.has_secondary_pump:
+        pytest.skip("no secondary pump in this plant")
+    scada = app.scada
+    scada_sent = capture(scada)
+    actor = hp_boss_actor(app)
+    hp_boss_reported(app, HpBossState.HpOff)
+    for relay in pump_relays(app):
+        scada.process_admin_dispatch(scada.admin, admin_relay_dispatch(relay, ChangeRelayState.CloseRelay))
+    assert not actor.pump_is_mine()
+    scada_sent.clear()
+    scada.process_admin_dispatch(scada.admin, admin_turn(TurnHpOnOff.TurnOff))
+    assert not actor.pump_is_mine()
+    assert [p for d, p in scada_sent if d == HSNN.hp_boss and isinstance(p, WakeUp)] == []
+    sent = capture(actor)
+    hp_watch_says(actor, SpruceHackHpState.HpDetectedOff)
+    actor.pump_on = True
+    scada.process_admin_dispatch(scada.admin, admin_turn(TurnHpOnOff.TurnOn))
+    for relay in pump_relays(app):
+        assert relay.handle == f"{actor.node.handle}.{relay.Name}"
+    assert actor.pump_is_mine()
+    trees = [p for d, p in scada_sent if isinstance(p, NewCommandTree)]
+    assert {n.Handle for n in trees[-1].ShNodes if n.Name in {r.Name for r in pump_relays(app)}} == {
+        r.handle for r in pump_relays(app)
+    }
+    wake_ups = [p for d, p in scada_sent if d == HSNN.hp_boss and isinstance(p, WakeUp)]
+    assert len(wake_ups) == 1
+    deliver(actor, scada.name, wake_ups[0])
+    for relay in pump_relays(app):
+        assert pump_events(sent, relay) == [ChangeRelayState.OpenRelay]
+    assert nacks_to_admin(sent) == []
+    assert actor.state in (HpBossState.HpOn, HpBossState.PreparingToTurnOn)
     scada.admin_times_out()
 
 
