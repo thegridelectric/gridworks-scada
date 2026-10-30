@@ -68,10 +68,10 @@
 # match except for the DispatchHold block, which the scada writes itself
 # (scripts/roll_compare.py). On the other lines the scada does not read the
 # ops word and the file is left alone. A pi whose file differs shows the
-# differing paths and installs the committed file only on a y, keeping the
-# box's file as <stem>.<date>-pre-roll.json. `back` keeps no copy, since the
-# file it replaces is the committed file of the line rolled forward to, and
-# removes the pre-roll copies the forward roll left.
+# differing paths and installs the committed file only on a y. The box's
+# file is not kept: the committed JSON of the line it came from is its
+# record, and any <stem>.<date>-pre-roll.json an earlier roll left is
+# removed.
 #
 # Stored events do not cross lines. The scada persists every event it has not
 # had acked (~/.local/share/gridworks/scada/event/) and re-sends them on each
@@ -79,8 +79,10 @@
 # line's LTN, and the link flaps on it every ack timeout for good. So the
 # restart timer and the service are stopped (as gwstop and gw2stop do; the
 # timer alone would start the service at the next quarter hour), the event
-# folder's contents are set aside as event.<date>-pre-roll-to-<branch>/, and
-# the service and then the timer started.
+# folder's contents are removed, along with any event.<date>-pre-roll-to-*
+# folder an earlier roll set aside, and the service and then the timer
+# started. The journal has every event the LTN acked; an unacked event
+# of the line being left is lost with the line.
 #
 # spruce: the winter hack (spruce-winter-hack.service) is the plant controller
 # on actual-spruce and is disabled when the box moves off that line, enabled
@@ -92,7 +94,13 @@
 # target, the roll stops before the checkout and says so; the venv is rebuilt
 # (tools/mkenv.sh) or the units reinstalled (service/install, service2/install)
 # by hand on the box, and the roll re-run. The test and dev requirements are
-# not compared: nothing the box runs imports them.
+# not compared: nothing the box runs imports them. A package's pyproject.toml
+# is compared without its version line and its pins on the sibling editable
+# packages (scripts/roll_compare.py reqs): the venv installs both packages
+# editable from the checkout, so a release bump on one line (gwsproto 1.3.0
+# and admin 1.3.1 on main, 1.2.3 and 1.2.5 on legacy) changes nothing the
+# venv resolves. The comparison runs on the laptop's checkout of this repo
+# after a fetch, between the box's SHA and the pushed tip of the target.
 set -euo pipefail
 
 HOUSE="${1:-}"; VERB="${2:-}"; TARGET="${3:-}"
@@ -109,9 +117,10 @@ FORWARD_LINE=main
 # gwltn@.service is the ltn box's.
 PI_UNITS='service/gwspaceheat.service service/gwspaceheat-restart.service service/gwspaceheat-restart.timer'
 PI2_UNITS='service2/gwspaceheat2.service service2/gwspaceheat2-restart.service service2/gwspaceheat2-restart.timer'
-# What the box's venv must match: the runtime requirements and the editable packages.
-RUNTIME_REQS='gw_spaceheat/requirements/base.txt gw_spaceheat/requirements/drivers.txt packages/*/pyproject.toml'
-STAMP="$(date +%Y-%m-%d)"
+# What the box's venv must match: the runtime requirements byte for byte, and
+# the editable packages' pyproject.toml outside their version and sibling pins.
+RUNTIME_REQS='gw_spaceheat/requirements/base.txt gw_spaceheat/requirements/drivers.txt'
+REPO="$HERE/.."
 
 usage() { sed -n '2,20p' "$0"; exit 1; }
 [ -n "$HOUSE" ] && [ -n "$VERB" ] || usage
@@ -228,21 +237,37 @@ verify_ltn() { # <scada-branch>
 
 offer_install() { # <host> <config-dir> <stem> <committed-file>
   local pi="$1" cdir="$2" stem="$3" committed="$4"
-  if [ "$VERB" = back ]; then
-    read -r -p "  install the committed $stem on $pi (its pre-roll copies removed)? [y/N] " ans
-    [ "$ans" = y ] || return 1
-    ssh -n "$pi" "rm -f $cdir/$stem.*-pre-roll.json"
-  else
-    read -r -p "  install the committed $stem on $pi (box file kept as $stem.$STAMP-pre-roll.json)? [y/N] " ans
-    [ "$ans" = y ] || return 1
-    ssh -n "$pi" "[ ! -f $cdir/$stem.json ] || cp $cdir/$stem.json $cdir/$stem.$STAMP-pre-roll.json"
-  fi
+  read -r -p "  install the committed $stem on $pi (the box's file is not kept)? [y/N] " ans
+  [ "$ans" = y ] || return 1
+  ssh -n "$pi" "rm -f $cdir/$stem.*-pre-roll.json"
   scp -q "$committed" "$pi:$cdir/$stem.json"
   echo "  $pi $stem: installed"
 }
 
+# Does the box's venv need rebuilding between two SHAs of this repo? Prints
+# what differs and returns 0 when it does. Both SHAs are read from the
+# laptop's checkout: the box runs pushed code, so its SHA is on the remote.
+venv_differs() { # <box-sha> <target-branch>
+  local cur="$1" target="origin/$2" rc=1 pkg a b
+  git -C "$REPO" cat-file -e "$cur^{commit}" 2>/dev/null || { echo "  $cur is not a pushed SHA of this repo; refusing"; return 0; }
+  if [ -n "$(git -C "$REPO" diff --stat "$cur" "$target" -- $RUNTIME_REQS)" ]; then
+    git -C "$REPO" diff --stat "$cur" "$target" -- $RUNTIME_REQS | sed 's/^/  /'; rc=0
+  fi
+  for pkg in $( { git -C "$REPO" ls-tree -d --name-only "$cur" packages/; git -C "$REPO" ls-tree -d --name-only "$target" packages/; } | sort -u); do
+    a="$WORK/reqs.cur.$(basename "$pkg").toml"; b="$WORK/reqs.target.$(basename "$pkg").toml"
+    git -C "$REPO" show "$cur:$pkg/pyproject.toml" > "$a" 2>/dev/null || continue
+    git -C "$REPO" show "$target:$pkg/pyproject.toml" > "$b" 2>/dev/null || { echo "  $pkg: on $cur and not on $target"; rc=0; continue; }
+    python3 "$COMPARE" reqs "$a" "$b" > "$WORK/reqs.$(basename "$pkg").diff" || { echo "  $pkg/pyproject.toml differs:"; sed 's/^/    /' "$WORK/reqs.$(basename "$pkg").diff"; rc=0; }
+  done
+  for pkg in $(git -C "$REPO" ls-tree -d --name-only "$target" packages/); do
+    git -C "$REPO" cat-file -e "$cur:$pkg/pyproject.toml" 2>/dev/null || { echo "  $pkg: on $target and not on $cur"; rc=0; }
+  done
+  return $rc
+}
+
 WORK="$(mktemp -d)"; trap 'rm -rf "$WORK"' EXIT
 git -C "$TLAYOUTS" fetch -q origin
+git -C "$REPO" fetch -q origin
 
 if [ "$VERB" = check ]; then
   rc=0
@@ -275,7 +300,7 @@ ssh -n "$LTN_BOX" "git -C $LTN_REPO fetch -q origin"
 ssh -n "$LTN_BOX" "git -C $LTN_REPO rev-parse --verify -q origin/$TARGET" > /dev/null || { echo "ltn: origin/$TARGET not on the box's remote; refusing"; exit 1; }
 [ "$(ssh -n "$LTN_BOX" "git -C $LTN_REPO rev-list --count origin/$TARGET..$TARGET 2>/dev/null || echo 0")" = 0 ] || { echo "ltn: local $TARGET is ahead of origin/$TARGET; refusing"; exit 1; }
 ltn_cur="$(ltn_sha)"
-if [ -n "$(ssh -n "$LTN_BOX" "git -C $LTN_REPO diff --stat $ltn_cur origin/$TARGET -- $RUNTIME_REQS")" ]; then
+if venv_differs "$ltn_cur" "$TARGET"; then
   echo "ltn: requirements differ between $ltn_cur and origin/$TARGET; rebuild the venv in $LTN_REPO (tools/mkenv.sh) after the checkout, by hand, then re-run"
   exit 1
 fi
@@ -291,9 +316,8 @@ for pi in $PIS; do
     echo "$pi: service unit files differ between $cur and origin/$TARGET; root must reinstall them after the checkout, by hand, then re-run"
     exit 1
   fi
-  if [ -n "$(ssh -n "$pi" "git -C $BOX_REPO diff --stat $cur origin/$TARGET -- $RUNTIME_REQS")" ]; then
+  if venv_differs "$cur" "$TARGET"; then
     echo "$pi: requirements differ between $cur and origin/$TARGET; rebuild the venv on the box (tools/mkenv.sh) after the checkout, by hand, then re-run"
-    ssh -n "$pi" "git -C $BOX_REPO diff --stat $cur origin/$TARGET -- $RUNTIME_REQS"
     exit 1
   fi
   ssh -n "$pi" "git -C $BOX_REPO checkout -q $TARGET && git -C $BOX_REPO merge -q --ff-only origin/$TARGET" || { echo "$pi: checkout or fast-forward failed (local branch ahead of origin?); refusing"; exit 1; }
@@ -314,8 +338,8 @@ fi
 for pi in $PIS; do
   svc="$(service_of "$pi")"; edir="$(event_dir "$pi")"
   ssh -n "$pi" "sudo systemctl stop $svc-restart.timer $svc"
-  n="$(ssh -n "$pi" "E=$edir; Q=$edir.$STAMP-pre-roll-to-${TARGET//\//-}; n=\$(find \$E -type f 2>/dev/null | wc -l | tr -d ' '); if [ \"\$n\" != 0 ]; then mkdir -p \$Q && find \$E -mindepth 1 -maxdepth 1 -exec mv {} \$Q/ \; ; fi; echo \$n")"
-  echo "$pi: $n stored events set aside in $edir.$STAMP-pre-roll-to-${TARGET//\//-}"
+  n="$(ssh -n "$pi" "E=$edir; n=\$(find \$E -type f 2>/dev/null | wc -l | tr -d ' '); find \$E -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null; q=\$(ls -d \$E.*-pre-roll-to-* 2>/dev/null | wc -l | tr -d ' '); rm -rf \$E.*-pre-roll-to-*; echo \$n \$q")"
+  echo "$pi: ${n% *} stored events removed from $edir, ${n#* } set-aside folder(s) removed"
   ssh -n "$pi" "sudo systemctl start $svc && sudo systemctl start $svc-restart.timer"; sleep 3
   echo "$pi: $svc $(ssh -n "$pi" "systemctl is-active $svc") on $(box_branch "$pi") @ $(box_sha "$pi")"
 done
