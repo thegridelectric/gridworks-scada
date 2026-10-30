@@ -888,8 +888,11 @@ class DerivedGenerator(ShNodeActor):
 
         latest_temps_f = self.data.latest_temperatures_f.copy()
 
+        # The vessels the mode discharges: every store tank, or the buffer
+        # alone, each GALLONS_PER_TANK.
         ordered_tank_layers = []
         if self.ops.FamilyParams.SeasonalStorageMode== SeasonalStorageMode.AllTanks:
+            num_vessels = len(self.layout.store_tanks)
             for tank_idx in sorted(self.layout.store_tanks):
                 tank = self.layout.store_tanks[tank_idx]
                 ordered_tank_layers.extend([
@@ -898,6 +901,7 @@ class DerivedGenerator(ShNodeActor):
                     tank.depth3,
                 ])
         elif self.ops.FamilyParams.SeasonalStorageMode== SeasonalStorageMode.BufferOnly: 
+            num_vessels = 1
             ordered_tank_layers = [
                     HCN.buffer.depth1,
                     HCN.buffer.depth2,
@@ -917,7 +921,7 @@ class DerivedGenerator(ShNodeActor):
             return None
 
         gallons_per_layer = (
-            self.GALLONS_PER_TANK * len(self.layout.store_tanks)
+            self.GALLONS_PER_TANK * num_vessels
         ) / len(simulated_layers_f)
 
         mass_kg_per_layer = gallons_per_layer * self.GALLON_PER_LITER

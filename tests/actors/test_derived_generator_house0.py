@@ -23,7 +23,7 @@ from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 from scada_app import ScadaApp
 from clock import ManualClock
-from gwsproto.enums import LogLevel, Quantity
+from gwsproto.enums import LogLevel, Quantity, SeasonalStorageMode
 from gwsproto.named_types import Glitch
 from weather_source import ForecastPair, SimWeatherSource, WeatherSourceKind, seasonal_fill, sim_forecast
 
@@ -163,6 +163,35 @@ def test_usable_energy_does_not_depend_on_the_dispatch_hold(app: ScadaApp) -> No
     assert any(
         isinstance(p, SingleReading) and p.ChannelName == HCN.usable_energy for _, p in sent
     ), sent
+
+
+def test_buffer_only_usable_energy_is_one_tank_of_water(
+    app: ScadaApp, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """In BufferOnly the layers are the buffer's three depths and the water
+    is one tank's worth; in AllTanks every store tank counts. On a house
+    with two store tanks and every layer at one temperature, the estimate
+    scales with the water, so buffer-only is half of all-tanks."""
+    actor = app.get_communicator_as_type(CoreNodeNames.derived_generator, DerivedGenerator)
+    assert actor is not None
+    (tank,) = actor.layout.store_tanks.values()
+    monkeypatch.setattr(actor.layout, "store_tanks", {1: tank, 2: tank})
+    assert len(actor.layout.store_tanks) == 2
+    actor.data.heating_forecast = a_day_of_forecast(actor)
+    actor.weather_forecast = a_weather_forecast(actor)
+    hot_tanks(actor)
+
+    def usable_in(mode: SeasonalStorageMode) -> int:
+        actor.data.ops = actor.ops.model_copy(
+            update={"FamilyParams": actor.ops.FamilyParams.model_copy(update={"SeasonalStorageMode": mode})}
+        )
+        usable_wh = actor.compute_usable_energy_wh()
+        assert isinstance(usable_wh, int) and usable_wh > 0
+        return usable_wh
+
+    all_tanks_wh = usable_in(SeasonalStorageMode.AllTanks)
+    buffer_only_wh = usable_in(SeasonalStorageMode.BufferOnly)
+    assert abs(buffer_only_wh * 2 - all_tanks_wh) <= 2, (buffer_only_wh, all_tanks_wh)
 
 
 def test_a_forecast_is_due_when_none_is_held_or_the_held_one_starts_in_the_past(
