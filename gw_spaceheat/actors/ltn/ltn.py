@@ -180,7 +180,6 @@ def _get_flo_git_commit() -> str:
 class PriceForecast(BaseModel):
     dp_usd_per_mwh: List[float]
     lmp_usd_per_mwh: List[float]
-    reg_usd_per_mwh: List[float]
 
     @property
     def total_energy(self) -> List[float]:
@@ -358,7 +357,6 @@ class BidRunner(threading.Thread):
                         Payload=flo_next_hour_plans
                     )
                 )
-
                 break
         except Exception as e:
             self.logger.info(f"An error occured running Dijkstra or getting bid: {e}")
@@ -1028,7 +1026,6 @@ class Ltn(PrimeActor):
         )
         self.price_forecast.lmp_usd_per_mwh = self.price_forecast.lmp_usd_per_mwh[:self.flo_horizon_hours]
         self.price_forecast.dp_usd_per_mwh = self.price_forecast.dp_usd_per_mwh[:self.flo_horizon_hours]
-        self.price_forecast.reg_usd_per_mwh = self.price_forecast.reg_usd_per_mwh[:self.flo_horizon_hours]
 
         if self.flo_next_hour_plans:
             previous_plan_hp_kwh_el_list = self.flo_next_hour_plans.HourlyHpKwhElPlan
@@ -1063,7 +1060,7 @@ class Ltn(PrimeActor):
             MaxLoadKwhTh=flo_tuning.MAX_LOAD_KWH_TH,
             LmpForecast=self.price_forecast.lmp_usd_per_mwh,
             DistPriceForecast=self.price_forecast.dp_usd_per_mwh,
-            RegPriceForecast=self.price_forecast.reg_usd_per_mwh,
+            RegPriceForecast=0,
             PriceForecastUid=str(uuid.uuid4()),
             OatForecastF=weather.oat_f,
             WindSpeedForecastMph=weather.wind_speed_mph,
@@ -1557,7 +1554,6 @@ class Ltn(PrimeActor):
                     self.price_forecast = PriceForecast(
                         dp_usd_per_mwh=data['DistList'],
                         lmp_usd_per_mwh=data['LmpList'],  
-                        reg_usd_per_mwh=[0] * len(data['LmpList']),
                     )
                     # self.log(f"- LMP USD/MWh {self.price_forecast.lmp_usd_per_mwh}")
                     # self.log(f"- Total energy USD/MWh {[round(x,2) for x in self.price_forecast.total_energy]}")
@@ -1600,7 +1596,6 @@ class Ltn(PrimeActor):
                 timestamps = [float(row[0]) for row in rows]
                 dist_usd_mwh = [float(row[1]) for row in rows]
                 lmp_usd_mwh = [float(row[2]) for row in rows]
-                reg_usd_mwh = [0.0] * len(rows)
 
                 # Crop the beginning of the CSV and extend the end to get a forecast for the next 48 hours
                 time_now = time.time()
@@ -1610,17 +1605,14 @@ class Ltn(PrimeActor):
                     raise Exception("No forecasts available for the next hours!")
                 dp_forecast_usd_per_mwh = [p for p,t in zip(dist_usd_mwh, timestamps) if t > time_now]
                 lmp_forecast_usd_per_mwh = [p for p,t in zip(lmp_usd_mwh, timestamps) if t > time_now]
-                reg_forecast_usd_per_mwh = [p for p,t in zip(reg_usd_mwh, timestamps) if t > time_now]
                 if hours_available < 48:
                     dp_forecast_usd_per_mwh = dp_forecast_usd_per_mwh + [dp_forecast_usd_per_mwh[-1]] * (48-len(dp_forecast_usd_per_mwh))
                     lmp_forecast_usd_per_mwh = lmp_forecast_usd_per_mwh + [lmp_forecast_usd_per_mwh[-1]] * (48-len(lmp_forecast_usd_per_mwh))
-                    reg_forecast_usd_per_mwh = reg_forecast_usd_per_mwh + [reg_forecast_usd_per_mwh[-1]] * (48-len(reg_forecast_usd_per_mwh))
 
                 # Update the price forecast
                 self.price_forecast = PriceForecast(
                     dp_usd_per_mwh=dp_forecast_usd_per_mwh,
                     lmp_usd_per_mwh=lmp_forecast_usd_per_mwh,
-                    reg_usd_per_mwh=reg_forecast_usd_per_mwh,
                 )
                 self.log("Successfully read price forecast from local CSV.")
                 # self.log(f"- LMP USD/MWh {self.price_forecast.lmp_usd_per_mwh}")
