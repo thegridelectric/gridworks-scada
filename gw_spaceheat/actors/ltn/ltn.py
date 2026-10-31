@@ -608,6 +608,32 @@ class Ltn(PrimeActor):
             Ltn.SCADA_MQTT, Message(Src=self.publication_name, Payload=payload), qos=qos
         )
 
+    def _message_for_scada_publish(self, payload: Any) -> None:
+        """Best-effort gw-wrapped copy to SCADA over MQTT (OPS-387).
+
+        Payload must carry TypeName for the gwproto envelope. Failures are logged
+        and ignored so FLO and bids are not aborted.
+
+        # HACK (interim): gw-wrapped to scada, not the old Dst="broadcast".
+        # Revert to a real rjb broadcast once the LTN is a gwbase actor
+        # (it leaves the scada lexicon); OPS-387.
+        """
+        try:
+            message_type = getattr(payload, "TypeName", None) or getattr(payload, "type_name", None)
+            if message_type is None:
+                raise ValueError(f"Cannot publish {type(payload).__name__} on SCADA MQTT: payload has no TypeName")
+            self.services.publish_message(
+                self.SCADA_MQTT,
+                Message(
+                    Src=self.publication_name,
+                    Dst=self.scada.name,
+                    Payload=payload,
+                    MessageType=message_type,
+                ),
+            )
+        except Exception as e:
+            self.log(f"Non-critical SCADA MQTT publish skipped ({type(payload).__name__}): {e!r}")
+
     def process_internal_message(self, message: Message):
         path_dbg = 0
         self.logger.path(
@@ -654,26 +680,14 @@ class Ltn(PrimeActor):
                 flo_next_hour_plans = message.Payload
                 self.flo_next_hour_plans = flo_next_hour_plans
                 self._save_flo_next_hour_plans(flo_next_hour_plans)
-                self.services.publish_message(
-                    self.SCADA_MQTT,
-                    # HACK (interim): gw-wrapped to scada, not the old Dst="broadcast".
-                    # Revert to a real rjb broadcast once the LTN is a gwbase actor
-                    # (it leaves the scada lexicon); OPS-387.
-                    Message(Src=self.publication_name, Dst=self.scada.name, Payload=flo_next_hour_plans)
-                )
+                self._message_for_scada_publish(flo_next_hour_plans)
                 self.log(
                     f"FloNextHourPlans: storage_at_hour1={flo_next_hour_plans.ExpectedStorageKwhAtHour1} kWh, "
                     f"{flo_next_hour_plans.HourlyHpKwhElPlan}"
                 )
             case Glitch():
                 path_dbg |= 0x00000002
-                self.services.publish_message(
-                    self.SCADA_MQTT,
-                    # HACK (interim): gw-wrapped to scada, not the old Dst="broadcast".
-                    # Revert to a real rjb broadcast once the LTN is a gwbase actor
-                    # (it leaves the scada lexicon); OPS-387.
-                    Message(Src=self.publication_name, Dst=self.scada.name, Payload=message.Payload)
-                )
+                self._message_for_scada_publish(message.Payload)
             case _:
                 path_dbg |= 0x00000008
         self.logger.path("--Ltn._derived_process_message  path:0x%08X", path_dbg)
@@ -939,14 +953,8 @@ class Ltn(PrimeActor):
                                     "hp_currently_on": not self.hp_is_off,
                                 }
                             )
-                            self.services.publish_message(
-                                self.SCADA_MQTT,
-                                # HACK (interim): gw-wrapped to scada, not Dst="broadcast".
-                                # Revert to a real rjb broadcast once the LTN is a gwbase
-                                # actor (it leaves the scada lexicon); OPS-387.
-                                Message(Src=self.publication_name, Dst=self.scada.name, Payload=self.flo_params)
-                            )
                             self.bid_runner.get_bid(self.flo_params)
+                            self._message_for_scada_publish(self.flo_params)
                     elif not self.sent_bid:
                         self.log(f"Graph was already created. Waiting for minute {self.send_bid_minute} to send bid.")
                     elif self.sent_bid:
