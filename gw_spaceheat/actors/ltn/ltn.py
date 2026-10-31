@@ -885,11 +885,23 @@ class Ltn(PrimeActor):
         while not self._stop_requested:
             if self.settings.monitor_only:
                 # LTN-side: do not originate new bids or contracts
+                self.log("Main loop: monitor_only=true; skipping FLO and bids")
                 await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
                 continue
 
             if not self.accepts_dispatch or self.service_mode != ServiceMode.Heating:
                 # SCADA-side: plant is not accepting heating intent
+                if self.operating_status is None:
+                    self.log(
+                        "Main loop idle: waiting for gw.house.operating.status from SCADA "
+                        "(accepts_dispatch stays false until then)"
+                    )
+                else:
+                    self.log(
+                        f"Main loop idle: accepts_dispatch={self.accepts_dispatch}, "
+                        f"service_mode={self.service_mode.value} "
+                        "(need accepts_dispatch and Heating to run FLO)"
+                    )
                 await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
                 continue
 
@@ -929,6 +941,11 @@ class Ltn(PrimeActor):
                         self.log(f"Graph was already created. Waiting for minute {self.send_bid_minute} to send bid.")
                     elif self.sent_bid:
                         self.log("Already sent bid.")
+                else:
+                    self.log(
+                        f"FLO state inconsistent (flo_params={self.flo_params is not None}, "
+                        f"bid_runner={self.bid_runner is not None}); waiting for next loop"
+                    )
             else:
                 if self.flo_params:
                     self.flo_params = None
