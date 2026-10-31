@@ -38,7 +38,7 @@ from gwproactor import PrimeActor
 from gwproactor import ProactorLogger
 from gwproactor import ProactorName
 from gwproactor import AppInterface
-from scada_app_interface import ScadaAppInterface
+from clock import Clock
 from weather_source import FORECAST_HOURS, ForecastPair, HourlyForecast
 from gwproto import HardwareLayout
 
@@ -594,6 +594,15 @@ class Ltn(PrimeActor):
     def layout(self) -> HydronicLayout:
         return cast(HydronicLayout, self.services.hardware_layout)
 
+    @property
+    def plant_clock(self) -> Clock:
+        clock = getattr(self.services, "clock", None)
+        if clock is None:
+            raise RuntimeError(
+                "FLO requires an app with clock (LtnApp or ScadaApp)"
+            )
+        return clock
+
     def _publish_to_scada(self, payload, qos: QOS = QOS.AtMostOnce) -> MQTTMessageInfo:
         return self.services.publish_message(
             Ltn.SCADA_MQTT, Message(Src=self.publication_name, Payload=payload), qos=qos
@@ -1038,8 +1047,7 @@ class Ltn(PrimeActor):
         if self.flo_horizon_hours > MAX_HORIZON_HOURS:
             self.log(f"Horizon hours is greater than max allowed {MAX_HORIZON_HOURS}!")
             self.flo_horizon_hours = MAX_HORIZON_HOURS
-        assert isinstance(self.services, ScadaAppInterface)
-        weather = self.weather_forecast.next_hours(FORECAST_HOURS, self.services.clock.now())
+        weather = self.weather_forecast.next_hours(FORECAST_HOURS, self.plant_clock.now())
         if self.flo_horizon_hours > len(weather.time):
             self.log(f"Horizon hours is greater than weather forecast length {len(weather.time)}!")
             self.flo_horizon_hours = len(weather.time)
@@ -1377,8 +1385,7 @@ class Ltn(PrimeActor):
             alpha = self.ha1_params.AlphaTimes10 / 10
             beta = self.ha1_params.BetaTimes100 / 100
             gamma = self.ha1_params.GammaEx6 / 1e6
-            assert isinstance(self.services, ScadaAppInterface)
-            weather = self.weather_forecast.next_hours(1, self.services.clock.now())
+            weather = self.weather_forecast.next_hours(1, self.plant_clock.now())
             oat = weather.oat_f[0]
             ws = weather.wind_speed_mph[0]
             r = alpha + beta*oat + gamma*ws*(65-oat)
@@ -1603,9 +1610,13 @@ class Ltn(PrimeActor):
         return min(0, house_availale_kwh) # TODO: TEMPORARY only consider negative values
 
     async def get_weather(self, session: aiohttp.ClientSession) -> None:
-        """The forecast pair from the scada's weather source."""
-        assert isinstance(self.services, ScadaAppInterface)
-        self.weather_forecast = await self.services.weather_source.forecast(session)
+        """The forecast pair from the app's weather source (GWWF on the LTN box)."""
+        weather_source = getattr(self.services, "weather_source", None)
+        if weather_source is None:
+            raise RuntimeError(
+                "FLO requires an app with weather_source (LtnApp or ScadaApp)"
+            )
+        self.weather_forecast = await weather_source.forecast(session)
 
     async def get_price_forecast(self) -> None:
         '''Updates self.price_forecast for the start of next hour. All in USD/MWh'''

@@ -7,8 +7,10 @@ from pydantic_settings import SettingsConfigDict
 from gwproactor.config import MQTTClient
 
 from actors.config import ScadaPathsSettings
+from clock import ClockSource
 from gwsproto.enums import SeasonalStorageMode
 from gwsproto.named_types import Ha1Params
+from weather_source import WeatherSourceKind
 
 
 class HackHpSettings(BaseModel):
@@ -59,6 +61,10 @@ class LtnSettings(ScadaPathsSettings):
     ha1_params: Ha1Params | None = None
     # Count no buffer energy when true.
     keep_buffer_full: bool = False
+    clock_source: ClockSource = ClockSource.Wall
+    weather_source: WeatherSourceKind = WeatherSourceKind.Gwwf
+    weather_api_url: str = "https://forecast.electricity.works/hw1-isone-weather"
+    weather_pull_timeout_s: float = 20
 
     model_config = SettingsConfigDict(env_prefix="LTN_", extra="ignore")
 
