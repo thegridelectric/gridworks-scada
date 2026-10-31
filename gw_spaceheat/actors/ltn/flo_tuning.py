@@ -4,7 +4,7 @@ The LTN maps these into HeatPumpWaterTankParams when starting a FLO run.
 """
 
 STORAGE_LOSSES_PERCENT: float = 0.5
-HP_MIN_KW_ELEC: float = -0.5
+HP_MIN_KW_ELEC: float = 0
 HP_MAX_KW_TH: float = 25
 MAX_LOAD_KW_TH: float = 20
 HP_CONSTANT_LIFT_F: float = 20
