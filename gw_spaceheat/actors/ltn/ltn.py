@@ -1206,10 +1206,13 @@ class Ltn(PrimeActor):
         return rswt_forecast
 
     def _cleanup_bid_runner(self, ltn_name: str) -> None:
-        """Callback to clean up bid runner when it's done.
+        """BidRunner thread exited (success or failure); release FLO state for the next hour.
+
         Note: This is called from the BidRunner thread."""
         self.log("Cleaned up bid runner")
         self.bid_runner = None
+        self.flo_params = None
+        self.sent_bid = False
         gc.collect()
 
     def _save_flo_next_hour_plans(self, flo_next_hour_plans: FloNextHourPlans) -> None:
