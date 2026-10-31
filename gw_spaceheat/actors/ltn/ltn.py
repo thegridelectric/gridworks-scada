@@ -910,8 +910,8 @@ class Ltn(PrimeActor):
                     try:
                         await self.run_d(session)
                     except Exception as e:
-                        self.logger.exception("[ltn] Exception running Dijkstra: %s", e)
-                        self.log(f"Exception running Dijkstra: {e!r}")
+                        self.logger.exception("[ltn] Exception running Dijkstra! %s", e)
+                        self.log(f"Exception running Dijkstra! {e!r}")
                 elif self.flo_params and self.bid_runner:
                     if datetime.now().minute >= self.send_bid_minute and not self.sent_bid:
                         self.log("Finding current storage state...")
