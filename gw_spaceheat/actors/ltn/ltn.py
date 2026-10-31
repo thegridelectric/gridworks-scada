@@ -42,12 +42,20 @@ from scada_app_interface import ScadaAppInterface
 from weather_source import FORECAST_HOURS, ForecastPair, HourlyForecast
 from gwproto import HardwareLayout
 
-from bruce.graph_optimizer.assets.heat_pump_water_tank import (
-    HeatPumpWaterTankAsset,
-    HeatPumpWaterTankParams,
-)
-from bruce.graph_optimizer.graph import Graph
-from bruce.graph_optimizer.settings import get_logger
+try:
+    from bruce.graph_optimizer.assets.heat_pump_water_tank import (
+        HeatPumpWaterTankAsset,
+        HeatPumpWaterTankParams,
+    )
+    from bruce.graph_optimizer.graph import Graph
+    from bruce.graph_optimizer.settings import get_logger
+except ImportError:
+    HeatPumpWaterTankAsset = None  # type: ignore[misc, assignment]
+    HeatPumpWaterTankParams = None  # type: ignore[misc, assignment]
+    Graph = None  # type: ignore[misc, assignment]
+    get_logger = None  # type: ignore[assignment, misc]
+
+BRUCE_FLO_AVAILABLE = HeatPumpWaterTankParams is not None
 
 from gwproto import Message, MQTTCodec, create_message_model
 from gwproto.messages import EventBase
@@ -97,6 +105,9 @@ MAX_HORIZON_HOURS = 48
 
 def _flo_build_worker(flo_params_bytes: bytes, result_queue: multiprocessing.Queue) -> None:
     """Child process: build graph, find shortest path, trim, pickle, exit."""
+    if not BRUCE_FLO_AVAILABLE:
+        result_queue.put(("error", "bruce graph optimizer package is not installed"))
+        return
     try:
         params = HeatPumpWaterTankParams.model_validate_json(flo_params_bytes)
         asset = HeatPumpWaterTankAsset(params)
@@ -116,6 +127,9 @@ def _flo_bid_worker(
     result_queue: multiprocessing.Queue,
 ) -> None:
     """Child process: unpickle graph, generate PQ pairs, pickle graph with updated params, exit."""
+    if not BRUCE_FLO_AVAILABLE:
+        result_queue.put(("error", "bruce graph optimizer package is not installed"))
+        return
     try:
         graph: Graph = pickle.loads(trimmed_graph_data)
         graph.logger = get_logger("graph")
@@ -142,6 +156,9 @@ def _flo_plans_worker(
     result_queue: multiprocessing.Queue,
 ) -> None:
     """Child process: clearing-price plan from trimmed graph."""
+    if not BRUCE_FLO_AVAILABLE:
+        result_queue.put(("error", "bruce graph optimizer package is not installed"))
+        return
     try:
         graph: Graph = pickle.loads(trimmed_graph_data)
         graph.logger = get_logger("graph")
@@ -936,6 +953,10 @@ class Ltn(PrimeActor):
         gracefully handle high CPU use. The additional thread handles
         the CPU-intensive graph computation.
         """
+        if not BRUCE_FLO_AVAILABLE:
+            self.log("bruce graph optimizer not installed — skipping FLO bid run")
+            return
+
         if self.flo_params:
             self.log("NOT RUNNING Dijsktra! Already created graph")
             return
