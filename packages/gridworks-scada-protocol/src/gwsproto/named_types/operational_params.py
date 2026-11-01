@@ -3,10 +3,12 @@ from typing import Annotated, List, Literal, Union
 from pydantic import Field, NonNegativeInt, PositiveFloat, PositiveInt, model_validator
 from typing_extensions import Self
 
-from gwsproto.enums import ServiceMode, SiegLoopStrategy, StandbyPosture
+from gwsproto.enums import MarketProductName, ServiceMode, SiegLoopStrategy, StandbyPosture
 from gwsproto.named_types.capture_tuning import CaptureTuning
 from gwsproto.named_types.cop_curve import CopCurve
 from gwsproto.named_types.dispatch_hold import DispatchHold
+from gwsproto.named_types.flo_tuning_alice import FloTuningAlice
+from gwsproto.named_types.flo_tuning_bruce import FloTuningBruce
 from gwsproto.named_types.heating_curve import HeatingCurve
 from gwsproto.named_types.house0_family_params import House0FamilyParams
 from gwsproto.named_types.house0_no_sieg_family_params import House0NoSiegFamilyParams
@@ -39,6 +41,12 @@ class OperationalParams(GwsprotoSemaType):
     LoadOverestimationPercent: NonNegativeInt
     UsesBackupWhenCold: bool
     HorizonHours: PositiveInt
+    MarketMakerAlias: LeftRightDotStr
+    MarketProductName: MarketProductName
+    FloTuning: Annotated[
+        Union[FloTuningAlice, FloTuningBruce],
+        Field(discriminator="TypeName"),
+    ]
     WeatherBundleName: LeftRightDotStr
     Tariff: TouTariff
     TypeName: Literal["gw.operational.params"] = "gw.operational.params"
@@ -129,5 +137,19 @@ class OperationalParams(GwsprotoSemaType):
                 "Axiom 5 (StandbyHoldsFullSend) failed: Standby on a House0 family "
                 "requires SiegLoopStrategy HoldFullSend; got "
                 f"{self.FamilyParams.SiegLoopStrategy}"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_6(self) -> Self:
+        """
+        Axiom 6: AliceHoldsDispatch.
+        If FloTuning.TypeName is flo.tuning.alice, DispatchHold.OperatorHold
+        SHALL be true.
+        """
+        if isinstance(self.FloTuning, FloTuningAlice) and not self.DispatchHold.OperatorHold:
+            raise ValueError(
+                "Axiom 6 (AliceHoldsDispatch) failed: flo.tuning.alice requires "
+                "DispatchHold.OperatorHold true"
             )
         return self

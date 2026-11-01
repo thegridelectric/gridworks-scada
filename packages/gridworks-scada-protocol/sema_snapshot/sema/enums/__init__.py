@@ -40,6 +40,7 @@ from sema_snapshot.sema.enums.local_control_buffer_only_state import (
 from sema_snapshot.sema.enums.log_level import LogLevel
 from sema_snapshot.sema.enums.main_auto_state import MainAutoState
 from sema_snapshot.sema.enums.market_price_unit import MarketPriceUnit
+from sema_snapshot.sema.enums.market_product_name import MarketProductName
 from sema_snapshot.sema.enums.market_quantity_unit import MarketQuantityUnit
 from sema_snapshot.sema.enums.market_type_name import MarketTypeName
 from sema_snapshot.sema.enums.move_sieg_valve import MoveSiegValve
@@ -133,6 +134,7 @@ __all__ = [
     "LogLevel",
     "MainAutoState",
     "MarketPriceUnit",
+    "MarketProductName",
     "MarketQuantityUnit",
     "MarketTypeName",
     "MoveSiegValve",

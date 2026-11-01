@@ -8,7 +8,7 @@ from gwsproto.property_format import LeftRightDotStr, UtcIso8601Seconds
 from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class GwWeatherForecastSeries(GwsprotoSemaType):
+class WeatherForecastSeries(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/gw.weather.forecast.series/000"""
 
     ChannelName: LeftRightDotStr

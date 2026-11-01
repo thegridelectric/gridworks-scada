@@ -1,0 +1,67 @@
+{
+  "TypeName": "flo.recommendation",
+  "Version": "000",
+  "BidderAlias": "hw1.isone.me.versant.keene.oak",
+  "PqPairs": [
+    {
+      "TypeName": "price.quantity.unitless",
+      "Version": "001",
+      "PriceX1000": 2000000,
+      "QuantityX1000": 0
+    },
+    {
+      "TypeName": "price.quantity.unitless",
+      "Version": "001",
+      "PriceX1000": 150000,
+      "QuantityX1000": 4200
+    }
+  ],
+  "PriceUnit": "USDPerMWh",
+  "QuantityUnit": "AvgkW",
+  "OptimalPathList": [
+    {
+      "TypeName": "flo.optimal.path",
+      "Version": "000",
+      "StartUnixS": 1762009200,
+      "StepDurationMinutes": [
+        60,
+        60,
+        60
+      ],
+      "HpAvgWList": [
+        0,
+        0,
+        3100
+      ],
+      "StoreWhList": [
+        34300,
+        27000,
+        32600
+      ]
+    },
+    {
+      "TypeName": "flo.optimal.path",
+      "Version": "000",
+      "StartUnixS": 1762009200,
+      "StepDurationMinutes": [
+        60,
+        60,
+        60
+      ],
+      "HpAvgWList": [
+        4200,
+        0,
+        3100
+      ],
+      "StoreWhList": [
+        38500,
+        31200,
+        36800
+      ]
+    }
+  ],
+  "FloName": "bruce",
+  "FloRepo": "github.com/thdfw/optimal-flexibility",
+  "FloGitCommit": "2711f59a0b1c2d3e4f5061728394a5b6c7d8e9f0",
+  "CreatedMs": 1762008900000
+}

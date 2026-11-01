@@ -31,7 +31,7 @@ def template_dict() -> dict[str, Any]:
 
 def forecast_dict() -> dict[str, Any]:
     return copy.deepcopy(
-        json.loads((CONFIG / f"{BUNDLE_NAME}-gw.weather.forecast-001.json").read_text())
+        json.loads((CONFIG / f"{BUNDLE_NAME}-gw.weather.forecast-002.json").read_text())
     )
 
 

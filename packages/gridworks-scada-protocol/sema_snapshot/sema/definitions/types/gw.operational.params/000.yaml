@@ -123,6 +123,26 @@ properties:
     description: >
       The FLO optimization horizon, in hours.
 
+  MarketMakerAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      The alias of the MarketMaker GNode whose market this house bids into.
+      With MarketProductName and a slot start it forms the market slot name.
+
+  MarketProductName:
+    $ref: "https://schemas.electricity.works/enums/gw.market.product.name/000"
+    description: >
+      The market product this house bids into: the second segment of its
+      market slot names.
+
+  FloTuning:
+    oneOf:
+      - $ref: "https://schemas.electricity.works/types/flo.tuning.alice/000"
+      - $ref: "https://schemas.electricity.works/types/flo.tuning.bruce/000"
+    description: >
+      The tuning of the optimizer this house runs; its TypeName selects the
+      optimizer. The LTN copies it into each flo.params request.
+
   WeatherBundleName:
     $ref: "https://schemas.electricity.works/formats/left.right.dot"
     description: >
@@ -159,6 +179,9 @@ required:
   - LoadOverestimationPercent
   - UsesBackupWhenCold
   - HorizonHours
+  - MarketMakerAlias
+  - MarketProductName
+  - FloTuning
   - WeatherBundleName
   - Tariff
   - TypeName
@@ -200,7 +223,7 @@ examples:
       "EnergizedStandbyRelays": ["hp-failsafe-relay", "aquastat-ctrl-relay"],
       "ServiceMode": "Heating",
       "DispatchHold": {
-        "OperatorHold": false,
+        "OperatorHold": true,
         "ServiceContractBroken": false,
         "TypeName": "gw.dispatch.hold",
         "Version": "000"
@@ -232,7 +255,13 @@ examples:
       "LoadOverestimationPercent": 0,
       "UsesBackupWhenCold": true,
       "HorizonHours": 48,
-      "WeatherBundleName": "us.me.millinocket.forecast.nws.hourly96",
+      "MarketMakerAlias": "hw1.isone.me.versant.keene",
+      "MarketProductName": "rt60gate5",
+      "FloTuning": {
+        "TypeName": "flo.tuning.alice",
+        "Version": "000"
+      },
+      "WeatherBundleName": "us.me.millinocket.moose",
       "Tariff": {
         "Alias": "versant.a1.home.eco.bonus",
         "DisplayName": "Home Eco Rate with Bonus Meter",
@@ -295,6 +324,12 @@ x-gridworks:
         If Standby is true and FamilyParams.TypeName is
         gw.house0.family.params, FamilyParams.SiegLoopStrategy SHALL be
         HoldFullSend.
+
+    - number: 6
+      name: "AliceHoldsDispatch"
+      statement: >
+        If FloTuning.TypeName is flo.tuning.alice, DispatchHold.OperatorHold
+        SHALL be true.
 
   extended_description: >
     operational-params is the authored home for the tunable state that left the

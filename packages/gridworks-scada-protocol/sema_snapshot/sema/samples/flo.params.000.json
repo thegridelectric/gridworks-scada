@@ -1,0 +1,90 @@
+{
+  "TypeName": "flo.params",
+  "Version": "000",
+  "GNodeAlias": "hw1.isone.me.versant.keene.oak",
+  "CreatedMs": 1762008900000,
+  "StartUnixS": 1762009200,
+  "StepDurationMinutes": [
+    60,
+    60,
+    60
+  ],
+  "LmpUsdMwhList": [
+    28.14,
+    28.53,
+    46.38
+  ],
+  "DistUsdMwhList": [
+    50.13,
+    50.13,
+    487.63
+  ],
+  "OatFList": [
+    30.0,
+    29.0,
+    28.5
+  ],
+  "LoadKwhList": [
+    3.5,
+    3.6,
+    3.8
+  ],
+  "RswtFList": [
+    120.0,
+    121.0,
+    122.5
+  ],
+  "WeatherForecastId": "5f1c2b3a-8d4e-4f60-9a7b-1c2d3e4f5a6b",
+  "SeasonalStorageMode": "BufferOnly",
+  "TanksModeled": 1,
+  "GallonsPerTank": 120,
+  "TempSensorsPerTank": 3,
+  "MaxTankTempF": 170.0,
+  "InitialTopTempF": 120.0,
+  "InitialMiddleTempF": 110.0,
+  "InitialBottomTempF": 100.0,
+  "InitialThermocline1": 1,
+  "InitialThermocline2": 2,
+  "HpCurrentlyOn": false,
+  "HpMaxKwEl": 9.66,
+  "HpTurnOnMinutes": 12,
+  "CopIntercept": 1.5,
+  "CopOatCoeff": 0.015,
+  "CopLwtCoeff": 0.0,
+  "CopMin": 1.5,
+  "CopMinOatF": 0.0,
+  "PriceMaxUsdMwh": 2000.0,
+  "PriceMinUsdMwh": -100.0,
+  "Tuning": {
+    "TypeName": "flo.tuning.bruce",
+    "Version": "000",
+    "StorageLossesPercent": 0.5,
+    "HpMinKwEl": 0.0,
+    "HpMaxKwTh": 25.0,
+    "MaxLoadKwTh": 20.0,
+    "HpConstantLiftF": 20.0,
+    "LoadBucketUpperKwhList": [],
+    "RwtInterceptByBucketList": [
+      49.463
+    ],
+    "RwtSlopeByBucketList": [
+      0.427
+    ],
+    "RwtMinF": 50.0,
+    "RswtPenaltyEnabled": true,
+    "RswtPenaltyWeight": 0.02,
+    "RswtPenaltyDecay": 0.9,
+    "RswtPenaltyExponentRate": 0.15,
+    "RswtPenaltyDecayMaxHour": 12,
+    "ShortCyclePenaltyEnabled": true,
+    "ShortCyclePenaltyWeight": 6.0,
+    "StabilityPenaltyEnabled": true,
+    "StabilityPenaltyWeight": 0.5,
+    "StabilityPenaltyDecay": 0.75,
+    "StabilityPenaltyThresholdKwh": 10.0,
+    "StabilityPenaltyThresholdPriceMwh": 15.0,
+    "StabilityPenaltyHorizonHours": 20,
+    "TerminalCostEnabled": true,
+    "TerminalCostEndWindowHours": 24
+  }
+}

@@ -97,7 +97,9 @@
   "WaterStore": {
     "TypeName": "gw.water.store",
     "Version": "000",
-    "TotalStoreTanks": 3
+    "TotalStoreTanks": 3,
+    "GallonsPerTank": 120,
+    "TempSensorsPerTank": 3
   },
   "PrimaryFlowSource": "Measured",
   "PrimaryPumpOwner": "Scada",

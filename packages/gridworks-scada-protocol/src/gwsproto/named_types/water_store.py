@@ -10,6 +10,8 @@ class WaterStore(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/gw.water.store/000"""
 
     TotalStoreTanks: PositiveInt
+    GallonsPerTank: PositiveInt
+    TempSensorsPerTank: PositiveInt
     TypeName: Literal["gw.water.store"] = "gw.water.store"
     Version: Literal["000"] = "000"
 

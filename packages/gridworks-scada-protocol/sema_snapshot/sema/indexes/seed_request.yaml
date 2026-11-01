@@ -68,8 +68,12 @@ initial_targets:
       versions: ["000"]
     energy.instruction:
       versions: ["000"]
+    flo.params:
+      versions: ["000"]
     flo.params.house0:
       versions: ["007"]
+    flo.recommendation:
+      versions: ["000"]
     flow.hall.params:
       versions: ["101"]
     fsm.atomic.report:
@@ -135,7 +139,7 @@ initial_targets:
     gw.weather.channel.gt:
       versions: ["002"]
     gw.weather.forecast:
-      versions: ["001"]
+      versions: ["002"]
     gw.weather.forecast.binding:
       versions: ["000"]
     gw.weather.forecast.bundle.gt:

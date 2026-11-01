@@ -105,6 +105,14 @@ def is_git_commit(v: str) -> str:
     return v
 
 
+def is_non_empty_string(v: str) -> str:
+    if not isinstance(v, str):
+        raise ValueError(f"<{v}>: non.empty.string must be a string.")
+    if len(v) == 0:
+        raise ValueError("<>: Fails non.empty.string format (at least one character).")
+    return v
+
+
 def is_handle_name(v: str) -> str:
     """
     HandleName format:
@@ -388,6 +396,7 @@ HexChar = Annotated[str, BeforeValidator(is_hex_char)]
 HhMm = Annotated[str, BeforeValidator(is_hh_mm)]
 IanaTimezoneStr = Annotated[str, BeforeValidator(is_iana_timezone_str)]
 LeftRightDotStr = Annotated[str, BeforeValidator(is_left_right_dot)]
+NonEmptyString = Annotated[str, BeforeValidator(is_non_empty_string)]
 LowercaseTokenStr = Annotated[str, BeforeValidator(is_lowercase_token)]
 MarketName = Annotated[str, BeforeValidator(is_market_name)]
 MarketSlotName = Annotated[str, BeforeValidator(is_market_slot_name)]

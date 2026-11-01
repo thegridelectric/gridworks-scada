@@ -60,7 +60,6 @@ NO_WORD_TYPES = {
     "dispatch.contract.go.dormant",
     "dispatch.contract.go.live",
     "flo.next.hour.plans",
-    "flo.params",
     "go.dormant",
     "hack.oil.off",
     "hack.oil.on",

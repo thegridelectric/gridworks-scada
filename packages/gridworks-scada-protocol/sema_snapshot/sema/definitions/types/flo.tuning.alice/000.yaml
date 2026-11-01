@@ -1,0 +1,32 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/flo.tuning.alice/000"
+
+title: "flo.tuning.alice"
+type: object
+description: >
+  The tuning of the alice Forward Looking Optimizer, which has none: alice
+  answers every request with a recommendation holding one pair at the
+  price ceiling for no electricity. A house whose operational params name
+  alice runs no optimizer.
+
+properties:
+  TypeName:
+    const: "flo.tuning.alice"
+  Version:
+    const: "000"
+
+required:
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "TypeName": "flo.tuning.alice",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"

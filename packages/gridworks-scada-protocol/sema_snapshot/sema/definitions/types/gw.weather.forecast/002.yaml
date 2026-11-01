@@ -1,5 +1,5 @@
 $schema: "https://json-schema.org/draft/2020-12/schema"
-$id: "https://schemas.electricity.works/types/gw.weather.forecast/001"
+$id: "https://schemas.electricity.works/types/gw.weather.forecast/002"
 
 title: "gw.weather.forecast"
 type: object
@@ -15,6 +15,13 @@ description: >
   forecasters that fail independently.
 
 properties:
+  ForecastUid:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      Identity of this forecast, minted by the weather forecast service
+      before the send. A reader cites it to reproduce the values behind a
+      decision, and the service answers a GET for it.
+
   BundleName:
     $ref: "https://schemas.electricity.works/formats/left.right.dot"
     description: >
@@ -47,9 +54,10 @@ properties:
     const: "gw.weather.forecast"
 
   Version:
-    const: "001"
+    const: "002"
 
 required:
+  - ForecastUid
   - BundleName
   - MessageCreatedMs
   - FirstSliceStart
@@ -62,6 +70,7 @@ additionalProperties: false
 examples:
   - |
     {
+      "ForecastUid": "5f1c2b3a-8d4e-4f60-9a7b-1c2d3e4f5a6b",
       "BundleName": "us.me.millinocket.raccoon",
       "MessageCreatedMs": 1792094460033,
       "FirstSliceStart": "2026-10-15T21:00:00Z",
@@ -104,7 +113,7 @@ examples:
         }
       ],
       "TypeName": "gw.weather.forecast",
-      "Version": "001"
+      "Version": "002"
     }
 
 x-gridworks:

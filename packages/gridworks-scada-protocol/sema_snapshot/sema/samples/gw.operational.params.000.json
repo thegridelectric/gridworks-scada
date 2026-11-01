@@ -37,7 +37,7 @@
   "DispatchHold": {
     "TypeName": "gw.dispatch.hold",
     "Version": "000",
-    "OperatorHold": false,
+    "OperatorHold": true,
     "ServiceContractBroken": false
   },
   "CopCurve": {
@@ -67,7 +67,13 @@
   "LoadOverestimationPercent": 0,
   "UsesBackupWhenCold": true,
   "HorizonHours": 48,
-  "WeatherBundleName": "us.me.millinocket.forecast.nws.hourly96",
+  "MarketMakerAlias": "hw1.isone.me.versant.keene",
+  "MarketProductName": "rt60gate5",
+  "FloTuning": {
+    "TypeName": "flo.tuning.alice",
+    "Version": "000"
+  },
+  "WeatherBundleName": "us.me.millinocket.moose",
   "Tariff": {
     "TypeName": "gw.tou.tariff",
     "Version": "000",

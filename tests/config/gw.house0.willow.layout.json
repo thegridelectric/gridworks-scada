@@ -2735,7 +2735,9 @@
     "WaterStore": {
       "TypeName": "gw.water.store",
       "Version": "000",
-      "TotalStoreTanks": 1
+      "TotalStoreTanks": 1,
+      "GallonsPerTank": 120,
+      "TempSensorsPerTank": 3
     },
     "Backup": {
       "TypeName": "gw.boiler.backup",

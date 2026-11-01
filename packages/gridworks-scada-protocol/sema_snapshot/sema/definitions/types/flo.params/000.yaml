@@ -1,0 +1,283 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/flo.params/000"
+
+title: "flo.params"
+type: object
+description: >
+  One request to a Forward Looking Optimizer for one market slot: the house
+  it bids for, the step grid, the price and weather forecasts, the store
+  being modeled and its state at the slot start, the heat pump's facts and
+  the market's price bounds, which every optimizer may read, and the
+  tuning of the one optimizer this house runs, whose TypeName names it.
+  The optimizer answers with a flo.recommendation.
+
+properties:
+  GNodeAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      GNodeAlias of the bidder the request is for.
+  CreatedMs:
+    $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+    description: >
+      The requester's clock when the request came to be.
+  StartUnixS:
+    $ref: "https://schemas.electricity.works/formats/utc.seconds"
+    description: >
+      Start of the first step, the market slot start.
+  StepDurationMinutes:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Length of each step in minutes; the horizon is this list's length.
+  LmpUsdMwhList:
+    type: array
+    items:
+      type: number
+    description: >
+      Forecast wholesale energy price per step, in USD per MWh.
+  DistUsdMwhList:
+    type: array
+    items:
+      type: number
+    description: >
+      Forecast distribution tariff per step, in USD per MWh.
+  OatFList:
+    type: array
+    items:
+      type: number
+    description: >
+      Forecast outside air temperature per step, in degrees F.
+  LoadKwhList:
+    type: array
+    items:
+      type: number
+    description: >
+      Forecast heating load per step, in kWh.
+  RswtFList:
+    type: array
+    items:
+      type: number
+    description: >
+      Required source water temperature per step, in degrees F: the supply
+      temperature that meets that step's load.
+  WeatherForecastId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      The ForecastUid of the gw.weather.forecast the weather lists were read
+      from.
+  SeasonalStorageMode:
+    $ref: "https://schemas.electricity.works/enums/gw1.seasonal.storage.mode/000"
+    description: >
+      Which store the plant is running on this slot.
+  TanksModeled:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Number of tanks in the store being modeled.
+  GallonsPerTank:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Water volume of each modeled tank, in US gallons.
+  TempSensorsPerTank:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Temperature sensors on each modeled tank, top to bottom.
+  MaxTankTempF:
+    type: number
+    description: >
+      The hottest the store may be charged to, in degrees F.
+  InitialTopTempF:
+    type: number
+  InitialMiddleTempF:
+    type: number
+  InitialBottomTempF:
+    type: number
+  InitialThermocline1:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Sensor position, counted from the top across the modeled tanks, where
+      the top layer ends.
+  InitialThermocline2:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Sensor position, counted from the top across the modeled tanks, where
+      the middle layer ends.
+  HpCurrentlyOn:
+    type: boolean
+  HpMaxKwEl:
+    type: number
+    description: >
+      The heat pump's maximum electric draw, in kW.
+  HpTurnOnMinutes:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Minutes from a call for heat until the heat pump delivers it.
+  CopIntercept:
+    type: number
+  CopOatCoeff:
+    type: number
+  CopLwtCoeff:
+    type: number
+  CopMin:
+    type: number
+  CopMinOatF:
+    type: number
+  PriceMaxUsdMwh:
+    type: number
+    description: >
+      The market's price ceiling; the first pair of the bid sits here.
+  PriceMinUsdMwh:
+    type: number
+    description: >
+      The market's price floor.
+  PreviousOptimalPath:
+    $ref: "https://schemas.electricity.works/types/flo.optimal.path/000"
+    description: >
+      The path the previous slot's recommendation led to at the price that
+      cleared, for the plan stability penalty.
+  PreviousEstimateElecUsdMwhNow:
+    type: number
+    description: >
+      What the previous request forecast for this slot's electricity price,
+      in USD per MWh.
+  Tuning:
+    oneOf:
+      - $ref: "https://schemas.electricity.works/types/flo.tuning.alice/000"
+      - $ref: "https://schemas.electricity.works/types/flo.tuning.bruce/000"
+    description: >
+      The tuning of the optimizer this house runs; its TypeName selects the
+      optimizer.
+  TypeName:
+    const: "flo.params"
+  Version:
+    const: "000"
+
+required:
+  - GNodeAlias
+  - CreatedMs
+  - StartUnixS
+  - StepDurationMinutes
+  - LmpUsdMwhList
+  - DistUsdMwhList
+  - OatFList
+  - LoadKwhList
+  - RswtFList
+  - WeatherForecastId
+  - SeasonalStorageMode
+  - TanksModeled
+  - GallonsPerTank
+  - TempSensorsPerTank
+  - MaxTankTempF
+  - InitialTopTempF
+  - InitialMiddleTempF
+  - InitialBottomTempF
+  - InitialThermocline1
+  - InitialThermocline2
+  - HpCurrentlyOn
+  - HpMaxKwEl
+  - HpTurnOnMinutes
+  - CopIntercept
+  - CopOatCoeff
+  - CopLwtCoeff
+  - CopMin
+  - CopMinOatF
+  - PriceMaxUsdMwh
+  - PriceMinUsdMwh
+  - Tuning
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "GNodeAlias": "hw1.isone.me.versant.keene.oak",
+      "CreatedMs": 1762008900000,
+      "StartUnixS": 1762009200,
+      "StepDurationMinutes": [60, 60, 60],
+      "LmpUsdMwhList": [28.14, 28.53, 46.38],
+      "DistUsdMwhList": [50.13, 50.13, 487.63],
+      "OatFList": [30.0, 29.0, 28.5],
+      "LoadKwhList": [3.5, 3.6, 3.8],
+      "RswtFList": [120.0, 121.0, 122.5],
+      "WeatherForecastId": "5f1c2b3a-8d4e-4f60-9a7b-1c2d3e4f5a6b",
+      "SeasonalStorageMode": "BufferOnly",
+      "TanksModeled": 1,
+      "GallonsPerTank": 120,
+      "TempSensorsPerTank": 3,
+      "MaxTankTempF": 170,
+      "InitialTopTempF": 120.0,
+      "InitialMiddleTempF": 110.0,
+      "InitialBottomTempF": 100.0,
+      "InitialThermocline1": 1,
+      "InitialThermocline2": 2,
+      "HpCurrentlyOn": false,
+      "HpMaxKwEl": 9.66,
+      "HpTurnOnMinutes": 12,
+      "CopIntercept": 1.5,
+      "CopOatCoeff": 0.015,
+      "CopLwtCoeff": 0,
+      "CopMin": 1.5,
+      "CopMinOatF": 0,
+      "PriceMaxUsdMwh": 2000,
+      "PriceMinUsdMwh": -100,
+      "Tuning": {
+        "StorageLossesPercent": 0.5,
+        "HpMinKwEl": 0,
+        "HpMaxKwTh": 25,
+        "MaxLoadKwTh": 20,
+        "HpConstantLiftF": 20,
+        "LoadBucketUpperKwhList": [],
+        "RwtInterceptByBucketList": [49.463],
+        "RwtSlopeByBucketList": [0.427],
+        "RwtMinF": 50,
+        "RswtPenaltyEnabled": true,
+        "RswtPenaltyWeight": 0.02,
+        "RswtPenaltyDecay": 0.9,
+        "RswtPenaltyExponentRate": 0.15,
+        "RswtPenaltyDecayMaxHour": 12,
+        "ShortCyclePenaltyEnabled": true,
+        "ShortCyclePenaltyWeight": 6.0,
+        "StabilityPenaltyEnabled": true,
+        "StabilityPenaltyWeight": 0.5,
+        "StabilityPenaltyDecay": 0.75,
+        "StabilityPenaltyThresholdKwh": 10.0,
+        "StabilityPenaltyThresholdPriceMwh": 15.0,
+        "StabilityPenaltyHorizonHours": 20,
+        "TerminalCostEnabled": true,
+        "TerminalCostEndWindowHours": 24,
+        "TypeName": "flo.tuning.bruce",
+        "Version": "000"
+      },
+      "TypeName": "flo.params",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "StepListLengths"
+      statement: >
+        StepDurationMinutes, LmpUsdMwhList, DistUsdMwhList, OatFList,
+        LoadKwhList and RswtFList SHALL be non-empty and of the same length.
+    - number: 2
+      name: "ThermoclinesWithinTheStore"
+      statement: >
+        InitialThermocline1 SHALL be at most InitialThermocline2, and
+        InitialThermocline2 SHALL be at most TempSensorsPerTank times
+        TanksModeled.
+    - number: 3
+      name: "BufferIsOneTank"
+      statement: >
+        If SeasonalStorageMode is BufferOnly, TanksModeled SHALL be 1.
+    - number: 4
+      name: "PriceBounds"
+      statement: >
+        PriceMinUsdMwh SHALL be less than PriceMaxUsdMwh.
+    - number: 5
+      name: "PreviousRunTogether"
+      statement: >
+        PreviousOptimalPath and PreviousEstimateElecUsdMwhNow SHALL be
+        both present or both absent.

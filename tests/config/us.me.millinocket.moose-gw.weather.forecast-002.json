@@ -1,7 +1,8 @@
 {
   "TypeName": "gw.weather.forecast",
-  "Version": "001",
+  "Version": "002",
   "BundleName": "us.me.millinocket.moose",
+  "ForecastUid": "5f1c2b3a-8d4e-4f60-9a7b-1c2d3e4f5a6b",
   "MessageCreatedMs": 1792353660000,
   "FirstSliceStart": "2026-10-18T21:00:00Z",
   "SeriesList": [

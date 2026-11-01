@@ -16,7 +16,7 @@ import pytest
 from aiohttp import web
 
 from gwsproto.enums import Quantity, WeatherForecastFidelity
-from gwsproto.named_types import GwWeatherForecast, WeatherForecastBundleGt, WeatherSeasonalTemplateGt
+from gwsproto.named_types import WeatherForecast, WeatherForecastBundleGt, WeatherSeasonalTemplateGt
 from tests.named_types.weather_fixtures import (
     BUNDLE_NAME,
     LOCATION_ALIAS,
@@ -144,7 +144,7 @@ def persist(
     config_dir: Path, forecast: Optional[dict], bundle: Optional[dict], template: Optional[dict] = None
 ) -> None:
     if forecast is not None:
-        record_file(config_dir, BUNDLE_NAME, GwWeatherForecast).write_text(json.dumps(forecast))
+        record_file(config_dir, BUNDLE_NAME, WeatherForecast).write_text(json.dumps(forecast))
     if bundle is not None:
         record_file(config_dir, BUNDLE_NAME, WeatherForecastBundleGt).write_text(json.dumps(bundle))
     if template is not None:
@@ -171,7 +171,7 @@ async def test_a_pull_yields_the_served_pair_and_48_future_hourly_slices_unscale
     assert hourly.time == [start_s + 3600 * h for h in range(1, FORECAST_HOURS + 1)]
     assert hourly.oat_f == [v / 10 for v in values_of(d, "Temperature")[1 : FORECAST_HOURS + 1]]
     assert hourly.wind_speed_mph == [v / 10 for v in values_of(d, "WindSpeed")[1 : FORECAST_HOURS + 1]]
-    stored = json.loads(record_file(tmp_path, BUNDLE_NAME, GwWeatherForecast).read_text())
+    stored = json.loads(record_file(tmp_path, BUNDLE_NAME, WeatherForecast).read_text())
     assert stored == d
     bundle = json.loads(record_file(tmp_path, BUNDLE_NAME, WeatherForecastBundleGt).read_text())
     assert bundle["Name"] == BUNDLE_NAME
@@ -180,7 +180,7 @@ async def test_a_pull_yields_the_served_pair_and_48_future_hourly_slices_unscale
 def test_next_hours_walks_the_bundles_slice_grid_from_first_slice_start() -> None:
     start_s = last_whole_hour_s()
     pair = ForecastPair(
-        GwWeatherForecast.model_validate(forecast_from(start_s)),
+        WeatherForecast.model_validate(forecast_from(start_s)),
         WeatherForecastBundleGt.model_validate(bundle_dict()),
     )
     starts = pair.slice_starts()

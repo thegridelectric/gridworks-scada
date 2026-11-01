@@ -31,8 +31,8 @@ import aiohttp
 from gwsproto.enums import Quantity, Unit, WeatherForecastFidelity
 from gwsproto.enums.gw_str_enum import GwStrEnum
 from gwsproto.named_types import (
-    GwWeatherForecast,
-    GwWeatherForecastSeries,
+    WeatherForecast,
+    WeatherForecastSeries,
     OperationalParams,
     WeatherChannelGt,
     WeatherForecastBinding,
@@ -97,10 +97,10 @@ class ForecastPair(NamedTuple):
     record it was emitted on. Slice times and units live on the record, so
     the message is read through the pair."""
 
-    message: GwWeatherForecast
+    message: WeatherForecast
     bundle: WeatherForecastBundleGt
 
-    def series_for(self, quantity: Quantity) -> Optional[GwWeatherForecastSeries]:
+    def series_for(self, quantity: Quantity) -> Optional[WeatherForecastSeries]:
         for series in self.message.SeriesList:
             if series.Quantity == quantity:
                 return series
@@ -183,18 +183,18 @@ def forecast_on(
     first_slice_start_s: int,
     values: dict[Quantity, list[float]],
     now_s: float,
-) -> GwWeatherForecast:
+) -> WeatherForecast:
     """A gw.weather.forecast on `bundle` created at plant time `now_s`: one
     series per quantity in `values`, each scaled per the observed channel
     the bundle binds for it, as many slices as the lists carry."""
-    series_list: list[GwWeatherForecastSeries] = []
+    series_list: list[WeatherForecastSeries] = []
     for quantity, unscaled in values.items():
         binding = binding_for(bundle, quantity)
         if binding is None:
             raise ValueError(f"Bundle {bundle.Name} binds no {quantity.value} channel")
         divisor = unit_divisor(bundle, binding.ObservationChannel)
         series_list.append(
-            GwWeatherForecastSeries(
+            WeatherForecastSeries(
                 ChannelName=binding.ForecastChannel.Name,
                 Quantity=quantity,
                 Values=[round(v * divisor) for v in unscaled],
@@ -202,8 +202,9 @@ def forecast_on(
                 SourceUpdatedTime=utc_iso(now_s),
             )
         )
-    return GwWeatherForecast(
+    return WeatherForecast(
         BundleName=bundle.Name,
+        ForecastUid=str(uuid.uuid4()),
         MessageCreatedMs=int(now_s * 1000),
         FirstSliceStart=utc_iso(first_slice_start_s),
         SeriesList=series_list,
@@ -278,7 +279,7 @@ class GwwfWeatherSource(WeatherSource):
         self.logger = logger
         self.config_dir = config_dir
         self.missing_quantities = []
-        self.forecast_file = record_file(config_dir, bundle_name, GwWeatherForecast)
+        self.forecast_file = record_file(config_dir, bundle_name, WeatherForecast)
         self.bundle_file = record_file(config_dir, bundle_name, WeatherForecastBundleGt)
         self.bundle: Optional[WeatherForecastBundleGt] = self.stored_bundle()
         if self.bundle is None:
@@ -290,7 +291,7 @@ class GwwfWeatherSource(WeatherSource):
         self.template: Optional[WeatherSeasonalTemplateGt] = self.stored_template(self.bundle.LocationAlias)
         if self.template is None:
             self.template = self.provision_template(self.bundle.LocationAlias)
-        self.message: Optional[GwWeatherForecast] = self.stored_forecast()
+        self.message: Optional[WeatherForecast] = self.stored_forecast()
 
     def template_file(self, location_alias: LeftRightDotStr) -> Path:
         return record_file(self.config_dir, location_alias, WeatherSeasonalTemplateGt)
@@ -367,7 +368,7 @@ class GwwfWeatherSource(WeatherSource):
         self.logger.warning(f"{why}; filling from the seasonal template")
         return seasonal_fill(self.bundle, self.template, now_s)
 
-    def bundle_matches(self, message: GwWeatherForecast) -> bool:
+    def bundle_matches(self, message: WeatherForecast) -> bool:
         """The stored bundle is the one the message was emitted on: same
         name, and every series on a channel the bundle binds."""
         if self.bundle is None or self.bundle.Name != message.BundleName:
@@ -375,14 +376,14 @@ class GwwfWeatherSource(WeatherSource):
         bound = {b.ForecastChannel.Name for b in self.bundle.BindingList}
         return all(s.ChannelName in bound for s in message.SeriesList)
 
-    async def pull_forecast(self, session: aiohttp.ClientSession) -> Optional[GwWeatherForecast]:
+    async def pull_forecast(self, session: aiohttp.ClientSession) -> Optional[WeatherForecast]:
         url = f"{self.api_url}/latest-forecast/{self.bundle_name}"
         try:
             async with session.get(url, timeout=self.timeout) as response:
                 if response.status != 200:
                     self.logger.warning(f"Forecast pull {url} returned {response.status}")
                     return None
-                message = GwWeatherForecast.model_validate(await response.json())
+                message = WeatherForecast.model_validate(await response.json())
         except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as e:
             self.logger.warning(f"Forecast pull {url} failed: {e!r}")
             return None
@@ -443,11 +444,11 @@ class GwwfWeatherSource(WeatherSource):
             self.logger.warning(f"Stored seasonal template {path} does not decode: {e!r}")
             return None
 
-    def stored_forecast(self) -> Optional[GwWeatherForecast]:
+    def stored_forecast(self) -> Optional[WeatherForecast]:
         if not self.forecast_file.exists():
             return None
         try:
-            return GwWeatherForecast.model_validate_json(self.forecast_file.read_text())
+            return WeatherForecast.model_validate_json(self.forecast_file.read_text())
         except ValidationError as e:
             self.logger.warning(f"Stored forecast {self.forecast_file} does not decode: {e!r}")
             return None
