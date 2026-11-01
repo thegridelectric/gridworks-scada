@@ -72,6 +72,7 @@ from gwsproto.enums import (FiveVBossState, HpBossState, LeafAllyBufferOnlyState
 
 from gwsproto.named_types import ( ActuatorsReady,
     AdminDispatch, AdminAnalogDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
+    FloNextHourPlans,
     FsmEvent, Glitch, GoDormant, CommandInterface, CommandTransition, LayoutLite, NoNewContractWarning,
     ResetHpKeepValue, ScadaControlCapabilities,
     SendControlCapabilities, SendLayout, SetLwtControlParams, SetTargetLwt, SiegLoopEndpointValveAdjustment,
@@ -393,6 +394,8 @@ class Scada(PrimeActor, ScadaInterface):
                     self.process_fsm_full_report(from_node, payload)
                 except Exception as e:
                     self.logger.error(f"problem with process_fsm_full_report: \n {e}")
+            case FloNextHourPlans():
+                self.log(f"Received FloNextHourPlans from {from_node.name}")
             case Glitch():
                 new_glitch = Glitch(
                     FromGNodeAlias=payload.FromGNodeAlias,
