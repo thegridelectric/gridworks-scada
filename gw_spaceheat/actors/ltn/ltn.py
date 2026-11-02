@@ -839,8 +839,8 @@ class Ltn(PrimeActor):
         except SeasonalFillForecast as e:
             self.log(f"Not running flo - {e}")
             return
-        self.logger.info(
-            "[ltn] FloParams after storage-state update "
+        self.log(
+            "FloParams "
             ">>> FloParams_JSON_BEGIN %s FloParams_JSON_END <<<",
             self.flo_params.model_dump_json(by_alias=True),
         )
