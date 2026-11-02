@@ -2,7 +2,6 @@ import csv
 import asyncio
 import gc
 import multiprocessing
-import pickle
 import threading
 import time
 from pathlib import Path
@@ -43,30 +42,11 @@ from weather_source import ForecastPair
 from gwproto import HardwareLayout
 
 try:
-    from bruce.graph_optimizer.assets.heat_pump_water_tank import HeatPumpWaterTankAsset
-    from bruce.graph_optimizer.graph import Graph
-    from bruce.graph_optimizer.settings import get_logger
-    from bruce.sema.enums import MarketPriceUnit as BruceMarketPriceUnit
-    from bruce.sema.enums import MarketQuantityUnit as BruceMarketQuantityUnit
-    from bruce.sema.types import FloOptimalPath as BruceFloOptimalPath
-    from bruce.sema.types import FloParams as BruceFloParams
-    from bruce.sema.types import FloRecommendation as BruceFloRecommendation
-    from bruce.sema.types import PriceQuantityUnitless as BrucePriceQuantityUnitless
-    from bruce.service import FLO_NAME, FLO_REPO, edge_to, params_from_request, path_from
+    from bruce.service import recommend_bytes
 except ImportError:
-    HeatPumpWaterTankAsset = None  # type: ignore[misc, assignment]
-    Graph = None  # type: ignore[misc, assignment]
-    get_logger = None  # type: ignore[assignment, misc]
-    BruceMarketPriceUnit = None  # type: ignore[misc, assignment]
-    BruceMarketQuantityUnit = None  # type: ignore[misc, assignment]
-    BruceFloOptimalPath = None  # type: ignore[misc, assignment]
-    BruceFloParams = None  # type: ignore[misc, assignment]
-    BruceFloRecommendation = None  # type: ignore[misc, assignment]
-    BrucePriceQuantityUnitless = None  # type: ignore[misc, assignment]
-    FLO_NAME = FLO_REPO = None  # type: ignore[assignment]
-    edge_to = params_from_request = path_from = None  # type: ignore[assignment]
+    recommend_bytes = None  # type: ignore[assignment]
 
-BRUCE_FLO_AVAILABLE = Graph is not None
+BRUCE_FLO_AVAILABLE = recommend_bytes is not None
 
 from gwproto import Message, MQTTCodec, create_message_model
 from gwproto.messages import EventBase
@@ -116,85 +96,22 @@ from actors.ltn.flo_request import (
     StoreState,
     build_flo_params,
     load_previous_run,
+    minute_of_hour,
+    next_slot_start_s,
     previous_run_for,
     save_previous_run,
-    with_store_state,
 )
 
 
-def _flo_build_worker(flo_params_bytes: bytes, result_queue: multiprocessing.Queue) -> None:
-    """Child process: build graph, find shortest path, trim, pickle, exit."""
+def _flo_worker(flo_params_bytes: bytes, result_queue: multiprocessing.Queue) -> None:
+    """Child process: the FLO boundary, `flo.params` bytes in and
+    `flo.recommendation` bytes out, then exit so the OS reclaims the
+    graph's memory."""
     if not BRUCE_FLO_AVAILABLE:
         result_queue.put(("error", "bruce graph optimizer package is not installed"))
         return
     try:
-        params = params_from_request(BruceFloParams.model_validate_json(flo_params_bytes))
-        asset = HeatPumpWaterTankAsset(params)
-        graph = Graph(asset)
-        graph.find_shortest_path()
-        graph.trim_graph_for_waiting()
-        graph.logger = None
-        trimmed_data = pickle.dumps(graph)
-        result_queue.put(("ok", trimmed_data))
-    except Exception as e:
-        result_queue.put(("error", str(e)))
-
-
-def _recommendation_on(graph: "Graph", request: "BruceFloParams") -> "BruceFloRecommendation":
-    """bruce's `recommend` on a graph built and solved earlier: the bid
-    curve from the ceiling down, and beside each pair the path its
-    first-step edge leads to. The loop is bruce's own; it is repeated
-    here because `recommend` builds its graph in the same call, and the
-    LTN builds at :05 and bids at :57."""
-    params = graph.params
-    pairs = graph.generate_bid(forecast_price_mwh=params.elec_price_mwh[0], updated_params=params)
-    pq_pairs: list[BrucePriceQuantityUnitless] = []
-    paths: list[BruceFloOptimalPath] = []
-    for i, pair in enumerate(pairs):
-        price_mwh = request.price_max_usd_mwh if i == 0 else pair.price_mwh
-        graph.get_next_node_at_price(pair.price_mwh)
-        initial = graph.initial_node
-        if initial is None or initial.next_node is None:
-            raise RuntimeError("no next node at bid price")
-        path = path_from(graph, request, edge_to(graph, initial, initial.next_node))
-        pq_pairs.append(
-            BrucePriceQuantityUnitless(
-                price_x1000=round(price_mwh * 1000), quantity_x1000=path.hp_avg_w_list[0]
-            )
-        )
-        paths.append(path)
-    return BruceFloRecommendation(
-        bidder_alias=request.g_node_alias,
-        pq_pairs=pq_pairs,
-        price_unit=BruceMarketPriceUnit.USDPerMWh,
-        quantity_unit=BruceMarketQuantityUnit.AvgkW,
-        optimal_path_list=paths,
-        flo_name=FLO_NAME,
-        flo_repo=FLO_REPO,
-        flo_git_commit=params.bruce_git_commit,
-        created_ms=int(time.time() * 1000),
-    )
-
-
-def _flo_bid_worker(
-    trimmed_graph_data: bytes,
-    updated_flo_params_bytes: bytes,
-    result_queue: multiprocessing.Queue,
-) -> None:
-    """Child process: unpickle the graph, update it with the measured
-    store, answer the recommendation as bytes, exit."""
-    if not BRUCE_FLO_AVAILABLE:
-        result_queue.put(("error", "bruce graph optimizer package is not installed"))
-        return
-    try:
-        graph: Graph = pickle.loads(trimmed_graph_data)
-        graph.logger = get_logger("graph")
-        request = BruceFloParams.model_validate_json(updated_flo_params_bytes)
-        updated_params = params_from_request(request)
-        graph.params.validate_bid_params_update(updated_params)
-        graph.asset.update_params(updated_params)
-        graph.params = graph.asset.params
-        result_queue.put(("ok", _recommendation_on(graph, request).to_bytes()))
+        result_queue.put(("ok", recommend_bytes(flo_params_bytes)))
     except Exception as e:
         result_queue.put(("error", str(e)))
 
@@ -210,13 +127,10 @@ class PriceForecast(BaseModel):
 
 
 class BidRunner(threading.Thread):
-    """Coordinates Flo work across three short-lived child processes.
-
-    Every phase that touches the Flo graph (build, recommend) runs
-    in a forked child process. The parent thread only holds pickle bytes
-    and plain results (floats, lists). When each child exits, the OS
-    reclaims all its memory.
-    """
+    """One FLO run for one market slot, in one short-lived child process:
+    the request goes in as bytes, the recommendation comes back as bytes,
+    and the thread turns it into the bid. The parent holds no graph.
+    `stop` kills the child, so the LTN stops inside systemd's timeout."""
 
     def __init__(self, params: FloParams,
                  ops: OperationalParams,
@@ -225,43 +139,52 @@ class BidRunner(threading.Thread):
                  ltn_g_node_alias: str,
                  send_threadsafe: Callable[[Message], None],
                  on_complete: Callable[[str], None],
-                 logger: LoggerOrAdapter):
-        super().__init__()
+                 logger: LoggerOrAdapter,
+                 worker: Callable[..., None] = _flo_worker):
+        super().__init__(daemon=True)
         self.stop_event = threading.Event()
-        self.logger = logger or print  # Fallback to print if no logger provided
-        self.orig_flo_params = params
+        self.logger = logger
+        self.flo_params = params
         self.ops = ops
         self.io_loop_manager_name = io_loop_manager_name
         self.ltn_name = ltn_name
         self.ltn_alias = ltn_g_node_alias
         self.send_threadsafe = send_threadsafe
         self.on_complete = on_complete
-        self.get_bid_event = threading.Event()
+        self.worker = worker
+        self.child: Optional[multiprocessing.process.BaseProcess] = None
 
-    def _run_in_child(self, target, args, timeout_s=30, max_total_s=300, pat_watchdog=True):
+    def _run_in_child(self, target, args, timeout_s=30, max_total_s=300):
         """Run target in a forked child process and return the result tuple.
 
-        Pats the watchdog every timeout_s seconds while waiting.
-        Kills the child and returns an error after max_total_s seconds
-        to prevent deadlocked children from blocking the BidRunner forever.
+        Pats the watchdog every timeout_s seconds while waiting. Kills the
+        child and returns an error after max_total_s seconds, or as soon as
+        `stop` is called.
         """
         ctx = multiprocessing.get_context("forkserver")
         result_queue = ctx.Queue()
         proc = ctx.Process(target=target, args=(*args, result_queue), daemon=True)
+        self.child = proc
         proc.start()
 
         deadline = time.time() + max_total_s
+        next_pat = time.time()
         result = None
         while result is None:
+            if self.stop_event.is_set():
+                proc.kill()
+                proc.join(timeout=5)
+                return ("error", "stopped")
             if time.time() > deadline:
                 self.logger.error(f"Child process timed out after {max_total_s}s — killing it")
                 proc.kill()
                 proc.join(timeout=5)
                 return ("error", f"Child process timed out after {max_total_s}s")
-            if pat_watchdog:
+            if time.time() >= next_pat:
                 self.pat_watchdog()
+                next_pat = time.time() + timeout_s
             try:
-                result = result_queue.get(timeout=timeout_s)
+                result = result_queue.get(timeout=1)
             except Exception:
                 if not proc.is_alive():
                     result = ("error", "Child process died unexpectedly")
@@ -271,109 +194,60 @@ class BidRunner(threading.Thread):
         if proc.is_alive():
             proc.terminate()
             proc.join(timeout=5)
+        self.child = None
         return result
 
     def run(self):
         try:
-            while not self.stop_event.is_set():
-                # ── Phase 0: Build graph and find shortest path in a child process ──
-                self.logger.info("Creating graph and finding shortest path (in child process)...")
-                st = time.time()
-                flo_params_bytes = self.orig_flo_params.model_dump_json(by_alias=True).encode('utf-8')
-
-                result = self._run_in_child(_flo_build_worker, (flo_params_bytes,))
-
-                if result[0] == "error":
-                    self.logger.error(f"Error in child process: {result[1]}")
-                    glitch = Glitch(
-                        FromGNodeAlias=self.ltn_alias,
-                        Node=self.ltn_name,
-                        Type=LogLevel.Error,
-                        Summary=f"{self.ltn_alias.split('.')[-2]}.{self.ltn_alias.split('.')[-1]} - Error creating graph and finding shortest path",
-                        Details=result[1],
-                        CreatedMs=int(time.time() * 1000)
-                    )
-                    self.send_threadsafe(Message(Src=self.ltn_name, Dst=self.ltn_name, Payload=glitch))
+            self.logger.info("Running the FLO (in child process)...")
+            st = time.time()
+            request_bytes = self.flo_params.model_dump_json(by_alias=True).encode("utf-8")
+            result = self._run_in_child(self.worker, (request_bytes,))
+            if result[0] == "error":
+                if result[1] == "stopped":
+                    self.logger.info("FLO run stopped")
                     return
-
-                trimmed_graph_data = result[1]
-                self.logger.info(
-                    f"Built and solved in {round(time.time()-st,2)} seconds! "
-                    f"Trimmed graph: {len(trimmed_graph_data)} bytes"
+                self.logger.error(f"Error running the FLO: {result[1]}")
+                glitch = Glitch(
+                    FromGNodeAlias=self.ltn_alias,
+                    Node=self.ltn_name,
+                    Type=LogLevel.Error,
+                    Summary=f"{self.ltn_alias.split('.')[-2]}.{self.ltn_alias.split('.')[-1]} - Error running the FLO",
+                    Details=result[1],
+                    CreatedMs=int(time.time() * 1000)
                 )
+                self.send_threadsafe(Message(Src=self.ltn_name, Dst=self.ltn_name, Payload=glitch))
+                return
 
-                # ── Phase 1: Wait for get_bid, then generate recommendation in child ──
-                # Don't clear() before wait() — if get_bid() was already called
-                # during Phase 0, the flag is already set and we should proceed.
-                self.logger.info("BidRunner waiting for get_bid to be called before computing bid.")
-                self.get_bid_event.wait()
-                self.get_bid_event.clear()
-                self.logger.info("Generating PQ pairs and bid (in child process)")
-
-                updated_bytes = self.updated_flo_params.model_dump_json(by_alias=True).encode("utf-8")
-                result = self._run_in_child(
-                    _flo_bid_worker,
-                    (trimmed_graph_data, updated_bytes),
-                    pat_watchdog=False,
-                )
-                del trimmed_graph_data
-
-                if result[0] == "error":
-                    self.logger.info(f"Error generating PQ pairs: {result[1]}")
-                    return
-
-                recommendation = FloRecommendation.model_validate_json(result[1])
-                self.logger.info(f"Done! Found {len(recommendation.PqPairs)} PQ pairs.")
-
-                bid = Bid(
-                    BidderAlias=self.updated_flo_params.GNodeAlias,
-                    MarketSlotName=market_slot_name(self.ops, self.updated_flo_params.StartUnixS),
-                    PqPairs=list(recommendation.PqPairs),
-                    InjectionIsPositive=True,
-                    PriceUnit=MarketPriceUnit.USDPerMWh,
-                    QuantityUnit=MarketQuantityUnit.AvgkW,
-                    SignedMarketFeeTxn="BogusAlgoSignature",
-                )
-
-                # The recommendation, then the bid, through the LTN's message
-                # processing: the LTN holds the paths for the price that clears.
-                self.send_threadsafe(
-                    Message(Src=self.ltn_name, Dst=self.ltn_name, Payload=recommendation)
-                )
-                self.send_threadsafe(
-                    Message(
-                        Src=self.ltn_name,
-                        Dst=self.ltn_name,
-                        Payload=bid
-                    )
-                )
-                break
+            recommendation = FloRecommendation.model_validate_json(result[1])
+            self.logger.info(
+                f"FLO answered in {round(time.time()-st,2)} seconds: "
+                f"{len(recommendation.PqPairs)} PQ pairs."
+            )
+            bid = Bid(
+                BidderAlias=self.flo_params.GNodeAlias,
+                MarketSlotName=market_slot_name(self.ops, self.flo_params.StartUnixS),
+                PqPairs=list(recommendation.PqPairs),
+                InjectionIsPositive=True,
+                PriceUnit=MarketPriceUnit.USDPerMWh,
+                QuantityUnit=MarketQuantityUnit.AvgkW,
+                SignedMarketFeeTxn="BogusAlgoSignature",
+            )
+            # The recommendation, then the bid, through the LTN's message
+            # processing: the LTN holds the paths for the price that clears.
+            self.send_threadsafe(
+                Message(Src=self.ltn_name, Dst=self.ltn_name, Payload=recommendation)
+            )
+            self.send_threadsafe(Message(Src=self.ltn_name, Dst=self.ltn_name, Payload=bid))
         except Exception as e:
-            self.logger.info(f"An error occured running Dijkstra or getting bid: {e}")
+            self.logger.info(f"An error occured running the FLO or building the bid: {e}")
         finally:
             self.logger.info("Done running bid runner")
             self.on_complete(self.ltn_name)
-            self._clear()
-
-    def _clear(self) -> None:
-        """Release all references to help gc reclaim memory. Call when run() is finished."""
-        self.orig_flo_params = None
-        self.updated_flo_params = None
-        self.ops = None
-        self.logger = None
-        self.send_threadsafe = None
-        self.on_complete = None
-        self.io_loop_manager_name = None
-        self.ltn_name = None
-        self.ltn_alias = None
-        self.get_bid_event = None
-
-    def get_bid(self, updated_flo_params: FloParams):
-        self.logger.info("Getting bid...")
-        self.updated_flo_params = updated_flo_params
-        self.get_bid_event.set()
 
     def stop(self):
+        """The run's poll sees the event within a second, kills the child
+        and the thread ends."""
         self.logger.info("Stopping BidRunner")
         self.stop_event.set()
 
@@ -474,7 +348,6 @@ class Ltn(PrimeActor):
         self.latest_channel_values: Dict[str, int] = {}
         self.timezone = pytz.timezone(self.settings.timezone_str)
         self.flo_horizon_hours = self.settings.flo_horizon_hours
-        self.sent_bid = False
         self.flo_params: FloParams | None = None
         self.hp_is_off = False
         self.weather_forecast: Optional[ForecastPair] = None
@@ -513,9 +386,6 @@ class Ltn(PrimeActor):
         )
         self.bid_runner: Optional[BidRunner] = None
         self.send_bid_minute: int = 57
-        # min_minute = min(max(3, datetime.now().minute), self.send_bid_minute-2)
-        # self.create_graph_minute: int = random.randint(min_minute, self.send_bid_minute-1)
-        self.create_graph_minute: int = self.settings.create_graph_minute
         # Gets strategy from scada sending LayoutLite
         self.layout_lite: Optional[LayoutLite] = None # Add this as a way of tracking if we've gotten the layout lite yet
         # TODO: read strategy from hardware layout: node = hardware_layout.node(...)
@@ -638,7 +508,6 @@ class Ltn(PrimeActor):
                     Message(Src=self.publication_name, Dst="mm", Payload=bid)
                 )  
                 self.log(f"Bid: {bid}")
-                self.sent_bid = True
             case FloRecommendation():
                 path_dbg |= 0x00000003
                 self.recommendation = message.Payload
@@ -885,85 +754,45 @@ class Ltn(PrimeActor):
                 await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
                 continue
 
-            if datetime.now().minute >= self.create_graph_minute:
-                if not self.flo_params and not self.bid_runner:
-                    try:
-                        await self.run_d(session)
-                    except Exception as e:
-                        self.logger.exception("[ltn] Exception running Dijkstra! %s", e)
-                        self.log(f"Exception running Dijkstra! {e!r}")
-                elif self.flo_params and self.bid_runner:
-                    if datetime.now().minute >= self.send_bid_minute and not self.sent_bid:
-                        self.log("Finding current storage state...")
-                        result = await self.get_three_layer_storage_model()
-                        if result is None:
-                            self.log("get_three_layer_storage_model() failed! Not getting bid.")
-                        else:
-                            t, m, b, th1, th2 = result
-                            self.flo_params = with_store_state(
-                                self.flo_params, StoreState(t, m, b, th1, th2, hp_on=not self.hp_is_off)
-                            )
-                            self.bid_runner.get_bid(self.flo_params)
-                            self._message_for_scada_publish(self.flo_params)
-                    elif not self.sent_bid:
-                        self.log(f"Graph was already created. Waiting for minute {self.send_bid_minute} to send bid.")
-                    elif self.sent_bid:
-                        self.log("Already sent bid.")
-                else:
-                    self.log(
-                        f"FLO state inconsistent (flo_params={self.flo_params is not None}, "
-                        f"bid_runner={self.bid_runner is not None}); waiting for next loop"
-                    )
+            # One FLO run per slot, at the bid minute: the store is measured
+            # then, the FLO answers in one call, and the bid goes off the
+            # answer. The request stays until the next slot's replaces it,
+            # so the clearing price at :00 still finds it.
+            now_s = self.plant_clock.now()
+            slot_start_s = next_slot_start_s(now_s)
+            if minute_of_hour(now_s) < self.send_bid_minute:
+                self.log(f"Waiting for minute {self.send_bid_minute} to run the FLO.")
+            elif self.bid_runner is not None:
+                self.log("FLO run in progress.")
+            elif self.flo_params is not None and self.flo_params.StartUnixS == slot_start_s:
+                self.log(f"Already ran the FLO for slot {slot_start_s}.")
             else:
-                if self.flo_params:
-                    self.flo_params = None
-                    self.sent_bid = False
-                else:
-                    self.log(f"No graph exists. Waiting for minute {self.create_graph_minute} to create graph.")
+                try:
+                    await self.run_flo(session, slot_start_s)
+                except Exception as e:
+                    self.logger.exception("[ltn] Exception running the FLO! %s", e)
+                    self.log(f"Exception running the FLO! {e!r}")
 
-            # TODO: not sure what this is for
-            if not ((datetime.now().minute >= self.create_graph_minute and not self.flo_params)
-                    or (datetime.now().minute <= self.create_graph_minute and self.flo_params)):
-                if self.contract_handler.latest_hb is None:
-                    self.log("No active contract.")
+            if self.contract_handler.latest_hb is None:
+                self.log("No active contract.")
 
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
-    async def run_d(self, session: aiohttp.ClientSession) -> None:
-        """Prepare parameters and start a bid computation.
-    
-        This method is async because it needs to fetch weather forecasts,
-        but the actual Dijkstra computation runs in a separate thread.
-        Async parallelizes waiting (like HTTP requests) but does not 
-        gracefully handle high CPU use. The additional thread handles
-        the CPU-intensive graph computation.
+    async def run_flo(self, session: aiohttp.ClientSession, slot_start_s: int) -> None:
+        """Build the request for the slot and start the one FLO run.
+
+        Async because it fetches the forecasts; the FLO itself runs in a
+        child process behind the BidRunner thread, which hands the
+        recommendation and the bid back through the LTN's messages.
         """
         if not BRUCE_FLO_AVAILABLE:
             self.log("bruce graph optimizer not installed — skipping FLO bid run")
-            return
-
-        if self.flo_params:
-            self.log("NOT RUNNING Dijsktra! Already created graph")
-            return
-        
-        # Check if there's already a bid runner
-        if self.bid_runner and self.bid_runner.is_alive():
-            self.log("BidRunner already running!")
-            return
-
-        if datetime.now().minute >= self.create_graph_minute:
-            dijkstra_start_time = int(
-                datetime.timestamp((datetime.now() + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0))
-                )
-        else:
-            dijkstra_start_time = int(datetime.timestamp(datetime.now()))
-            self.log(f"NOT RUNNING Dijkstra! Not past minute {self.create_graph_minute}")
             return
         await self.get_weather(session)
         await self.get_price_forecast()
 
         if not self.layout_lite:
-            self.log("Do not have layout lite from scada so not running dijkstra... must not be connected!!")
+            self.log("Do not have layout lite from scada so not running the FLO... must not be connected!!")
             return
 
         if not self.accepts_dispatch or self.service_mode != ServiceMode.Heating:
@@ -982,7 +811,7 @@ class Ltn(PrimeActor):
 
         self.log("Finding thermocline position and top temperature")
         result = await self.get_three_layer_storage_model()
-        self.log(f"{self.settings.seasonal_storage_mode.value} model: {result}")
+        self.log(f"{self.seasonal_storage_mode.value} model: {result}")
 
         if result is None:
             self.log("Get thermocline and centroid failed! Not running FLO!")
@@ -1009,14 +838,15 @@ class Ltn(PrimeActor):
                 store=StoreState(t, m, b, th1, th2, hp_on=not self.hp_is_off),
                 buffer_available_kwh=buffer_available_kwh,
                 g_node_alias=self.layout.ltn_g_node_alias,
-                start_unix_s=dijkstra_start_time,
+                start_unix_s=slot_start_s,
                 created_ms=int(self.plant_clock.now() * 1000),
-                previous=previous_run_for(self.previous_run, dijkstra_start_time),
+                previous=previous_run_for(self.previous_run, slot_start_s),
             )
         except SeasonalFillForecast as e:
             self.log(f"Not running flo - {e}")
             return
         self.log(f"Settings ask for a {self.flo_horizon_hours} hour horizon; using {len(self.flo_params.StepDurationMinutes)}")
+        self._message_for_scada_publish(self.flo_params)
         self.bid_runner = BidRunner(
             params=self.flo_params,
             ops=self.ops,
@@ -1030,18 +860,22 @@ class Ltn(PrimeActor):
                 level=self.settings.flo_logging_level
             ),
         )
-        self.bid_runner.start()  
-        # Instead of waiting, return to event loop
-        self.log("Started Dijkstra computation in background")
+        self.bid_runner.start()
+        self.log(f"Started the FLO run for slot {slot_start_s} in background")
 
     def _cleanup_bid_runner(self, ltn_name: str) -> None:
-        """BidRunner thread exited (success or failure); release FLO state for the next hour.
+        """BidRunner thread exited (success or failure).
 
         Note: This is called from the BidRunner thread."""
         self.log("Cleaned up bid runner")
         self.bid_runner = None
-        self.sent_bid = False
         gc.collect()
+
+    def stop(self) -> None:
+        self._stop_requested = True
+        if self.bid_runner is not None:
+            self.bid_runner.stop()
+        super().stop()
 
     def latest_contract_is_live(self) -> bool:
         """ Validates that the bid's market slot name corresponds to the current hour."""

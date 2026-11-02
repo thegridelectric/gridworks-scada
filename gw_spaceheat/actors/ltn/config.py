@@ -8,7 +8,6 @@ from gwproactor.config import MQTTClient
 
 from actors.config import ScadaPathsSettings
 from clock import ClockSource
-from gwsproto.enums import SeasonalStorageMode
 from weather_source import WeatherSourceKind
 
 
@@ -50,8 +49,6 @@ class LtnSettings(ScadaPathsSettings):
     flo_logging_level: int = logging.INFO
     flo_horizon_hours: int = 48
     monitor_only: bool = False
-    seasonal_storage_mode: SeasonalStorageMode = SeasonalStorageMode.AllTanks
-    create_graph_minute: int = 40
     # Count no buffer energy when true.
     keep_buffer_full: bool = False
     clock_source: ClockSource = ClockSource.Wall

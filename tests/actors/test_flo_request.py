@@ -16,9 +16,10 @@ from actors.ltn.flo_request import (
     build_flo_params,
     load_forecast_kwh,
     load_previous_run,
+    minute_of_hour,
+    next_slot_start_s,
     previous_run_for,
     save_previous_run,
-    with_store_state,
 )
 from gwsproto.enums import SeasonalStorageMode, WeatherForecastFidelity
 from gwsproto.named_types import (
@@ -155,10 +156,16 @@ def test_a_previous_run_survives_the_disk(tmp_path: Path) -> None:
     assert load_previous_run(file) == run
 
 
-def test_the_measured_store_replaces_the_initial_state_through_the_word() -> None:
-    params = build()
-    now = with_store_state(params, StoreState(150.0, 120.0, 90.0, 3, 7, hp_on=True))
-    assert (now.InitialTopTempF, now.InitialThermocline1, now.InitialThermocline2, now.HpCurrentlyOn) == (150.0, 3, 7, True)
-    assert now.WeatherForecastId == params.WeatherForecastId
-    with pytest.raises(ValueError, match="Axiom 2"):
-        with_store_state(params, StoreState(150.0, 120.0, 90.0, 3, 10, hp_on=True))
+def test_the_next_slot_is_the_next_whole_hour_of_the_epoch() -> None:
+    assert next_slot_start_s(START_S - 180) == START_S
+    assert next_slot_start_s(START_S) == START_S + 3600
+    assert minute_of_hour(START_S - 180) == 57
+    assert minute_of_hour(START_S) == 0
+
+
+def test_the_slot_does_not_move_at_a_clock_change() -> None:
+    """At 01:57 EDT on 2026-11-01 the next hour on the wall is 01:00 EST,
+    one slot later in the epoch; a local-time hour would name 02:00 EST
+    (07:00Z) and the bid would miss the price. Spring forward the same."""
+    assert next_slot_start_s(utc_seconds("2026-11-01T05:57:00Z")) == utc_seconds("2026-11-01T06:00:00Z")
+    assert next_slot_start_s(utc_seconds("2026-03-08T06:57:00Z")) == utc_seconds("2026-03-08T07:00:00Z")

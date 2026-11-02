@@ -83,6 +83,18 @@ def load_previous_run(file: Path) -> Optional[PreviousRun]:
     )
 
 
+def next_slot_start_s(now_s: float) -> int:
+    """The start of the hourly market slot after the one `now_s` is in,
+    in UTC seconds: whole hours of the epoch, so a clock change in the
+    plant's timezone does not move it."""
+    return (int(now_s) // 3600 + 1) * 3600
+
+
+def minute_of_hour(now_s: float) -> int:
+    """Minutes into the current hour of the epoch."""
+    return int(now_s) % 3600 // 60
+
+
 def live_forecast(forecast: ForecastPair) -> ForecastPair:
     """The pair itself when every series is live or stored; a seasonal
     fill is refused."""
@@ -195,20 +207,4 @@ def build_flo_params(
         PreviousOptimalPath=previous.path if previous else None,
         PreviousEstimateElecUsdMwhNow=previous.elec_usd_mwh_now if previous else None,
         Tuning=ops.FloTuning,
-    )
-
-
-def with_store_state(params: FloParams, store: StoreState) -> FloParams:
-    """The same request with the store's state as measured now, validated
-    through the word again."""
-    return FloParams.model_validate(
-        {
-            **params.model_dump(by_alias=True),
-            "InitialTopTempF": float(store.top_f),
-            "InitialMiddleTempF": float(store.middle_f),
-            "InitialBottomTempF": float(store.bottom_f),
-            "InitialThermocline1": store.thermocline1,
-            "InitialThermocline2": store.thermocline2,
-            "HpCurrentlyOn": store.hp_on,
-        }
     )
