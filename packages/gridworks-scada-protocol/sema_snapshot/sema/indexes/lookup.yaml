@@ -988,11 +988,6 @@ enums:
     latest_version: '000'
     versions:
       '000': definitions/enums/market.quantity.unit/000.yaml
-  market.type.name:
-    enum_type: versioned
-    latest_version: '000'
-    versions:
-      '000': definitions/enums/market.type.name/000.yaml
   move.sieg.valve:
     enum_type: versioned
     latest_version: '001'

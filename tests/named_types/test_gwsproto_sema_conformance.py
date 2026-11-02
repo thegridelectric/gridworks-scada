@@ -62,7 +62,6 @@ NO_WORD_TYPES = {
     "go.dormant",
     "hack.oil.off",
     "hack.oil.on",
-    "market.maker.ack",
     "microvolts",
     "multichannel.snapshot",
     "no.new.contract.warning",

@@ -331,6 +331,15 @@ x-gridworks:
         If FloTuning.TypeName is flo.tuning.alice, DispatchHold.OperatorHold
         SHALL be true.
 
+    - number: 7
+      name: "FloTuningAdmitsFamily"
+      statement: >
+        A FLO is a model of the plant as operated, so FloTuning SHALL be
+        admissible for FamilyParams:
+        a. If FloTuning.TypeName is flo.tuning.bruce and FamilyParams.TypeName
+           is gw.house0.family.params, FamilyParams.SiegLoopStrategy SHALL NOT
+           be LwtControl.
+
   extended_description: >
     operational-params is the authored home for the tunable state that left the
     static hardware layout and the deployment config: what changes without

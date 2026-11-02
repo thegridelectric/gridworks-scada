@@ -42,7 +42,6 @@ from sema_snapshot.sema.enums.main_auto_state import MainAutoState
 from sema_snapshot.sema.enums.market_price_unit import MarketPriceUnit
 from sema_snapshot.sema.enums.market_product_name import MarketProductName
 from sema_snapshot.sema.enums.market_quantity_unit import MarketQuantityUnit
-from sema_snapshot.sema.enums.market_type_name import MarketTypeName
 from sema_snapshot.sema.enums.move_sieg_valve import MoveSiegValve
 from sema_snapshot.sema.enums.nolan_lc_buffer_only_state import NolanLcBufferOnlyState
 from sema_snapshot.sema.enums.pico_board_variant import PicoBoardVariant
@@ -136,7 +135,6 @@ __all__ = [
     "MarketPriceUnit",
     "MarketProductName",
     "MarketQuantityUnit",
-    "MarketTypeName",
     "MoveSiegValve",
     "NolanLcBufferOnlyState",
     "PicoBoardVariant",

@@ -408,8 +408,6 @@ initial_targets:
       versions: ["000"]
     market.quantity.unit:
       versions: ["000"]
-    market.type.name:
-      versions: ["000"]
     move.sieg.valve:
       versions: ["001"]
     pico.board.variant:

@@ -1,6 +1,6 @@
 metadata:
   generated_from: indexes/public_registry.yaml
-  generated_at: '2026-11-01T19:44:51Z'
+  generated_at: '2026-11-02T08:10:05Z'
   note: Transitive closure of initial_targets
 initial_targets:
 - ads.channel.config:000
@@ -198,7 +198,6 @@ initial_targets:
 - log.level:000
 - market.price.unit:000
 - market.quantity.unit:000
-- market.type.name:000
 - move.sieg.valve:001
 - pico.board.variant:000
 - pico.cycler.event:000
@@ -438,9 +437,6 @@ worklist:
     market.quantity.unit:
       '000':
         path: definitions/enums/market.quantity.unit/000.yaml
-    market.type.name:
-      '000':
-        path: definitions/enums/market.type.name/000.yaml
     move.sieg.valve:
       '001':
         path: definitions/enums/move.sieg.valve/001.yaml

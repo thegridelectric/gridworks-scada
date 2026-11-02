@@ -145,6 +145,24 @@ def test_gw_operational_params_axiom_5_nolan_has_no_loop() -> None:
     OperationalParams.model_validate(d)
 
 
+def test_gw_operational_params_axiom_7_a_bruce_on_house0_loop_at_lwt_control() -> None:
+    d = ops("gw.house0.orange.operational.params.json")
+    assert d["FloTuning"]["TypeName"] == "flo.tuning.bruce"
+    for strategy in ("HoldFullSend", "StratProtect"):
+        d["FamilyParams"]["SiegLoopStrategy"] = strategy
+        OperationalParams.model_validate(d)
+    d["FamilyParams"]["SiegLoopStrategy"] = "LwtControl"
+    assert_refused(OperationalParams, d, match="Axiom 7 \\(FloTuningAdmitsFamily\\) clause a")
+
+
+def test_gw_operational_params_axiom_7_alice_on_house0_loop_at_lwt_control() -> None:
+    d = ops("gw.house0.orange.operational.params.json")
+    d["FloTuning"] = {"TypeName": "flo.tuning.alice", "Version": "000"}
+    d["DispatchHold"]["OperatorHold"] = True
+    d["FamilyParams"]["SiegLoopStrategy"] = "LwtControl"
+    OperationalParams.model_validate(d)
+
+
 def test_gw_nolan_family_params_axiom_1_charge_not_below_full() -> None:
     d = ops("gw.nolan.operational.params.json")
     family = d["FamilyParams"]

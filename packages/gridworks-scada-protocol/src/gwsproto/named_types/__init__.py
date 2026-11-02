@@ -107,7 +107,6 @@ from gwsproto.named_types.linear_one_dimensional_calibration import (
     LinearOneDimensionalCalibration,
 )
 from gwsproto.named_types.machine_states import MachineStates
-from gwsproto.named_types.market_maker_ack import MarketMakerAck
 from gwsproto.named_types.micro_volts import MicroVolts
 from gwsproto.named_types.multichannel_snapshot import MultichannelSnapshot
 from gwsproto.named_types.native_gpio_pin import NativeGpioPin
@@ -292,7 +291,6 @@ __all__ = [
     "LinearOneDimensionalCalibration",
     "MachineStates",
     "MakerAPIAttributeGt",
-    "MarketMakerAck",
     "MicroVolts",
     "MultichannelSnapshot",
     "NativeGpioPin",

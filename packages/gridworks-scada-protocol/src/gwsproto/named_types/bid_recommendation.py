@@ -22,10 +22,10 @@ class BidRecommendation(GwsprotoSemaType):
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
         """
-        Axiom 1: PqPairs PriceMax matches MarketType.
-        There is a GridWorks global list of MarketTypes (a GridWorks type), identified by
-        their MarketTypeNames (a GridWorks enum).  The MarketType has a PriceMax, which
-        must be the first price of the first PriceQuantity pair in PqPairs.
+        Axiom 1: PqPairs PriceMax matches the market product.
+        The product token in MarketSlotName names a gw.market.product.name; that
+        product has a PriceMax, which must be the first price of the first
+        PriceQuantity pair in PqPairs.
         """
         # Implement check for axiom 1"
         return self

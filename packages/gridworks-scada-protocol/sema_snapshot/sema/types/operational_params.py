@@ -168,3 +168,25 @@ class OperationalParams(SemaType):
                 "DispatchHold.OperatorHold."
             )
         return self
+
+    @model_validator(mode="after")
+    def check_axiom_7(self) -> "OperationalParams":
+        """
+        Axiom 7: FloTuningAdmitsFamily
+        A FLO is a model of the plant as operated, so FloTuning SHALL be
+        admissible for FamilyParams:
+        a. If FloTuning.TypeName is flo.tuning.bruce and FamilyParams.TypeName
+           is gw.house0.family.params, FamilyParams.SiegLoopStrategy SHALL NOT
+           be LwtControl.
+        """
+        family = self.family_params
+        if (
+            isinstance(self.flo_tuning, FloTuningBruce)
+            and isinstance(family, House0FamilyParams)
+            and family.sieg_loop_strategy is SiegLoopStrategy.LwtControl
+        ):
+            raise ValueError(
+                "Axiom 7 (FloTuningAdmitsFamily) clause a failed: flo.tuning.bruce "
+                "on a House0 family excludes SiegLoopStrategy LwtControl."
+            )
+        return self

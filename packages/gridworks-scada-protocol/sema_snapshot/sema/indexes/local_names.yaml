@@ -54,7 +54,6 @@ enums:
   log.level: log.level
   market.price.unit: market.price.unit
   market.quantity.unit: market.quantity.unit
-  market.type.name: market.type.name
   move.sieg.valve: move.sieg.valve
   pico.board.variant: pico.board.variant
   pico.cycler.event: pico.cycler.event
