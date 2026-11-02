@@ -99,7 +99,7 @@ from pydantic import BaseModel
 from actors.ltn.config import LtnSettings, DashboardSettings
 from actors.ltn.dashboard.dashboard import Dashboard
 from actors.ltn.data import LtnData
-from actors.ltn.market import RJB, market_slot_name
+from actors.ltn.market import RJB, cleared_quantity_x1000, market_slot_name
 from actors.ltn.flo_request import (
     SeasonalFillForecast,
     StoreState,
@@ -1172,18 +1172,12 @@ class Ltn(PrimeActor):
             )
             return
 
-        pq_pairs = [
-            (x.PriceX1000, x.QuantityX1000) for x in self.contract_handler.latest_bid.PqPairs
-        ]
-        sorted_pq_pairs = sorted(pq_pairs, key=lambda pair_: pair_[0])
-        self.log(f"Sorted pq pairs: {sorted_pq_pairs} (x1000)")
+        pq_pairs = self.contract_handler.latest_bid.PqPairs
+        self.log(f"Sorted pq pairs: {sorted((x.PriceX1000, x.QuantityX1000) for x in pq_pairs)} (x1000)")
         self.log(f"Payload price: {payload.PriceTimes1000} (x1000)")
         # Quantity is AvgkW, so QuantityX1000 is avg_w
         assert self.contract_handler.latest_bid.QuantityUnit == MarketQuantityUnit.AvgkW
-        avg_w = sorted_pq_pairs[0][1]
-        for pair in sorted_pq_pairs:
-            if payload.PriceTimes1000 > pair[0]:
-                avg_w = pair[1] # WattHours
+        avg_w = cleared_quantity_x1000(pq_pairs, payload.PriceTimes1000)
         self.log(f"Decided on quantity: {avg_w} WattHours")
 
         # 1 hour
