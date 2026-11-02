@@ -12,6 +12,7 @@ from typing import Callable
 import pytest
 from gwproto import Message
 
+from actors.ltn.ltn import Ltn
 from actors.scada import Scada
 from gwsproto.enums import (
     DispatchRefusalReason, MainAutoState, SlowDispatchContractStatus, TopState, TurnHpOnOff,
@@ -343,3 +344,48 @@ async def test_admin_ends_the_contract_and_the_scada_takes_the_next_offer_after(
             "ERROR waiting for the scada to take the offer after Admin",
         )
         assert not any(r.ContractId == after.Contract.ContractId for r in rejections)
+
+
+@pytest.mark.asyncio
+async def test_the_main_loop_runs_no_flo_while_the_house_refuses_dispatch(
+    request: pytest.FixtureRequest, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The operating status is the LTN's only word on whether to run its FLO:
+    with the operator's hold on, the main loop logs idle every tick and never
+    runs the FLO, whatever the minute."""
+    pair = sorted(PAIRS)[0]
+    layout_file, ops_file = PAIRS[pair]
+    ops_path = heating_ops(tmp_path, (layout_file, ops_file), DispatchHold=hold(operator=True))
+    layout = load_layout(CONFIG / layout_file, ops_path)
+    monkeypatch.setattr(Ltn, "MAIN_LOOP_SLEEP_SECONDS", 0.2)
+    async with ScadaLiveTest(request=request, layout=layout, ops_path=ops_path) as tst:
+        tst.start_child1()
+        tst.start_parent()
+        ltn = tst.parent_app.ltn
+        notes: list[str] = []
+        flo_runs: list[int] = []
+        original_log = ltn.log
+
+        def record_log(note: str) -> None:
+            notes.append(note)
+            original_log(note)
+
+        async def record_run(session, slot_start_s: int) -> None:
+            flo_runs.append(slot_start_s)
+
+        monkeypatch.setattr(ltn, "log", record_log)
+        monkeypatch.setattr(ltn, "run_flo", record_run)
+        await tst.await_for(
+            lambda: ltn.operating_status is not None
+            and ltn.operating_status.DispatchRefusalReason == DispatchRefusalReason.OperatorHold,
+            "ERROR waiting for the LTN to see the operator's hold",
+            err_str_f=lambda: f"status: {ltn.operating_status}",
+        )
+        idle = "Main loop idle: accepts_dispatch=False"
+        await tst.await_for(
+            lambda: sum(n.startswith(idle) for n in notes) >= 3,
+            "ERROR waiting for the main loop to idle on the hold",
+            err_str_f=lambda: f"notes: {notes[-5:]}",
+        )
+        assert flo_runs == []
+        assert not any(n.startswith("Waiting for minute") for n in notes)

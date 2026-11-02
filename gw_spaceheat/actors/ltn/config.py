@@ -48,7 +48,6 @@ class LtnSettings(ScadaPathsSettings):
     contract_rep_logging_level: int = logging.INFO
     flo_logging_level: int = logging.INFO
     flo_horizon_hours: int = 48
-    monitor_only: bool = False
     # Count no buffer energy when true.
     keep_buffer_full: bool = False
     clock_source: ClockSource = ClockSource.Wall

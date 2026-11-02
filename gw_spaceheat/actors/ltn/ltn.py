@@ -732,12 +732,6 @@ class Ltn(PrimeActor):
         self.send_layout()
 
         while not self._stop_requested:
-            if self.settings.monitor_only:
-                # LTN-side: do not originate new bids or contracts
-                self.log("Main loop: monitor_only=true; skipping FLO and bids")
-                await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
-                continue
-
             if not self.accepts_dispatch or self.service_mode != ServiceMode.Heating:
                 # SCADA-side: plant is not accepting heating intent
                 if self.operating_status is None:
