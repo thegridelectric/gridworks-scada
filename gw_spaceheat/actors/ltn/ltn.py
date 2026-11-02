@@ -839,6 +839,7 @@ class Ltn(PrimeActor):
         except SeasonalFillForecast as e:
             self.log(f"Not running flo - {e}")
             return
+        self.log(f"FloParams:\n {self.flo_params.model_dump_json(by_alias=True)}\n")
         self.log(f"Settings ask for a {self.flo_horizon_hours} hour horizon; using {len(self.flo_params.StepDurationMinutes)}")
         self._message_for_scada_publish(self.flo_params)
         self.bid_runner = BidRunner(
