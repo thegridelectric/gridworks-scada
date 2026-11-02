@@ -9,7 +9,6 @@ from gwproactor.config import MQTTClient
 from actors.config import ScadaPathsSettings
 from clock import ClockSource
 from gwsproto.enums import SeasonalStorageMode
-from gwsproto.named_types import Ha1Params
 from weather_source import WeatherSourceKind
 
 
@@ -53,12 +52,6 @@ class LtnSettings(ScadaPathsSettings):
     monitor_only: bool = False
     seasonal_storage_mode: SeasonalStorageMode = SeasonalStorageMode.AllTanks
     create_graph_minute: int = 40
-    # The MarketMaker whose latest.price the LTN clears against; its
-    # alias names the slot the LTN bids on.
-    market_maker_alias: str = "hw1.isone.me.versant.keene"
-    # The house's HA1 parameter set, the ha1.params word as JSON
-    # (LTN_HA1_PARAMS). No FLO runs without it.
-    ha1_params: Ha1Params | None = None
     # Count no buffer energy when true.
     keep_buffer_full: bool = False
     clock_source: ClockSource = ClockSource.Wall

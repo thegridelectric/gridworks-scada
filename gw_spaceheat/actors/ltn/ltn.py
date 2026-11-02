@@ -39,23 +39,24 @@ from gwproactor import ProactorLogger
 from gwproactor import ProactorName
 from gwproactor import AppInterface
 from clock import Clock
-from weather_source import FORECAST_HOURS, ForecastPair, HourlyForecast
+from ltn_app_interface import LtnAppInterface
+from weather_source import ForecastPair
 from gwproto import HardwareLayout
 
 try:
-    from bruce.graph_optimizer.assets.heat_pump_water_tank import (
-        HeatPumpWaterTankAsset,
-        HeatPumpWaterTankParams,
-    )
+    from bruce.graph_optimizer.assets.heat_pump_water_tank import HeatPumpWaterTankAsset
     from bruce.graph_optimizer.graph import Graph
     from bruce.graph_optimizer.settings import get_logger
+    from bruce.sema.types import FloParams as BruceFloParams
+    from bruce.service import params_from_request
 except ImportError:
     HeatPumpWaterTankAsset = None  # type: ignore[misc, assignment]
-    HeatPumpWaterTankParams = None  # type: ignore[misc, assignment]
     Graph = None  # type: ignore[misc, assignment]
     get_logger = None  # type: ignore[assignment, misc]
+    BruceFloParams = None  # type: ignore[misc, assignment]
+    params_from_request = None  # type: ignore[assignment]
 
-BRUCE_FLO_AVAILABLE = HeatPumpWaterTankParams is not None
+BRUCE_FLO_AVAILABLE = Graph is not None
 
 from gwproto import Message, MQTTCodec, create_message_model
 from gwproto.messages import EventBase
@@ -71,7 +72,7 @@ from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
     LogLevel,
-    MarketPriceUnit, MarketQuantityUnit, MarketTypeName,
+    MarketPriceUnit, MarketQuantityUnit,
     TelemetryName, RelayClosedOrOpen, SeasonalStorageMode,
     SlowDispatchContractStatus, ServiceMode
 )
@@ -81,12 +82,13 @@ from actors.hydronic.store_temps import scrub_and_fill_store_temps
 from actors.ltn.contract_handler import LtnContractHandler
  
 from gwsproto.named_types import (
-    Bid, FloNextHourPlans, Glitch, Ha1Params, HouseOperatingStatus, LatestPrice,
-    LayoutLite, NoNewContractWarning, PriceQuantityUnitless, SendLayout,
+    Bid, FloNextHourPlans, FloParams, Glitch, HouseOperatingStatus, LatestPrice,
+    LayoutLite, NoNewContractWarning, OperationalParams, PriceQuantityUnitless, SendLayout,
     SlowContractHeartbeat, SlowContractRejection,
-    SnapshotSpaceheat,
+    SnapshotSpaceheat, WaterStore,
 )
 from gwsproto.names.core.node_names import CoreNodeNames
+from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
 
@@ -97,10 +99,13 @@ from pydantic import BaseModel
 from actors.ltn.config import LtnSettings, DashboardSettings
 from actors.ltn.dashboard.dashboard import Dashboard
 from actors.ltn.data import LtnData
-from actors.ltn import flo_tuning
-
-TANK_GALLONS = 120
-MAX_HORIZON_HOURS = 48
+from actors.ltn.market import RJB, market_slot_name
+from actors.ltn.flo_request import (
+    SeasonalFillForecast,
+    StoreState,
+    build_flo_params,
+    with_store_state,
+)
 
 
 def _flo_build_worker(flo_params_bytes: bytes, result_queue: multiprocessing.Queue) -> None:
@@ -109,7 +114,7 @@ def _flo_build_worker(flo_params_bytes: bytes, result_queue: multiprocessing.Que
         result_queue.put(("error", "bruce graph optimizer package is not installed"))
         return
     try:
-        params = HeatPumpWaterTankParams.model_validate_json(flo_params_bytes)
+        params = params_from_request(BruceFloParams.model_validate_json(flo_params_bytes))
         asset = HeatPumpWaterTankAsset(params)
         graph = Graph(asset)
         graph.find_shortest_path()
@@ -133,7 +138,7 @@ def _flo_bid_worker(
     try:
         graph: Graph = pickle.loads(trimmed_graph_data)
         graph.logger = get_logger("graph")
-        updated_params = HeatPumpWaterTankParams.model_validate_json(updated_flo_params_bytes)
+        updated_params = params_from_request(BruceFloParams.model_validate_json(updated_flo_params_bytes))
         forecast_price_mwh = updated_params.elec_price_mwh[0]
         pq_pairs = graph.generate_bid(
             forecast_price_mwh=forecast_price_mwh,
@@ -192,8 +197,8 @@ class BidRunner(threading.Thread):
     reclaims all its memory.
     """
 
-    def __init__(self, params: HeatPumpWaterTankParams,
-                 settings: LtnSettings,
+    def __init__(self, params: FloParams,
+                 ops: OperationalParams,
                  io_loop_manager_name: str,
                  ltn_name: str,
                  ltn_g_node_alias: str,
@@ -204,7 +209,7 @@ class BidRunner(threading.Thread):
         self.stop_event = threading.Event()
         self.logger = logger or print  # Fallback to print if no logger provided
         self.orig_flo_params = params
-        self.settings = settings
+        self.ops = ops
         self.io_loop_manager_name = io_loop_manager_name
         self.ltn_name = ltn_name
         self.ltn_alias = ltn_g_node_alias
@@ -254,7 +259,7 @@ class BidRunner(threading.Thread):
                 # ── Phase 0: Build graph and find shortest path in a child process ──
                 self.logger.info("Creating graph and finding shortest path (in child process)...")
                 st = time.time()
-                flo_params_bytes = self.orig_flo_params.model_dump_json().encode('utf-8')
+                flo_params_bytes = self.orig_flo_params.model_dump_json(by_alias=True).encode('utf-8')
 
                 result = self._run_in_child(_flo_build_worker, (flo_params_bytes,))
 
@@ -285,7 +290,7 @@ class BidRunner(threading.Thread):
                 self.get_bid_event.clear()
                 self.logger.info("Generating PQ pairs and bid (in child process)")
 
-                updated_bytes = self.updated_flo_params.model_dump_json().encode("utf-8")
+                updated_bytes = self.updated_flo_params.model_dump_json(by_alias=True).encode("utf-8")
                 result = self._run_in_child(
                     _flo_bid_worker,
                     (trimmed_graph_data, updated_bytes),
@@ -302,11 +307,6 @@ class BidRunner(threading.Thread):
                 pq_pairs = json.loads(pq_pairs_bytes.decode("utf-8"))
                 self.logger.info(f"Done! Found {len(pq_pairs)} PQ pairs.")
 
-                slot_start_s = self.updated_flo_params.start_unix_s
-                mtn = MarketTypeName.rt60gate5.value
-                market_slot_name = (
-                    f"e.{mtn}.{self.settings.market_maker_alias}.{slot_start_s}"
-                )
                 gws_pq_pairs = [
                     PriceQuantityUnitless(
                         PriceX1000=int(round(float(p["price_mwh"]) * 1000)),
@@ -315,8 +315,8 @@ class BidRunner(threading.Thread):
                     for p in pq_pairs
                 ]
                 bid = Bid(
-                    BidderAlias=self.updated_flo_params.site_id,
-                    MarketSlotName=market_slot_name,
+                    BidderAlias=self.updated_flo_params.GNodeAlias,
+                    MarketSlotName=market_slot_name(self.ops, self.updated_flo_params.StartUnixS),
                     PqPairs=gws_pq_pairs,
                     InjectionIsPositive=True,
                     PriceUnit=MarketPriceUnit.USDPerMWh,
@@ -354,7 +354,9 @@ class BidRunner(threading.Thread):
                 _, expected_storage_kwh_at_hour1, hourly_hp_kwh_el_plan = result
                 flo_next_hour_plans = FloNextHourPlans(
                     ExpectedStorageKwhAtHour1=expected_storage_kwh_at_hour1,
-                    ExpectedElecUsdMwhAtHour1=float(self.orig_flo_params.elec_price_mwh[1]),
+                    ExpectedElecUsdMwhAtHour1=float(
+                        self.orig_flo_params.LmpUsdMwhList[1] + self.orig_flo_params.DistUsdMwhList[1]
+                    ),
                     HourlyHpKwhElPlan=hourly_hp_kwh_el_plan,
                 )
                 self.send_threadsafe(
@@ -376,7 +378,7 @@ class BidRunner(threading.Thread):
         """Release all references to help gc reclaim memory. Call when run() is finished."""
         self.orig_flo_params = None
         self.updated_flo_params = None
-        self.settings = None
+        self.ops = None
         self.logger = None
         self.send_threadsafe = None
         self.on_complete = None
@@ -386,7 +388,7 @@ class BidRunner(threading.Thread):
         self.get_bid_event = None
         self.get_next_hour_plans_event = None
 
-    def get_bid(self, updated_flo_params: HeatPumpWaterTankParams):
+    def get_bid(self, updated_flo_params: FloParams):
         self.logger.info("Getting bid...")
         self.updated_flo_params = updated_flo_params
         self.get_bid_event.set()
@@ -445,7 +447,7 @@ class LtnMQTTCodec(MQTTCodec):
         """A message on the maker's rjb broadcast topic is the bare
         latest.price word; everything else is a gw-wrapped message from
         the scada."""
-        if topic.split("/")[0] == Ltn.RJB:
+        if topic.split("/")[0] == RJB:
             decoded_topic = MQTTTopic.decode(topic)
             if decoded_topic.remainder != ["mm", LatestPrice.model_fields["TypeName"].default]:
                 raise ValueError(f"Unexpected rjb topic [{topic}]")
@@ -483,17 +485,10 @@ class Ltn(PrimeActor):
     MAIN_LOOP_SLEEP_SECONDS = 61
     HEARTBEAT_INTERVAL_S = 60
     SCADA_MQTT = "scada_mqtt"
-    RJB = "rjb"
 
-    @classmethod
-    def latest_price_topic(cls, market_maker_alias: str) -> str:
-        """The MQTT topic the maker's latest.price broadcast arrives on: its
-        rjb routing key with dots as slashes."""
-        return f"{cls.RJB}/{market_maker_alias.replace('.', '-')}/mm/latest-price"
     data: LtnData
     event_loop_thread: Optional[threading.Thread] = None
     dashboard: Optional[Dashboard]
-    ha1_params: Optional[Ha1Params]
     _stop_requested: bool = False
 
     def __init__(self, name: str, services: AppInterface) -> None:
@@ -504,13 +499,12 @@ class Ltn(PrimeActor):
         self.timezone = pytz.timezone(self.settings.timezone_str)
         self.flo_horizon_hours = self.settings.flo_horizon_hours
         self.sent_bid = False
-        self.flo_params: HeatPumpWaterTankParams | None = None
+        self.flo_params: FloParams | None = None
         self.hp_is_off = False
         self.weather_forecast: Optional[ForecastPair] = None
         self.price_forecast: Optional[PriceForecast] = None
         self.data_channels: List
         self.tank_temp_channel_names = None
-        self.ha1_params: Optional[Ha1Params] = self.settings.ha1_params
         self.latest_report: Optional[Report] = None
         self.report_output_dir = Path(f"{self.settings.paths.data_dir}/report")
         self.report_output_dir.mkdir(parents=True, exist_ok=True)
@@ -547,7 +541,6 @@ class Ltn(PrimeActor):
         self.create_graph_minute: int = self.settings.create_graph_minute
         # Gets strategy from scada sending LayoutLite
         self.layout_lite: Optional[LayoutLite] = None # Add this as a way of tracking if we've gotten the layout lite yet
-        self.total_store_tanks = len(self.layout.store_tanks)
         # TODO: read strategy from hardware layout: node = hardware_layout.node(...)
         self.buffer_flo = False
         # The posture facts ride gw.house.operating.status, the LTN's one source;
@@ -595,44 +588,38 @@ class Ltn(PrimeActor):
         return cast(HydronicLayout, self.services.hardware_layout)
 
     @property
+    def app(self) -> LtnAppInterface:
+        if not isinstance(self.services, LtnAppInterface):
+            raise RuntimeError(f"The LTN runs under an LtnAppInterface, not {type(self.services).__name__}")
+        return self.services
+
+    @property
     def plant_clock(self) -> Clock:
-        clock = getattr(self.services, "clock", None)
-        if clock is None:
-            raise RuntimeError(
-                "FLO requires an app with clock (LtnApp or ScadaApp)"
-            )
-        return clock
+        return self.app.clock
+
+    @property
+    def ops(self) -> OperationalParams:
+        return self.app.operational_params
+
+    @property
+    def water_store(self) -> WaterStore:
+        store = self.layout.hydronic.WaterStore
+        if store is None:
+            raise RuntimeError(f"Layout {self.layout.ltn_g_node_alias} has no water store to run a FLO on")
+        return store
 
     def _publish_to_scada(self, payload, qos: QOS = QOS.AtMostOnce) -> MQTTMessageInfo:
         return self.services.publish_message(
             Ltn.SCADA_MQTT, Message(Src=self.publication_name, Payload=payload), qos=qos
         )
 
-    def _message_for_scada_publish(self, payload: Any) -> None:
-        """Best-effort gw-wrapped copy to SCADA over MQTT (OPS-387).
-
-        Payload must carry TypeName for the gwproto envelope. Failures are logged
-        and ignored so FLO and bids are not aborted.
-
-        # HACK (interim): gw-wrapped to scada, not the old Dst="broadcast".
-        # Revert to a real rjb broadcast once the LTN is a gwbase actor
-        # (it leaves the scada lexicon); OPS-387.
-        """
-        try:
-            message_type = getattr(payload, "TypeName", None) or getattr(payload, "type_name", None)
-            if message_type is None:
-                raise ValueError(f"Cannot publish {type(payload).__name__} on SCADA MQTT: payload has no TypeName")
-            self.services.publish_message(
-                self.SCADA_MQTT,
-                Message(
-                    Src=self.publication_name,
-                    Dst=self.scada.name,
-                    Payload=payload,
-                    MessageType=message_type,
-                ),
-            )
-        except Exception as e:
-            self.log(f"Non-critical SCADA MQTT publish skipped ({type(payload).__name__}): {e!r}")
+    def _message_for_scada_publish(self, payload: GwsprotoSemaType) -> None:
+        """A gw-wrapped copy of a word to the scada over MQTT (OPS-387), the
+        interim path until the LTN is a gwbase actor broadcasting on rjb."""
+        self.services.publish_message(
+            self.SCADA_MQTT,
+            Message(Src=self.publication_name, Dst=self.scada.name, Payload=payload),
+        )
 
     def process_internal_message(self, message: Message):
         path_dbg = 0
@@ -729,12 +716,12 @@ class Ltn(PrimeActor):
                 self.contract_handler.process_slow_contract_rejection(decoded.Payload)
             case LatestPrice():
                 path_dbg |= 0x00000400
-                if decoded.Header.Src == self.settings.market_maker_alias:
+                if decoded.Header.Src == self.ops.MarketMakerAlias:
                     self.process_latest_price(decoded.Payload)
                 else:
                     self.log(
                         f"Ignoring latest.price from {decoded.Header.Src}: "
-                        f"the market maker is {self.settings.market_maker_alias}"
+                        f"the market maker is {self.ops.MarketMakerAlias}"
                     )
             case EventBase():
                 path_dbg |= 0x00000040
@@ -943,15 +930,8 @@ class Ltn(PrimeActor):
                             self.log("get_three_layer_storage_model() failed! Not getting bid.")
                         else:
                             t, m, b, th1, th2 = result
-                            self.flo_params = self.flo_params.model_copy(
-                                update={
-                                    "initial_top_temp": float(t),
-                                    "initial_middle_temp": float(m),
-                                    "initial_bottom_temp": float(b),
-                                    "initial_thermocline1": int(th1 * 3),
-                                    "initial_thermocline2": int(th2 * 3),
-                                    "hp_currently_on": not self.hp_is_off,
-                                }
+                            self.flo_params = with_store_state(
+                                self.flo_params, StoreState(t, m, b, th1, th2, hp_on=not self.hp_is_off)
                             )
                             self.bid_runner.get_bid(self.flo_params)
                             self._message_for_scada_publish(self.flo_params)
@@ -1046,112 +1026,29 @@ class Ltn(PrimeActor):
         if self.weather_forecast is None:
             self.log("Not running flo - no weather forecast")
             return
-        if self.ha1_params is None:
-            self.log("Not running flo - no ha1_params")
-            return
-
-        # Crop weather and price forecasts to the horizon
-        self.log(f"Settings ask for a {self.flo_horizon_hours} hour horizon")
-        if self.flo_horizon_hours > MAX_HORIZON_HOURS:
-            self.log(f"Horizon hours is greater than max allowed {MAX_HORIZON_HOURS}!")
-            self.flo_horizon_hours = MAX_HORIZON_HOURS
-        weather = self.weather_forecast.next_hours(FORECAST_HOURS, self.plant_clock.now())
-        if self.flo_horizon_hours > len(weather.time):
-            self.log(f"Horizon hours is greater than weather forecast length {len(weather.time)}!")
-            self.flo_horizon_hours = len(weather.time)
-        if self.flo_horizon_hours > len(self.price_forecast.lmp_usd_per_mwh):
-            self.log(f"Horizon hours is greater than price forecast length {len(self.price_forecast.lmp_usd_per_mwh)}!")
-            self.flo_horizon_hours = len(self.price_forecast.lmp_usd_per_mwh)
-        self.log(f"Using a {self.flo_horizon_hours} hour horizon")
-        weather = HourlyForecast(
-            time=weather.time[:self.flo_horizon_hours],
-            oat_f=weather.oat_f[:self.flo_horizon_hours],
-            wind_speed_mph=weather.wind_speed_mph[:self.flo_horizon_hours],
-        )
-        self.price_forecast.lmp_usd_per_mwh = self.price_forecast.lmp_usd_per_mwh[:self.flo_horizon_hours]
-        self.price_forecast.dp_usd_per_mwh = self.price_forecast.dp_usd_per_mwh[:self.flo_horizon_hours]
-
-        if self.flo_next_hour_plans:
-            previous_plan_hp_kwh_el_list = self.flo_next_hour_plans.HourlyHpKwhElPlan
-            previous_estimate_storage_kwh_now = self.flo_next_hour_plans.ExpectedStorageKwhAtHour1
-            previous_estimate_elec_price_mwh_now = self.flo_next_hour_plans.ExpectedElecUsdMwhAtHour1
-        else:
-            previous_plan_hp_kwh_el_list = None
-            previous_estimate_storage_kwh_now = None
-            previous_estimate_elec_price_mwh_now = None
-
-        num_tanks = self.total_store_tanks if self.seasonal_storage_mode == SeasonalStorageMode.AllTanks else 1
-        num_layers = int(9 * num_tanks)
-        horizon = self.flo_horizon_hours
-        elec_price_mwh = [
-            dp + lmp
-            for dp, lmp in zip(
-                self.price_forecast.dp_usd_per_mwh,
-                self.price_forecast.lmp_usd_per_mwh,
-                strict=True,
+        try:
+            self.flo_params = build_flo_params(
+                ops=self.ops,
+                water_store=self.water_store,
+                storage_mode=self.seasonal_storage_mode,
+                forecast=self.weather_forecast,
+                now_s=self.plant_clock.now(),
+                horizon_hours=self.flo_horizon_hours,
+                lmp_usd_mwh=self.price_forecast.lmp_usd_per_mwh,
+                dist_usd_mwh=self.price_forecast.dp_usd_per_mwh,
+                store=StoreState(t, m, b, th1, th2, hp_on=not self.hp_is_off),
+                buffer_available_kwh=buffer_available_kwh,
+                g_node_alias=self.layout.ltn_g_node_alias,
+                start_unix_s=dijkstra_start_time,
+                created_ms=int(self.plant_clock.now() * 1000),
             )
-        ]
-        load_forecast_kwh = await self.get_load_forecast(weather, buffer_available_kwh)
-        rswt_forecast_f = await self.get_rswt_forecast(load_forecast_kwh)
-
-        self.flo_params = HeatPumpWaterTankParams(
-            horizon=horizon,
-            start_unix_s=dijkstra_start_time,
-            site_id=self.layout.ltn_g_node_alias,
-            timestep_duration_hours=[1.0] * horizon,
-            num_layers=num_layers,
-            storage_volume_gallons=float(TANK_GALLONS * num_tanks),
-            initial_top_temp=float(t),
-            initial_middle_temp=float(m),
-            initial_bottom_temp=float(b),
-            initial_thermocline1=int(th1 * 3),
-            initial_thermocline2=int(th2 * 3),
-            hp_currently_on=not self.hp_is_off,
-            hp_max_kw_elec=self.ha1_params.HpMaxKwEl,
-            hp_turn_on_minutes=self.ha1_params.HpTurnOnMinutes,
-            elec_price_mwh=elec_price_mwh,
-            oat_f=list(weather.oat_f),
-            load_kwh=load_forecast_kwh,
-            rswt_f=rswt_forecast_f,
-            cop_intercept=self.ha1_params.CopIntercept,
-            cop_oat_coeff=self.ha1_params.CopOatCoeff,
-            cop_lwt_coeff=self.ha1_params.CopLwtCoeff,
-            cop_min=self.ha1_params.CopMin,
-            cop_min_oat_f=float(self.ha1_params.CopMinOatF),
-            max_tank_temp_f=float(self.ha1_params.MaxEwtF),
-            previous_plan_hp_kwh_el_list=previous_plan_hp_kwh_el_list,
-            previous_estimate_storage_kwh_now=previous_estimate_storage_kwh_now,
-            previous_estimate_elec_price_mwh_now=previous_estimate_elec_price_mwh_now,
-            storage_losses_percent=flo_tuning.STORAGE_LOSSES_PERCENT,
-            hp_min_kw_elec=flo_tuning.HP_MIN_KW_ELEC,
-            hp_max_kw_th=flo_tuning.HP_MAX_KW_TH,
-            max_load_kw_th=flo_tuning.MAX_LOAD_KW_TH,
-            hp_constant_lift_f=flo_tuning.HP_CONSTANT_LIFT_F,
-            load_bucket_upper_kwh=list(flo_tuning.LOAD_BUCKET_UPPER_KWH),
-            rwt_intercept_by_bucket=list(flo_tuning.RWT_INTERCEPT_BY_BUCKET),
-            rwt_slope_by_bucket=list(flo_tuning.RWT_SLOPE_BY_BUCKET),
-            rwt_min=flo_tuning.RWT_MIN,
-            rswt_penalty_enabled=flo_tuning.RSWT_PENALTY_ENABLED,
-            rswt_penalty_weight=flo_tuning.RSWT_PENALTY_WEIGHT,
-            rswt_penalty_decay=flo_tuning.RSWT_PENALTY_DECAY,
-            rswt_penalty_exponent_rate=flo_tuning.RSWT_PENALTY_EXPONENT_RATE,
-            rswt_penalty_decay_max_hour=flo_tuning.RSWT_PENALTY_DECAY_MAX_HOUR,
-            short_cycle_penalty_enabled=flo_tuning.SHORT_CYCLE_PENALTY_ENABLED,
-            short_cycle_penalty_weight=flo_tuning.SHORT_CYCLE_PENALTY_WEIGHT,
-            stability_penalty_enabled=flo_tuning.STABILITY_PENALTY_ENABLED,
-            stability_penalty_weight=flo_tuning.STABILITY_PENALTY_WEIGHT,
-            stability_penalty_decay=flo_tuning.STABILITY_PENALTY_DECAY,
-            stability_penalty_threshold_kwh=flo_tuning.STABILITY_PENALTY_THRESHOLD_KWH,
-            stability_penalty_threshold_price_mwh=flo_tuning.STABILITY_PENALTY_THRESHOLD_PRICE_MWH,
-            stability_penalty_horizon_hours=flo_tuning.STABILITY_PENALTY_HORIZON_HOURS,
-            terminal_cost_enabled=flo_tuning.TERMINAL_COST_ENABLED,
-            terminal_cost_end_window_hours=flo_tuning.TERMINAL_COST_END_WINDOW_HOURS,
-            bid_min_price_mwh=flo_tuning.BID_MIN_PRICE_MWH,
-            bid_max_price_mwh=flo_tuning.BID_MAX_PRICE_MWH,
-        )
+        except SeasonalFillForecast as e:
+            self.log(f"Not running flo - {e}")
+            return
+        self.log(f"Settings ask for a {self.flo_horizon_hours} hour horizon; using {len(self.flo_params.StepDurationMinutes)}")
         self.bid_runner = BidRunner(
             params=self.flo_params,
-            settings=self.settings,
+            ops=self.ops,
             io_loop_manager_name=self.services.io_loop_manager.name,
             ltn_name=self.name, 
             ltn_g_node_alias=self.layout.ltn_g_node_alias,
@@ -1165,45 +1062,6 @@ class Ltn(PrimeActor):
         self.bid_runner.start()  
         # Instead of waiting, return to event loop
         self.log("Started Dijkstra computation in background")
-
-    async def get_load_forecast(self, weather: HourlyForecast, buffer_available_kwh: float | None = None) -> List[float]:
-        assert self.ha1_params is not None
-        alpha = self.ha1_params.AlphaTimes10 / 10
-        beta = self.ha1_params.BetaTimes100 / 100
-        gamma = self.ha1_params.GammaEx6 / 1e6
-        oat_forecast = [float(x) for x in weather.oat_f]
-        ws_forecast = [float(x) for x in weather.wind_speed_mph]
-        load_forecast = [
-            max(0, alpha + beta * oat + gamma * ws * (65 - oat))
-            for oat, ws in zip(oat_forecast, ws_forecast, strict=True)
-        ]
-        i = 0
-        if buffer_available_kwh is not None and buffer_available_kwh < 0:
-            load_forecast[0] += -buffer_available_kwh
-        elif buffer_available_kwh is not None and buffer_available_kwh > 0:
-            while buffer_available_kwh > 0 and i < len(load_forecast):
-                load_backup = load_forecast[i]
-                load_forecast[i] = load_forecast[i] - min(buffer_available_kwh, load_forecast[i])
-                buffer_available_kwh = buffer_available_kwh - min(buffer_available_kwh, load_backup)
-                i += 1
-        return load_forecast
-
-    async def get_rswt_forecast(self, load_forecast: List[float]) -> List[float]:
-        assert self.ha1_params is not None
-        intermediate_rswt = self.ha1_params.IntermediateRswtF
-        dd_rswt = self.ha1_params.DdRswtF
-        intermediate_power = self.ha1_params.IntermediatePowerKw
-        dd_power = self.ha1_params.DdPowerKw
-        no_power_rswt = -(self.ha1_params.AlphaTimes10 / 10) / (self.ha1_params.BetaTimes100 / 100)
-        x_rswt = np.array([no_power_rswt, intermediate_rswt, dd_rswt])
-        y_power = np.array([0, intermediate_power, dd_power])
-        A = np.vstack([x_rswt**2, x_rswt, np.ones_like(x_rswt)]).T
-        a, b, c = np.linalg.lstsq(A, y_power, rcond=None)[0]
-        rswt_forecast = [
-            round((-b + (b**2 - 4 * a * (c - load)) ** 0.5) / (2 * a), 2)
-            for load in load_forecast
-        ]
-        return rswt_forecast
 
     def _cleanup_bid_runner(self, ltn_name: str) -> None:
         """BidRunner thread exited (success or failure); release FLO state for the next hour.
@@ -1388,23 +1246,22 @@ class Ltn(PrimeActor):
         self.temperatures_available = set(self.tank_temp_channel_names) <= self.latest_temps_f.keys()
 
     async def get_RSWT(self, minus_deltaT=False):
-        if self.ha1_params is None:
-            raise Exception("ha1_params cannot be None here!")
         if self.weather_forecast is None:
             raise Exception("weather_forecast cannot be None here!")
         try:
-            alpha = self.ha1_params.AlphaTimes10 / 10
-            beta = self.ha1_params.BetaTimes100 / 100
-            gamma = self.ha1_params.GammaEx6 / 1e6
+            curve = self.ops.HeatingCurve
+            alpha = curve.AlphaTimes10 / 10
+            beta = curve.BetaTimes100 / 100
+            gamma = curve.GammaEx6 / 1e6
             weather = self.weather_forecast.next_hours(1, self.plant_clock.now())
             oat = weather.oat_f[0]
             ws = weather.wind_speed_mph[0]
             r = alpha + beta*oat + gamma*ws*(65-oat)
             rhp= r if r>0 else 0
-            intermediate_rswt = self.ha1_params.IntermediateRswtF
-            dd_rswt = self.ha1_params.DdRswtF
-            intermediate_power = self.ha1_params.IntermediatePowerKw
-            dd_power = self.ha1_params.DdPowerKw
+            intermediate_rswt = curve.IntermediateRswtF
+            dd_rswt = curve.DdRswtF
+            intermediate_power = curve.IntermediatePowerKw
+            dd_power = curve.DdPowerKw
             no_power_rswt = -alpha/beta
             x_rswt = np.array([no_power_rswt, intermediate_rswt, dd_rswt])
             y_hpower = np.array([0, intermediate_power, dd_power])
@@ -1412,7 +1269,7 @@ class Ltn(PrimeActor):
             a, b, c = np.linalg.solve(A, y_hpower)
             c2 = c - rhp
             rswt = round((-b + (b**2-4*a*c2)**0.5)/(2*a),2)
-            deltaT = self.ha1_params.DdDeltaTF/self.ha1_params.DdPowerKw * (a*rswt**2 + b*rswt + c)
+            deltaT = curve.DdDeltaTF/curve.DdPowerKw * (a*rswt**2 + b*rswt + c)
             deltaT = deltaT if deltaT>0 else 0
             if minus_deltaT:
                 return rswt - deltaT
@@ -1621,13 +1478,8 @@ class Ltn(PrimeActor):
         return min(0, house_availale_kwh) # TODO: TEMPORARY only consider negative values
 
     async def get_weather(self, session: aiohttp.ClientSession) -> None:
-        """The forecast pair from the app's weather source (GWWF on the LTN box)."""
-        weather_source = getattr(self.services, "weather_source", None)
-        if weather_source is None:
-            raise RuntimeError(
-                "FLO requires an app with weather_source (LtnApp or ScadaApp)"
-            )
-        self.weather_forecast = await weather_source.forecast(session)
+        """The forecast pair from the app's weather source."""
+        self.weather_forecast = await self.app.weather_source.forecast(session)
 
     async def get_price_forecast(self) -> None:
         '''Updates self.price_forecast for the start of next hour. All in USD/MWh'''

@@ -13,8 +13,8 @@ import uuid
 import pytest
 from paho.mqtt import publish
 
-from actors.ltn import Ltn
-from gwsproto.enums import MarketPriceUnit, MarketTypeName
+from actors.ltn.market import latest_price_topic, market_slot_name
+from gwsproto.enums import MarketPriceUnit
 from gwsproto.named_types import LatestPrice
 from tests.utils.scada_live_test_helper import ScadaLiveTest
 
@@ -27,13 +27,13 @@ async def test_ltn_hears_latest_price_on_rjb(request: pytest.FixtureRequest) -> 
             "ERROR waiting for the ltn's scada link to activate",
         )
         ltn = h.parent_app.prime_actor
-        alias = ltn.settings.market_maker_alias
+        alias = ltn.ops.MarketMakerAlias
         slot_start_s = int(time.time()) // 3600 * 3600
         price = LatestPrice(
             FromGNodeAlias=alias,
             PriceTimes1000=123456,
             PriceUnit=MarketPriceUnit.USDPerMWh,
-            MarketSlotName=f"e.{MarketTypeName.rt60gate5.value}.{alias}.{slot_start_s}",
+            MarketSlotName=market_slot_name(ltn.ops, slot_start_s),
             MessageId=str(uuid.uuid4()),
         )
         mqtt = ltn.settings.scada_mqtt
@@ -47,7 +47,7 @@ async def test_ltn_hears_latest_price_on_rjb(request: pytest.FixtureRequest) -> 
                 "keyfile": str(mqtt.tls.paths.private_key_path),
             }
         publish.single(
-            Ltn.latest_price_topic(alias),
+            latest_price_topic(alias),
             price.model_dump_json(by_alias=True),
             hostname=mqtt.host,
             port=port,
