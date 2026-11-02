@@ -385,7 +385,7 @@ class Ltn(PrimeActor):
             send_threadsafe=self.services.send_threadsafe,
         )
         self.bid_runner: Optional[BidRunner] = None
-        self.send_bid_minute: int = 27
+        self.send_bid_minute: int = 57
         # Gets strategy from scada sending LayoutLite
         self.layout_lite: Optional[LayoutLite] = None # Add this as a way of tracking if we've gotten the layout lite yet
         # TODO: read strategy from hardware layout: node = hardware_layout.node(...)

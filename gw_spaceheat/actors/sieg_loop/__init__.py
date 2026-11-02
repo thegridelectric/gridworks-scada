@@ -159,7 +159,7 @@ class SiegLoop(House0Hydronic):
             self.commanded_by = None
             self.strategy.resume()
         self.strategy.tick()
-        self.log_view()
+        # self.log_view()  # the sieg-view strip; uncomment for a test-drive
         if self.since_last_pat_s >= self.PAT_INTERVAL_S:
             self.since_last_pat_s = 0
             self._send(PatInternalWatchdogMessage(src=self.name))
@@ -334,7 +334,7 @@ class SiegLoop(House0Hydronic):
                 Cause=cause,
             ),
         )
-        self.log_view()
+        # self.log_view()  # the sieg-view strip; uncomment for a test-drive
 
     # --------------------------------------
     # The sieg-view strip (debug output for the maple test-drives)

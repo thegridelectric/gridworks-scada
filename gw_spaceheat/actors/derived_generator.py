@@ -475,12 +475,6 @@ class DerivedGenerator(ShNodeActor):
             self.last_emitted[dc.Name] = value
 
             if periodic_due:
-                self.log(
-                    f"[HeatCall periodic] {dc.Name} "
-                    f"now={round(now,1)} "
-                    f"next={round(self.next_period_boundary_ts[dc.Name],1)} "
-                    f"period={dc.EmitPeriodS}"
-                )
                 self._advance_period_boundary(dc.Name, now, period)
 
         self._dispatch_derived_input(heat_call_reading)
