@@ -968,7 +968,7 @@ class Scada(PrimeActor, ScadaInterface):
         self._data.recent_channel_unix_ms[ch.Name].append(payload.ScadaReadTimeUnixMs)
         self._data.latest_channel_values[ch.Name] = payload.Value
         self._data.latest_channel_unix_ms[ch.Name] = payload.ScadaReadTimeUnixMs
-        self.note_reading_for_buffer_fresh_once()
+        self.note_reading_for_buffer_fresh()
         self._forward_single_reading(payload)
         self.forward_to_channel_subscribers(from_node, ch.Name, payload)
 
@@ -1012,7 +1012,7 @@ class Scada(PrimeActor, ScadaInterface):
                         ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs,
                     ),
                 )
-        self.note_reading_for_buffer_fresh_once()
+        self.note_reading_for_buffer_fresh()
 
         # Hack for moving out of Initializing rapidly when restarting Scada
         if from_node.Name ==HSNN.buffer.reader and not self.got_first_buffer_reading:
@@ -1590,10 +1590,16 @@ class Scada(PrimeActor, ScadaInterface):
         enabled and fresh; false blinds the scada to dispatch."""
         return buffer_fresh(self._data, self.layout)
 
-    def note_reading_for_buffer_fresh_once(self) -> None:
-        """Set the one-shot the first time the buffer is fresh; nothing after."""
-        if not self._data.buffer_fresh_once.is_set() and self.buffer_fresh():
+    def note_reading_for_buffer_fresh(self) -> None:
+        """On each reading: set the one-shot the first time the buffer is
+        fresh, and re-report the operating status when the buffer's freshness
+        differs from the last status sent, so the LTN learns of blindness
+        ending or starting with the reading rather than at the report tick."""
+        fresh = self.buffer_fresh()
+        if fresh and not self._data.buffer_fresh_once.is_set():
             self._data.buffer_fresh_once.set()
+        if self.last_operating_status is not None and self.last_operating_status.ScadaBlind == fresh:
+            self.report_operating_status()
 
     @property
     def dispatch_refusal(self) -> Optional[DispatchRefusalReason]:
