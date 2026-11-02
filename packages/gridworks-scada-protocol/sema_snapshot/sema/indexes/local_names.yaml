@@ -14,6 +14,7 @@ enums:
   gw.circulator.role: circulator.role
   gw.dispatch.refusal.reason: dispatch.refusal.reason
   gw.g.node.class: g.node.class
+  gw.market.product.name: market.product.name
   gw.primary.flow.source: primary.flow.source
   gw.primary.pump.owner: primary.pump.owner
   gw.refrigerant.cycle: refrigerant.cycle
@@ -53,7 +54,6 @@ enums:
   log.level: log.level
   market.price.unit: market.price.unit
   market.quantity.unit: market.quantity.unit
-  market.type.name: market.type.name
   move.sieg.valve: move.sieg.valve
   pico.board.variant: pico.board.variant
   pico.cycler.event: pico.cycler.event
@@ -105,7 +105,12 @@ types:
   electric.meter.component.gt: electric.meter.component.gt
   electric.meter.device.type.gt: electric.meter.device.type.gt
   energy.instruction: energy.instruction
+  flo.optimal.path: flo.optimal.path
+  flo.params: flo.params
   flo.params.house0: flo.params.house0
+  flo.recommendation: flo.recommendation
+  flo.tuning.alice: flo.tuning.alice
+  flo.tuning.bruce: flo.tuning.bruce
   flow.hall.params: flow.hall.params
   fsm.atomic.report: fsm.atomic.report
   fsm.event: fsm.event

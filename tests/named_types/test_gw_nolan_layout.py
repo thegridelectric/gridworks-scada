@@ -310,11 +310,12 @@ def test_gw_hydronic_water_store_optional(assembled: dict) -> None:
 
 def test_gw_water_store_axiom_1() -> None:
     """One to six tanks; zero is refused by the format, seven by the axiom."""
-    assert WaterStore(TotalStoreTanks=6).TotalStoreTanks == 6
+    tank = dict(GallonsPerTank=120, TempSensorsPerTank=3)
+    assert WaterStore(TotalStoreTanks=6, **tank).TotalStoreTanks == 6
     with pytest.raises(ValidationError):
-        WaterStore(TotalStoreTanks=0)
+        WaterStore(TotalStoreTanks=0, **tank)
     with pytest.raises(ValueError, match=r"Axiom 1 \(TankCount\)"):
-        WaterStore(TotalStoreTanks=7)
+        WaterStore(TotalStoreTanks=7, **tank)
 
 
 def test_gw_hydronic_axiom_1_b_no_zones(assembled: dict) -> None:

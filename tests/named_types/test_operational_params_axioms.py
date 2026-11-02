@@ -42,6 +42,28 @@ def test_gw_operational_params_family_block_is_discriminated() -> None:
     assert_refused(OperationalParams, d, match="SiegLoopStrategy")
 
 
+def test_gw_operational_params_flo_tuning_is_discriminated() -> None:
+    d = ops("gw.nolan.operational.params.json")
+    d["FloTuning"]["TypeName"] = "flo.tuning.carol"
+    assert_refused(OperationalParams, d, match="FloTuning")
+
+
+@pytest.mark.parametrize("name", OPS_FIXTURES)
+def test_gw_operational_params_axiom_6_alice_without_operator_hold(name: str) -> None:
+    d = ops(name)
+    d["FloTuning"] = {"TypeName": "flo.tuning.alice", "Version": "000"}
+    d["DispatchHold"]["OperatorHold"] = False
+    assert_refused(OperationalParams, d, match="Axiom 6 \\(AliceHoldsDispatch\\)")
+
+
+@pytest.mark.parametrize("name", OPS_FIXTURES)
+def test_gw_operational_params_axiom_6_alice_with_operator_hold(name: str) -> None:
+    d = ops(name)
+    d["FloTuning"] = {"TypeName": "flo.tuning.alice", "Version": "000"}
+    d["DispatchHold"]["OperatorHold"] = True
+    OperationalParams.model_validate(d)
+
+
 def test_gw_tou_tariff_axiom_1_overlapping_windows() -> None:
     d = ops("gw.house0.orange.operational.params.json")["Tariff"]
     d["OnPeakWindows"] = [
@@ -120,6 +142,24 @@ def test_gw_operational_params_axiom_5_nolan_has_no_loop() -> None:
     d = ops("gw.nolan.operational.params.json")
     d["Standby"] = True
     d["DispatchHold"]["OperatorHold"] = True
+    OperationalParams.model_validate(d)
+
+
+def test_gw_operational_params_axiom_7_a_bruce_on_house0_loop_at_lwt_control() -> None:
+    d = ops("gw.house0.orange.operational.params.json")
+    assert d["FloTuning"]["TypeName"] == "flo.tuning.bruce"
+    for strategy in ("HoldFullSend", "StratProtect"):
+        d["FamilyParams"]["SiegLoopStrategy"] = strategy
+        OperationalParams.model_validate(d)
+    d["FamilyParams"]["SiegLoopStrategy"] = "LwtControl"
+    assert_refused(OperationalParams, d, match="Axiom 7 \\(FloTuningAdmitsFamily\\) clause a")
+
+
+def test_gw_operational_params_axiom_7_alice_on_house0_loop_at_lwt_control() -> None:
+    d = ops("gw.house0.orange.operational.params.json")
+    d["FloTuning"] = {"TypeName": "flo.tuning.alice", "Version": "000"}
+    d["DispatchHold"]["OperatorHold"] = True
+    d["FamilyParams"]["SiegLoopStrategy"] = "LwtControl"
     OperationalParams.model_validate(d)
 
 

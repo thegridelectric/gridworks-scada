@@ -1,6 +1,7 @@
 {
   "TypeName": "gw.weather.forecast",
-  "Version": "001",
+  "Version": "002",
+  "ForecastUid": "5f1c2b3a-8d4e-4f60-9a7b-1c2d3e4f5a6b",
   "BundleName": "us.me.millinocket.raccoon",
   "MessageCreatedMs": 1792094460033,
   "FirstSliceStart": "2026-10-15T21:00:00Z",

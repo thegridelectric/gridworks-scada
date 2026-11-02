@@ -1,6 +1,7 @@
 from typing import Literal
 from pydantic import model_validator
 from sema_snapshot.sema.base import SemaType
+from sema_snapshot.sema.enums import MarketProductName
 from sema_snapshot.sema.enums import ServiceMode
 from sema_snapshot.sema.enums import SiegLoopStrategy
 from sema_snapshot.sema.enums import StandbyPosture
@@ -12,6 +13,8 @@ from sema_snapshot.sema.property_format import SpaceheatName
 from sema_snapshot.sema.types.capture_tuning import CaptureTuning
 from sema_snapshot.sema.types.cop_curve import CopCurve
 from sema_snapshot.sema.types.dispatch_hold import DispatchHold
+from sema_snapshot.sema.types.flo_tuning_alice import FloTuningAlice
+from sema_snapshot.sema.types.flo_tuning_bruce import FloTuningBruce
 from sema_snapshot.sema.types.heating_curve import HeatingCurve
 from sema_snapshot.sema.types.house0_family_params import House0FamilyParams
 from sema_snapshot.sema.types.house0_no_sieg_family_params import (
@@ -41,6 +44,9 @@ class OperationalParams(SemaType):
     load_overestimation_percent: NonNegativeInt
     uses_backup_when_cold: bool
     horizon_hours: PositiveInt
+    market_maker_alias: LeftRightDot
+    market_product_name: MarketProductName
+    flo_tuning: FloTuningAlice | FloTuningBruce
     weather_bundle_name: LeftRightDot
     tariff: TouTariff
     type_name: Literal["gw.operational.params"] = "gw.operational.params"
@@ -143,5 +149,44 @@ class OperationalParams(SemaType):
             raise ValueError(
                 "Axiom 5 (StandbyHoldsFullSend) failed: Standby requires "
                 f"SiegLoopStrategy HoldFullSend, got {family.sieg_loop_strategy}."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_6(self) -> "OperationalParams":
+        """
+        Axiom 6: AliceHoldsDispatch
+        If FloTuning.TypeName is flo.tuning.alice, DispatchHold.OperatorHold
+        SHALL be true.
+        """
+        if (
+            isinstance(self.flo_tuning, FloTuningAlice)
+            and not self.dispatch_hold.operator_hold
+        ):
+            raise ValueError(
+                "Axiom 6 (AliceHoldsDispatch) failed: flo.tuning.alice requires "
+                "DispatchHold.OperatorHold."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_7(self) -> "OperationalParams":
+        """
+        Axiom 7: FloTuningAdmitsFamily
+        A FLO is a model of the plant as operated, so FloTuning SHALL be
+        admissible for FamilyParams:
+        a. If FloTuning.TypeName is flo.tuning.bruce and FamilyParams.TypeName
+           is gw.house0.family.params, FamilyParams.SiegLoopStrategy SHALL NOT
+           be LwtControl.
+        """
+        family = self.family_params
+        if (
+            isinstance(self.flo_tuning, FloTuningBruce)
+            and isinstance(family, House0FamilyParams)
+            and family.sieg_loop_strategy is SiegLoopStrategy.LwtControl
+        ):
+            raise ValueError(
+                "Axiom 7 (FloTuningAdmitsFamily) clause a failed: flo.tuning.bruce "
+                "on a House0 family excludes SiegLoopStrategy LwtControl."
             )
         return self

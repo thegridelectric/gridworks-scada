@@ -1,0 +1,32 @@
+{
+  "TypeName": "flo.tuning.bruce",
+  "Version": "000",
+  "StorageLossesPercent": 0.5,
+  "HpMinKwEl": 0.0,
+  "HpMaxKwTh": 25.0,
+  "MaxLoadKwTh": 20.0,
+  "HpConstantLiftF": 20.0,
+  "LoadBucketUpperKwhList": [],
+  "RwtInterceptByBucketList": [
+    49.463
+  ],
+  "RwtSlopeByBucketList": [
+    0.427
+  ],
+  "RwtMinF": 50.0,
+  "RswtPenaltyEnabled": true,
+  "RswtPenaltyWeight": 0.02,
+  "RswtPenaltyDecay": 0.9,
+  "RswtPenaltyExponentRate": 0.15,
+  "RswtPenaltyDecayMaxHour": 12,
+  "ShortCyclePenaltyEnabled": true,
+  "ShortCyclePenaltyWeight": 6.0,
+  "StabilityPenaltyEnabled": true,
+  "StabilityPenaltyWeight": 0.5,
+  "StabilityPenaltyDecay": 0.75,
+  "StabilityPenaltyThresholdKwh": 10.0,
+  "StabilityPenaltyThresholdPriceMwh": 15.0,
+  "StabilityPenaltyHorizonHours": 20,
+  "TerminalCostEnabled": true,
+  "TerminalCostEndWindowHours": 24
+}

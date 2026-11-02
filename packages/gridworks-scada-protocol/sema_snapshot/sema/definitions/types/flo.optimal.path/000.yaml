@@ -1,0 +1,76 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/flo.optimal.path/000"
+
+title: "flo.optimal.path"
+type: object
+description: >
+  The operating path a Forward Looking Optimizer expects to follow over its
+  horizon given one choice of electricity use in the first step: the heat
+  pump's average electric power in each step and the thermal store's energy
+  at the end of each step, on a step grid the path states itself.
+
+properties:
+
+  StartUnixS:
+    $ref: "https://schemas.electricity.works/formats/utc.seconds"
+    description: >
+      Start of the first step.
+
+  StepDurationMinutes:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Length of each step in minutes. Step i begins at StartUnixS plus the
+      sum of the durations of the steps before it.
+
+  HpAvgWList:
+    type: array
+    items:
+      type: integer
+    description: >
+      The heat pump's average electric power in each step, in watts.
+
+  StoreWhList:
+    type: array
+    items:
+      type: integer
+    description: >
+      The thermal store's expected energy at the end of each step, in
+      watt-hours.
+
+  TypeName:
+    const: "flo.optimal.path"
+
+  Version:
+    const: "000"
+
+required:
+  - StartUnixS
+  - StepDurationMinutes
+  - HpAvgWList
+  - StoreWhList
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "StartUnixS": 1762009200,
+      "StepDurationMinutes": [60, 60, 60],
+      "HpAvgWList": [4200, 0, 3100],
+      "StoreWhList": [38500, 31200, 36800],
+      "TypeName": "flo.optimal.path",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "StepListLengths"
+      statement: >
+        StepDurationMinutes, HpAvgWList and StoreWhList SHALL have the same
+        length.

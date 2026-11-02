@@ -109,11 +109,36 @@ types:
     versioning_strategy: literal
     versions:
       '000': definitions/types/energy.instruction/000.yaml
+  flo.optimal.path:
+    latest_version: '000'
+    versioning_strategy: literal
+    versions:
+      '000': definitions/types/flo.optimal.path/000.yaml
+  flo.params:
+    latest_version: '000'
+    versioning_strategy: literal
+    versions:
+      '000': definitions/types/flo.params/000.yaml
   flo.params.house0:
     latest_version: '007'
     versioning_strategy: literal
     versions:
       '007': definitions/types/flo.params.house0/007.yaml
+  flo.recommendation:
+    latest_version: '000'
+    versioning_strategy: literal
+    versions:
+      '000': definitions/types/flo.recommendation/000.yaml
+  flo.tuning.alice:
+    latest_version: '000'
+    versioning_strategy: literal
+    versions:
+      '000': definitions/types/flo.tuning.alice/000.yaml
+  flo.tuning.bruce:
+    latest_version: '000'
+    versioning_strategy: literal
+    versions:
+      '000': definitions/types/flo.tuning.bruce/000.yaml
   flow.hall.params:
     latest_version: '101'
     versioning_strategy: literal
@@ -280,10 +305,10 @@ types:
     versions:
       '002': definitions/types/gw.weather.channel.gt/002.yaml
   gw.weather.forecast:
-    latest_version: '001'
+    latest_version: '002'
     versioning_strategy: literal
     versions:
-      '001': definitions/types/gw.weather.forecast/001.yaml
+      '002': definitions/types/gw.weather.forecast/002.yaml
   gw.weather.forecast.binding:
     latest_version: '000'
     versioning_strategy: literal
@@ -771,6 +796,11 @@ enums:
     latest_version: '000'
     versions:
       '000': definitions/enums/gw.g.node.class/000.yaml
+  gw.market.product.name:
+    enum_type: versioned
+    latest_version: '000'
+    versions:
+      '000': definitions/enums/gw.market.product.name/000.yaml
   gw.primary.flow.source:
     enum_type: versioned
     latest_version: '000'
@@ -958,11 +988,6 @@ enums:
     latest_version: '000'
     versions:
       '000': definitions/enums/market.quantity.unit/000.yaml
-  market.type.name:
-    enum_type: versioned
-    latest_version: '000'
-    versions:
-      '000': definitions/enums/market.type.name/000.yaml
   move.sieg.valve:
     enum_type: versioned
     latest_version: '001'

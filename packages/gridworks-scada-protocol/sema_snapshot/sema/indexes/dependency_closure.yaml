@@ -190,6 +190,30 @@ types:
       - utc.seconds
       types: []
       versionless_types: []
+  flo.optimal.path:
+    '000':
+      enums: []
+      formats:
+      - positive.int
+      - utc.seconds
+      types: []
+      versionless_types: []
+  flo.params:
+    '000':
+      enums:
+      - gw1.seasonal.storage.mode:000
+      formats:
+      - left.right.dot
+      - non.negative.int
+      - positive.int
+      - utc.milliseconds
+      - utc.seconds
+      - uuid4.str
+      types:
+      - flo.optimal.path:000
+      - flo.tuning.alice:000
+      - flo.tuning.bruce:000
+      versionless_types: []
   flo.params.house0:
     '007':
       enums:
@@ -199,6 +223,35 @@ types:
       - positive.int
       - utc.seconds
       - uuid4.str
+      types: []
+      versionless_types: []
+  flo.recommendation:
+    '000':
+      enums:
+      - market.price.unit:000
+      - market.quantity.unit:000
+      formats:
+      - git.commit
+      - left.right.dot
+      - non.empty.string
+      - positive.int
+      - utc.milliseconds
+      - utc.seconds
+      types:
+      - flo.optimal.path:000
+      - price.quantity.unitless:001
+      versionless_types: []
+  flo.tuning.alice:
+    '000':
+      enums: []
+      formats: []
+      types: []
+      versionless_types: []
+  flo.tuning.bruce:
+    '000':
+      enums: []
+      formats:
+      - non.negative.int
       types: []
       versionless_types: []
   flow.hall.params:
@@ -731,6 +784,7 @@ types:
     '000':
       enums:
       - day.of.week:000
+      - gw.market.product.name:000
       - gw.standby.posture:000
       - gw1.seasonal.storage.mode:000
       - gw1.service.mode:000
@@ -746,6 +800,8 @@ types:
       types:
       - capture.tuning:000
       - cop.curve:000
+      - flo.tuning.alice:000
+      - flo.tuning.bruce:000
       - gw.dispatch.hold:000
       - gw.house0.family.params:000
       - gw.house0.no.sieg.family.params:000
@@ -825,7 +881,7 @@ types:
       types: []
       versionless_types: []
   gw.weather.forecast:
-    '001':
+    '002':
       enums:
       - gw.weather.forecast.fidelity:000
       - gw1.quantity:003
@@ -833,6 +889,7 @@ types:
       - left.right.dot
       - utc.iso8601.seconds
       - utc.milliseconds
+      - uuid4.str
       types:
       - gw.weather.forecast.series:000
       versionless_types: []

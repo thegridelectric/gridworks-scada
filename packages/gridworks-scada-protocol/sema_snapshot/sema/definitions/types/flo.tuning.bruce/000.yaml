@@ -1,0 +1,166 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/flo.tuning.bruce/000"
+
+title: "flo.tuning.bruce"
+type: object
+description: >
+  The tuning knobs of the bruce Forward Looking Optimizer, one heat pump
+  charging one stratified water store: the plant model constants bruce
+  needs that no house word states, and the weights of its penalties.
+  Authored once per house in its operational params and copied into each
+  flo.params.bruce request.
+
+properties:
+  StorageLossesPercent:
+    type: number
+    description: >
+      Heat lost from the store per step, as a percentage of its energy.
+  HpMinKwEl:
+    type: number
+    description: >
+      The heat pump's minimum electric draw while running, in kW.
+  HpMaxKwTh:
+    type: number
+    description: >
+      The heat pump's maximum thermal output in one step, in kW.
+  MaxLoadKwTh:
+    type: number
+    description: >
+      The largest heating load the model admits in one step, in kW.
+  HpConstantLiftF:
+    type: number
+    description: >
+      Temperature rise across the heat pump per pass, in degrees F.
+  LoadBucketUpperKwhList:
+    type: array
+    items:
+      type: number
+    description: >
+      Upper bounds of the load buckets in kWh, ascending; the last bucket is
+      unbounded, so there is one more bucket than bounds.
+  RwtInterceptByBucketList:
+    type: array
+    items:
+      type: number
+    description: >
+      Intercept of the return-water temperature line per load bucket, in
+      degrees F.
+  RwtSlopeByBucketList:
+    type: array
+    items:
+      type: number
+    description: >
+      Slope of the return-water temperature line per load bucket, degrees F
+      of return per degree F of supply.
+  RwtMinF:
+    type: number
+    description: >
+      Floor of the modeled return-water temperature, in degrees F.
+  RswtPenaltyEnabled:
+    type: boolean
+  RswtPenaltyWeight:
+    type: number
+  RswtPenaltyDecay:
+    type: number
+  RswtPenaltyExponentRate:
+    type: number
+  RswtPenaltyDecayMaxHour:
+    $ref: "https://schemas.electricity.works/formats/non.negative.int"
+  ShortCyclePenaltyEnabled:
+    type: boolean
+  ShortCyclePenaltyWeight:
+    type: number
+  StabilityPenaltyEnabled:
+    type: boolean
+  StabilityPenaltyWeight:
+    type: number
+  StabilityPenaltyDecay:
+    type: number
+  StabilityPenaltyThresholdKwh:
+    type: number
+  StabilityPenaltyThresholdPriceMwh:
+    type: number
+  StabilityPenaltyHorizonHours:
+    $ref: "https://schemas.electricity.works/formats/non.negative.int"
+  TerminalCostEnabled:
+    type: boolean
+  TerminalCostEndWindowHours:
+    $ref: "https://schemas.electricity.works/formats/non.negative.int"
+  TypeName:
+    const: "flo.tuning.bruce"
+  Version:
+    const: "000"
+
+required:
+  - StorageLossesPercent
+  - HpMinKwEl
+  - HpMaxKwTh
+  - MaxLoadKwTh
+  - HpConstantLiftF
+  - LoadBucketUpperKwhList
+  - RwtInterceptByBucketList
+  - RwtSlopeByBucketList
+  - RwtMinF
+  - RswtPenaltyEnabled
+  - RswtPenaltyWeight
+  - RswtPenaltyDecay
+  - RswtPenaltyExponentRate
+  - RswtPenaltyDecayMaxHour
+  - ShortCyclePenaltyEnabled
+  - ShortCyclePenaltyWeight
+  - StabilityPenaltyEnabled
+  - StabilityPenaltyWeight
+  - StabilityPenaltyDecay
+  - StabilityPenaltyThresholdKwh
+  - StabilityPenaltyThresholdPriceMwh
+  - StabilityPenaltyHorizonHours
+  - TerminalCostEnabled
+  - TerminalCostEndWindowHours
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "StorageLossesPercent": 0.5,
+      "HpMinKwEl": 0,
+      "HpMaxKwTh": 25,
+      "MaxLoadKwTh": 20,
+      "HpConstantLiftF": 20,
+      "LoadBucketUpperKwhList": [],
+      "RwtInterceptByBucketList": [49.463],
+      "RwtSlopeByBucketList": [0.427],
+      "RwtMinF": 50,
+      "RswtPenaltyEnabled": true,
+      "RswtPenaltyWeight": 0.02,
+      "RswtPenaltyDecay": 0.9,
+      "RswtPenaltyExponentRate": 0.15,
+      "RswtPenaltyDecayMaxHour": 12,
+      "ShortCyclePenaltyEnabled": true,
+      "ShortCyclePenaltyWeight": 6.0,
+      "StabilityPenaltyEnabled": true,
+      "StabilityPenaltyWeight": 0.5,
+      "StabilityPenaltyDecay": 0.75,
+      "StabilityPenaltyThresholdKwh": 10.0,
+      "StabilityPenaltyThresholdPriceMwh": 15.0,
+      "StabilityPenaltyHorizonHours": 20,
+      "TerminalCostEnabled": true,
+      "TerminalCostEndWindowHours": 24,
+      "TypeName": "flo.tuning.bruce",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "OneLinePerBucket"
+      statement: >
+        RwtInterceptByBucketList and RwtSlopeByBucketList SHALL each have
+        exactly one more element than LoadBucketUpperKwhList.
+    - number: 2
+      name: "BucketsAscend"
+      statement: >
+        LoadBucketUpperKwhList SHALL be positive and strictly increasing.

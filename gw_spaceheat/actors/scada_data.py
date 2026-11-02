@@ -9,7 +9,7 @@ import uuid
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional, Union
 
-from actors.config import ScadaSettings
+from actors.config import ScadaPathsSettings, ScadaSettings
 from gwsproto.data_classes.data_channel import DataChannel
 from gwsproto.data_classes.derived_channel import DerivedChannel
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
@@ -33,7 +33,7 @@ from actors.config import DEFAULT_OPS_PARAMS_FILE
 from sema_to_dc import OperationalParams, decode_operational_params
 
 
-def load_operational_params(settings: ScadaSettings) -> OperationalParams:
+def load_operational_params(settings: ScadaPathsSettings) -> OperationalParams:
     """Load the home's authored operational-params artifact, decoded through
     its own family's word. The artifact is REQUIRED — its values have no
     defaults anywhere else. Pairing with the layout family is enforced at

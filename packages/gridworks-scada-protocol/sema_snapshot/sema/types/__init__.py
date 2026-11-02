@@ -34,7 +34,12 @@ from sema_snapshot.sema.types.electric_meter_device_type_gt import (
 )
 from sema_snapshot.sema.types.element_backup import ElementBackup
 from sema_snapshot.sema.types.energy_instruction import EnergyInstruction
+from sema_snapshot.sema.types.flo_optimal_path import FloOptimalPath
+from sema_snapshot.sema.types.flo_params import FloParams
 from sema_snapshot.sema.types.flo_params_house0 import FloParamsHouse0
+from sema_snapshot.sema.types.flo_recommendation import FloRecommendation
+from sema_snapshot.sema.types.flo_tuning_alice import FloTuningAlice
+from sema_snapshot.sema.types.flo_tuning_bruce import FloTuningBruce
 from sema_snapshot.sema.types.flow_hall_params import FlowHallParams
 from sema_snapshot.sema.types.fsm_atomic_report import FsmAtomicReport
 from sema_snapshot.sema.types.fsm_event import FsmEvent
@@ -212,7 +217,12 @@ __all__ = [
     "ElectricMeterDeviceTypeGt",
     "ElementBackup",
     "EnergyInstruction",
+    "FloOptimalPath",
+    "FloParams",
     "FloParamsHouse0",
+    "FloRecommendation",
+    "FloTuningAlice",
+    "FloTuningBruce",
     "FlowHallParams",
     "FsmAtomicReport",
     "FsmEvent",

@@ -3,22 +3,22 @@ from typing import List
 from gwsproto.enums.gw_str_enum import SemaEnum
 
 
-class MarketTypeName(SemaEnum):
+class MarketProductName(SemaEnum):
     """
-    Sema: https://schemas.electricity.works/enums/market.type.name/000
+    Sema: https://schemas.electricity.works/enums/gw.market.product.name/000
     """
 
     unknown = auto()
-    rt5gate5 = auto()
-    rt60gate5 = auto()
     da60 = auto()
+    rt60gate5 = auto()
     rt60gate30 = auto()
-    rt15gate5 = auto()
-    rt30gate5 = auto()
     rt60gate30b = auto()
+    rt30gate5 = auto()
+    rt15gate5 = auto()
+    rt5gate5 = auto()
 
     @classmethod
-    def default(cls) -> "MarketTypeName":
+    def default(cls) -> "MarketProductName":
         return cls.unknown
 
     @classmethod
@@ -27,7 +27,7 @@ class MarketTypeName(SemaEnum):
 
     @classmethod
     def enum_name(cls) -> str:
-        return "market.type.name"
+        return "gw.market.product.name"
 
     @classmethod
     def enum_version(cls) -> str:

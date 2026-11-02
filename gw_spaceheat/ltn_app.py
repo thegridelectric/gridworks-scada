@@ -1,7 +1,7 @@
 import typing
 from pathlib import Path
 from types import ModuleType
-from typing import Optional
+from typing import Any, Optional
 
 from gwproactor import App
 from gwproactor import LinkSettings
@@ -15,14 +15,64 @@ from gwsproto.data_classes.hydronic_layout import HydronicLayout
 import actors
 from actors.ltn import Ltn
 from actors.ltn.config import LtnSettings
+from actors.ltn.market import latest_price_topic
+from actors.scada_data import load_operational_params
+from clock import Clock, build_clock
+from ltn_app_interface import LtnAppInterface
 from sema_to_dc import load_layout
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
+from gwsproto.named_types import OperationalParams
 from gwsproto.names.core.node_names import CoreNodeNames
+from weather_source import WeatherSource, build_weather_source
 
 
-class LtnApp(App):
+class LtnApp(App, LtnAppInterface):
 
     SCADA_MQTT: str = Ltn.SCADA_MQTT
+
+    def __init__(
+        self,
+        *,
+        clock: Optional[Clock] = None,
+        weather_source: Optional[WeatherSource] = None,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(**kwargs)
+        self._operational_params = load_operational_params(self.settings)
+        self._clock = clock if clock is not None else build_clock(
+            self.settings.clock_source,
+            self.is_simulated,
+            self.settings.scada_mqtt,
+        )
+        self._weather_source = (
+            weather_source
+            if weather_source is not None
+            else build_weather_source(
+                self.settings.weather_source,
+                self._operational_params,
+                Path(self.settings.paths.config_dir),
+                self.settings.weather_api_url,
+                self.settings.weather_pull_timeout_s,
+                self._clock,
+                self.settings.logging.base_log_name,
+            )
+        )
+
+    @property
+    def is_simulated(self) -> bool:
+        return self.hardware_layout.has_simulated_component()
+
+    @property
+    def clock(self) -> Clock:
+        return self._clock
+
+    @property
+    def weather_source(self) -> WeatherSource:
+        return self._weather_source
+
+    @property
+    def operational_params(self) -> OperationalParams:
+        return self._operational_params
 
     @classmethod
     def app_settings_type(cls) -> type[LtnSettings]:
@@ -121,7 +171,7 @@ class LtnApp(App):
         # rjb bridge; the link's own subscription hears only the scada.
         proactor.links.subscribe(
             client=self.SCADA_MQTT,
-            topic=Ltn.latest_price_topic(self.settings.market_maker_alias),
+            topic=latest_price_topic(self.operational_params.MarketMakerAlias),
             qos=QOS.AtMostOnce,
         )
 

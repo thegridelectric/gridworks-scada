@@ -2,8 +2,9 @@
 when one of its fields changes: the top state as admin takes and releases
 the tree, LtnDispatching from a contract's first Active heartbeat until
 no contract has been active past a completion's warning window, the
-validation state when the deed changes. A repeated report with nothing
-changed sends nothing. In-process on every Standby x ServiceMode cell the
+validation state when the deed changes, ScadaBlind with the reading that
+makes the buffer fresh or stale. A repeated report with nothing changed
+sends nothing. In-process on every Standby x ServiceMode cell the
 loader selects; a Standby cell refuses the offer and never dispatches."""
 
 import asyncio
@@ -20,6 +21,7 @@ from actors.scada import Scada
 from gwsproto.enums import (
     DispatchRefusalReason,
     MainAutoState,
+    ServiceMode,
     SlowDispatchContractStatus,
     TaValidationState,
     TopState,
@@ -38,6 +40,7 @@ from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from sema_to_dc import load_layout
 from tests.actors.test_relays_boot import CONFIG, LAYOUTS, ROWS, Row, row_ops
+from actors.hydronic.shared import dispatch_channels
 from tests.utils.scada_live_test_helper import ScadaLiveTest, fresh_buffer
 
 # One row per (Standby, ServiceMode) cell of the selection table.
@@ -45,6 +48,10 @@ CELLS: dict[tuple[bool, str], Row] = {}
 for _row in ROWS:
     CELLS.setdefault((_row.local_control.standby, _row.local_control.service), _row)
 CELL_ROWS = tuple(CELLS.values())
+# One heating cell with no operator hold, where blindness alone decides dispatch.
+DISPATCHING_ROW = next(
+    r for r in CELL_ROWS if not r.local_control.standby and r.local_control.service == ServiceMode.Heating
+)
 
 
 async def no_announcer(self: Scada) -> None:
@@ -288,3 +295,60 @@ async def test_operating_status_emits_once_per_change(
         scada.report_operating_status()
         assert len(statuses) == count + 1
         assert_only_changed(before, statuses[-1], ValidationState=other)
+
+
+@pytest.mark.asyncio
+async def test_operating_status_follows_buffer_freshness(
+    request: pytest.FixtureRequest, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A scada boots blind and says so; the reading that makes the buffer
+    fresh re-reports at once, as does the one that finds it stale, without
+    waiting for the report tick."""
+    row = DISPATCHING_ROW
+    monkeypatch.setattr(Scada, "announce_at_first_broker_link", no_announcer)
+    layout_file, ops_file = LAYOUTS[row.layout]
+    ops_path = row_ops(tmp_path, ops_file, row)
+    layout = load_layout(CONFIG / layout_file, ops_path)
+    async with ScadaLiveTest(request=request, layout=layout, ops_path=ops_path) as h:
+        h.start_child1()
+        await h.await_for(
+            lambda: any(t.get_name() == "scada top_state_tracker" for t in asyncio.all_tasks()),
+            "ERROR waiting for the scada's tasks to start",
+        )
+        scada = h.child1_app.scada
+        assert not scada.ops.DispatchHold.OperatorHold
+        statuses: list[HouseOperatingStatus] = []
+        original_send = scada._send_to
+
+        def record(to_node, payload, from_node=None):
+            if isinstance(payload, HouseOperatingStatus):
+                statuses.append(payload)
+            original_send(to_node, payload, from_node)
+
+        monkeypatch.setattr(scada, "_send_to", record)
+        # No buffer temperature has been read: the startup status is blind.
+        for name in dispatch_channels(scada.layout):
+            scada._data.latest_channel_unix_ms[name] = None
+        scada.send_startup_announcements()
+        assert len(statuses) == 1
+        assert statuses[0].ScadaBlind is True
+        assert statuses[0].AcceptsDispatch is False
+        assert statuses[0].DispatchRefusalReason == DispatchRefusalReason.ScadaBlind
+        # The reading that makes the buffer fresh re-reports with it.
+        fresh_buffer(scada)
+        assert len(statuses) == 2
+        assert_only_changed(
+            statuses[0], statuses[1], ScadaBlind=False, AcceptsDispatch=True, DispatchRefusalReason=None
+        )
+        # Another fresh reading changes nothing: nothing sent.
+        fresh_buffer(scada)
+        assert len(statuses) == 2
+        # The reading path finding the buffer stale re-reports blind.
+        for name in dispatch_channels(scada.layout):
+            scada._data.latest_channel_unix_ms[name] = None
+        scada.note_reading_for_buffer_fresh()
+        assert len(statuses) == 3
+        assert_only_changed(
+            statuses[1], statuses[2], ScadaBlind=True, AcceptsDispatch=False,
+            DispatchRefusalReason=DispatchRefusalReason.ScadaBlind,
+        )

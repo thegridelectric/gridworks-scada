@@ -36,9 +36,10 @@ from gwsproto.named_types.electric_meter_device_type_gt import ElectricMeterDevi
 from gwsproto.named_types.element_backup import ElementBackup
 from gwsproto.named_types.energy_instruction import EnergyInstruction
 from gwsproto.named_types.events import RemainingElecEvent, ReportEvent
-from gwsproto.named_types.flo_next_hour_plans import FloNextHourPlans
+from gwsproto.named_types.flo_optimal_path import FloOptimalPath
 from gwsproto.named_types.flo_params import FloParams
 from gwsproto.named_types.flo_params_house0 import FloParamsHouse0
+from gwsproto.named_types.flo_recommendation import FloRecommendation
 from gwsproto.named_types.flow_hall_params import FlowHallParams
 from gwsproto.named_types.fsm_atomic_report import FsmAtomicReport
 from gwsproto.named_types.fsm_event import FsmEvent
@@ -55,6 +56,8 @@ from gwsproto.named_types.command_transition import CommandTransition
 from gwsproto.named_types.ha1_params import Ha1Params
 from gwsproto.named_types.hack_oil_off import HackOilOff
 from gwsproto.named_types.hack_oil_on import HackOilOn
+from gwsproto.named_types.flo_tuning_alice import FloTuningAlice
+from gwsproto.named_types.flo_tuning_bruce import FloTuningBruce
 from gwsproto.named_types.heating_curve import HeatingCurve
 from gwsproto.named_types.heating_forecast import HeatingForecast
 from gwsproto.named_types.house0_layout import House0Layout
@@ -104,7 +107,6 @@ from gwsproto.named_types.linear_one_dimensional_calibration import (
     LinearOneDimensionalCalibration,
 )
 from gwsproto.named_types.machine_states import MachineStates
-from gwsproto.named_types.market_maker_ack import MarketMakerAck
 from gwsproto.named_types.micro_volts import MicroVolts
 from gwsproto.named_types.multichannel_snapshot import MultichannelSnapshot
 from gwsproto.named_types.native_gpio_pin import NativeGpioPin
@@ -177,12 +179,12 @@ from gwsproto.named_types.unit_quantity_projection import UnitQuantityProjection
 from gwsproto.named_types.usable_energy_layered import UsableEnergyLayered
 from gwsproto.named_types.wake_up import WakeUp
 from gwsproto.named_types.water_store import WaterStore
-from gwsproto.named_types.gw_weather_forecast import GwWeatherForecast
-from gwsproto.named_types.gw_weather_forecast_series import GwWeatherForecastSeries
 from gwsproto.named_types.weather_channel_gt import WeatherChannelGt
+from gwsproto.named_types.weather_forecast import WeatherForecast
 from gwsproto.named_types.weather_forecast_binding import WeatherForecastBinding
 from gwsproto.named_types.weather_forecast_bundle_gt import WeatherForecastBundleGt
 from gwsproto.named_types.weather_forecast_channel_gt import WeatherForecastChannelGt
+from gwsproto.named_types.weather_forecast_series import WeatherForecastSeries
 from gwsproto.named_types.weather_seasonal_template_gt import WeatherSeasonalTemplateGt
 from gwsproto.named_types.web_server_component_gt import WebServerComponentGt
 from gwsproto.named_types.zero_ten_power_on import ZeroTenPowerOn
@@ -227,9 +229,10 @@ __all__ = [
     "ElectricMeterDeviceTypeGt",
     "ElementBackup",
     "EnergyInstruction",
-    "FloNextHourPlans",
+    "FloOptimalPath",
     "FloParams",
     "FloParamsHouse0",
+    "FloRecommendation",
     "FlowHallParams",
     "FsmAtomicReport",
     "FsmEvent",
@@ -244,6 +247,8 @@ __all__ = [
     "Ha1Params",
     "HackOilOff",
     "HackOilOn",
+    "FloTuningAlice",
+    "FloTuningBruce",
     "HeatingCurve",
     "HeatingForecast",
     "House0Layout",
@@ -286,7 +291,6 @@ __all__ = [
     "LinearOneDimensionalCalibration",
     "MachineStates",
     "MakerAPIAttributeGt",
-    "MarketMakerAck",
     "MicroVolts",
     "MultichannelSnapshot",
     "NativeGpioPin",
@@ -352,12 +356,12 @@ __all__ = [
     "UsableEnergyLayered",
     "WakeUp",
     "WaterStore",
-    "GwWeatherForecast",
-    "GwWeatherForecastSeries",
     "WeatherChannelGt",
+    "WeatherForecast",
     "WeatherForecastBinding",
     "WeatherForecastBundleGt",
     "WeatherForecastChannelGt",
+    "WeatherForecastSeries",
     "WeatherSeasonalTemplateGt",
     "WebServerComponentGt",
     "ZeroTenPowerOn",

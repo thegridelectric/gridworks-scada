@@ -4,7 +4,6 @@ import uuid
 from datetime import datetime, timezone
 from typing import Annotated
 
-from gwsproto.enums import MarketTypeName
 from pydantic import BeforeValidator, Field, StrictInt
 
 UTC_2000_01_01_TIMESTAMP = datetime(2000, 1, 1, tzinfo=timezone.utc).timestamp()
@@ -102,6 +101,14 @@ def is_git_commit(v: str) -> str:
             f"<{v}>: Fails git.commit format (a 40-character lowercase git "
             "hash, optionally suffixed -dirty)."
         )
+    return v
+
+
+def is_non_empty_string(v: str) -> str:
+    if not isinstance(v, str):
+        raise ValueError(f"<{v}>: non.empty.string must be a string.")
+    if len(v) == 0:
+        raise ValueError("<>: Fails non.empty.string format (at least one character).")
     return v
 
 
@@ -342,24 +349,6 @@ def is_pascal_case(candidate: str) -> str:
     return candidate
 
 
-def is_market_name(v: str) -> str:
-    try:
-        x = v.split(".")
-    except AttributeError as e:
-        raise ValueError(f"{v} failed to split on '.'") from e
-    if len(x) < 3:
-        raise ValueError("MarketNames need at least 3 words")
-    if x[0] not in {"e", "r", "d"}:
-        raise ValueError(
-            f"{v} first word must be e,r or d (energy, regulation, distribution)"
-        )
-    if x[1] not in MarketTypeName.values():
-        raise ValueError(f"{v} not recognized MarketType")
-    g_node_alias = ".".join(x[2:])
-    is_left_right_dot(g_node_alias)
-    return v
-
-
 def is_market_slot_name(v: str) -> str:
     r"""Checks market.slot.name format against the sema contract.
 
@@ -388,8 +377,8 @@ HexChar = Annotated[str, BeforeValidator(is_hex_char)]
 HhMm = Annotated[str, BeforeValidator(is_hh_mm)]
 IanaTimezoneStr = Annotated[str, BeforeValidator(is_iana_timezone_str)]
 LeftRightDotStr = Annotated[str, BeforeValidator(is_left_right_dot)]
+NonEmptyString = Annotated[str, BeforeValidator(is_non_empty_string)]
 LowercaseTokenStr = Annotated[str, BeforeValidator(is_lowercase_token)]
-MarketName = Annotated[str, BeforeValidator(is_market_name)]
 MarketSlotName = Annotated[str, BeforeValidator(is_market_slot_name)]
 NonNegativeInt = Annotated[int, BeforeValidator(is_non_negative_int)]
 PascalCase = Annotated[str, BeforeValidator(is_pascal_case)]

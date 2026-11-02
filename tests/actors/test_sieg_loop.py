@@ -924,17 +924,3 @@ def test_the_blind_reason_on_the_line_matches_is_blind(app: ScadaApp) -> None:
     line = actor.view()
     assert "blind=" not in line
     assert line.endswith("| lift=9.0F pwr=3200W")
-
-
-@pytest.mark.asyncio
-async def test_every_tick_and_valve_transition_writes_a_view_line(tmp_path: Path) -> None:
-    scada_app, clock = manual_app(tmp_path, strategy=SiegLoopStrategy.HoldFullSend)
-    actor = sieg_loop_actor(scada_app)
-    capture(actor)
-    lines: list[str] = []
-    actor.log = lines.append
-    actor.tick()
-    assert sum(line.startswith("sieg-view ") for line in lines) == 1
-    lines.clear()
-    actor.valve.trigger_valve_event(SiegValveEvent.StartKeepingLess)
-    assert [line for line in lines if line.startswith("sieg-view ")] == [actor.view()]

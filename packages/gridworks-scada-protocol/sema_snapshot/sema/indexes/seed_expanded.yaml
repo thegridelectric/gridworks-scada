@@ -1,6 +1,6 @@
 metadata:
   generated_from: indexes/public_registry.yaml
-  generated_at: '2026-10-29T21:55:47Z'
+  generated_at: '2026-11-02T08:10:05Z'
   note: Transitive closure of initial_targets
 initial_targets:
 - ads.channel.config:000
@@ -23,7 +23,9 @@ initial_targets:
 - electric.meter.component.gt:001
 - electric.meter.device.type.gt:000
 - energy.instruction:000
+- flo.params:000
 - flo.params.house0:007
+- flo.recommendation:000
 - flow.hall.params:101
 - fsm.atomic.report:001
 - fsm.event:000
@@ -56,7 +58,7 @@ initial_targets:
 - gw.tou.window:000
 - gw.water.store:000
 - gw.weather.channel.gt:002
-- gw.weather.forecast:001
+- gw.weather.forecast:002
 - gw.weather.forecast.binding:000
 - gw.weather.forecast.bundle.gt:002
 - gw.weather.forecast.channel.gt:000
@@ -196,7 +198,6 @@ initial_targets:
 - log.level:000
 - market.price.unit:000
 - market.quantity.unit:000
-- market.type.name:000
 - move.sieg.valve:001
 - pico.board.variant:000
 - pico.cycler.event:000
@@ -316,6 +317,9 @@ worklist:
     gw.g.node.class:
       '000':
         path: definitions/enums/gw.g.node.class/000.yaml
+    gw.market.product.name:
+      '000':
+        path: definitions/enums/gw.market.product.name/000.yaml
     gw.primary.flow.source:
       '000':
         path: definitions/enums/gw.primary.flow.source/000.yaml
@@ -433,9 +437,6 @@ worklist:
     market.quantity.unit:
       '000':
         path: definitions/enums/market.quantity.unit/000.yaml
-    market.type.name:
-      '000':
-        path: definitions/enums/market.type.name/000.yaml
     move.sieg.valve:
       '001':
         path: definitions/enums/move.sieg.valve/001.yaml
@@ -587,9 +588,24 @@ worklist:
     energy.instruction:
       '000':
         path: definitions/types/energy.instruction/000.yaml
+    flo.optimal.path:
+      '000':
+        path: definitions/types/flo.optimal.path/000.yaml
+    flo.params:
+      '000':
+        path: definitions/types/flo.params/000.yaml
     flo.params.house0:
       '007':
         path: definitions/types/flo.params.house0/007.yaml
+    flo.recommendation:
+      '000':
+        path: definitions/types/flo.recommendation/000.yaml
+    flo.tuning.alice:
+      '000':
+        path: definitions/types/flo.tuning.alice/000.yaml
+    flo.tuning.bruce:
+      '000':
+        path: definitions/types/flo.tuning.bruce/000.yaml
     flow.hall.params:
       '101':
         path: definitions/types/flow.hall.params/101.yaml
@@ -690,8 +706,8 @@ worklist:
       '002':
         path: definitions/types/gw.weather.channel.gt/002.yaml
     gw.weather.forecast:
-      '001':
-        path: definitions/types/gw.weather.forecast/001.yaml
+      '002':
+        path: definitions/types/gw.weather.forecast/002.yaml
     gw.weather.forecast.binding:
       '000':
         path: definitions/types/gw.weather.forecast.binding/000.yaml

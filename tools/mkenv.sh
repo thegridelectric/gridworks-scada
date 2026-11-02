@@ -27,9 +27,16 @@ fi
 rm gw_spaceheat/venv/bin/gws > /dev/null 2>&1
 ln -s `pwd`/gw_spaceheat/gws gw_spaceheat/venv/bin
 
+# bruce, the FLO (optimal-flexibility): the tagged release from the
+# GridWorks fork by default; "editable_flo" installs the sibling checkout
+# for developing bruce; "no_flo" skips it.
+BRUCE_TAG="v0.1.0+gw2"
 INSTALL_FLO="${3:-install_flo}"
 
 if [ "$INSTALL_FLO" == "install_flo" ]
 then
-  pip install -e ../gridworks-innovations/gridworks-flo/
+  pip install "bruce-energy @ git+https://github.com/thegridelectric/optimal-flexibility@${BRUCE_TAG}"
+elif [ "$INSTALL_FLO" == "editable_flo" ]
+then
+  pip install -e ../optimal-flexibility/
 fi

@@ -1,0 +1,36 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/gw.market.product.name/000"
+
+title: "gw.market.product.name"
+type: "string"
+description: >
+  GridWorks's own market-product vocabulary (the maker's products, across
+  whatever territories GridWorks operates in). Each token names a market
+  product whose slot timing — timeframe class, slot minutes, gate minutes prior
+  to start, and quantity-unit variant — is encoded in the token and decoded by
+  the receiving market maker.
+
+enum:
+  - "unknown"
+  - "da60"
+  - "rt60gate5"
+  - "rt60gate30"
+  - "rt60gate30b"
+  - "rt30gate5"
+  - "rt15gate5"
+  - "rt5gate5"
+
+default: "unknown"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "unknown": "Default unknown"
+    "da60": "Day-ahead energy, 60-minute slots"
+    "rt60gate5": "Real-time energy, 60-minute slots, gate closing 5 minutes prior to start"
+    "rt60gate30": "Real-time energy, 60-minute slots, gate closing 30 minutes prior to start"
+    "rt60gate30b": "As rt60gate30 but QuantityUnit = average kW"
+    "rt30gate5": "Real-time energy, 30-minute slots, gate closing 5 minutes prior to start"
+    "rt15gate5": "Real-time energy, 15-minute slots, gate closing 5 minutes prior to start"
+    "rt5gate5": "Real-time energy, 5-minute slots, gate closing 5 minutes prior to start"

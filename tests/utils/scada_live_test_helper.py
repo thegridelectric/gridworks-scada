@@ -119,7 +119,7 @@ def fresh_buffer(scada: Scada, for_s: int = 3600) -> None:
     stamp = int((time.time() + for_s) * 1000)
     for name in channels:
         scada._data.latest_channel_unix_ms[name] = stamp
-    scada.note_reading_for_buffer_fresh_once()  # as the reading path would
+    scada.note_reading_for_buffer_fresh()  # as the reading path would
 
 
 def free_port() -> int:

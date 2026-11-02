@@ -1,0 +1,149 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/flo.recommendation/000"
+
+title: "flo.recommendation"
+type: object
+description: >
+  A Forward Looking Optimizer's answer to one flo.params request: the bid
+  curve the bidder submits for the slot starting at the request's
+  StartUnixS, and for each price-quantity pair the operating path the
+  optimizer expects to follow if that pair's quantity clears. The pairs
+  descend from the price ceiling, so pair i holds for prices above pair
+  i+1's price up to its own, and the bidder reads the cleared price's pair
+  and takes the path at the same index. Quantities are the heat pump's
+  electrical draw; the market's slot name and sign convention are the
+  bidder's to apply.
+
+properties:
+
+  BidderAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      GNodeAlias of the bidder the recommendation is for.
+
+  PqPairs:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/price.quantity.unitless/001"
+    description: >
+      The bid curve, in PriceUnit and QuantityUnit, first pair at the
+      price ceiling.
+
+  PriceUnit:
+    $ref: "https://schemas.electricity.works/enums/market.price.unit/000"
+
+  QuantityUnit:
+    $ref: "https://schemas.electricity.works/enums/market.quantity.unit/000"
+
+  OptimalPathList:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/flo.optimal.path/000"
+    description: >
+      One path per pair, in the order of PqPairs: the path the optimizer
+      expects if that pair's quantity clears.
+
+  FloName:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      The optimizer's name, its author's chosen tag.
+
+  FloRepo:
+    $ref: "https://schemas.electricity.works/formats/non.empty.string"
+    description: >
+      Where the optimizer's code lives, as its host names it.
+
+  FloGitCommit:
+    $ref: "https://schemas.electricity.works/formats/git.commit"
+    description: >
+      The commit of the optimizer code that produced this recommendation.
+
+  CreatedMs:
+    $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+    description: >
+      The optimizer's clock when the recommendation came to be.
+
+  TypeName:
+    const: "flo.recommendation"
+
+  Version:
+    const: "000"
+
+required:
+  - BidderAlias
+  - PqPairs
+  - PriceUnit
+  - QuantityUnit
+  - OptimalPathList
+  - FloName
+  - FloRepo
+  - FloGitCommit
+  - CreatedMs
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "BidderAlias": "hw1.isone.me.versant.keene.oak",
+      "PqPairs": [
+        {"PriceX1000": 2000000, "QuantityX1000": 0, "TypeName": "price.quantity.unitless", "Version": "001"},
+        {"PriceX1000": 150000, "QuantityX1000": 4200, "TypeName": "price.quantity.unitless", "Version": "001"}
+      ],
+      "PriceUnit": "USDPerMWh",
+      "QuantityUnit": "AvgkW",
+      "OptimalPathList": [
+        {
+          "StartUnixS": 1762009200,
+          "StepDurationMinutes": [60, 60, 60],
+          "HpAvgWList": [0, 0, 3100],
+          "StoreWhList": [34300, 27000, 32600],
+          "TypeName": "flo.optimal.path",
+          "Version": "000"
+        },
+        {
+          "StartUnixS": 1762009200,
+          "StepDurationMinutes": [60, 60, 60],
+          "HpAvgWList": [4200, 0, 3100],
+          "StoreWhList": [38500, 31200, 36800],
+          "TypeName": "flo.optimal.path",
+          "Version": "000"
+        }
+      ],
+      "FloName": "bruce",
+      "FloRepo": "github.com/thdfw/optimal-flexibility",
+      "FloGitCommit": "2711f59a0b1c2d3e4f5061728394a5b6c7d8e9f0",
+      "CreatedMs": 1762008900000,
+      "TypeName": "flo.recommendation",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "AtLeastOnePair"
+      statement: >
+        PqPairs SHALL have at least one element.
+    - number: 2
+      name: "PathPerPair"
+      statement: >
+        OptimalPathList SHALL have the same length as PqPairs.
+    - number: 3
+      name: "FirstStepIsTheBid"
+      statement: >
+        For every i, the first element of OptimalPathList[i].HpAvgWList
+        SHALL equal PqPairs[i].QuantityX1000 expressed in watts: as is
+        when QuantityUnit is AvgkW, times 1000 when it is AvgMW.
+    - number: 4
+      name: "PairsDescend"
+      statement: >
+        a. PriceX1000 SHALL strictly decrease along PqPairs.
+        b. QuantityX1000 SHALL NOT decrease along PqPairs.
+    - number: 5
+      name: "PathsStartTogether"
+      statement: >
+        Every path's StartUnixS SHALL equal the first path's StartUnixS,
+        the slot start of the request answered.

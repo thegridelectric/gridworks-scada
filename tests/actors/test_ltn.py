@@ -1,345 +1,51 @@
-import pprint
-import json
-from gwsproto.named_types import FloParamsHouse0, BidRecommendation
+"""The LTN's FLO call: one `flo.params` to bruce's boundary and one
+`flo.recommendation` back, as the child process runs it, with bruce
+installed in the venv (`tools/mkenv.sh`). The store is the one-tank,
+nine-sensor, 120-gallon shape whose transition matrix bruce's own tests
+cache, so the run takes seconds."""
+
+import pytest
+
+from actors.ltn.ltn import BRUCE_FLO_AVAILABLE, _flo_worker
+from gwsproto.enums import SeasonalStorageMode
+from gwsproto.named_types import FloRecommendation, WaterStore
+from tests.actors.test_flo_request import build
 
 
+class Answer:
+    """Stands in for the child's result queue."""
+
+    def __init__(self) -> None:
+        self.results = []
+
+    def put(self, result) -> None:
+        self.results.append(result)
 
 
-def get_sample_house_0_flo_params() -> FloParamsHouse0:
-    d = {
-        "GNodeAlias": "hw1.isone.me.versant.keene.beech.scada",
-        "FloParamsUid": "2a9b0f40-c8ac-493a-bf3f-8d3d00e8e54d",
-        "TimezoneStr": "America/New_York",
-        "StartUnixS": 1762178400,
-        "HorizonHours": 48,
-        "NumLayers": 24,
-        "StorageVolumeGallons": 120,
-        "StorageLossesPercent": 0.5,
-        "HpMinElecKw": 0.0,
-        "HpMaxElecKw": 11.0,
-        "CopIntercept": 1.02,
-        "CopOatCoeff": 0.0257,
-        "CopLwtCoeff": 0.0,
-        "CopMin": 1.4,
-        "CopMinOatF": 15.0,
-        "HpTurnOnMinutes": 10,
-        "MaxHpKwhTh": 25,
-        "MaxLoadKwhTh": 20,
-        "RswtPenaltyEnabled": True,
-        "RswtPenaltyWeight": 0.5,
-        "RswtPenaltyDecay": 0.9,
-        "RswtPenaltyExponentRate": 0.03,
-        "RswtPenaltyDecayMaxHour": 12,
-        "StabilityPenaltyEnabled": True,
-        "StabilityPenaltyWeight": 0.5,
-        "StabilityPenaltyDecay": 0.75,
-        "StabilityPenaltyThresholdKwh": 10.0,
-        "StabilityPenaltyHorizonHours": 20,
-        "FloGitCommit": "Unknown",
-        "InitialTopTempF": 166,
-        "InitialMiddleTempF": 158,
-        "InitialBottomTempF": 87,
-        "InitialThermocline1": 8,
-        "InitialThermocline2": 16,
-        "HpIsOff": True,
-        "BufferAvailableKwh": 0.0,
-        "HouseAvailableKwh": 6.0,
-        "LmpForecast": [
-            43.8,
-            39.4,
-            39.77,
-            44.93,
-            52.55,
-            62.07,
-            55.12,
-            81.51,
-            89.04,
-            54.29,
-            54.02,
-            48.58,
-            40.49,
-            46.62,
-            50.71,
-            41.16,
-            40.98,
-            39.87,
-            39.29,
-            41.63,
-            59.78,
-            90.27,
-            94.87,
-            59.6,
-            43.8,
-            39.4,
-            39.77,
-            44.93,
-            52.55,
-            62.07,
-            55.12,
-            81.51,
-            89.04,
-            54.29,
-            54.02,
-            48.58,
-            40.49,
-            46.62,
-            50.71,
-            41.16,
-            40.98,
-            39.87,
-            39.29,
-            41.63,
-            59.78,
-            90.27,
-            94.87,
-            59.6
-        ],
-        "DistPriceForecast": [
-            487.63,
-            487.63,
-            487.63,
-            54.98,
-            54.98,
-            54.98,
-            54.98,
-            487.63,
-            487.63,
-            487.63,
-            487.63,
-            50.13,
-            50.13,
-            50.13,
-            50.13,
-            50.13,
-            50.13,
-            50.13,
-            50.13,
-            50.13,
-            50.13,
-            50.13,
-            487.63,
-            487.63,
-            487.63,
-            487.63,
-            487.63,
-            54.98,
-            54.98,
-            54.98,
-            54.98,
-            487.63,
-            487.63,
-            487.63,
-            487.63,
-            50.13,
-            50.13,
-            50.13,
-            50.13,
-            50.13,
-            50.13,
-            50.13,
-            50.13,
-            50.13,
-            50.13,
-            50.13,
-            487.63,
-            487.63
-        ],
-        "RegPriceForecast": [
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0
-        ],
-        "PriceForecastUid": "c897a6b2-48bd-4aff-abf7-f26bd570686c",
-        "OatForecastF": [
-            39.0,
-            42.0,
-            46.0,
-            49.0,
-            50.0,
-            51.0,
-            52.0,
-            50.0,
-            49.0,
-            47.0,
-            45.0,
-            45.0,
-            45.0,
-            44.0,
-            43.0,
-            43.0,
-            42.0,
-            41.0,
-            40.0,
-            40.0,
-            38.0,
-            38.0,
-            40.0,
-            41.0,
-            43.0,
-            45.0,
-            47.0,
-            47.0,
-            47.0,
-            47.0,
-            46.0,
-            45.0,
-            43.0,
-            41.0,
-            40.0,
-            39.0,
-            39.0,
-            38.0,
-            38.0,
-            38.0,
-            37.0,
-            37.0,
-            36.0,
-            35.0,
-            34.0,
-            33.0,
-            34.0,
-            37.0
-        ],
-        "WindSpeedForecastMph": [
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0
-        ],
-        "WeatherUid": "aeef4f9b-22ec-4987-9daf-528dd6e3779b",
-        "AlphaTimes10": 98,
-        "BetaTimes100": -18,
-        "GammaEx6": 5000,
-        "IntermediatePowerKw": 1.5,
-        "IntermediateRswtF": 110,
-        "DdPowerKw": 9.8,
-        "DdRswtF": 160,
-        "DdDeltaTF": 20,
-        "MaxEwtF": 170,
-        "PriceUnit": "USDPerMWh",
-        "ParamsGeneratedS": 1762177726,
-        "ConstantDeltaT": 20,
-        "TypeName": "flo.params.house0",
-        "Version": "004"
-        }
-    return FloParamsHouse0.model_validate(d)
+@pytest.mark.skipif(not BRUCE_FLO_AVAILABLE, reason="bruce is not installed in this venv")
+def test_the_flo_answers_the_request_with_a_recommendation() -> None:
+    params = build(
+        horizon_hours=6,
+        water_store=WaterStore(TotalStoreTanks=1, GallonsPerTank=120, TempSensorsPerTank=9),
+        storage_mode=SeasonalStorageMode.BufferOnly,
+    )
+    answer = Answer()
+    _flo_worker(params.model_dump_json(by_alias=True).encode("utf-8"), answer)
+    (status, payload), = answer.results
+    assert status == "ok", payload
+    recommendation = FloRecommendation.model_validate_json(payload)
+    assert recommendation.BidderAlias == params.GNodeAlias
+    assert len(recommendation.PqPairs) == len(recommendation.OptimalPathList) >= 1
+    assert recommendation.PqPairs[0].PriceX1000 == round(params.PriceMaxUsdMwh * 1000)
+    for pair, path in zip(recommendation.PqPairs, recommendation.OptimalPathList, strict=True):
+        assert path.StartUnixS == params.StartUnixS
+        assert pair.QuantityX1000 == path.HpAvgWList[0]
 
-# def test_recommendation():
-#     params = get_sample_house_0_flo_params()
-#     flo_params_bytes = params.model_dump_json().encode('utf-8')
-#     flo = Flo(flo_params_bytes)
-#     br_bytes = flo.generate_recommendation(flo_params_bytes)
-#     br_dict = json.loads(br_bytes)
-#     br = BidRecommendation.model_validate(br_dict)
-    
-#     assert flo.supergraph_params.hash == "64f29a7c"
-#     assert br.PqPairs[0].PriceX1000 == -100_000
-#     assert br.PqPairs[0].QuantityX1000 == 5012
-#     assert br.PqPairs[1].PriceX1000 == 77_000
-#     assert br.PqPairs[1].QuantityX1000 == 0
 
-if __name__ == "__main__":
-    from gridflo.flo import Flo
-    params = get_sample_house_0_flo_params()
-    flo_params_bytes = params.model_dump_json().encode('utf-8')
-    flo = Flo(flo_params_bytes)
-    br_bytes = flo.generate_recommendation(flo_params_bytes)
-    br_dict = json.loads(br_bytes)
-    br = BidRecommendation.model_validate(br_dict)
-    pprint.pp(br.model_dump())
+def test_without_bruce_the_worker_answers_an_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    import actors.ltn.ltn as ltn_module
 
-    assert flo.supergraph_params.hash == "64f29a7c"
-    assert br.PqPairs[0].PriceX1000 == -100_000
-    assert br.PqPairs[0].QuantityX1000 == 5012
-    assert br.PqPairs[1].PriceX1000 == 77_000
-    assert br.PqPairs[1].QuantityX1000 == 0
-
+    monkeypatch.setattr(ltn_module, "BRUCE_FLO_AVAILABLE", False)
+    answer = Answer()
+    _flo_worker(b"{}", answer)
+    assert answer.results[0][0] == "error"

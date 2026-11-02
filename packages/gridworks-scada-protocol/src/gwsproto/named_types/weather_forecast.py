@@ -3,20 +3,21 @@ from typing import List, Literal
 from pydantic import model_validator
 from typing_extensions import Self
 
-from gwsproto.named_types.gw_weather_forecast_series import GwWeatherForecastSeries
-from gwsproto.property_format import LeftRightDotStr, UTCMilliseconds, UtcIso8601Seconds
+from gwsproto.named_types.weather_forecast_series import WeatherForecastSeries
+from gwsproto.property_format import LeftRightDotStr, UTCMilliseconds, UtcIso8601Seconds, UUID4Str
 from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
-class GwWeatherForecast(GwsprotoSemaType):
-    """Sema: https://schemas.electricity.works/types/gw.weather.forecast/001"""
+class WeatherForecast(GwsprotoSemaType):
+    """Sema: https://schemas.electricity.works/types/gw.weather.forecast/002"""
 
     BundleName: LeftRightDotStr
+    ForecastUid: UUID4Str
     MessageCreatedMs: UTCMilliseconds
     FirstSliceStart: UtcIso8601Seconds
-    SeriesList: List[GwWeatherForecastSeries]
+    SeriesList: List[WeatherForecastSeries]
     TypeName: Literal["gw.weather.forecast"] = "gw.weather.forecast"
-    Version: Literal["001"] = "001"
+    Version: Literal["002"] = "002"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
