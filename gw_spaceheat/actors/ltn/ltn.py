@@ -953,6 +953,12 @@ class Ltn(PrimeActor):
                                     "hp_currently_on": not self.hp_is_off,
                                 }
                             )
+                            self.logger.info(
+                                "[ltn] HeatPumpWaterTankParams after storage-state update "
+                                ">>> HeatPumpWaterTankParams_JSON_BEGIN %s "
+                                "HeatPumpWaterTankParams_JSON_END <<<",
+                                self.flo_params.model_dump_json(),
+                            )
                             self.bid_runner.get_bid(self.flo_params)
                             self._message_for_scada_publish(self.flo_params)
                     elif not self.sent_bid:
