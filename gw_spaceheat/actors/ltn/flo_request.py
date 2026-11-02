@@ -2,6 +2,8 @@
 facts (the ops word, the layout's water store, the operating status, the
 forecast and the store's measured state)."""
 
+import json
+from pathlib import Path
 from typing import NamedTuple, Optional, Sequence
 
 import numpy as np
@@ -44,10 +46,41 @@ class StoreState(NamedTuple):
 
 class PreviousRun(NamedTuple):
     """The path the previous run's cleared price led to, with the price
-    estimate it was made against."""
+    that run forecast for the slot after it. No word states the pair yet;
+    a `flo.previous.run` word retires the file form below."""
 
     path: FloOptimalPath
     elec_usd_mwh_now: float
+
+    def ends_at(self) -> int:
+        """When the path's first step ends: the start of the slot the run
+        is the previous run for."""
+        return self.path.StartUnixS + self.path.StepDurationMinutes[0] * 60
+
+
+def previous_run_for(run: Optional[PreviousRun], start_unix_s: int) -> Optional[PreviousRun]:
+    """The run when its first step ends at `start_unix_s`, else nothing: a
+    run from any other slot is no previous run for this one."""
+    if run is None or run.ends_at() != start_unix_s:
+        return None
+    return run
+
+
+def save_previous_run(file: Path, run: PreviousRun) -> None:
+    """The run on disk, the path as its word."""
+    file.write_text(
+        json.dumps({"Path": run.path.model_dump(by_alias=True), "ElecUsdMwhNow": run.elec_usd_mwh_now})
+    )
+
+
+def load_previous_run(file: Path) -> Optional[PreviousRun]:
+    """The run saved by `save_previous_run`, or nothing when there is none."""
+    if not file.exists():
+        return None
+    data = json.loads(file.read_text())
+    return PreviousRun(
+        path=FloOptimalPath.model_validate(data["Path"]), elec_usd_mwh_now=float(data["ElecUsdMwhNow"])
+    )
 
 
 def live_forecast(forecast: ForecastPair) -> ForecastPair:

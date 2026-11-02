@@ -30,7 +30,7 @@ ln -s `pwd`/gw_spaceheat/gws gw_spaceheat/venv/bin
 # bruce, the FLO (optimal-flexibility): the tagged release from the
 # GridWorks fork by default; "editable_flo" installs the sibling checkout
 # for developing bruce; "no_flo" skips it.
-BRUCE_TAG="v0.1.0+gw1"
+BRUCE_TAG="v0.1.0+gw2"
 INSTALL_FLO="${3:-install_flo}"
 
 if [ "$INSTALL_FLO" == "install_flo" ]

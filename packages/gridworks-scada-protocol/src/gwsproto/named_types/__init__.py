@@ -36,7 +36,6 @@ from gwsproto.named_types.electric_meter_device_type_gt import ElectricMeterDevi
 from gwsproto.named_types.element_backup import ElementBackup
 from gwsproto.named_types.energy_instruction import EnergyInstruction
 from gwsproto.named_types.events import RemainingElecEvent, ReportEvent
-from gwsproto.named_types.flo_next_hour_plans import FloNextHourPlans
 from gwsproto.named_types.flo_optimal_path import FloOptimalPath
 from gwsproto.named_types.flo_params import FloParams
 from gwsproto.named_types.flo_params_house0 import FloParamsHouse0
@@ -231,7 +230,6 @@ __all__ = [
     "ElectricMeterDeviceTypeGt",
     "ElementBackup",
     "EnergyInstruction",
-    "FloNextHourPlans",
     "FloOptimalPath",
     "FloParams",
     "FloParamsHouse0",

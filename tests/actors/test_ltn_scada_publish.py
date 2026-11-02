@@ -6,7 +6,7 @@ import pytest
 from gwproto import Message
 from pydantic import BaseModel, ValidationError
 
-from gwsproto.named_types import FloNextHourPlans
+from gwsproto.named_types import FloOptimalPath
 
 
 class NotAWord(BaseModel):
@@ -19,6 +19,6 @@ def test_a_payload_without_a_type_name_is_refused_at_construction() -> None:
 
 
 def test_a_word_wraps_under_its_own_type_name() -> None:
-    plans = FloNextHourPlans(ExpectedStorageKwhAtHour1=12.5, ExpectedElecUsdMwhAtHour1=101.0, HourlyHpKwhElPlan=[3.0, 0.0])
+    plans = FloOptimalPath(StartUnixS=1762009200, StepDurationMinutes=[60, 60], HpAvgWList=[3000, 0], StoreWhList=[38500, 31200])
     message = Message(Src="ltn", Dst="s", Payload=plans)
-    assert message.Header.MessageType == "flo.next.hour.plans"
+    assert message.Header.MessageType == "flo.optimal.path"

@@ -3,12 +3,13 @@
 A pair holds for every price above the next lower pair's price, up to and
 including its own; the pair that applies to a cleared price is the
 lowest-priced one at or above it. The breakpoints are where the two
-readings differ, so each test sits on one.
+readings differ, so each test sits on one. The rule answers an index so
+the pair's path in the recommendation follows the pair.
 """
 
 import pytest
 
-from actors.ltn.market import cleared_quantity_x1000
+from actors.ltn.market import cleared_pair_index
 from gwsproto.named_types import PriceQuantityUnitless
 
 
@@ -35,19 +36,25 @@ CURVE = [pair(30_000, 0), pair(20_000, 2_000), pair(10_000, 5_000)]
 def test_lowest_priced_pair_at_or_above_the_cleared_price(
     price_x1000: int, quantity_x1000: int
 ) -> None:
-    assert cleared_quantity_x1000(CURVE, price_x1000) == quantity_x1000
+    assert CURVE[cleared_pair_index(CURVE, price_x1000)].QuantityX1000 == quantity_x1000
+
+
+def test_the_index_follows_the_pair_so_its_path_follows_too() -> None:
+    assert cleared_pair_index(CURVE, 20_000) == 1
+    assert cleared_pair_index(list(reversed(CURVE)), 20_000) == 1
 
 
 def test_pair_order_does_not_matter() -> None:
-    assert cleared_quantity_x1000(list(reversed(CURVE)), 15_000) == 2_000
+    reversed_curve = list(reversed(CURVE))
+    assert reversed_curve[cleared_pair_index(reversed_curve, 15_000)].QuantityX1000 == 2_000
 
 
 def test_one_pair_is_the_answer_at_every_price() -> None:
     flat = [pair(-100_000, 3_416)]
     for price_x1000 in (-100_000, 86_090, 2_000_000):
-        assert cleared_quantity_x1000(flat, price_x1000) == 3_416
+        assert cleared_pair_index(flat, price_x1000) == 0
 
 
 def test_empty_curve_is_refused() -> None:
     with pytest.raises(ValueError):
-        cleared_quantity_x1000([], 86_090)
+        cleared_pair_index([], 86_090)

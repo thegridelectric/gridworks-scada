@@ -1,6 +1,5 @@
 import csv
 import asyncio
-import json
 import gc
 import multiprocessing
 import pickle
@@ -47,14 +46,25 @@ try:
     from bruce.graph_optimizer.assets.heat_pump_water_tank import HeatPumpWaterTankAsset
     from bruce.graph_optimizer.graph import Graph
     from bruce.graph_optimizer.settings import get_logger
+    from bruce.sema.enums import MarketPriceUnit as BruceMarketPriceUnit
+    from bruce.sema.enums import MarketQuantityUnit as BruceMarketQuantityUnit
+    from bruce.sema.types import FloOptimalPath as BruceFloOptimalPath
     from bruce.sema.types import FloParams as BruceFloParams
-    from bruce.service import params_from_request
+    from bruce.sema.types import FloRecommendation as BruceFloRecommendation
+    from bruce.sema.types import PriceQuantityUnitless as BrucePriceQuantityUnitless
+    from bruce.service import FLO_NAME, FLO_REPO, edge_to, params_from_request, path_from
 except ImportError:
     HeatPumpWaterTankAsset = None  # type: ignore[misc, assignment]
     Graph = None  # type: ignore[misc, assignment]
     get_logger = None  # type: ignore[assignment, misc]
+    BruceMarketPriceUnit = None  # type: ignore[misc, assignment]
+    BruceMarketQuantityUnit = None  # type: ignore[misc, assignment]
+    BruceFloOptimalPath = None  # type: ignore[misc, assignment]
     BruceFloParams = None  # type: ignore[misc, assignment]
-    params_from_request = None  # type: ignore[assignment]
+    BruceFloRecommendation = None  # type: ignore[misc, assignment]
+    BrucePriceQuantityUnitless = None  # type: ignore[misc, assignment]
+    FLO_NAME = FLO_REPO = None  # type: ignore[assignment]
+    edge_to = params_from_request = path_from = None  # type: ignore[assignment]
 
 BRUCE_FLO_AVAILABLE = Graph is not None
 
@@ -82,8 +92,8 @@ from actors.hydronic.store_temps import scrub_and_fill_store_temps
 from actors.ltn.contract_handler import LtnContractHandler
  
 from gwsproto.named_types import (
-    Bid, FloNextHourPlans, FloParams, Glitch, HouseOperatingStatus, LatestPrice,
-    LayoutLite, NoNewContractWarning, OperationalParams, PriceQuantityUnitless, SendLayout,
+    Bid, FloOptimalPath, FloParams, FloRecommendation, Glitch, HouseOperatingStatus, LatestPrice,
+    LayoutLite, NoNewContractWarning, OperationalParams, SendLayout,
     SlowContractHeartbeat, SlowContractRejection,
     SnapshotSpaceheat, WaterStore,
 )
@@ -99,11 +109,15 @@ from pydantic import BaseModel
 from actors.ltn.config import LtnSettings, DashboardSettings
 from actors.ltn.dashboard.dashboard import Dashboard
 from actors.ltn.data import LtnData
-from actors.ltn.market import RJB, cleared_quantity_x1000, market_slot_name
+from actors.ltn.market import RJB, cleared_pair_index, market_slot_name
 from actors.ltn.flo_request import (
+    PreviousRun,
     SeasonalFillForecast,
     StoreState,
     build_flo_params,
+    load_previous_run,
+    previous_run_for,
+    save_previous_run,
     with_store_state,
 )
 
@@ -126,54 +140,61 @@ def _flo_build_worker(flo_params_bytes: bytes, result_queue: multiprocessing.Que
         result_queue.put(("error", str(e)))
 
 
+def _recommendation_on(graph: "Graph", request: "BruceFloParams") -> "BruceFloRecommendation":
+    """bruce's `recommend` on a graph built and solved earlier: the bid
+    curve from the ceiling down, and beside each pair the path its
+    first-step edge leads to. The loop is bruce's own; it is repeated
+    here because `recommend` builds its graph in the same call, and the
+    LTN builds at :05 and bids at :57."""
+    params = graph.params
+    pairs = graph.generate_bid(forecast_price_mwh=params.elec_price_mwh[0], updated_params=params)
+    pq_pairs: list[BrucePriceQuantityUnitless] = []
+    paths: list[BruceFloOptimalPath] = []
+    for i, pair in enumerate(pairs):
+        price_mwh = request.price_max_usd_mwh if i == 0 else pair.price_mwh
+        graph.get_next_node_at_price(pair.price_mwh)
+        initial = graph.initial_node
+        if initial is None or initial.next_node is None:
+            raise RuntimeError("no next node at bid price")
+        path = path_from(graph, request, edge_to(graph, initial, initial.next_node))
+        pq_pairs.append(
+            BrucePriceQuantityUnitless(
+                price_x1000=round(price_mwh * 1000), quantity_x1000=path.hp_avg_w_list[0]
+            )
+        )
+        paths.append(path)
+    return BruceFloRecommendation(
+        bidder_alias=request.g_node_alias,
+        pq_pairs=pq_pairs,
+        price_unit=BruceMarketPriceUnit.USDPerMWh,
+        quantity_unit=BruceMarketQuantityUnit.AvgkW,
+        optimal_path_list=paths,
+        flo_name=FLO_NAME,
+        flo_repo=FLO_REPO,
+        flo_git_commit=params.bruce_git_commit,
+        created_ms=int(time.time() * 1000),
+    )
+
+
 def _flo_bid_worker(
     trimmed_graph_data: bytes,
     updated_flo_params_bytes: bytes,
     result_queue: multiprocessing.Queue,
 ) -> None:
-    """Child process: unpickle graph, generate PQ pairs, pickle graph with updated params, exit."""
+    """Child process: unpickle the graph, update it with the measured
+    store, answer the recommendation as bytes, exit."""
     if not BRUCE_FLO_AVAILABLE:
         result_queue.put(("error", "bruce graph optimizer package is not installed"))
         return
     try:
         graph: Graph = pickle.loads(trimmed_graph_data)
         graph.logger = get_logger("graph")
-        updated_params = params_from_request(BruceFloParams.model_validate_json(updated_flo_params_bytes))
-        forecast_price_mwh = updated_params.elec_price_mwh[0]
-        pq_pairs = graph.generate_bid(
-            forecast_price_mwh=forecast_price_mwh,
-            updated_params=updated_params,
-        )
-        pq_payload = [
-            {"price_mwh": p.price_mwh, "quantity_kwh": p.quantity_kwh}
-            for p in pq_pairs
-        ]
-        graph.logger = None
-        updated_trimmed_data = pickle.dumps(graph)
-        result_queue.put(("ok", json.dumps(pq_payload).encode("utf-8"), updated_trimmed_data))
-    except Exception as e:
-        result_queue.put(("error", str(e)))
-
-
-def _flo_plans_worker(
-    trimmed_graph_data: bytes,
-    price_usd_mwh: float,
-    result_queue: multiprocessing.Queue,
-) -> None:
-    """Child process: clearing-price plan from trimmed graph."""
-    if not BRUCE_FLO_AVAILABLE:
-        result_queue.put(("error", "bruce graph optimizer package is not installed"))
-        return
-    try:
-        graph: Graph = pickle.loads(trimmed_graph_data)
-        graph.logger = get_logger("graph")
-        graph.get_next_node_at_price(price_usd_mwh)
-        if graph.initial_node is None or graph.initial_node.next_node is None:
-            raise ValueError("No initial node or next node after plan-at-price")
-        next_node = graph.initial_node.next_node
-        expected_storage_kwh = round(float(next_node.state.energy), 2)
-        hourly_plan = [float(x) for x in next_node.shortest_path_elec]
-        result_queue.put(("ok", expected_storage_kwh, hourly_plan))
+        request = BruceFloParams.model_validate_json(updated_flo_params_bytes)
+        updated_params = params_from_request(request)
+        graph.params.validate_bid_params_update(updated_params)
+        graph.asset.update_params(updated_params)
+        graph.params = graph.asset.params
+        result_queue.put(("ok", _recommendation_on(graph, request).to_bytes()))
     except Exception as e:
         result_queue.put(("error", str(e)))
 
@@ -191,7 +212,7 @@ class PriceForecast(BaseModel):
 class BidRunner(threading.Thread):
     """Coordinates Flo work across three short-lived child processes.
 
-    Every phase that touches the Flo graph (build, recommend, plans) runs
+    Every phase that touches the Flo graph (build, recommend) runs
     in a forked child process. The parent thread only holds pickle bytes
     and plain results (floats, lists). When each child exits, the OS
     reclaims all its memory.
@@ -216,7 +237,6 @@ class BidRunner(threading.Thread):
         self.send_threadsafe = send_threadsafe
         self.on_complete = on_complete
         self.get_bid_event = threading.Event()
-        self.get_next_hour_plans_event = threading.Event()
 
     def _run_in_child(self, target, args, timeout_s=30, max_total_s=300, pat_watchdog=True):
         """Run target in a forked child process and return the result tuple.
@@ -302,68 +322,29 @@ class BidRunner(threading.Thread):
                     self.logger.info(f"Error generating PQ pairs: {result[1]}")
                     return
 
-                pq_pairs_bytes = result[1]
-                trimmed_graph_data = result[2]
-                pq_pairs = json.loads(pq_pairs_bytes.decode("utf-8"))
-                self.logger.info(f"Done! Found {len(pq_pairs)} PQ pairs.")
+                recommendation = FloRecommendation.model_validate_json(result[1])
+                self.logger.info(f"Done! Found {len(recommendation.PqPairs)} PQ pairs.")
 
-                gws_pq_pairs = [
-                    PriceQuantityUnitless(
-                        PriceX1000=int(round(float(p["price_mwh"]) * 1000)),
-                        QuantityX1000=int(round(float(p["quantity_kwh"]) * 1000)),
-                    )
-                    for p in pq_pairs
-                ]
                 bid = Bid(
                     BidderAlias=self.updated_flo_params.GNodeAlias,
                     MarketSlotName=market_slot_name(self.ops, self.updated_flo_params.StartUnixS),
-                    PqPairs=gws_pq_pairs,
+                    PqPairs=list(recommendation.PqPairs),
                     InjectionIsPositive=True,
                     PriceUnit=MarketPriceUnit.USDPerMWh,
                     QuantityUnit=MarketQuantityUnit.AvgkW,
                     SignedMarketFeeTxn="BogusAlgoSignature",
                 )
 
-                # Send bid through LTN's message processing
+                # The recommendation, then the bid, through the LTN's message
+                # processing: the LTN holds the paths for the price that clears.
+                self.send_threadsafe(
+                    Message(Src=self.ltn_name, Dst=self.ltn_name, Payload=recommendation)
+                )
                 self.send_threadsafe(
                     Message(
                         Src=self.ltn_name,
                         Dst=self.ltn_name,
                         Payload=bid
-                    )
-                )
-
-                # ── Phase 2: Wait for get_next_hour_plans, then run in child ──
-                self.logger.info("BidRunner waiting for get_next_hour_plans to be called.")
-                self.get_next_hour_plans_event.wait()
-                self.get_next_hour_plans_event.clear()
-                self.logger.info("Getting plan at clearing price (in child process)")
-
-                result = self._run_in_child(
-                    _flo_plans_worker,
-                    (trimmed_graph_data, self.latest_price_usd_mwh),
-                    pat_watchdog=False,
-                )
-                del trimmed_graph_data
-
-                if result[0] == "error":
-                    self.logger.info(f"Error getting plan at price: {result[1]}")
-                    return
-
-                # Send flo next hour plans through LTN's message processing
-                _, expected_storage_kwh_at_hour1, hourly_hp_kwh_el_plan = result
-                flo_next_hour_plans = FloNextHourPlans(
-                    ExpectedStorageKwhAtHour1=expected_storage_kwh_at_hour1,
-                    ExpectedElecUsdMwhAtHour1=float(
-                        self.orig_flo_params.LmpUsdMwhList[1] + self.orig_flo_params.DistUsdMwhList[1]
-                    ),
-                    HourlyHpKwhElPlan=hourly_hp_kwh_el_plan,
-                )
-                self.send_threadsafe(
-                    Message(
-                        Src=self.ltn_name,
-                        Dst=self.ltn_name,
-                        Payload=flo_next_hour_plans
                     )
                 )
                 break
@@ -386,16 +367,11 @@ class BidRunner(threading.Thread):
         self.ltn_name = None
         self.ltn_alias = None
         self.get_bid_event = None
-        self.get_next_hour_plans_event = None
 
     def get_bid(self, updated_flo_params: FloParams):
         self.logger.info("Getting bid...")
         self.updated_flo_params = updated_flo_params
         self.get_bid_event.set()
-
-    def get_next_hour_plans(self, price_usd_mwh: float) -> Optional[List[float]]:
-        self.latest_price_usd_mwh = price_usd_mwh
-        self.get_next_hour_plans_event.set()
 
     def stop(self):
         self.logger.info("Stopping BidRunner")
@@ -508,8 +484,9 @@ class Ltn(PrimeActor):
         self.latest_report: Optional[Report] = None
         self.report_output_dir = Path(f"{self.settings.paths.data_dir}/report")
         self.report_output_dir.mkdir(parents=True, exist_ok=True)
-        self._flo_next_hour_plans_file = Path(f"{self.settings.paths.data_dir}/flo_next_hour_plans.json")
-        self.flo_next_hour_plans = self._load_flo_next_hour_plans()
+        self.recommendation: FloRecommendation | None = None
+        self._previous_run_file = Path(f"{self.settings.paths.data_dir}/previous_run.json")
+        self.previous_run: PreviousRun | None = load_previous_run(self._previous_run_file)
 
         if self.settings.dashboard.print_gui:
             self.dashboard = Dashboard(
@@ -662,16 +639,9 @@ class Ltn(PrimeActor):
                 )  
                 self.log(f"Bid: {bid}")
                 self.sent_bid = True
-            case FloNextHourPlans():
+            case FloRecommendation():
                 path_dbg |= 0x00000003
-                flo_next_hour_plans = message.Payload
-                self.flo_next_hour_plans = flo_next_hour_plans
-                self._save_flo_next_hour_plans(flo_next_hour_plans)
-                self._message_for_scada_publish(flo_next_hour_plans)
-                self.log(
-                    f"FloNextHourPlans: storage_at_hour1={flo_next_hour_plans.ExpectedStorageKwhAtHour1} kWh, "
-                    f"{flo_next_hour_plans.HourlyHpKwhElPlan}"
-                )
+                self.recommendation = message.Payload
             case Glitch():
                 path_dbg |= 0x00000002
                 self._message_for_scada_publish(message.Payload)
@@ -1041,6 +1011,7 @@ class Ltn(PrimeActor):
                 g_node_alias=self.layout.ltn_g_node_alias,
                 start_unix_s=dijkstra_start_time,
                 created_ms=int(self.plant_clock.now() * 1000),
+                previous=previous_run_for(self.previous_run, dijkstra_start_time),
             )
         except SeasonalFillForecast as e:
             self.log(f"Not running flo - {e}")
@@ -1069,50 +1040,8 @@ class Ltn(PrimeActor):
         Note: This is called from the BidRunner thread."""
         self.log("Cleaned up bid runner")
         self.bid_runner = None
-        self.flo_params = None
         self.sent_bid = False
         gc.collect()
-
-    def _save_flo_next_hour_plans(self, flo_next_hour_plans: FloNextHourPlans) -> None:
-        """Persist flo_next_hour_plans to file with timestamp for restart recovery."""
-        try:
-            data = {
-                "saved_at_unix_s": int(time.time()),
-                "flo_next_hour_plans": flo_next_hour_plans.model_dump(),
-            }
-            with open(self._flo_next_hour_plans_file, "w") as f:
-                json.dump(data, f)
-            self.log(f"Saved FloNextHourPlans to {self._flo_next_hour_plans_file}")
-        except Exception as e:
-            self.log(f"Failed to save FloNextHourPlans: {e}")
-
-    def _load_flo_next_hour_plans(self) -> Optional[FloNextHourPlans]:
-        """Load flo_next_hour_plans from file if it exists and was saved in the same hour.
-        Plans from a different hour are ignored (restart after outage)."""
-        if not self._flo_next_hour_plans_file.exists():
-            return None
-        try:
-            with open(self._flo_next_hour_plans_file, "r") as f:
-                data = json.load(f)
-            saved_at = data.get("saved_at_unix_s")
-            if saved_at is None:
-                self.log("FloNextHourPlans file missing saved_at_unix_s, ignoring")
-                return None
-            saved_dt = datetime.fromtimestamp(saved_at, tz=self.timezone)
-            now_dt = datetime.now(self.timezone)
-            if (saved_dt.year, saved_dt.month, saved_dt.day, saved_dt.hour) != (
-                now_dt.year, now_dt.month, now_dt.day, now_dt.hour
-            ):
-                self.log(
-                    f"FloNextHourPlans from different hour (saved {saved_dt}), not reusing"
-                )
-                return None
-            plans = FloNextHourPlans.model_validate(data["flo_next_hour_plans"])
-            self.log("Loaded FloNextHourPlans from file (same hour)")
-            return plans
-        except Exception as e:
-            self.log(f"Failed to load FloNextHourPlans: {e}")
-            return None
 
     def latest_contract_is_live(self) -> bool:
         """ Validates that the bid's market slot name corresponds to the current hour."""
@@ -1177,8 +1106,10 @@ class Ltn(PrimeActor):
         self.log(f"Payload price: {payload.PriceTimes1000} (x1000)")
         # Quantity is AvgkW, so QuantityX1000 is avg_w
         assert self.contract_handler.latest_bid.QuantityUnit == MarketQuantityUnit.AvgkW
-        avg_w = cleared_quantity_x1000(pq_pairs, payload.PriceTimes1000)
+        cleared = cleared_pair_index(pq_pairs, payload.PriceTimes1000)
+        avg_w = pq_pairs[cleared].QuantityX1000
         self.log(f"Decided on quantity: {avg_w} WattHours")
+        self.keep_cleared_path(cleared)
 
         # 1 hour
         self.contract_handler.next_contract_energy_wh = avg_w * 1
@@ -1192,10 +1123,27 @@ class Ltn(PrimeActor):
         else:
             self.log("Why am I here")
 
-        # Get this hour's plans to give as input to the next FLO
-        if self.bid_runner and self.bid_runner.is_alive():
-            price_usd_mwh = payload.PriceTimes1000 / 1000
-            self.bid_runner.get_next_hour_plans(price_usd_mwh)
+    def keep_cleared_path(self, cleared: int) -> None:
+        """The path the cleared pair leads to, with the price the request
+        forecast for the slot after it: saved as the next run's previous
+        run, and copied to the scada for the record."""
+        if self.recommendation is None or self.flo_params is None:
+            self.log("No recommendation held for this slot; no previous run for the next")
+            return
+        path: FloOptimalPath = self.recommendation.OptimalPathList[cleared]
+        if path.StartUnixS != self.flo_params.StartUnixS:
+            self.log(
+                f"Recommendation is for slot {path.StartUnixS}, the request for "
+                f"{self.flo_params.StartUnixS}; no previous run for the next"
+            )
+            return
+        self.previous_run = PreviousRun(
+            path=path,
+            elec_usd_mwh_now=float(self.flo_params.LmpUsdMwhList[1] + self.flo_params.DistUsdMwhList[1]),
+        )
+        save_previous_run(self._previous_run_file, self.previous_run)
+        self._message_for_scada_publish(path)
+        self.log(f"Kept the cleared path: {path.HpAvgWList[:6]} W, store {path.StoreWhList[:6]} Wh")
 
     def fill_missing_store_temps(self) -> None:
         """Scrub implausible store layers and fill the missing ones from

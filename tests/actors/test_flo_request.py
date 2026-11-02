@@ -15,6 +15,9 @@ from actors.ltn.flo_request import (
     StoreState,
     build_flo_params,
     load_forecast_kwh,
+    load_previous_run,
+    previous_run_for,
+    save_previous_run,
     with_store_state,
 )
 from gwsproto.enums import SeasonalStorageMode, WeatherForecastFidelity
@@ -132,6 +135,24 @@ def test_a_previous_run_is_handed_on() -> None:
     params = build(previous=PreviousRun(path=path, elec_usd_mwh_now=101.5))
     assert params.PreviousOptimalPath == path
     assert params.PreviousEstimateElecUsdMwhNow == 101.5
+
+
+def test_a_previous_run_is_only_for_the_slot_its_first_step_ends_at() -> None:
+    path = FloOptimalPath(StartUnixS=START_S - 3600, StepDurationMinutes=[60, 60], HpAvgWList=[3000, 0], StoreWhList=[20000, 18000])
+    run = PreviousRun(path=path, elec_usd_mwh_now=101.5)
+    assert previous_run_for(run, START_S) == run
+    assert previous_run_for(run, START_S + 3600) is None
+    assert previous_run_for(None, START_S) is None
+
+
+def test_a_previous_run_survives_the_disk(tmp_path: Path) -> None:
+    path = FloOptimalPath(StartUnixS=START_S - 3600, StepDurationMinutes=[60, 60], HpAvgWList=[3000, 0], StoreWhList=[20000, 18000])
+    run = PreviousRun(path=path, elec_usd_mwh_now=101.5)
+    file = tmp_path / "previous_run.json"
+    assert load_previous_run(file) is None
+    save_previous_run(file, run)
+    assert json.loads(file.read_text())["Path"]["TypeName"] == "flo.optimal.path"
+    assert load_previous_run(file) == run
 
 
 def test_the_measured_store_replaces_the_initial_state_through_the_word() -> None:

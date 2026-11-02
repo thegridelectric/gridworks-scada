@@ -59,7 +59,6 @@ NO_WORD_TYPES = {
     "channel.flatlined",
     "dispatch.contract.go.dormant",
     "dispatch.contract.go.live",
-    "flo.next.hour.plans",
     "go.dormant",
     "hack.oil.off",
     "hack.oil.on",
