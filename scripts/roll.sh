@@ -186,15 +186,20 @@ ltn_line()   { echo "ltn: $LTN_REPO on $(ltn_branch) @ $(ltn_sha); $LTN_UNIT $(s
 # bruce, the FLO, runs editable from the sibling checkout beside the LTN's
 # scada checkout and tracks its upstream main: a roll brings the sibling to
 # the pushed tip of main (cloning it first if the house has none), and
-# every recommendation records the commit that answered.
+# every recommendation records the commit that answered. BRUCE_LINE names
+# another pushed bruce branch for one roll, while a bruce change the LTN
+# needs waits on its PR.
 BRUCE_REPO="https://github.com/thdfw/optimal-flexibility"
 BRUCE_SIBLING="~/ltn-$HOUSE/optimal-flexibility"
-bruce_sha()  { ssh -n "$LTN_BOX" "git -C $BRUCE_SIBLING rev-parse --short HEAD 2>/dev/null || echo none"; }
-bruce_line() { echo "bruce: $BRUCE_SIBLING @ $(bruce_sha) (origin/main behind by $(behind "$LTN_BOX" "$BRUCE_SIBLING" main 2>/dev/null || echo ?))"; }
+BRUCE_LINE="${BRUCE_LINE:-main}"
+bruce_sha()    { ssh -n "$LTN_BOX" "git -C $BRUCE_SIBLING rev-parse --short HEAD 2>/dev/null || echo none"; }
+bruce_branch() { ssh -n "$LTN_BOX" "git -C $BRUCE_SIBLING branch --show-current 2>/dev/null || echo none"; }
+bruce_line()   { local b; b="$(bruce_branch)"; echo "bruce: $BRUCE_SIBLING on $b @ $(bruce_sha) (origin/$b behind by $(behind "$LTN_BOX" "$BRUCE_SIBLING" "$b" 2>/dev/null || echo ?))"; }
 roll_bruce() {
   ssh -n "$LTN_BOX" "[ -d $BRUCE_SIBLING/.git ] || git clone -q $BRUCE_REPO $BRUCE_SIBLING"
   [ -z "$(ssh -n "$LTN_BOX" "git -C $BRUCE_SIBLING status --porcelain")" ] || { echo "bruce: $BRUCE_SIBLING is dirty; refusing"; return 1; }
-  ssh -n "$LTN_BOX" "git -C $BRUCE_SIBLING fetch -q origin && git -C $BRUCE_SIBLING checkout -q main && git -C $BRUCE_SIBLING merge -q --ff-only origin/main" || { echo "bruce: fast-forward of $BRUCE_SIBLING to origin/main failed; refusing"; return 1; }
+  ssh -n "$LTN_BOX" "git -C $BRUCE_SIBLING fetch -q origin && git -C $BRUCE_SIBLING rev-parse --verify -q origin/$BRUCE_LINE" > /dev/null || { echo "bruce: origin/$BRUCE_LINE not on the sibling's remote; refusing"; return 1; }
+  ssh -n "$LTN_BOX" "git -C $BRUCE_SIBLING checkout -q $BRUCE_LINE 2>/dev/null || git -C $BRUCE_SIBLING checkout -q -b $BRUCE_LINE origin/$BRUCE_LINE; git -C $BRUCE_SIBLING merge -q --ff-only origin/$BRUCE_LINE" || { echo "bruce: fast-forward of $BRUCE_SIBLING to origin/$BRUCE_LINE failed; refusing"; return 1; }
   ssh -n "$LTN_BOX" "$LTN_REPO/gw_spaceheat/venv/bin/pip show bruce-energy 2>/dev/null | grep -q '^Editable project location: .*optimal-flexibility'" || { echo "bruce: the LTN venv does not install bruce editable from $BRUCE_SIBLING; rebuild it in $LTN_REPO (tools/mkenv.sh) by hand, then re-run"; return 1; }
 }
 # Commits the box's checkout is behind the pushed tip of its own branch.
