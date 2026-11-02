@@ -1,6 +1,7 @@
 {
   "TypeName": "flo.tuning.bruce",
-  "Version": "000",
+  "Version": "001",
+  "NumLayers": 3,
   "StorageLossesPercent": 0.5,
   "HpMinKwEl": 0.0,
   "HpMaxKwTh": 25.0,

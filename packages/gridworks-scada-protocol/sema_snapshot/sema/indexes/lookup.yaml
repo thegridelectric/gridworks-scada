@@ -115,10 +115,10 @@ types:
     versions:
       '000': definitions/types/flo.optimal.path/000.yaml
   flo.params:
-    latest_version: '000'
+    latest_version: '001'
     versioning_strategy: literal
     versions:
-      '000': definitions/types/flo.params/000.yaml
+      '001': definitions/types/flo.params/001.yaml
   flo.params.house0:
     latest_version: '007'
     versioning_strategy: literal
@@ -135,10 +135,10 @@ types:
     versions:
       '000': definitions/types/flo.tuning.alice/000.yaml
   flo.tuning.bruce:
-    latest_version: '000'
+    latest_version: '001'
     versioning_strategy: literal
     versions:
-      '000': definitions/types/flo.tuning.bruce/000.yaml
+      '001': definitions/types/flo.tuning.bruce/001.yaml
   flow.hall.params:
     latest_version: '101'
     versioning_strategy: literal

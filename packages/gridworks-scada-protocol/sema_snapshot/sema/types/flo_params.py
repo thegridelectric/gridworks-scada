@@ -13,7 +13,7 @@ from sema_snapshot.sema.types.flo_tuning_bruce import FloTuningBruce
 
 
 class FloParams(SemaType):
-    """Sema: https://schemas.electricity.works/types/flo.params/000"""
+    """Sema: https://schemas.electricity.works/types/flo.params/001"""
 
     g_node_alias: LeftRightDot
     created_ms: UTCMilliseconds
@@ -49,7 +49,7 @@ class FloParams(SemaType):
     previous_estimate_elec_usd_mwh_now: StrictFloat | None = None
     tuning: FloTuningAlice | FloTuningBruce
     type_name: Literal["flo.params"] = "flo.params"
-    version: Literal["000"] = "000"
+    version: Literal["001"] = "001"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

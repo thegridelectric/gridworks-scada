@@ -12,7 +12,7 @@ from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
 class FloParams(GwsprotoSemaType):
-    """Sema: https://schemas.electricity.works/types/flo.params/000"""
+    """Sema: https://schemas.electricity.works/types/flo.params/001"""
 
     GNodeAlias: LeftRightDotStr
     CreatedMs: UTCMilliseconds
@@ -51,7 +51,7 @@ class FloParams(GwsprotoSemaType):
         Field(discriminator="TypeName"),
     ]
     TypeName: Literal["flo.params"] = "flo.params"
-    Version: Literal["000"] = "000"
+    Version: Literal["001"] = "001"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

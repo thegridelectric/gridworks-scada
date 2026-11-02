@@ -1,5 +1,5 @@
 $schema: "https://json-schema.org/draft/2020-12/schema"
-$id: "https://schemas.electricity.works/types/flo.params/000"
+$id: "https://schemas.electricity.works/types/flo.params/001"
 
 title: "flo.params"
 type: object
@@ -143,14 +143,14 @@ properties:
   Tuning:
     oneOf:
       - $ref: "https://schemas.electricity.works/types/flo.tuning.alice/000"
-      - $ref: "https://schemas.electricity.works/types/flo.tuning.bruce/000"
+      - $ref: "https://schemas.electricity.works/types/flo.tuning.bruce/001"
     description: >
       The tuning of the optimizer this house runs; its TypeName selects the
       optimizer.
   TypeName:
     const: "flo.params"
   Version:
-    const: "000"
+    const: "001"
 
 required:
   - GNodeAlias
@@ -223,6 +223,7 @@ examples:
       "PriceMaxUsdMwh": 2000,
       "PriceMinUsdMwh": -100,
       "Tuning": {
+        "NumLayers": 3,
         "StorageLossesPercent": 0.5,
         "HpMinKwEl": 0,
         "HpMaxKwTh": 25,
@@ -248,10 +249,10 @@ examples:
         "TerminalCostEnabled": true,
         "TerminalCostEndWindowHours": 24,
         "TypeName": "flo.tuning.bruce",
-        "Version": "000"
+        "Version": "001"
       },
       "TypeName": "flo.params",
-      "Version": "000"
+      "Version": "001"
     }
 
 x-gridworks:

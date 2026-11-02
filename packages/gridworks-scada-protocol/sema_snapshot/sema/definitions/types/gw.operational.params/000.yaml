@@ -138,7 +138,7 @@ properties:
   FloTuning:
     oneOf:
       - $ref: "https://schemas.electricity.works/types/flo.tuning.alice/000"
-      - $ref: "https://schemas.electricity.works/types/flo.tuning.bruce/000"
+      - $ref: "https://schemas.electricity.works/types/flo.tuning.bruce/001"
     description: >
       The tuning of the optimizer this house runs; its TypeName selects the
       optimizer. The LTN copies it into each flo.params request.

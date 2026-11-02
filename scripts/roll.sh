@@ -183,6 +183,20 @@ box_sha()    { ssh -n "$1" "git -C $BOX_REPO rev-parse --short HEAD"; }
 ltn_branch() { ssh -n "$LTN_BOX" "git -C $LTN_REPO branch --show-current"; }
 ltn_sha()    { ssh -n "$LTN_BOX" "git -C $LTN_REPO rev-parse --short HEAD"; }
 ltn_line()   { echo "ltn: $LTN_REPO on $(ltn_branch) @ $(ltn_sha); $LTN_UNIT $(ssh -n "$LTN_BOX" "systemctl is-active $LTN_UNIT")"; }
+# bruce, the FLO, runs editable from the sibling checkout beside the LTN's
+# scada checkout and tracks its upstream main: a roll brings the sibling to
+# the pushed tip of main (cloning it first if the house has none), and
+# every recommendation records the commit that answered.
+BRUCE_REPO="https://github.com/thdfw/optimal-flexibility"
+BRUCE_SIBLING="~/ltn-$HOUSE/optimal-flexibility"
+bruce_sha()  { ssh -n "$LTN_BOX" "git -C $BRUCE_SIBLING rev-parse --short HEAD 2>/dev/null || echo none"; }
+bruce_line() { echo "bruce: $BRUCE_SIBLING @ $(bruce_sha) (origin/main behind by $(behind "$LTN_BOX" "$BRUCE_SIBLING" main 2>/dev/null || echo ?))"; }
+roll_bruce() {
+  ssh -n "$LTN_BOX" "[ -d $BRUCE_SIBLING/.git ] || git clone -q $BRUCE_REPO $BRUCE_SIBLING"
+  [ -z "$(ssh -n "$LTN_BOX" "git -C $BRUCE_SIBLING status --porcelain")" ] || { echo "bruce: $BRUCE_SIBLING is dirty; refusing"; return 1; }
+  ssh -n "$LTN_BOX" "git -C $BRUCE_SIBLING fetch -q origin && git -C $BRUCE_SIBLING checkout -q main && git -C $BRUCE_SIBLING merge -q --ff-only origin/main" || { echo "bruce: fast-forward of $BRUCE_SIBLING to origin/main failed; refusing"; return 1; }
+  ssh -n "$LTN_BOX" "$LTN_REPO/gw_spaceheat/venv/bin/pip show bruce-energy 2>/dev/null | grep -q '^Editable project location: .*optimal-flexibility'" || { echo "bruce: the LTN venv does not install bruce editable from $BRUCE_SIBLING; rebuild it in $LTN_REPO (tools/mkenv.sh) by hand, then re-run"; return 1; }
+}
 # Commits the box's checkout is behind the pushed tip of its own branch.
 behind() { ssh -n "$1" "git -C $2 fetch -q origin && git -C $2 rev-list --count HEAD..origin/$3 2>/dev/null || echo ?"; }
 
@@ -287,6 +301,7 @@ if [ "$VERB" = check ]; then
   echo "ltn: $LTN_REPO on $lb @ $(ltn_sha) (behind origin/$lb by $n); $LTN_UNIT $(ssh -n "$LTN_BOX" "systemctl is-active $LTN_UNIT")"
   [ "$n" = 0 ] || { echo "ltn: not at the pushed tip of $lb"; rc=1; }
   verify_ltn "$lb" || rc=1
+  bruce_line
   [ "$lb" = "$pb" ] || { echo "$HOUSE: LTN on $lb, scada on $pb; a house's LTN and scada run on one line"; rc=1; }
   [ "$(ltn_sha)" = "$(box_sha "$HOUSE")" ] || { echo "$HOUSE: LTN @ $(ltn_sha), scada @ $(box_sha "$HOUSE"); a house's LTN and scada run at one SHA"; rc=1; }
   exit $rc
@@ -328,8 +343,10 @@ done
 ssh -n "$LTN_BOX" "git -C $LTN_REPO checkout -q $TARGET && git -C $LTN_REPO merge -q --ff-only origin/$TARGET" || { echo "ltn: checkout or fast-forward failed; refusing. The pis are on $TARGET; fix the LTN checkout by hand and re-run."; exit 1; }
 echo "ltn: $LTN_REPO on $TARGET @ $(ltn_sha) (was $ltn_cur)"
 INSTALL=1 verify_ltn "$TARGET" || { echo "ltn: pair not verified; unit NOT restarted. Fix the pair and re-run."; exit 1; }
+roll_bruce || { echo "bruce: sibling not rolled; unit NOT restarted. Fix the sibling and re-run."; exit 1; }
 ssh -n "$LTN_BOX" "sudo systemctl restart $LTN_UNIT"; sleep 3
 ltn_line
+bruce_line
 
 if [ "$HOUSE" = spruce ]; then
   if [ "$TARGET" = actual-spruce ]; then ssh -n spruce 'sudo systemctl enable -q --now spruce-winter-hack'; echo "spruce: winter hack enabled and started"

@@ -69,7 +69,7 @@ initial_targets:
     energy.instruction:
       versions: ["000"]
     flo.params:
-      versions: ["000"]
+      versions: ["001"]
     flo.params.house0:
       versions: ["007"]
     flo.recommendation:

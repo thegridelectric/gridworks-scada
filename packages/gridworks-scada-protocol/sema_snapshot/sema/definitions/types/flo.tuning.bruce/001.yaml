@@ -1,16 +1,21 @@
 $schema: "https://json-schema.org/draft/2020-12/schema"
-$id: "https://schemas.electricity.works/types/flo.tuning.bruce/000"
+$id: "https://schemas.electricity.works/types/flo.tuning.bruce/001"
 
 title: "flo.tuning.bruce"
 type: object
 description: >
   The tuning knobs of the bruce Forward Looking Optimizer, one heat pump
   charging one stratified water store: the plant model constants bruce
-  needs that no house word states, and the weights of its penalties.
-  Authored once per house in its operational params and copied into each
-  flo.params.bruce request.
+  needs that no house word states, the resolution of its store model, and
+  the weights of its penalties. Authored once per house in its operational
+  params and copied into each flo.params request.
 
 properties:
+  NumLayers:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Layers the model divides the whole modeled store into, top to bottom;
+      the resolution at which it tracks the thermoclines.
   StorageLossesPercent:
     type: number
     description: >
@@ -89,9 +94,10 @@ properties:
   TypeName:
     const: "flo.tuning.bruce"
   Version:
-    const: "000"
+    const: "001"
 
 required:
+  - NumLayers
   - StorageLossesPercent
   - HpMinKwEl
   - HpMaxKwTh
@@ -124,6 +130,7 @@ additionalProperties: false
 examples:
   - |
     {
+      "NumLayers": 3,
       "StorageLossesPercent": 0.5,
       "HpMinKwEl": 0,
       "HpMaxKwTh": 25,
@@ -149,7 +156,7 @@ examples:
       "TerminalCostEnabled": true,
       "TerminalCostEndWindowHours": 24,
       "TypeName": "flo.tuning.bruce",
-      "Version": "000"
+      "Version": "001"
     }
 
 x-gridworks:

@@ -1,6 +1,6 @@
 {
   "TypeName": "flo.params",
-  "Version": "000",
+  "Version": "001",
   "GNodeAlias": "hw1.isone.me.versant.keene.oak",
   "CreatedMs": 1762008900000,
   "StartUnixS": 1762009200,
@@ -57,7 +57,8 @@
   "PriceMinUsdMwh": -100.0,
   "Tuning": {
     "TypeName": "flo.tuning.bruce",
-    "Version": "000",
+    "Version": "001",
+    "NumLayers": 3,
     "StorageLossesPercent": 0.5,
     "HpMinKwEl": 0.0,
     "HpMaxKwTh": 25.0,
