@@ -511,6 +511,7 @@ class Ltn(PrimeActor):
             case FloRecommendation():
                 path_dbg |= 0x00000003
                 self.recommendation = message.Payload
+                self._message_for_scada_publish(message.Payload)
             case Glitch():
                 path_dbg |= 0x00000002
                 self._message_for_scada_publish(message.Payload)

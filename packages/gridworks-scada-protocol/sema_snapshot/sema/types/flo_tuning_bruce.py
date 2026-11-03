@@ -2,11 +2,13 @@ from typing import Literal, Self
 from pydantic import StrictFloat, model_validator
 from sema_snapshot.sema.base import SemaType
 from sema_snapshot.sema.property_format import NonNegativeInt
+from sema_snapshot.sema.property_format import PositiveInt
 
 
 class FloTuningBruce(SemaType):
-    """Sema: https://schemas.electricity.works/types/flo.tuning.bruce/000"""
+    """Sema: https://schemas.electricity.works/types/flo.tuning.bruce/001"""
 
+    num_layers: PositiveInt
     storage_losses_percent: StrictFloat
     hp_min_kw_el: StrictFloat
     hp_max_kw_th: StrictFloat
@@ -32,7 +34,7 @@ class FloTuningBruce(SemaType):
     terminal_cost_enabled: bool
     terminal_cost_end_window_hours: NonNegativeInt
     type_name: Literal["flo.tuning.bruce"] = "flo.tuning.bruce"
-    version: Literal["000"] = "000"
+    version: Literal["001"] = "001"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

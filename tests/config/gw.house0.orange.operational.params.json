@@ -503,6 +503,7 @@
   "MarketMakerAlias": "hw1.isone.me.versant.keene",
   "MarketProductName": "rt60gate5",
   "FloTuning": {
+    "NumLayers": 9,
     "StorageLossesPercent": 0.5,
     "HpMinKwEl": 0,
     "HpMaxKwTh": 25,
@@ -532,7 +533,7 @@
     "TerminalCostEnabled": true,
     "TerminalCostEndWindowHours": 24,
     "TypeName": "flo.tuning.bruce",
-    "Version": "000"
+    "Version": "001"
   },
   "WeatherBundleName": "us.me.millinocket.moose",
   "Tariff": {

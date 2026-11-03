@@ -77,17 +77,17 @@ types:
   flo.optimal.path:
     '000':
       used_by:
-      - flo.params:000
+      - flo.params:001
       - flo.recommendation:000
   flo.tuning.alice:
     '000':
       used_by:
-      - flo.params:000
+      - flo.params:001
       - gw.operational.params:000
   flo.tuning.bruce:
-    '000':
+    '001':
       used_by:
-      - flo.params:000
+      - flo.params:001
       - gw.operational.params:000
   fsm.atomic.report:
     '001':
@@ -551,7 +551,7 @@ enums:
   gw1.seasonal.storage.mode:
     '000':
       used_by:
-      - flo.params:000
+      - flo.params:001
       - gw.house.operating.status:000
       - gw.house0.family.params:000
       - gw.house0.no.sieg.family.params:000
@@ -757,7 +757,7 @@ formats:
     - derived.channel.gt:003
     - energy.instruction:000
     - flo.params.house0:007
-    - flo.params:000
+    - flo.params:001
     - flo.recommendation:000
     - fsm.atomic.report:001
     - fsm.event:000
@@ -815,7 +815,7 @@ formats:
     - relay.control.config:000
   non.negative.int:
     used_by:
-    - flo.tuning.bruce:000
+    - flo.tuning.bruce:001
     - gw.native.gpio.pin:000
     - gw.operational.params:000
     - gw.weather.channel.gt:002
@@ -896,7 +896,8 @@ formats:
     - energy.instruction:000
     - flo.optimal.path:000
     - flo.params.house0:007
-    - flo.params:000
+    - flo.params:001
+    - flo.tuning.bruce:001
     - flow.hall.params:101
     - gw.nolan.family.params:000
     - gw.operational.params:000
@@ -998,7 +999,7 @@ formats:
     - analog.dispatch:000
     - channel.readings:002
     - energy.instruction:000
-    - flo.params:000
+    - flo.params:001
     - flo.recommendation:000
     - fsm.atomic.report:001
     - fsm.event:000
@@ -1032,7 +1033,7 @@ formats:
     - energy.instruction:000
     - flo.optimal.path:000
     - flo.params.house0:007
-    - flo.params:000
+    - flo.params:001
     - heating.forecast:000
     - report:003
     - slow.dispatch.contract:000
@@ -1046,7 +1047,7 @@ formats:
     - device.component.gt:000
     - electric.meter.component.gt:001
     - flo.params.house0:007
-    - flo.params:000
+    - flo.params:001
     - fsm.atomic.report:001
     - fsm.event:000
     - fsm.full.report:001
