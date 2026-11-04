@@ -15,6 +15,7 @@ from gwsproto.data_classes.hydronic_layout import HydronicLayout
 import actors
 from actors.ltn import Ltn
 from actors.ltn.config import LtnSettings
+from actors.ltn.flo_service import flo_alias, flo_recommendation_topic
 from actors.ltn.market import latest_price_topic
 from actors.scada_data import load_operational_params
 from clock import Clock, build_clock
@@ -172,6 +173,14 @@ class LtnApp(App, LtnAppInterface):
         proactor.links.subscribe(
             client=self.SCADA_MQTT,
             topic=latest_price_topic(self.operational_params.MarketMakerAlias),
+            qos=QOS.AtMostOnce,
+        )
+        # The FLO's answer comes back wrapped on the FLO's own topic.
+        proactor.links.subscribe(
+            client=self.SCADA_MQTT,
+            topic=flo_recommendation_topic(
+                flo_alias(typing.cast(HydronicLayout, proactor.hardware_layout).ltn_g_node_alias)
+            ),
             qos=QOS.AtMostOnce,
         )
 
