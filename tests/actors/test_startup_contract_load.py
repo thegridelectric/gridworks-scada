@@ -4,7 +4,9 @@ that arrives in the first seconds is not read back from the store: the
 leaf ally gets no heartbeat for it, and a contract the ally gave up stays
 ended. A live contract in the store is taken up again after a restart; a
 contract the store holds as ended is not. A scada that restarts refusing
-dispatch ends the live contract it finds in the store."""
+dispatch ends the live contract it finds in the store; the blindness of the
+first seconds, before the buffer readings arrive, is not a refusal, and the
+resume waits it out up to a bound."""
 
 import asyncio
 import time
@@ -14,9 +16,11 @@ from typing import Any
 
 import pytest
 
+from actors.api_tank_module import ApiTankModule
 from actors.contract_handler import CONTRACT_FILE_NAME
 from actors.leaf_ally_loader import LeafAlly
 from actors.scada import Scada
+from actors.sim_pico_source import SimPicoSource
 from gwsproto.enums import (
     DispatchRefusalReason,
     LeafAllyAllTanksState,
@@ -90,6 +94,22 @@ def leaf_ally(scada: Scada) -> LeafAlly:
     ally = scada.services.get_communicator_as_type(CoreNodeNames.leaf_ally, LeafAlly)
     assert ally is not None
     return ally
+
+
+def hold_buffer_pico(app: ScadaApp) -> SimPicoSource:
+    """Willow's simulated buffer pico, held before its first post so the
+    scada stays blind until `release_buffer_pico`. Call it right after
+    `start_child1`, before the loop runs the pico's first tick."""
+    buffer = app.get_communicator_as_type("buffer", ApiTankModule)
+    assert buffer is not None and buffer.sim_pico is not None
+    buffer.sim_pico.alive = False
+    return buffer.sim_pico
+
+
+def release_buffer_pico(pico: SimPicoSource) -> None:
+    """The held pico boots now and posts on its next tick."""
+    pico.booted_at = time.time()
+    pico.alive = True
 
 
 def live_contract(scada: Scada) -> SlowDispatchContract:
@@ -267,6 +287,91 @@ async def test_a_resumed_contract_waits_for_the_first_forecast(
             timeout=10,
             err_str_f=lambda: f"ally state: {ally.state}",
         )
+
+
+@pytest.mark.asyncio
+async def test_a_resumed_contract_waits_for_the_first_fresh_buffer(
+    request: pytest.FixtureRequest, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A scada is blind until its buffer channels have all been read, which
+    on a box is tens of seconds after start. The resume waits for the first
+    fresh buffer as it waits for the first forecast: while the readings are
+    still to come the loaded contract is not given up and no heartbeat
+    leaves; the reading that completes the set lets the resume run, and the
+    contract is taken up again."""
+    ops_path = heating_ops(tmp_path, WILLOW)
+    layout = load_layout(CONFIG / WILLOW[0], ops_path)
+    async with ScadaLiveTest(request=request, layout=layout, ops_path=ops_path) as h:
+        app = h.child1_app
+        stored = stored_heartbeat(layout.scada_g_node_alias)
+        contract = stored.Contract
+        store(app, stored)
+
+        h.start_child1()
+        pico = hold_buffer_pico(app)  # before the loop runs its first tick
+        scada = app.scada
+        sends = Sends(monkeypatch, scada)
+        await scada_tasks_started(h)
+        started_s = time.time()
+        await h.await_for(
+            lambda: time.time() > started_s + PAST_STARTUP_S,
+            "ERROR waiting out the startup seconds",
+            timeout=PAST_STARTUP_S + 5,
+        )
+        assert not scada.buffer_fresh(), "the held pico posted"
+        latest = scada.contract_handler.latest_scada_hb
+        assert latest is not None, "the resumed contract was given up while blind"
+        assert latest.Contract.ContractId == contract.ContractId
+        assert sends.heartbeats_to_ltn() == [], "a heartbeat left before the buffer was read"
+        assert scada.auto_state == MainAutoState.LocalControl
+
+        release_buffer_pico(pico)
+        await h.await_for(
+            lambda: bool(sends.heartbeats_to_ltn()),
+            "ERROR waiting for the scada to take the stored contract up again",
+            timeout=30,
+            err_str_f=lambda: (
+                f"auto_state: {scada.auto_state}, "
+                f"latest_scada_hb: {scada.contract_handler.latest_scada_hb}"
+            ),
+        )
+        assert sends.heartbeats_to_ltn()[0] == stored
+        assert scada.auto_state == MainAutoState.LeafTransactiveNode
+        assert contract in sends.to_leaf_ally(SlowDispatchContract)
+
+
+@pytest.mark.asyncio
+async def test_a_live_stored_contract_is_ended_by_a_scada_still_blind_at_the_bound(
+    request: pytest.FixtureRequest, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A buffer that has not been read by the bound is a blind scada, and
+    the resume ends the contract as it does for any refusal."""
+    monkeypatch.setattr(Scada, "RESUME_BLIND_BOUND_S", 1)
+    ops_path = heating_ops(tmp_path, WILLOW)
+    layout = load_layout(CONFIG / WILLOW[0], ops_path)
+    async with ScadaLiveTest(request=request, layout=layout, ops_path=ops_path) as h:
+        app = h.child1_app
+        stored = stored_heartbeat(layout.scada_g_node_alias)
+        contract = stored.Contract
+        contract_file = store(app, stored)
+
+        h.start_child1()
+        hold_buffer_pico(app)  # before the loop runs its first tick
+        scada = app.scada
+        sends = Sends(monkeypatch, scada)
+        await h.await_for(
+            lambda: bool(sends.heartbeats_to_ltn()),
+            "ERROR waiting for the scada to speak of the stored contract",
+            timeout=30,
+        )
+        [ended] = sends.heartbeats_to_ltn()
+        assert ended.Contract.ContractId == contract.ContractId
+        assert ended.Status == SlowDispatchContractStatus.TerminatedByScada
+        assert ended.Reason == DispatchRefusalReason.ScadaBlind
+        assert scada.auto_state == MainAutoState.LocalControl
+        assert scada.contract_handler.latest_scada_hb is None
+        in_store = SlowContractHeartbeat.model_validate_json(contract_file.read_text())
+        assert in_store.Status == SlowDispatchContractStatus.TerminatedByScada
 
 
 def refusing_ops(tmp_path: Path, reason: DispatchRefusalReason) -> Path:
