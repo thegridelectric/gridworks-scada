@@ -471,7 +471,7 @@ def test_gw_house0_layout_axiom_4_second_heat_call(assembled: dict) -> None:
 # parenthesis so "Axiom 2" cannot be satisfied by "Axiom 20".
 PINNED_STRATEGIES = {
     "transactive-power", "heat-call", "system-model", "simple-falling-edge-setpoint",
-    "circulator-running",
+    "circulator-running", "rolling-dist-energy",
 }
 
 

@@ -30,8 +30,6 @@ def thermistor_temp_c_beta_formula(
     # Calculate the temperature in degrees Celsius. Note that 273 is
     # 0 degrees Celsius as measured in Kelvin.
     temp_c = 1 / ((1 / t0) + (math.log(rt / r0) / beta)) - 273
-    # Convert the temperature to degrees Fahrenheit
-    temp_f = (temp_c * 9 / 5) + 32
     return temp_c
 
 

@@ -291,27 +291,26 @@ class ApiBtuMeter(PicoActorBase):
 
     async def _handle_multichannel_snapshot_post(self, request: Request) -> Response:
         text = await self._get_text(request)
-        #self.log("GOT BTU DATA")
+        if text is None:
+            return Response(text="failed", status=100)
         try:
             data = MultichannelSnapshot(**json.loads(text))
         except Exception as e:
             self.log(f"Did not interpret data as MultichannelSnapshot: {e}")
-            if text is not None:
-                self.refused_posts.report(refused_post(self.name, text, e, MultichannelSnapshot))
+            self.refused_posts.report(refused_post(self.name, text, e, MultichannelSnapshot))
             return Response(text="failed", status=100)
 
         self.readings_text = text
-        if isinstance(text, str):
-            try:
-                self.services.send_threadsafe(
-                    Message(
-                        Src=self.name,
-                        Dst=self.name,
-                        Payload=MultichannelSnapshot(**json.loads(text)),
-                    )
+        try:
+            self.services.send_threadsafe(
+                Message(
+                    Src=self.name,
+                    Dst=self.name,
+                    Payload=data,
                 )
-            except Exception as e:  # noqa
-                self.refused_posts.report(refused_post(self.name, text, e, MultichannelSnapshot))
+            )
+        except Exception as e:  # noqa
+            self.refused_posts.report(refused_post(self.name, text, e, MultichannelSnapshot))
         return Response()
 
     def _process_multichannel_snapshot(self, data: MultichannelSnapshot) -> None:

@@ -863,6 +863,25 @@ class HydronicLayout:
                                 "positive integer"
                             )
 
+                case "rolling-dist-energy":
+                    expected = ("dist-flow", "dist-swt", "dist-rwt")
+                    if tuple(dc.InputChannelNames) != expected:
+                        errors.append(
+                            f"DerivedChannel '{dc.Name}' uses strategy "
+                            "'rolling-dist-energy' but must declare InputChannelNames "
+                            f"{expected!r}"
+                        )
+                    if dc.EmissionMethod != EmissionMethod.Periodic:
+                        errors.append(
+                            f"DerivedChannel '{dc.Name}' uses strategy "
+                            "'rolling-dist-energy' but must use EmissionMethod Periodic"
+                        )
+                    if dc.OutputUnit != Unit.WattHours:
+                        errors.append(
+                            f"DerivedChannel '{dc.Name}' uses strategy "
+                            "'rolling-dist-energy' but must use OutputUnit WattHours"
+                        )
+
                 case "system-model":
                     if dc.InputChannelNames:
                         errors.append(

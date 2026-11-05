@@ -1,6 +1,10 @@
 import shutil
+import sys
 import textwrap
 from pathlib import Path
+
+import click
+import typer
 
 from gwproactor_test import copy_keys
 from gwproactor_test.certs import uses_tls
@@ -17,12 +21,6 @@ from ltn_app import LtnApp
 from tests.conftest import TEST_HARDWARE_LAYOUT_PATH
 
 runner = CliRunner()
-
-import typer
-import click
-import sys
-
-
 
 admin_commands = [
     [],

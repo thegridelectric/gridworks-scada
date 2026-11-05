@@ -24,7 +24,6 @@ from gwsproto.enums import ActorClass, TurnHpOnOff
 from gwsproto.named_types import FsmEvent, NewCommandTree
 
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
-from gwsproto.names.house0.node_names import House0NodeNames
 
 
 from actors.sh_node_actor import ShNodeActor

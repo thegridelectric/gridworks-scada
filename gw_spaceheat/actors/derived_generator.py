@@ -63,6 +63,12 @@ class DerivedHandler(Protocol):
 # Unit; these pairs are the same encoding under two names.
 EQUIVALENT_UNIT: dict[TelemetryName, Unit] = {TelemetryName.GpmTimes100: Unit.GpmX100}
 
+ROLLING_DIST_ENERGY_INPUTS = (
+    HCN.dist_flow,
+    HCN.dist_swt,
+    HCN.dist_rwt,
+)
+
 
 def as_unit(encoding: Unit | TelemetryName) -> Unit | TelemetryName:
     if isinstance(encoding, TelemetryName):
@@ -72,6 +78,7 @@ def as_unit(encoding: Unit | TelemetryName) -> Unit | TelemetryName:
 
 class DerivedGenerator(ShNodeActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
+    ROLLING_DIST_WINDOW_MINUTES = 60
 
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
@@ -98,10 +105,18 @@ class DerivedGenerator(ShNodeActor):
             "circulator-running": self.handle_circulator_running,
             "simple-falling-edge-setpoint": self.handle_simple_falling_edge_setpoint,
             "system-model": self.handle_system_model,
+            "rolling-dist-energy": self.handle_rolling_dist_energy_input,
         }
 
         self.derived_by_input: dict[str, list[DerivedChannel]] = {}
         self.system_models: list[DerivedChannel] = []
+        self.rolling_dist_energy_channels: list[DerivedChannel] = []
+        self._rolling_dist_buffers: dict[str, list[tuple[int, int]]] = {
+            ch: [] for ch in ROLLING_DIST_ENERGY_INPUTS
+        }
+        self._rolling_dist_last: dict[str, tuple[int, int]] = {}
+        self._rolling_dist_minute_wh: dict[int, float] = {}
+        self._rolling_dist_integrated_until_ms: int | None = None
         self.simple_falling_edge_setpoint_states: dict[str, SimpleFallingEdgeSetpointState] = {}
         self.last_emitted: dict[str, int] = {}
         self.next_period_boundary_ts: dict[str, float] = {} # channel name, unix seconds
@@ -221,6 +236,18 @@ class DerivedGenerator(ShNodeActor):
                     )
             elif dc.Strategy == "simple-falling-edge-setpoint":
                 self.init_simple_falling_edge_setpoint_channel(dc)
+            elif dc.Strategy == "rolling-dist-energy":
+                if tuple(dc.InputChannelNames) != ROLLING_DIST_ENERGY_INPUTS:
+                    raise RuntimeError(
+                        f"Rolling-dist-energy DerivedChannel '{dc.Name}' must declare "
+                        f"InputChannelNames {ROLLING_DIST_ENERGY_INPUTS!r}"
+                    )
+                if dc.OutputUnit != Unit.WattHours:
+                    raise RuntimeError(
+                        f"Rolling-dist-energy DerivedChannel '{dc.Name}' must use "
+                        f"OutputUnit WattHours, not {dc.OutputUnit}"
+                    )
+                self.rolling_dist_energy_channels.append(dc)
 
         # 4) Final sanity check: every DerivedChannel must be reachable
         handled = set()
@@ -794,6 +821,9 @@ class DerivedGenerator(ShNodeActor):
             for dc in self.system_models:
                 self.handle_system_model(dc)
 
+            for dc in self.rolling_dist_energy_channels:
+                self.tick_rolling_dist_energy(dc)
+
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
     def forecast_is_due(self) -> bool:
@@ -858,7 +888,111 @@ class DerivedGenerator(ShNodeActor):
             handler(dc, payload)
 
     def handle_input_reading(self, from_node: ShNode, payload: SingleReading) -> None:
+        if self.rolling_dist_energy_channels and payload.ChannelName in self._rolling_dist_buffers:
+            self._rolling_dist_buffers[payload.ChannelName].append(
+                (payload.ScadaReadTimeUnixMs, payload.Value)
+            )
         self._dispatch_derived_input(payload)
+
+    def handle_rolling_dist_energy_input(self, dc: DerivedChannel, payload: SingleReading | None = None) -> None:
+        """Inputs are accumulated in handle_input_reading; emission is periodic."""
+
+    def tick_rolling_dist_energy(self, dc: DerivedChannel) -> None:
+        now_ms = int(self.services.clock.now() * 1000)
+        self._rolling_dist_integrate_buffers(now_ms)
+        value = self._rolling_dist_rolling_hour_wh(self.services.clock.now())
+        if value is None:
+            self.log("Rolling dist energy: None")
+            return
+        self.log(f"Rolling dist energy: {value} Wh")
+        self.emit_derived(
+            SingleReading(
+                ChannelName=dc.Name,
+                Value=value,
+                ScadaReadTimeUnixMs=now_ms,
+            )
+        )
+
+    def _rolling_dist_minute_start_s(self, unix_s: float) -> int:
+        dt = datetime.fromtimestamp(unix_s, self.timezone)
+        return int(dt.replace(second=0, microsecond=0).timestamp())
+
+    def _rolling_dist_power_kw(self, held: dict[str, int]) -> float:
+        flow = held.get(HCN.dist_flow)
+        swt = held.get(HCN.dist_swt)
+        rwt = held.get(HCN.dist_rwt)
+        if flow is None or flow <= 0 or swt is None or rwt is None:
+            return 0.0
+        swt_c = self.layout.channel_registry.temperature(HCN.dist_swt, swt).c
+        rwt_c = self.layout.channel_registry.temperature(HCN.dist_rwt, rwt).c
+        delta_t = swt_c - rwt_c
+        if delta_t <= 0:
+            return 0.0
+        mdot_kg_s = (flow / 100) * self.GALLON_PER_LITER / 60
+        return mdot_kg_s * self.WATER_SPECIFIC_HEAT_KJ_PER_KG_C * delta_t
+
+    def _rolling_dist_add_wh(self, t0_ms: int, t1_ms: int, power_kw: float) -> None:
+        if t1_ms <= t0_ms:
+            return
+        t = t0_ms
+        while t < t1_ms:
+            minute_end_ms = (self._rolling_dist_minute_start_s(t / 1000) + 60) * 1000
+            seg_end = min(t1_ms, minute_end_ms)
+            dt_s = (seg_end - t) / 1000
+            minute = self._rolling_dist_minute_start_s(t / 1000)
+            self._rolling_dist_minute_wh[minute] = (
+                self._rolling_dist_minute_wh.get(minute, 0.0) + power_kw * dt_s / 3.6
+            )
+            t = seg_end
+
+    def _rolling_dist_integrate_buffers(self, now_ms: int) -> None:
+        events: list[tuple[int, str, int]] = []
+        for ch, samples in self._rolling_dist_buffers.items():
+            for ms, val in samples:
+                events.append((ms, ch, val))
+        events.sort(key=lambda x: x[0])
+
+        held = {ch: val for ch, (_, val) in self._rolling_dist_last.items()}
+        last_ms = {ch: ms for ch, (ms, _) in self._rolling_dist_last.items()}
+        t_cursor = self._rolling_dist_integrated_until_ms
+        if t_cursor is None and events:
+            t_cursor = events[0][0]
+        if t_cursor is None:
+            for ch in ROLLING_DIST_ENERGY_INPUTS:
+                self._rolling_dist_buffers[ch] = []
+            return
+
+        for ms, ch, val in events:
+            if ms > t_cursor:
+                self._rolling_dist_add_wh(t_cursor, ms, self._rolling_dist_power_kw(held))
+            held[ch] = val
+            last_ms[ch] = ms
+            t_cursor = ms
+
+        if now_ms > t_cursor:
+            self._rolling_dist_add_wh(t_cursor, now_ms, self._rolling_dist_power_kw(held))
+
+        self._rolling_dist_integrated_until_ms = now_ms
+        for ch in ROLLING_DIST_ENERGY_INPUTS:
+            self._rolling_dist_buffers[ch] = []
+        self._rolling_dist_last = {
+            ch: (last_ms[ch], held[ch]) for ch in held
+        }
+
+        cutoff = self._rolling_dist_minute_start_s(now_ms / 1000) - (self.ROLLING_DIST_WINDOW_MINUTES * 60)
+        for minute in list(self._rolling_dist_minute_wh):
+            if minute < cutoff:
+                del self._rolling_dist_minute_wh[minute]
+
+    def _rolling_dist_rolling_hour_wh(self, now_s: float) -> int | None:
+        end_minute = self._rolling_dist_minute_start_s(now_s)
+        total = 0.0
+        for i in range(1, self.ROLLING_DIST_WINDOW_MINUTES + 1):
+            minute = end_minute - 60 * i
+            if minute not in self._rolling_dist_minute_wh:
+                return None
+            total += self._rolling_dist_minute_wh[minute]
+        return int(total)
 
     # Compute usable and required energy
     def compute_usable_energy_wh(self) -> int | None:

@@ -1,7 +1,6 @@
 import re
 import logging
-from typing import Any
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel
 from pydantic_settings import SettingsConfigDict
 
 from gwproactor.config import MQTTClient
