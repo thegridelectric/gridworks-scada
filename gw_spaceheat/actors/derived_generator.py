@@ -902,6 +902,7 @@ class DerivedGenerator(ShNodeActor):
         value = self._rolling_dist_rolling_hour_wh(self.services.clock.now())
         if value is None:
             return
+        self.log(f"Rolling dist energy: {value} Wh")
         self.emit_derived(
             SingleReading(
                 ChannelName=dc.Name,
