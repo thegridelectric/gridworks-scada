@@ -42,15 +42,9 @@ class PicoActorBase(ShNodeActor):
                 self.log(f"Invalid PicoCommsParams format: {e}")
                 return Response(status=400, text="Invalid message format")
 
-            # Get the SCADA's actual network configuration
-
-            # Get local IP address (there are better ways but this is simple)
-            # This assumes the SCADA is on the same network as the pico
-            local_ip = request.url.host  # IP the request came to
-
             try:
                 actual_ip = request.transport.get_extra_info('sockname')[0]
-            except:
+            except Exception:
                 actual_ip = params.BaseUrl # TODO - safer extraction of IP than the above
 
             # Get the port from the web server component in layout

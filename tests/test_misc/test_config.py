@@ -10,8 +10,6 @@ from gwproactor.config import Paths
 from clock import ClockSource
 from weather_source import WeatherSourceKind
 from gwproactor.config.mqtt import TLSInfo
-from gwproactor.config.proactor_settings import ACK_TIMEOUT_SECONDS
-from gwproactor.config.proactor_settings import NUM_INITIAL_EVENT_REUPLOADS
 from gwproactor import ProactorSettings
 
 from actors.config import AdminLinkSettings
@@ -20,8 +18,6 @@ from actors.config import ScadaPaths
 from gwproactor.config import LoggingSettings
 from gwproactor.config import MQTTClient
 from actors.config import ScadaSettings
-from gwproactor.config.proactor_settings import MQTT_LINK_POLL_SECONDS
-from gwproactor_test import clean_test_env
 from gwproactor_test.clean import DefaultTestEnv
 
 

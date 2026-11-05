@@ -18,7 +18,6 @@ from actors.hydronic.house0 import House0Hydronic
 from actors.in_process_messages import MachineStateSubscribe
 from actors.sieg_loop import (
     VIEW_CHANNELS,
-    HoldFullSend,
     SiegControlState,
     SiegLoop,
     SiegLoopReady,

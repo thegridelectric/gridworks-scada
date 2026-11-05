@@ -8,7 +8,6 @@ from typing import Deque
 from typing import Optional
 
 from gwsproto.data_classes.hydronic_layout import ChannelRegistry
-from gwsproto.enums import TelemetryName
 
 from gwsproto.named_types import SnapshotSpaceheat
 

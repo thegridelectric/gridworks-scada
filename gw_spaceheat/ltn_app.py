@@ -20,7 +20,6 @@ from actors.scada_data import load_operational_params
 from clock import Clock, build_clock
 from ltn_app_interface import LtnAppInterface
 from sema_to_dc import load_layout
-from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.named_types import OperationalParams
 from gwsproto.names.core.node_names import CoreNodeNames
 from weather_source import WeatherSource, build_weather_source

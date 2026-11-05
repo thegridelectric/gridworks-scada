@@ -94,7 +94,7 @@ class PowerDisplay:
                         or self.hack_hp_state_q[i].state == HackHpState.Trying):
                     row_2.append(f"{self.hack_hp_state_q[i].start_attempts}")
                 else:
-                    row_2.append(f"")
+                    row_2.append("")
                 row_3.append(f"{self.hack_hp_state_q[i].primary_pump_pwr_w} W")
 
         self.table.add_row(*row_1)

@@ -14,7 +14,6 @@ from gwsproto.names.hydronic_spaceheat.node_names import (
     HydronicSpaceheatNodeNames as HSNN,
 )
 from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
-from gwsproto.names.nolan.node_names import NolanNodeNames
 from gwsproto.names.core.node_names import CoreNodeNames
 
 

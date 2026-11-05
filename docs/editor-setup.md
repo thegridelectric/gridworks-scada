@@ -24,9 +24,8 @@ From the command line:
 
 Notes:
 
-- Ruff is currently advisory.
-- The full repository may not yet pass all configured checks.
-- Use it as helpful feedback, not as a blocker.
+- `ruff check` must pass. CI fails the workflow when it does not.
+- The version is the one pinned in `gw_spaceheat/requirements/test.txt`.
 
 ---
 

@@ -5,7 +5,7 @@ import multiprocessing
 import threading
 import time
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime
 from functools import cached_property
 from typing import Any, Dict, List, Optional, Tuple, cast, Callable
 from typing import Sequence
@@ -40,14 +40,6 @@ from clock import Clock
 from ltn_app_interface import LtnAppInterface
 from weather_source import ForecastPair
 from gwproto import HardwareLayout
-
-try:
-    from bruce.service import recommend_bytes
-except ImportError:
-    recommend_bytes = None  # type: ignore[assignment]
-
-BRUCE_FLO_AVAILABLE = recommend_bytes is not None
-
 from gwproto import Message, MQTTCodec, create_message_model
 from gwproto.messages import EventBase
 
@@ -70,7 +62,7 @@ from gwsproto.named_types import PowerWatts, Report, ReportEvent
 from gwsproto.named_types import SendSnap, MachineStates
 from actors.hydronic.store_temps import scrub_and_fill_store_temps
 from actors.ltn.contract_handler import LtnContractHandler
- 
+
 from gwsproto.named_types import (
     Bid, FloOptimalPath, FloParams, FloRecommendation, Glitch, HouseOperatingStatus, LatestPrice,
     LayoutLite, NoNewContractWarning, OperationalParams, SendLayout,
@@ -101,6 +93,13 @@ from actors.ltn.flo_request import (
     previous_run_for,
     save_previous_run,
 )
+
+try:
+    from bruce.service import recommend_bytes
+except ImportError:
+    recommend_bytes = None  # type: ignore[assignment]
+
+BRUCE_FLO_AVAILABLE = recommend_bytes is not None
 
 
 def _flo_worker(flo_params_bytes: bytes, result_queue: multiprocessing.Queue) -> None:

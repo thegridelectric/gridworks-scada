@@ -252,7 +252,7 @@ def watch(
             rich.print("\nThen, to add configuration for your scada, run:")
             rich.print("\n  [green][bold]gwa add-scada[/green]\n")
         raise typer.Exit(2)
-    if not scada in current_config.config.scadas:
+    if scada not in current_config.config.scadas:
         rich.print(
             f"[red][bold]Specified scada '{scada}' does not exist[/red][/bold] "
             f"in config. Available scadas: {available_scadas(current_config.config)}""."
