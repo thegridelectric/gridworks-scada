@@ -1,6 +1,6 @@
 """One rule decides whether a device actor posts to the derived generator:
 the layout says a DerivedChannel consumes one of its channels. Both sim
-pairs carry sieg-flow feeding a derived flow and dist-flow feeding none."""
+pairs carry sieg-flow feeding a derived flow and store-flow feeding none."""
 
 from pathlib import Path
 
@@ -33,8 +33,8 @@ def app(request: pytest.FixtureRequest) -> ScadaApp:
 def test_layout_says_which_channels_feed_a_derived_channel(app: ScadaApp) -> None:
     layout = app.scada.layout
     assert layout.feeds_derived([House0NodeNames.sieg_flow])
-    assert not layout.feeds_derived([HSNN.dist_flow])
-    assert layout.feeds_derived([HSNN.dist_flow, House0NodeNames.sieg_flow])
+    assert not layout.feeds_derived([HSNN.store_flow])
+    assert layout.feeds_derived([HSNN.store_flow, House0NodeNames.sieg_flow])
     assert not layout.feeds_derived([])
 
 
@@ -52,7 +52,7 @@ def test_a_channel_feeding_only_the_power_meters_own_derived_channel_does_not_fe
 
 def test_sim_sensors_take_the_rule_from_the_layout(app: ScadaApp) -> None:
     sieg = app.get_communicator_as_type(House0NodeNames.sieg_flow, SimSensorActor)
-    dist = app.get_communicator_as_type(HSNN.dist_flow, SimSensorActor)
-    assert sieg is not None and dist is not None
+    store = app.get_communicator_as_type(HSNN.store_flow, SimSensorActor)
+    assert sieg is not None and store is not None
     assert sieg.feeds_derived
-    assert not dist.feeds_derived
+    assert not store.feeds_derived

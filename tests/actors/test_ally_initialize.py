@@ -323,7 +323,7 @@ def test_the_roster_glitch_names_a_disabled_dispatch_channel(tmp_path: Path) -> 
     assert needed in glitch.Details
     assert "refuses every offer" in glitch.Details
 
-    other = "dist-rwt"
+    other = "store-flow"
     assert other not in dispatch_channels(app.hardware_layout)
     app = boot_with_disabled(tmp_path, [other])
     glitch = app.scada.disabled_roster_glitch()

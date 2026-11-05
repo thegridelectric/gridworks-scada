@@ -452,3 +452,72 @@ def test_circulator_running_emits_on_change_and_on_the_period(
     actor.handle_circulator_running(dc, pump_pwr(0))
     assert [r.Value for r in sent] == [0, 1, 0, 0]
     assert actor.next_period_boundary_ts[dc.Name] > time.time()
+
+
+def test_rolling_dist_energy_emits_nothing_until_sixty_minutes_exist(
+    clocked_app: tuple[ScadaApp, ManualClock],
+) -> None:
+    app, clock = clocked_app
+    actor = app.get_communicator_as_type(CoreNodeNames.derived_generator, DerivedGenerator)
+    assert actor is not None
+    (dc,) = actor.rolling_dist_energy_channels
+    assert dc.Name == "last-hour-dist-energy"
+
+    sent: list = []
+    actor._send_to = lambda dst, payload, src=None: sent.append(payload)
+
+    actor.tick_rolling_dist_energy(dc)
+    assert sent == []
+
+    end_minute = actor._rolling_dist_minute_start_s(clock.now())
+    actor._rolling_dist_add_wh(end_minute * 1000, (end_minute + 60) * 1000, 0.0)
+    assert actor._rolling_dist_minute_wh[end_minute] == 0.0
+    actor._rolling_dist_minute_wh[end_minute - 60] = 50.0
+    actor.tick_rolling_dist_energy(dc)
+    assert sent == []
+
+
+def test_rolling_dist_energy_integrates_flow_and_temps(
+    clocked_app: tuple[ScadaApp, ManualClock],
+) -> None:
+    app, clock = clocked_app
+    actor = app.get_communicator_as_type(CoreNodeNames.derived_generator, DerivedGenerator)
+    assert actor is not None
+    t0_ms = int(clock.now() * 1000)
+
+    def reading(ch: str, value: int, ms: int) -> None:
+        actor.handle_input_reading(
+            actor.layout.node(CoreNodeNames.derived_generator),
+            SingleReading(ChannelName=ch, Value=value, ScadaReadTimeUnixMs=ms),
+        )
+
+    reading(HCN.dist_flow, 400, t0_ms)
+    reading(HCN.dist_swt, 5000, t0_ms)
+    reading(HCN.dist_rwt, 4000, t0_ms)
+
+    clock.advance(60)
+    actor._rolling_dist_integrate_buffers(int(clock.now() * 1000))
+
+    end_minute = actor._rolling_dist_minute_start_s(clock.now())
+    minute = actor._rolling_dist_minute_start_s(t0_ms / 1000)
+    assert minute in actor._rolling_dist_minute_wh
+    expected_wh = int(
+        actor._rolling_dist_power_kw(
+            {HCN.dist_flow: 400, HCN.dist_swt: 5000, HCN.dist_rwt: 4000}
+        )
+        * 60
+        / 3.6
+    )
+    assert abs(actor._rolling_dist_minute_wh[minute] - expected_wh) <= 1
+    assert expected_wh > 0
+
+    window = actor.ROLLING_DIST_WINDOW_MINUTES
+    for i in range(1, window + 1):
+        actor._rolling_dist_minute_wh[end_minute - 60 * i] = float(expected_wh)
+    (dc,) = actor.rolling_dist_energy_channels
+    sent: list = []
+    actor._send_to = lambda dst, payload, src=None: sent.append(payload)
+    actor.tick_rolling_dist_energy(dc)
+    assert len(sent) == 1
+    assert sent[0].ChannelName == "last-hour-dist-energy"
+    assert sent[0].Value == expected_wh * window
