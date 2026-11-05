@@ -898,7 +898,6 @@ class DerivedGenerator(ShNodeActor):
         """Inputs are accumulated in handle_input_reading; emission is periodic."""
 
     def tick_rolling_dist_energy(self, dc: DerivedChannel) -> None:
-        self.log(f"Ticking rolling dist energy {dc.Name}")
         now_ms = int(self.services.clock.now() * 1000)
         self._rolling_dist_integrate_buffers(now_ms)
         value = self._rolling_dist_rolling_hour_wh(self.services.clock.now())
