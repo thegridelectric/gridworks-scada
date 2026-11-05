@@ -125,7 +125,7 @@ initial_targets:
     gw.nolan.layout:
       versions: ["000"]
     gw.operational.params:
-      versions: ["000"]
+      versions: ["001"]
     gw.recorded.setpoints:
       versions: ["000"]
     gw.scada.commit:
@@ -173,7 +173,7 @@ initial_targets:
     ha1.params:
       versions: ["006"]
     heating.curve:
-      versions: ["000"]
+      versions: ["001"]
     heating.forecast:
       versions: ["000"]
     hp.control.box.device.type.gt:

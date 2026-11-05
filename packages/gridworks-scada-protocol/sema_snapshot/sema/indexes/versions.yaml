@@ -387,8 +387,6 @@ types:
     versions:
       "001":
         summary: "- HeatingCurve: heating.curve 000 -> 001"
-      "000":
-        summary: "Initial version. ScadaAlias (the applying Scada's identity — stored/emitted instances self-identify; the layout holds the full GNodes) + FamilyParams (oneOf gw.house0.family.params / gw.house0.no.sieg.family.params / gw.nolan.family.params, discriminated by TypeName; the family TypeName pairs the instance with its layout family, so a mismatched pair fails at decode) + CaptureTuningList + ZeroTenPowerOnList + Standby x StandbyPosture x EnergizedStandbyRelays (the standby machine energizes the listed relays and nothing else; the posture names what the list achieves) + ServiceMode + DispatchHold (gw.dispatch.hold: the operator's hold and the cold latch; one of three authorities over dispatch) + CopCurve + HeatingCurve + HpTurnOnMinutes + HpMaxKwEl + LoadOverestimationPercent + UsesBackupWhenCold + HorizonHours + WeatherBundleName (the gw.weather.forecast.bundle.gt the LTN relays and the scada pulls) + Tariff (gw.tou.tariff). All required — no assumed defaults. Axioms 1-2: ChannelName unique across CaptureTuningList, NodeName unique across ZeroTenPowerOnList. Axiom 3: Standby implies DispatchHold.OperatorHold. Axiom 4: the posture fixes the relay list (MonitorOnly empty; House0 and House0NoSieg NoHeatingOrCooling = hp-failsafe-relay + aquastat-ctrl-relay; Nolan NoHeatingOrCooling empty). Axiom 5: Standby holds a House0 loop at full send (SiegLoopStrategy HoldFullSend). FloTuning (oneOf flo.tuning.alice 000 / flo.tuning.bruce 001, discriminated by TypeName): the optimizer this house runs and its knobs; the LTN copies it into each flo.params request. Axiom 6: alice holds dispatch (DispatchHold.OperatorHold true), since alice is the empty tuning of a house with no optimizer. Axiom 7: the tuning admits the family (a FLO models the plant as operated): bruce on a House0 family excludes SiegLoopStrategy LwtControl, since bruce models one heat pump charging one stratified store and a loop that targets its own leaving temperature is not that plant."
 
   gw.recorded.setpoints:
     latest_version: "000"
@@ -580,8 +578,6 @@ types:
           - GammaEx6 -> BaselineGammaEx6
           - MassFlowKgH: add
           - DdRoomTempF: add
-      "000":
-        summary: "Initial version (AlphaTimes10, BetaTimes100, GammaEx6, IntermediatePowerKw, IntermediateRswtF, DdPowerKw, DdRswtF, DdDeltaTF, MaxEwtF) — the house thermal model migrated out of scada deployment config into operational params."
 
   heating.forecast:
     latest_version: "000"
