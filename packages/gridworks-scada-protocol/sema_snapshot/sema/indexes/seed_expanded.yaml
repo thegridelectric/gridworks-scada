@@ -52,6 +52,7 @@ initial_targets:
 - gw.nolan.family.params:000
 - gw.nolan.layout:000
 - gw.operational.params:000
+- gw.operational.params:001
 - gw.recorded.setpoints:000
 - gw.scada.commit:000
 - gw.tou.tariff:000
@@ -76,6 +77,7 @@ initial_targets:
 - gw1.zone.thermostat:000
 - ha1.params:006
 - heating.curve:000
+- heating.curve:001
 - heating.forecast:000
 - hp.control.box.device.type.gt:000
 - hp.device.type.gt:000
@@ -682,6 +684,8 @@ worklist:
       '000':
         path: definitions/types/gw.nolan.layout/000.yaml
     gw.operational.params:
+      '001':
+        path: definitions/types/gw.operational.params/001.yaml
       '000':
         path: definitions/types/gw.operational.params/000.yaml
     gw.recorded.setpoints:
@@ -757,6 +761,8 @@ worklist:
       '006':
         path: definitions/types/ha1.params/006.yaml
     heating.curve:
+      '001':
+        path: definitions/types/heating.curve/001.yaml
       '000':
         path: definitions/types/heating.curve/000.yaml
     heating.forecast:

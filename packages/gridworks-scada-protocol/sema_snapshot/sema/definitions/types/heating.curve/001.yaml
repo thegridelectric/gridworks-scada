@@ -1,0 +1,183 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/heating.curve/001"
+
+title: "heating.curve"
+type: object
+description: >
+  A house's thermal / required-source-water-temperature model: baseline
+  quadratic heat-loss coefficients (scaled integers), hydronic mass flow for
+  the constant-heat-call radiator model, the intermediate and design-day anchor
+  points, and the maximum entering water temperature the emitters tolerate.
+
+properties:
+
+  BaselineAlphaTimes10:
+    type: integer
+    description: >
+      Ten times the baseline constant term of the heat-load model, in kW.
+
+  BaselineBetaTimes100:
+    type: integer
+    description: >
+      One hundred times the baseline outdoor-air coefficient of the heat-load
+      model, in kW per degree F.
+
+  BaselineGammaEx6:
+    type: integer
+    description: >
+      One million times the baseline wind-speed coefficient of the heat-load
+      model, in kW per mph.
+
+  AlphaEx6:
+    type: integer
+    description: >
+      One million times the intercept of the main house load forecast model,
+      in kWh/h.
+
+  BetaEx6:
+    type: integer
+    description: >
+      One million times the zone-minus-outdoor delta-T coefficient of the main
+      house load forecast model, in kWh/h per degree F.
+
+  GammaEx6:
+    type: integer
+    description: >
+      One million times the wind-speed times delta-T coefficient of the main
+      house load forecast model, in kWh/h per mph per degree F.
+
+  DeltaEx6:
+    type: integer
+    description: >
+      One million times the solar irradiance coefficient of the main house load
+      forecast model, in kWh/h per W/m².
+
+  EpsilonEx6:
+    type: integer
+    description: >
+      One million times the four-hour mean outdoor air temperature coefficient
+      of the main house load forecast model, in kWh/h per degree F.
+
+  ZetaEx6:
+    type: integer
+    description: >
+      One million times the previous-hour load coefficient of the main house
+      load forecast model, in kWh/h per kWh/h.
+
+  EtaEx6:
+    type: integer
+    description: >
+      One million times the four-hour mean load coefficient (eta) of the main
+      house load forecast model, in kWh/h per kWh/h.
+
+  RhoTimes100:
+    type: integer
+    description: >
+      One hundred times rho: the factor that converts measured distribution
+      energy to load when forming load-history terms of the main house load
+      forecast model.
+
+  IntermediatePowerKw:
+    $ref: "https://schemas.electricity.works/formats/positive.float"
+    description: >
+      Heat power, in kW, at the intermediate anchor point.
+
+  IntermediateRswtF:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Required source water temperature, in degrees F, at the intermediate
+      anchor point.
+
+  DdPowerKw:
+    $ref: "https://schemas.electricity.works/formats/positive.float"
+    description: >
+      Heat power, in kW, at the design-day anchor point.
+
+  DdRswtF:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Required source water temperature, in degrees F, on the design day.
+
+  DdRoomTempF:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Average indoor air temperature, in degrees F, assumed when the design-day
+      anchor (DdPowerKw, DdRswtF) was chosen; used to fix the radiator excess
+      temperature in the constant-flow RSWT model.
+
+  DdDeltaTF:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Design delta-T, in degrees F, between source and return water on the
+      design day.
+
+  MaxEwtF:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      The maximum entering water temperature, in degrees F, the distribution
+      system tolerates.
+
+  MassFlowKgH:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      Nominal hydronic mass flow rate, in kilograms per hour.
+
+  TypeName:
+    const: "heating.curve"
+
+  Version:
+    const: "001"
+
+required:
+  - BaselineAlphaTimes10
+  - BaselineBetaTimes100
+  - BaselineGammaEx6
+  - AlphaEx6
+  - BetaEx6
+  - GammaEx6
+  - DeltaEx6
+  - EpsilonEx6
+  - ZetaEx6
+  - EtaEx6
+  - RhoTimes100
+  - IntermediatePowerKw
+  - IntermediateRswtF
+  - DdPowerKw
+  - DdRswtF
+  - DdRoomTempF
+  - DdDeltaTF
+  - MaxEwtF
+  - MassFlowKgH
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "BaselineAlphaTimes10": 55,
+      "BaselineBetaTimes100": -10,
+      "BaselineGammaEx6": 0,
+      "AlphaEx6": -490027,
+      "BetaEx6": 26201,
+      "GammaEx6": -892,
+      "DeltaEx6": -570,
+      "EpsilonEx6": 5847,
+      "ZetaEx6": 293782,
+      "EtaEx6": 535515,
+      "RhoTimes100": 131,
+      "IntermediatePowerKw": 1.5,
+      "IntermediateRswtF": 100,
+      "DdPowerKw": 5.5,
+      "DdRswtF": 150,
+      "DdRoomTempF": 65,
+      "DdDeltaTF": 20,
+      "MaxEwtF": 170,
+      "MassFlowKgH": 426,
+      "TypeName": "heating.curve",
+      "Version": "001"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"

@@ -239,6 +239,9 @@ types:
     '000':
       used_by:
       - gw.operational.params:000
+    '001':
+      used_by:
+      - gw.operational.params:001
   hp.control.box.device.type.gt:
     '000':
       used_by:
@@ -876,7 +879,9 @@ formats:
     used_by:
     - async.btu.params:100
     - gw.operational.params:000
+    - gw.operational.params:001
     - heating.curve:000
+    - heating.curve:001
     - hp.control.box.device.type.gt:000
     - hp.device.type.gt:000
     - i2c.ct.interface.capability:000
@@ -901,6 +906,7 @@ formats:
     - flow.hall.params:101
     - gw.nolan.family.params:000
     - gw.operational.params:000
+    - gw.operational.params:001
     - gw.water.store:000
     - gw.weather.channel.gt:002
     - gw.weather.forecast.bundle.gt:002
@@ -909,6 +915,7 @@ formats:
     - gw1.scada.device.type.gt:000
     - gw1.zone.call.circuit:000
     - heating.curve:000
+    - heating.curve:001
     - hp.device.type.gt:000
     - hubitat.poller.gt:001
     - i2c.ct.interface.capability:000

@@ -265,9 +265,10 @@ types:
     versions:
       '000': definitions/types/gw.nolan.layout/000.yaml
   gw.operational.params:
-    latest_version: '000'
+    latest_version: '001'
     versioning_strategy: literal
     versions:
+      '001': definitions/types/gw.operational.params/001.yaml
       '000': definitions/types/gw.operational.params/000.yaml
   gw.recorded.setpoints:
     latest_version: '000'
@@ -390,9 +391,10 @@ types:
     versions:
       '006': definitions/types/ha1.params/006.yaml
   heating.curve:
-    latest_version: '000'
+    latest_version: '001'
     versioning_strategy: literal
     versions:
+      '001': definitions/types/heating.curve/001.yaml
       '000': definitions/types/heating.curve/000.yaml
   heating.forecast:
     latest_version: '000'

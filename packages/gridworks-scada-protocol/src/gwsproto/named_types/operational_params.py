@@ -20,7 +20,7 @@ from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
 class OperationalParams(GwsprotoSemaType):
-    """Sema: https://schemas.electricity.works/types/gw.operational.params/000"""
+    """Sema: https://schemas.electricity.works/types/gw.operational.params/001"""
 
     ScadaAlias: LeftRightDotStr
     FamilyParams: Annotated[
@@ -50,7 +50,7 @@ class OperationalParams(GwsprotoSemaType):
     WeatherBundleName: LeftRightDotStr
     Tariff: TouTariff
     TypeName: Literal["gw.operational.params"] = "gw.operational.params"
-    Version: Literal["000"] = "000"
+    Version: Literal["001"] = "001"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
