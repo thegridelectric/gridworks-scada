@@ -511,7 +511,8 @@ def test_rolling_dist_energy_integrates_flow_and_temps(
     assert abs(actor._rolling_dist_minute_wh[minute] - expected_wh) <= 1
     assert expected_wh > 0
 
-    for i in range(1, 61):
+    window = actor.ROLLING_DIST_WINDOW_MINUTES
+    for i in range(1, window + 1):
         actor._rolling_dist_minute_wh[end_minute - 60 * i] = float(expected_wh)
     (dc,) = actor.rolling_dist_energy_channels
     sent: list = []
@@ -519,4 +520,4 @@ def test_rolling_dist_energy_integrates_flow_and_temps(
     actor.tick_rolling_dist_energy(dc)
     assert len(sent) == 1
     assert sent[0].ChannelName == "last-hour-dist-energy"
-    assert sent[0].Value == expected_wh * 60
+    assert sent[0].Value == expected_wh * window

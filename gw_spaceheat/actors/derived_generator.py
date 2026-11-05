@@ -78,6 +78,7 @@ def as_unit(encoding: Unit | TelemetryName) -> Unit | TelemetryName:
 
 class DerivedGenerator(ShNodeActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
+    ROLLING_DIST_WINDOW_MINUTES = 5
 
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
@@ -897,10 +898,12 @@ class DerivedGenerator(ShNodeActor):
         """Inputs are accumulated in handle_input_reading; emission is periodic."""
 
     def tick_rolling_dist_energy(self, dc: DerivedChannel) -> None:
+        self.log(f"Ticking rolling dist energy {dc.Name}")
         now_ms = int(self.services.clock.now() * 1000)
         self._rolling_dist_integrate_buffers(now_ms)
         value = self._rolling_dist_rolling_hour_wh(self.services.clock.now())
         if value is None:
+            self.log(f"Rolling dist energy: None")
             return
         self.log(f"Rolling dist energy: {value} Wh")
         self.emit_derived(
@@ -977,7 +980,7 @@ class DerivedGenerator(ShNodeActor):
             ch: (last_ms[ch], held[ch]) for ch in held
         }
 
-        cutoff = self._rolling_dist_minute_start_s(now_ms / 1000) - 3600
+        cutoff = self._rolling_dist_minute_start_s(now_ms / 1000) - (self.ROLLING_DIST_WINDOW_MINUTES * 60)
         for minute in list(self._rolling_dist_minute_wh):
             if minute < cutoff:
                 del self._rolling_dist_minute_wh[minute]
@@ -985,7 +988,7 @@ class DerivedGenerator(ShNodeActor):
     def _rolling_dist_rolling_hour_wh(self, now_s: float) -> int | None:
         end_minute = self._rolling_dist_minute_start_s(now_s)
         total = 0.0
-        for i in range(1, 61):
+        for i in range(1, self.ROLLING_DIST_WINDOW_MINUTES + 1):
             minute = end_minute - 60 * i
             if minute not in self._rolling_dist_minute_wh:
                 return None
