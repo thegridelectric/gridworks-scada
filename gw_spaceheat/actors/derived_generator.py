@@ -78,7 +78,7 @@ def as_unit(encoding: Unit | TelemetryName) -> Unit | TelemetryName:
 
 class DerivedGenerator(ShNodeActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
-    ROLLING_DIST_WINDOW_MINUTES = 5
+    ROLLING_DIST_WINDOW_MINUTES = 60
 
     def __init__(self, name: str, services: ScadaAppInterface):
         super().__init__(name, services)
