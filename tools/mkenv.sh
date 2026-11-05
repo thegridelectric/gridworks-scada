@@ -19,19 +19,8 @@ then
   exit 0
 fi
 
-# TODO: port this script to uv so setup installs the interpreter named in
-# .python-version instead of using whatever python is on PATH. Deployment
-# has to keep working when that happens:
-# - service/gwspaceheat.service and service/gwltn@.service exec
-#   gw_spaceheat/venv/bin/python at a fixed path on the Pi and the LTN box.
-#   The venv has to stay at that path.
-# - Pis are provisioned with mkenv-pi.sh and the distro interpreter
-#   (docs/provisioning.md). drivers.in installs board and Adafruit libraries
-#   against that system Python. A field Pi may not have uv, and provisioning
-#   should not need a separate CPython download.
-# - scripts/roll.sh rebuilds box venvs with this script and expects the
-#   editable install of the ../optimal-flexibility sibling.
-# - Laptops and Pis keep separate pip-tools locks (dev.txt and drivers.txt).
+# The port of this script to uv, and the deployment facts it has to keep,
+# are OPS-661 (scada-to-uv).
 pin_file="$(cd "$(dirname "$0")/.." && pwd)/.python-version"
 if [[ ! -f "$pin_file" ]]; then
   echo "error: missing $pin_file" >&2
