@@ -9,6 +9,11 @@ from gwsproto.property_format import MarketSlotName, is_market_slot_name
 
 RJB = "rjb"
 
+# HACK: the market's slot length, and that slots start on the hour, are
+# hard-coded here. They are facts about the market the LTN joins, which the
+# MarketMaker posts and the ops word names; no word carries them yet.
+MARKET_SLOT_S = 3600
+
 
 def market_slot_name(ops: OperationalParams, slot_start_s: int) -> MarketSlotName:
     """The energy slot on the ops word's maker and product starting at

@@ -85,10 +85,10 @@ from actors.ltn.flo_request import (
     StoreState,
     build_flo_params,
     load_previous_run,
-    minute_of_hour,
     next_slot_start_s,
     previous_run_for,
     save_previous_run,
+    seconds_to_slot_start,
 )
 
 
@@ -233,7 +233,14 @@ class Ltn(PrimeActor):
             ),
             send_threadsafe=self.services.send_threadsafe,
         )
-        self.send_bid_minute: int = 57
+        # The loop wakes every MAIN_LOOP_SLEEP_SECONDS; a lead shorter than
+        # that can pass between two wakes and the slot gets no bid.
+        if self.settings.bid_lead_s <= self.MAIN_LOOP_SLEEP_SECONDS:
+            raise ValueError(
+                f"bid_lead_s ({self.settings.bid_lead_s}) must exceed the main "
+                f"loop sleep ({self.MAIN_LOOP_SLEEP_SECONDS} s)"
+            )
+        self.bid_lead_s: int = self.settings.bid_lead_s
         # Gets strategy from scada sending LayoutLite
         self.layout_lite: Optional[LayoutLite] = None # Add this as a way of tracking if we've gotten the layout lite yet
         # TODO: read strategy from hardware layout: node = hardware_layout.node(...)
@@ -580,15 +587,19 @@ class Ltn(PrimeActor):
                 await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
                 continue
 
-            # One request to the FLO per slot, at the bid minute: the store
-            # is measured then, the FLO answers over the broker, and the bid
-            # goes off the answer. The request stays until the next slot's
-            # replaces it, so the answer and the clearing price at :00 both
-            # find it.
+            # One request to the FLO per slot, bid_lead_s before it starts:
+            # the store is measured then, the FLO answers over the broker,
+            # and the bid goes off the answer. The request stays until the
+            # next slot's replaces it, so the answer and the clearing price
+            # at the slot start both find it.
             now_s = self.plant_clock.now()
             slot_start_s = next_slot_start_s(now_s)
-            if minute_of_hour(now_s) < self.send_bid_minute:
-                self.log(f"Waiting for minute {self.send_bid_minute} to ask the FLO.")
+            to_slot_s = seconds_to_slot_start(now_s)
+            if to_slot_s > self.bid_lead_s:
+                self.log(
+                    f"Waiting until {self.bid_lead_s} s before the slot to ask "
+                    f"the FLO ({to_slot_s} s to go)."
+                )
             elif self.flo_params is not None and self.flo_params.StartUnixS == slot_start_s:
                 self.log(f"Already asked the FLO for slot {slot_start_s}.")
             else:
