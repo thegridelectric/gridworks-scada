@@ -888,7 +888,7 @@ class DerivedGenerator(ShNodeActor):
             handler(dc, payload)
 
     def handle_input_reading(self, from_node: ShNode, payload: SingleReading) -> None:
-        if payload.ChannelName in self._rolling_dist_buffers:
+        if self.rolling_dist_energy_channels and payload.ChannelName in self._rolling_dist_buffers:
             self._rolling_dist_buffers[payload.ChannelName].append(
                 (payload.ScadaReadTimeUnixMs, payload.Value)
             )
@@ -902,7 +902,7 @@ class DerivedGenerator(ShNodeActor):
         self._rolling_dist_integrate_buffers(now_ms)
         value = self._rolling_dist_rolling_hour_wh(self.services.clock.now())
         if value is None:
-            self.log(f"Rolling dist energy: None")
+            self.log("Rolling dist energy: None")
             return
         self.log(f"Rolling dist energy: {value} Wh")
         self.emit_derived(

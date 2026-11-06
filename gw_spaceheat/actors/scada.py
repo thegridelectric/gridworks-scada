@@ -119,6 +119,11 @@ def git_commit_of(repo_root: Path) -> Optional[str]:
 class Scada(PrimeActor, ScadaInterface):
     ASYNC_POWER_REPORT_THRESHOLD = 0.05
     STARTUP_ANNOUNCE_POLL_S = 1
+    # How long the stored-contract resume waits for the first fresh buffer
+    # before it reads the blindness as a refusal. The buffer channels of a
+    # booting scada arrive with the first pico posts, tens of seconds in
+    # (22 s on oak); a buffer still unread at the bound is a blind scada.
+    RESUME_BLIND_BOUND_S = 120
     DEFAULT_ACTORS_MODULE = "actors"
     LTN_MQTT = "gridworks_mqtt"
     LOCAL_MQTT = "local_mqtt"
@@ -1526,14 +1531,23 @@ class Scada(PrimeActor, ScadaInterface):
 
     async def resume_at_first_forecast(self, loaded: Optional[SlowContractHeartbeat]) -> None:
         """The stored-contract resume, its own task: a few seconds in (an
-        offer in the first seconds takes the loaded contract's place; the
-        buffer readings arrive) and once the first heating forecast is
-        held. Until it has run, LTN continuation heartbeats for the loaded
+        offer in the first seconds takes the loaded contract's place), once
+        the first heating forecast is held, and once the buffer has been
+        read, or RESUME_BLIND_BOUND_S has passed without it. The blindness
+        of a scada whose picos have not posted yet is not a refusal; the
+        resume waits for the readings so the contract it finds is judged on
+        them. Until it has run, LTN continuation heartbeats for the loaded
         contract are dropped."""
         if loaded is None:
             return
         await asyncio.sleep(4)
         await self._data.first_forecast.wait()
+        try:
+            await asyncio.wait_for(
+                self._data.buffer_fresh_once.wait(), timeout=self.RESUME_BLIND_BOUND_S
+            )
+        except asyncio.TimeoutError:
+            pass
         self.resume_loaded_contract(loaded)
 
     def send_startup_announcements(self) -> None:
