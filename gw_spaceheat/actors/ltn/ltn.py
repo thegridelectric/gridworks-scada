@@ -823,9 +823,9 @@ class Ltn(PrimeActor):
         t, m, b, th1, th2 = result
 
         self.average_zone_temp_f = await self.average_house_temperature_f()
-        buffer_available_kwh = await self.get_buffer_available_kwh()
         await self.update_dist_kwh_history(slot_start_s)
         await self.update_oat_f_history(slot_start_s)
+        buffer_available_kwh = await self.get_buffer_available_kwh()
         
         try:
             self.flo_params = build_flo_params(
@@ -1250,7 +1250,7 @@ class Ltn(PrimeActor):
         previous_load_kwh = None if raw_wh is None else raw_wh / 1000
         entry = (finished_hour_s, previous_load_kwh)
         self.last_four_dist_kwh = [
-            None if item is None or slot_start_s - item[0] >= 4 * 3600 else item
+            None if item is None or slot_start_s - item[0] > 4 * 3600 else item
             for item in self.last_four_dist_kwh
         ]
         last = self.last_four_dist_kwh[-1] if self.last_four_dist_kwh else None
@@ -1267,14 +1267,10 @@ class Ltn(PrimeActor):
         finished_hour_s = slot_start_s - 3600
         starts = self.weather_forecast.slice_starts()
         oat_f = self.weather_forecast.unscaled(Quantity.Temperature)
-        this_hour_oat_f = None
-        for i, start in enumerate(starts):
-            if start == finished_hour_s:
-                this_hour_oat_f = oat_f[i]
-                break
+        this_hour_oat_f = oat_f[min(range(len(starts)), key=lambda i: abs(starts[i] - finished_hour_s))] if starts else None
         entry = (finished_hour_s, this_hour_oat_f)
         self.last_four_oat_f = [
-            None if item is None or slot_start_s - item[0] >= 4 * 3600 else item
+            None if item is None or slot_start_s - item[0] > 4 * 3600 else item
             for item in self.last_four_oat_f
         ]
         last = self.last_four_oat_f[-1] if self.last_four_oat_f else None
