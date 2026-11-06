@@ -1292,6 +1292,25 @@
     {
       "TypeName": "derived.channel.gt",
       "Version": "003",
+      "Id": "b35c1fcc-af93-4619-a0c6-ada03f57de16",
+      "Name": "last-hour-dist-energy",
+      "CreatedByNodeName": "derived-generator",
+      "Strategy": "rolling-dist-energy",
+      "InputChannelNames": [
+        "dist-flow",
+        "dist-swt",
+        "dist-rwt"
+      ],
+      "OutputUnit": "WattHours",
+      "OutputQuantity": "Energy",
+      "EmissionMethod": "Periodic",
+      "EmitPeriodS": 60,
+      "DisplayName": "Last Hour Distribution Energy Wh",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.hazel1.ta"
+    },
+    {
+      "TypeName": "derived.channel.gt",
+      "Version": "003",
       "Id": "6eb198eb-7e4f-457d-a6a0-ce36d93aa8c1",
       "Name": "zone1-main-heat-call",
       "CreatedByNodeName": "derived-generator",
