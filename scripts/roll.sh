@@ -18,8 +18,6 @@
 #                                                 the LTN, then the services
 #   scripts/roll.sh <house> back                  `to` the house's roll-back line:
 #                                                 actual-spruce for spruce,
-#                                                 td/generalized-flo for the
-#                                                 THOMAS_LTN houses (oak today),
 #                                                 legacy for the rest
 #
 # <house> is spruce, beech, maple, oak, fir or elm. Every house but spruce
@@ -53,8 +51,6 @@
 #   main              -> tlayouts main
 #   legacy            -> tlayouts legacy
 #   actual-spruce     -> tlayouts actual-spruce
-#   td/generalized-flo -> tlayouts legacy (the FLO work on oak: legacy's layout,
-#                                          an LTN that differs)
 #   any other branch  -> tlayouts main (a branch off main tried on a house
 #                                       reads the house's main layout; a
 #                                       layout change the branch needs goes
@@ -122,13 +118,9 @@ PI2_UNITS='service2/gwspaceheat2.service service2/gwspaceheat2-restart.service s
 RUNTIME_REQS='gw_spaceheat/requirements/base.txt gw_spaceheat/requirements/drivers.txt'
 REPO="$HERE/.."
 
-usage() { sed -n '2,20p' "$0"; exit 1; }
+usage() { sed -n '2,21p' "$0"; exit 1; }
 [ -n "$HOUSE" ] && [ -n "$VERB" ] || usage
-# Houses whose LTN runs Thomas's FLO work (td/generalized-flo): their roll-back
-# line is that branch. Add a house here when its LTN moves onto it.
-THOMAS_LTN="oak"
 rollback_line() {
-  case " $THOMAS_LTN " in *" $1 "*) echo td/generalized-flo; return ;; esac
   case "$1" in spruce) echo actual-spruce ;; *) echo legacy ;; esac
 }
 case "$VERB" in
@@ -156,7 +148,6 @@ tl_branch() {
     main) echo main ;;
     legacy) echo legacy ;;
     actual-spruce) echo actual-spruce ;;
-    td/generalized-flo) echo legacy ;;
     *) echo main ;;
   esac
 }
