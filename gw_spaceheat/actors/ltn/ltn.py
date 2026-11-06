@@ -60,7 +60,7 @@ from actors.hydronic.store_temps import scrub_and_fill_store_temps
 from actors.ltn.contract_handler import LtnContractHandler
  
 from gwsproto.named_types import (
-    Bid, FloOptimalPath, FloParams, FloRecommendation, Glitch, HouseOperatingStatus, LatestPrice,
+    Bid, FloOptimalPath, FloParams, FloRecommendation, FloRefusal, Glitch, HouseOperatingStatus, LatestPrice,
     LayoutLite, NoNewContractWarning, OperationalParams, SendLayout,
     SlowContractHeartbeat, SlowContractRejection,
     SnapshotSpaceheat, WaterStore,
@@ -105,7 +105,7 @@ class PriceForecast(BaseModel):
 class LtnMQTTCodec(MQTTCodec):
     """Decodes what reaches the LTN on its scada link: the scada's own
     messages, the maker's bare latest.price on its rjb topic, and the
-    FLO's wrapped flo.recommendation on the FLO's topic."""
+    FLO's wrapped flo.recommendation or flo.refusal on the FLO's topics."""
 
     exp_src: str
     exp_dst: str = CoreNodeNames.ltn
@@ -392,6 +392,9 @@ class Ltn(PrimeActor):
             case FloRecommendation():
                 path_dbg |= 0x00000800
                 self.process_flo_recommendation(decoded.Payload)
+            case FloRefusal():
+                path_dbg |= 0x00001000
+                self.process_flo_refusal(decoded.Payload)
             case LatestPrice():
                 path_dbg |= 0x00000400
                 if decoded.Header.Src == self.ops.MarketMakerAlias:
@@ -742,6 +745,35 @@ class Ltn(PrimeActor):
             Message(Src=self.publication_name, Dst="mm", Payload=bid)
         )
         self.log(f"Bid: {bid}")
+
+    def process_flo_refusal(self, refusal: FloRefusal) -> None:
+        """The FLO's answer that there is no recommendation. One for the
+        request held is copied to the scada for the record and raised as a
+        Warning glitch, so the fleet sees why the slot has no FLO bid; the
+        LTN bids as it does when no answer comes. One for another bidder
+        or slot is dropped."""
+        if (
+            self.flo_params is None
+            or refusal.BidderAlias != self.flo_params.GNodeAlias
+            or refusal.StartUnixS != self.flo_params.StartUnixS
+        ):
+            self.log(
+                f"Dropping a flo.refusal for {refusal.BidderAlias} slot "
+                f"{refusal.StartUnixS}: not the request held"
+            )
+            return
+        self._message_for_scada_publish(refusal)
+        summary = f"FLO refused slot {refusal.StartUnixS}: {refusal.Reason.value}"
+        self.log(f"{summary}, {refusal.Detail}")
+        glitch = Glitch(
+            FromGNodeAlias=self.layout.ltn_g_node_alias,
+            Node=self.node.name,
+            Type=LogLevel.Warning,
+            Summary=summary,
+            Details=refusal.Detail or "",
+            CreatedMs=int(time.time() * 1000),
+        )
+        self.services.send_threadsafe(Message(Src=self.name, Dst=self.name, Payload=glitch))
 
     def stop(self) -> None:
         self._stop_requested = True
