@@ -812,36 +812,6 @@ types:
       - heating.curve:000
       - zero.ten.power.on:000
       versionless_types: []
-    '001':
-      enums:
-      - day.of.week:000
-      - gw.market.product.name:000
-      - gw.standby.posture:000
-      - gw1.seasonal.storage.mode:000
-      - gw1.service.mode:000
-      - sieg.loop.strategy:000
-      formats:
-      - hh.mm
-      - iana.timezone.str
-      - left.right.dot
-      - non.negative.int
-      - positive.float
-      - positive.int
-      - spaceheat.name
-      types:
-      - capture.tuning:000
-      - cop.curve:000
-      - flo.tuning.alice:000
-      - flo.tuning.bruce:001
-      - gw.dispatch.hold:000
-      - gw.house0.family.params:000
-      - gw.house0.no.sieg.family.params:000
-      - gw.nolan.family.params:000
-      - gw.tou.tariff:000
-      - gw.tou.window:000
-      - heating.curve:001
-      - zero.ten.power.on:000
-      versionless_types: []
   gw.recorded.setpoints:
     '000':
       enums: []
@@ -1090,13 +1060,6 @@ types:
       versionless_types: []
   heating.curve:
     '000':
-      enums: []
-      formats:
-      - positive.float
-      - positive.int
-      types: []
-      versionless_types: []
-    '001':
       enums: []
       formats:
       - positive.float

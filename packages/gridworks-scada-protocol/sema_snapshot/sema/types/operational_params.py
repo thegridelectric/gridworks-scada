@@ -26,7 +26,7 @@ from sema_snapshot.sema.types.zero_ten_power_on import ZeroTenPowerOn
 
 
 class OperationalParams(SemaType):
-    """Sema: https://schemas.electricity.works/types/gw.operational.params/001"""
+    """Sema: https://schemas.electricity.works/types/gw.operational.params/000"""
 
     scada_alias: LeftRightDot
     family_params: House0FamilyParams | House0NoSiegFamilyParams | NolanFamilyParams
@@ -50,7 +50,7 @@ class OperationalParams(SemaType):
     weather_bundle_name: LeftRightDot
     tariff: TouTariff
     type_name: Literal["gw.operational.params"] = "gw.operational.params"
-    version: Literal["001"] = "001"
+    version: Literal["000"] = "000"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> "OperationalParams":

@@ -1,6 +1,6 @@
 {
   "TypeName": "gw.operational.params",
-  "Version": "001",
+  "Version": "000",
   "ScadaAlias": "d1.isone.ct.newhaven.hazel1.scada",
   "FamilyParams": {
     "TypeName": "gw.house0.no.sieg.family.params",
@@ -443,7 +443,7 @@
   },
   "HeatingCurve": {
     "TypeName": "heating.curve",
-    "Version": "001",
+    "Version": "000",
     "BaselineAlphaTimes10": 55,
     "BaselineBetaTimes100": -10,
     "BaselineGammaEx6": 0,

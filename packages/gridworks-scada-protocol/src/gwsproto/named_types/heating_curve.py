@@ -7,7 +7,7 @@ from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
 class HeatingCurve(GwsprotoSemaType):
-    """Sema: https://schemas.electricity.works/types/heating.curve/001"""
+    """Sema: https://schemas.electricity.works/types/heating.curve/000"""
 
     BaselineAlphaTimes10: StrictInt
     BaselineBetaTimes100: StrictInt
@@ -29,4 +29,4 @@ class HeatingCurve(GwsprotoSemaType):
     MaxEwtF: PositiveInt
     MassFlowKgH: PositiveInt
     TypeName: Literal["heating.curve"] = "heating.curve"
-    Version: Literal["001"] = "001"
+    Version: Literal["000"] = "000"

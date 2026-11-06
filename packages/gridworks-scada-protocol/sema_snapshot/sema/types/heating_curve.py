@@ -6,7 +6,7 @@ from sema_snapshot.sema.property_format import PositiveInt
 
 
 class HeatingCurve(SemaType):
-    """Sema: https://schemas.electricity.works/types/heating.curve/001"""
+    """Sema: https://schemas.electricity.works/types/heating.curve/000"""
 
     baseline_alpha_times10: StrictInt
     baseline_beta_times100: StrictInt
@@ -28,4 +28,4 @@ class HeatingCurve(SemaType):
     max_ewt_f: PositiveInt
     mass_flow_kg_h: PositiveInt
     type_name: Literal["heating.curve"] = "heating.curve"
-    version: Literal["001"] = "001"
+    version: Literal["000"] = "000"
