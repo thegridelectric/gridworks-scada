@@ -8,17 +8,15 @@
 #                                                 it, the same SHA on the pi and
 #                                                 the LTN, and the committed pair
 #                                                 of that line on both
-#   scripts/roll.sh <house> forward               `to` main, the one line a
-#                                                 house rolls forward to
 #   scripts/roll.sh <house> to <scada-branch>     check out the branch on each pi
 #                                                 and on the LTN at its pushed
 #                                                 SHA, verify (and on a y,
 #                                                 install) the committed pair on
 #                                                 each pi and on the LTN, restart
 #                                                 the LTN, then the services
-#   scripts/roll.sh <house> back                  `to` the house's roll-back line:
-#                                                 actual-spruce for spruce,
-#                                                 legacy for the rest
+#
+# A temporary process: a UI for updating layouts and operational params
+# replaces it.
 #
 # <house> is spruce, beech, maple, oak, fir or elm. Every house but spruce
 # has a second pi, <house>2, whose scada2 runs from the same checkout
@@ -46,24 +44,20 @@
 # restart, so the scada's first Report after the roll meets an LTN on its
 # own line.
 #
-# Each scada branch has its tlayouts branch, and the committed JSON of that
-# branch is the record of what the house runs:
-#   main              -> tlayouts main
-#   legacy            -> tlayouts legacy
-#   actual-spruce     -> tlayouts actual-spruce
-#   any other branch  -> tlayouts main (a branch off main tried on a house
-#                                       reads the house's main layout; a
-#                                       layout change the branch needs goes
-#                                       to tlayouts main first)
+# A scada branch pairs with the tlayouts branch of the same name when the
+# tlayouts remote has one, and with tlayouts main otherwise; the committed
+# JSON of that branch is the record of what the house runs. A branch that
+# needs a layout or ops change pushes it to a same-named tlayouts branch; a
+# branch that needs none reads the house's main pair. check and to say which
+# pair they resolved.
 # The source is the tlayouts REMOTE (git show origin/<branch>:<path> after a
 # fetch), so only pushed JSON can reach a box, whatever the laptop's tlayouts
 # checkout is doing. The box's scada checkout likewise moves only to a pushed
 # SHA (fast-forward to origin/<branch>); a box ahead of its remote refuses.
 #
-# A layout matches byte for byte. On main the operational params
-# match except for the DispatchHold block, which the scada writes itself
-# (scripts/roll_compare.py). On the other lines the scada does not read the
-# ops word and the file is left alone. A pi whose file differs shows the
+# A layout matches byte for byte. The operational params match except for
+# the DispatchHold block, which the scada writes itself
+# (scripts/roll_compare.py). A pi whose file differs shows the
 # differing paths and installs the committed file only on a y. The box's
 # file is not kept: the committed JSON of the line it came from is its
 # record, and any <stem>.<date>-pre-roll.json an earlier roll left is
@@ -80,10 +74,6 @@
 # started. The journal has every event the LTN acked; an unacked event
 # of the line being left is lost with the line.
 #
-# spruce: the winter hack (spruce-winter-hack.service) is the plant controller
-# on actual-spruce and is disabled when the box moves off that line, enabled
-# again when it moves back, so a reboot never runs two controllers.
-#
 # Requirements and units: if the runtime requirements (base.txt, drivers.txt,
 # the packages' pyproject.toml) or the pi's unit files (service/ on the first
 # pi, service2/ on the second) differ between the box's current SHA and the
@@ -93,9 +83,8 @@
 # not compared: nothing the box runs imports them. A package's pyproject.toml
 # is compared without its version line and its pins on the sibling editable
 # packages (scripts/roll_compare.py reqs): the venv installs both packages
-# editable from the checkout, so a release bump on one line (gwsproto 1.3.0
-# and admin 1.3.1 on main, 1.2.3 and 1.2.5 on legacy) changes nothing the
-# venv resolves. The comparison runs on the laptop's checkout of this repo
+# editable from the checkout, so a release bump on one line changes nothing
+# the venv resolves. The comparison runs on the laptop's checkout of this repo
 # after a fetch, between the box's SHA and the pushed tip of the target.
 set -euo pipefail
 
@@ -108,7 +97,6 @@ LTN_BOX="${LTN_BOX:-ltn}"
 LTN_REPO="~/ltn-$HOUSE/gridworks-scada"
 LTN_UNIT="gwltn@$HOUSE"
 LTN_CONFIG="~/ltn-$HOUSE/.config/gridworks/ltn"
-FORWARD_LINE=main
 # The unit files a pi installs (service/install, service2/install);
 # gwltn@.service is the ltn box's.
 PI_UNITS='service/gwspaceheat.service service/gwspaceheat-restart.service service/gwspaceheat-restart.timer'
@@ -118,16 +106,11 @@ PI2_UNITS='service2/gwspaceheat2.service service2/gwspaceheat2-restart.service s
 RUNTIME_REQS='gw_spaceheat/requirements/base.txt gw_spaceheat/requirements/drivers.txt'
 REPO="$HERE/.."
 
-usage() { sed -n '2,21p' "$0"; exit 1; }
+usage() { sed -n '2,19p' "$0"; exit 1; }
 [ -n "$HOUSE" ] && [ -n "$VERB" ] || usage
-rollback_line() {
-  case "$1" in spruce) echo actual-spruce ;; *) echo legacy ;; esac
-}
 case "$VERB" in
-  check)   [ -z "$TARGET" ] || usage ;;
-  forward) [ -z "$TARGET" ] || usage; TARGET="$FORWARD_LINE"; echo "$HOUSE: rolling forward to $TARGET" ;;
-  to)      [ -n "$TARGET" ] || usage ;;
-  back)  [ -z "$TARGET" ] || usage; TARGET="$(rollback_line "$HOUSE")"; echo "$HOUSE: rolling back to $TARGET" ;;
+  check) [ -z "$TARGET" ] || usage ;;
+  to)    [ -n "$TARGET" ] || usage ;;
   *) usage ;;
 esac
 
@@ -143,16 +126,11 @@ service_of() { if is_second "$1"; then echo gwspaceheat2; else echo gwspaceheat;
 units_of()   { if is_second "$1"; then echo "$PI2_UNITS"; else echo "$PI_UNITS"; fi; }
 event_dir()  { if is_second "$1"; then echo '~/.local/share/gridworks/scada2/event'; else echo '~/.local/share/gridworks/scada/event'; fi; }
 
+# The tlayouts branch a scada branch pairs with: the same name when the
+# tlayouts remote has it, main otherwise.
 tl_branch() {
-  case "$1" in
-    main) echo main ;;
-    legacy) echo legacy ;;
-    actual-spruce) echo actual-spruce ;;
-    *) echo main ;;
-  esac
+  if git -C "$TLAYOUTS" rev-parse --verify -q "origin/$1" > /dev/null 2>&1; then echo "$1"; else echo main; fi
 }
-# The main line reads the ops word and needs the deed.
-reads_ops() { [ "$(tl_branch "$1")" = main ]; }
 
 # The committed path of a file on a tlayouts branch: the deployed name first,
 # then the names the tlayouts gens emit.
@@ -174,6 +152,25 @@ box_sha()    { ssh -n "$1" "git -C $BOX_REPO rev-parse --short HEAD"; }
 ltn_branch() { ssh -n "$LTN_BOX" "git -C $LTN_REPO branch --show-current"; }
 ltn_sha()    { ssh -n "$LTN_BOX" "git -C $LTN_REPO rev-parse --short HEAD"; }
 ltn_line()   { echo "ltn: $LTN_REPO on $(ltn_branch) @ $(ltn_sha); $LTN_UNIT $(ssh -n "$LTN_BOX" "systemctl is-active $LTN_UNIT")"; }
+# bruce, the FLO, runs editable from the sibling checkout beside the LTN's
+# scada checkout and tracks its upstream main: a roll brings the sibling to
+# the pushed tip of main (cloning it first if the house has none), and
+# every recommendation records the commit that answered. BRUCE_LINE names
+# another pushed bruce branch for one roll, while a bruce change the LTN
+# needs waits on its PR.
+BRUCE_REPO="https://github.com/thdfw/optimal-flexibility"
+BRUCE_SIBLING="~/ltn-$HOUSE/optimal-flexibility"
+BRUCE_LINE="${BRUCE_LINE:-main}"
+bruce_sha()    { ssh -n "$LTN_BOX" "git -C $BRUCE_SIBLING rev-parse --short HEAD 2>/dev/null || echo none"; }
+bruce_branch() { ssh -n "$LTN_BOX" "git -C $BRUCE_SIBLING branch --show-current 2>/dev/null || echo none"; }
+bruce_line()   { local b; b="$(bruce_branch)"; echo "bruce: $BRUCE_SIBLING on $b @ $(bruce_sha) (origin/$b behind by $(behind "$LTN_BOX" "$BRUCE_SIBLING" "$b" 2>/dev/null || echo ?))"; }
+roll_bruce() {
+  ssh -n "$LTN_BOX" "[ -d $BRUCE_SIBLING/.git ] || git clone -q $BRUCE_REPO $BRUCE_SIBLING"
+  [ -z "$(ssh -n "$LTN_BOX" "git -C $BRUCE_SIBLING status --porcelain")" ] || { echo "bruce: $BRUCE_SIBLING is dirty; refusing"; return 1; }
+  ssh -n "$LTN_BOX" "git -C $BRUCE_SIBLING fetch -q origin && git -C $BRUCE_SIBLING rev-parse --verify -q origin/$BRUCE_LINE" > /dev/null || { echo "bruce: origin/$BRUCE_LINE not on the sibling's remote; refusing"; return 1; }
+  ssh -n "$LTN_BOX" "git -C $BRUCE_SIBLING checkout -q $BRUCE_LINE 2>/dev/null || git -C $BRUCE_SIBLING checkout -q -b $BRUCE_LINE origin/$BRUCE_LINE; git -C $BRUCE_SIBLING merge -q --ff-only origin/$BRUCE_LINE" || { echo "bruce: fast-forward of $BRUCE_SIBLING to origin/$BRUCE_LINE failed; refusing"; return 1; }
+  ssh -n "$LTN_BOX" "$LTN_REPO/gw_spaceheat/venv/bin/pip show bruce-energy 2>/dev/null | grep -q '^Editable project location: .*optimal-flexibility'" || { echo "bruce: the LTN venv does not install bruce editable from $BRUCE_SIBLING; rebuild it in $LTN_REPO (tools/mkenv.sh) by hand, then re-run"; return 1; }
+}
 # Commits the box's checkout is behind the pushed tip of its own branch.
 behind() { ssh -n "$1" "git -C $2 fetch -q origin && git -C $2 rev-list --count HEAD..origin/$3 2>/dev/null || echo ?"; }
 
@@ -207,12 +204,11 @@ verify_pi() { # <pi> <scada-branch>
   local pi="$1" branch="$2" tlb cdir rc=0
   tlb="$(tl_branch "$branch")"
   cdir="$(config_dir "$pi")"
+  echo "  $pi: $branch pairs with tlayouts $tlb"
   verify_file "$pi" "$pi" "$cdir" "$tlb" layout || rc=1
-  if reads_ops "$branch"; then
-    verify_file "$pi" "$pi" "$cdir" "$tlb" ops || rc=1
-    if ! is_second "$pi"; then
-      ssh -n "$pi" "[ -f $cdir/ta-deed.json ]" || { echo "  $pi: no $cdir/ta-deed.json; the branch needs it"; rc=1; }
-    fi
+  verify_file "$pi" "$pi" "$cdir" "$tlb" ops || rc=1
+  if ! is_second "$pi"; then
+    ssh -n "$pi" "[ -f $cdir/ta-deed.json ]" || { echo "  $pi: no $cdir/ta-deed.json"; rc=1; }
   fi
   return $rc
 }
@@ -221,8 +217,9 @@ verify_pi() { # <pi> <scada-branch>
 verify_ltn() { # <scada-branch>
   local branch="$1" tlb rc=0
   tlb="$(tl_branch "$branch")"
+  echo "  ltn: $branch pairs with tlayouts $tlb"
   verify_file "$LTN_BOX" ltn "$LTN_CONFIG" "$tlb" layout || rc=1
-  if reads_ops "$branch"; then verify_file "$LTN_BOX" ltn "$LTN_CONFIG" "$tlb" ops || rc=1; fi
+  verify_file "$LTN_BOX" ltn "$LTN_CONFIG" "$tlb" ops || rc=1
   return $rc
 }
 
@@ -273,11 +270,11 @@ if [ "$VERB" = check ]; then
       [ "$(box_sha "$pi")" = "$(box_sha "$HOUSE")" ] || { echo "$HOUSE: $pi @ $(box_sha "$pi"), $HOUSE @ $(box_sha "$HOUSE"); a house's pis run at one SHA"; rc=1; }
     fi
   done
-  [ "$HOUSE" != spruce ] || echo "spruce: spruce-winter-hack $(ssh -n spruce 'systemctl is-active spruce-winter-hack; systemctl is-enabled spruce-winter-hack' | tr '\n' ' ')"
   lb="$(ltn_branch)"; n="$(behind "$LTN_BOX" "$LTN_REPO" "$lb")"
   echo "ltn: $LTN_REPO on $lb @ $(ltn_sha) (behind origin/$lb by $n); $LTN_UNIT $(ssh -n "$LTN_BOX" "systemctl is-active $LTN_UNIT")"
   [ "$n" = 0 ] || { echo "ltn: not at the pushed tip of $lb"; rc=1; }
   verify_ltn "$lb" || rc=1
+  bruce_line
   [ "$lb" = "$pb" ] || { echo "$HOUSE: LTN on $lb, scada on $pb; a house's LTN and scada run on one line"; rc=1; }
   [ "$(ltn_sha)" = "$(box_sha "$HOUSE")" ] || { echo "$HOUSE: LTN @ $(ltn_sha), scada @ $(box_sha "$HOUSE"); a house's LTN and scada run at one SHA"; rc=1; }
   exit $rc
@@ -319,13 +316,11 @@ done
 ssh -n "$LTN_BOX" "git -C $LTN_REPO checkout -q $TARGET && git -C $LTN_REPO merge -q --ff-only origin/$TARGET" || { echo "ltn: checkout or fast-forward failed; refusing. The pis are on $TARGET; fix the LTN checkout by hand and re-run."; exit 1; }
 echo "ltn: $LTN_REPO on $TARGET @ $(ltn_sha) (was $ltn_cur)"
 INSTALL=1 verify_ltn "$TARGET" || { echo "ltn: pair not verified; unit NOT restarted. Fix the pair and re-run."; exit 1; }
+roll_bruce || { echo "bruce: sibling not rolled; unit NOT restarted. Fix the sibling and re-run."; exit 1; }
 ssh -n "$LTN_BOX" "sudo systemctl restart $LTN_UNIT"; sleep 3
 ltn_line
+bruce_line
 
-if [ "$HOUSE" = spruce ]; then
-  if [ "$TARGET" = actual-spruce ]; then ssh -n spruce 'sudo systemctl enable -q --now spruce-winter-hack'; echo "spruce: winter hack enabled and started"
-  else ssh -n spruce 'sudo systemctl disable -q --now spruce-winter-hack'; echo "spruce: winter hack stopped and disabled"; fi
-fi
 for pi in $PIS; do
   svc="$(service_of "$pi")"; edir="$(event_dir "$pi")"
   ssh -n "$pi" "sudo systemctl stop $svc-restart.timer $svc"
