@@ -435,7 +435,10 @@ class Scada(PrimeActor, ScadaInterface):
                     self.log(f"Trouble with SendControlCapabilities: {e}")
             case SendLayout():
                 try:
-                    self._send_to(from_node, self.layout_lite)
+                    if from_node == self.ltn:
+                        self.announce_posture()
+                    else:
+                        self._send_to(from_node, self.layout_lite)
                 except Exception as e:
                     self.log(f"Trouble with SendLayout: {e}")
             case SendSnap():
@@ -1388,7 +1391,7 @@ class Scada(PrimeActor, ScadaInterface):
     ) -> None:
         """Overwrites base method. Triggered when link state is activated"""
         if transition.link_name == self.services.upstream_client:
-            self._send_to(self.ltn, self.layout_lite)
+            self.announce_posture()
 
     ###########################################################
     # Command Trees - the handles of the Spaceheat Nodes form a tree
@@ -1662,8 +1665,21 @@ class Scada(PrimeActor, ScadaInterface):
             == self.last_operating_status.model_dump(exclude={"CreatedMs"})
         ):
             return
+        self.send_operating_status(status)
+
+    def send_operating_status(self, status: HouseOperatingStatus) -> None:
         self.last_operating_status = status
         self._send_to(self.ltn, status)
+
+    def announce_posture(self) -> None:
+        """What the LTN needs before it can act with this scada: the
+        layout.lite and the operating status, the status sent whether or
+        not it has changed. The LTN's link to the scada can come up with
+        no state on its side (an LTN restart the scada never saw), so the
+        posture goes out when the upstream link activates and in answer to
+        the LTN's send.layout."""
+        self._send_to(self.ltn, self.layout_lite)
+        self.send_operating_status(self.house_operating_status)
 
     def note_ltn_dispatching(self, dispatching: bool) -> None:
         if dispatching != self.ltn_dispatching:
