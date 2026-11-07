@@ -1190,7 +1190,7 @@ class Scada(PrimeActor, ScadaInterface):
                 self._send_to(
                     self.ltn,
                     SlowContractRejection(
-                        FromGNodeAlias=self.layout.scada_g_node_alias,
+                        FromGNodeAlias=self.g_node_alias,
                         ContractId=ltn_hb.Contract.ContractId,
                         Reason=refusal,
                         MessageCreatedMs=int(time.time() * 1000),
@@ -1318,7 +1318,7 @@ class Scada(PrimeActor, ScadaInterface):
         # Still send warning since we haven't received a new contract
         if not self.contract_handler.latest_scada_hb:
             self._send_to(self.ltn, NoNewContractWarning(
-                FromGNodeAlias=self.layout.scada_g_node_alias,
+                FromGNodeAlias=self.g_node_alias,
                 ContractId=hb.Contract.ContractId,
                 GraceEndTimeS=grace_end_s
             ))
@@ -1578,7 +1578,7 @@ class Scada(PrimeActor, ScadaInterface):
             self._send_to(
                 self.ltn,
                 Glitch(
-                    FromGNodeAlias=self.layout.scada_g_node_alias,
+                    FromGNodeAlias=self.g_node_alias,
                     Node=self.node.name,
                     Type=LogLevel.Warning,
                     Summary=summary,
@@ -1596,7 +1596,7 @@ class Scada(PrimeActor, ScadaInterface):
             self._send_to(
                 self.ltn,
                 ScadaCommit(
-                    ScadaAlias=self.layout.scada_g_node_alias,
+                    ScadaAlias=self.g_node_alias,
                     GitCommit=commit,
                     MessageCreatedMs=int(time.time() * 1000),
                 ),
@@ -1642,7 +1642,7 @@ class Scada(PrimeActor, ScadaInterface):
         copied from the ops word, the rest derived now."""
         refusal = self.dispatch_refusal
         return HouseOperatingStatus(
-            ScadaAlias=self.layout.scada_g_node_alias,
+            ScadaAlias=self.g_node_alias,
             ValidationState=self.services.validation_state,
             Standby=self.ops.Standby,
             StandbyPosture=self.ops.StandbyPosture,
@@ -1757,7 +1757,7 @@ class Scada(PrimeActor, ScadaInterface):
             ReportEvent(
                 MessageId=report.Id,
                 TimeCreatedMs=report.MessageCreatedMs,
-                Src=self.layout.scada_g_node_alias,
+                Src=self.g_node_alias,
                 Report=report,
             )
         )
@@ -1803,7 +1803,7 @@ class Scada(PrimeActor, ScadaInterface):
             if needed else ""
         )
         return Glitch(
-            FromGNodeAlias=self.layout.scada_g_node_alias,
+            FromGNodeAlias=self.g_node_alias,
             Node=self.node.name,
             Type=LogLevel.Warning,
             Summary="disabled-roster",
@@ -1866,7 +1866,7 @@ class Scada(PrimeActor, ScadaInterface):
                 self._send_to(
                     self.ltn,
                     Glitch(
-                        FromGNodeAlias=self.layout.scada_g_node_alias,
+                        FromGNodeAlias=self.g_node_alias,
                         Node=to_node.Name,
                         Type=LogLevel.Error,
                         Summary="actor-raised",
@@ -2041,6 +2041,11 @@ class Scada(PrimeActor, ScadaInterface):
         return self._layout
 
     @property
+    def g_node_alias(self) -> str:
+        """This scada's GNode alias."""
+        return self.layout.scada_g_node_alias
+
+    @property
     def admin(self) -> ShNode:
         return self.layout.node(CoreNodeNames.admin)
 
@@ -2188,7 +2193,7 @@ class Scada(PrimeActor, ScadaInterface):
             for interface in self.command_interfaces(node)
         ]
         return ScadaControlCapabilities(
-            FromGNodeAlias=self.layout.scada_g_node_alias,
+            FromGNodeAlias=self.g_node_alias,
             MessageCreatedMs=int(time.time() * 1000),
             RelayNodes=[node.to_gt() for node in relay_nodes],
             DacNodes=[node.to_gt() for node in dac_nodes],
@@ -2200,7 +2205,7 @@ class Scada(PrimeActor, ScadaInterface):
     @property
     def layout_lite(self) -> LayoutLite:
         return LayoutLite(
-            FromGNodeAlias=self.layout.scada_g_node_alias,
+            FromGNodeAlias=self.g_node_alias,
             HardwareLayoutTypeName=self.layout.layout_type_name,
             ZoneList=self.layout.zone_list,
             CriticalZoneList=self.layout.critical_zone_list,

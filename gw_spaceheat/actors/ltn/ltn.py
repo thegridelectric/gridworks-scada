@@ -213,7 +213,7 @@ class Ltn(PrimeActor):
         if self.settings.dashboard.print_gui:
             self.dashboard = Dashboard(
                 settings=self.settings.dashboard,
-                ltn_g_node_alias=self.layout.ltn_g_node_alias,
+                ltn_g_node_alias=self.g_node_alias,
                 data_channels=self.layout.channel_registry,
                 logger=self.logger,
                 thermostat_names=DashboardSettings.thermostat_names(
@@ -290,6 +290,11 @@ class Ltn(PrimeActor):
         return cast(HydronicLayout, self.services.hardware_layout)
 
     @property
+    def g_node_alias(self) -> str:
+        """This LTN's GNode alias."""
+        return self.layout.ltn_g_node_alias
+
+    @property
     def app(self) -> LtnAppInterface:
         if not isinstance(self.services, LtnAppInterface):
             raise RuntimeError(f"The LTN runs under an LtnAppInterface, not {type(self.services).__name__}")
@@ -307,7 +312,7 @@ class Ltn(PrimeActor):
     def water_store(self) -> WaterStore:
         store = self.layout.hydronic.WaterStore
         if store is None:
-            raise RuntimeError(f"Layout {self.layout.ltn_g_node_alias} has no water store to run a FLO on")
+            raise RuntimeError(f"Layout {self.g_node_alias} has no water store to run a FLO on")
         return store
 
     def _publish_to_scada(self, payload, qos: QOS = QOS.AtMostOnce) -> MQTTMessageInfo:
@@ -538,7 +543,7 @@ class Ltn(PrimeActor):
                 Src=self.name,
                 Dst=self.scada.name,
                 Payload=SendSnap(
-                    FromGNodeAlias=self.layout.ltn_g_node_alias,
+                    FromGNodeAlias=self.g_node_alias,
                 ),
             )
         )
@@ -549,7 +554,7 @@ class Ltn(PrimeActor):
                 Src=self.name,
                 Dst=self.scada.name,
                 Payload=SendLayout(
-                    FromGNodeAlias=self.layout.ltn_g_node_alias,
+                    FromGNodeAlias=self.g_node_alias,
                     MessageCreatedMs=int(time.time() * 1000)
                 ),
             )
@@ -669,7 +674,7 @@ class Ltn(PrimeActor):
                 dist_usd_mwh=self.price_forecast.dp_usd_per_mwh,
                 store=StoreState(t, m, b, th1, th2, hp_on=not self.hp_is_off),
                 buffer_available_kwh=buffer_available_kwh,
-                g_node_alias=self.layout.ltn_g_node_alias,
+                g_node_alias=self.g_node_alias,
                 start_unix_s=slot_start_s,
                 created_ms=int(self.plant_clock.now() * 1000),
                 previous=previous_run_for(self.previous_run, slot_start_s),
@@ -762,7 +767,7 @@ class Ltn(PrimeActor):
         summary = f"FLO refused slot {refusal.StartUnixS}: {refusal.Reason.value}"
         self.log(f"{summary}, {refusal.Detail}")
         glitch = Glitch(
-            FromGNodeAlias=self.layout.ltn_g_node_alias,
+            FromGNodeAlias=self.g_node_alias,
             Node=self.node.name,
             Type=LogLevel.Warning,
             Summary=summary,
@@ -811,7 +816,7 @@ class Ltn(PrimeActor):
         # Validate bid timeframe
         if not self.latest_contract_is_live():
             glitch = Glitch(
-                FromGNodeAlias=self.layout.ltn_g_node_alias,
+                FromGNodeAlias=self.g_node_alias,
                 Node=self.node.name,
                 Type=LogLevel.Warning,
                 Summary="Invalid bid timeframe",
@@ -969,7 +974,7 @@ class Ltn(PrimeActor):
             centroids = new_centroids
         return labels
 
-    async def get_three_layer_storage_model(self) -> Optional[Tuple[float, int, int, int, int]]:
+    async def get_three_layer_storage_model(self) -> Optional[Tuple[float, float, float, int, int]]:
         # Get all storage tank temperatures in a dict
         if self.tank_temp_channel_names is None:
             self.send_layout()
@@ -1238,7 +1243,7 @@ class Ltn(PrimeActor):
 
     async def send_glitch(self, summary, details="", log_level=LogLevel.Info):
         glitch = Glitch(
-            FromGNodeAlias=self.layout.ltn_g_node_alias,
+            FromGNodeAlias=self.g_node_alias,
             Node=self.node.name,
             Type=log_level,
             Summary=summary,

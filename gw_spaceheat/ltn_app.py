@@ -21,7 +21,6 @@ from actors.scada_data import load_operational_params
 from clock import Clock, build_clock
 from ltn_app_interface import LtnAppInterface
 from sema_to_dc import load_layout
-from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.named_types import OperationalParams
 from gwsproto.names.core.node_names import CoreNodeNames
 from weather_source import WeatherSource, build_weather_source
@@ -128,6 +127,15 @@ class LtnApp(App, LtnAppInterface):
             )
         )
 
+    @property
+    def hardware_layout(self) -> HydronicLayout:
+        return typing.cast(HydronicLayout, self.config.layout)
+
+    @property
+    def g_node_alias(self) -> str:
+        """This LTN's GNode alias."""
+        return self.hardware_layout.ltn_g_node_alias
+
     def _load_hardware_layout(self, layout_path: str | Path) -> HydronicLayout:
         """Load the runtime layout. A sema-authored static artifact (its
         TypeName names a sema layout type) is assembled with the home's
@@ -177,7 +185,7 @@ class LtnApp(App, LtnAppInterface):
         )
         # The FLO's answer, a recommendation or a refusal, comes back wrapped
         # on the FLO's own topics.
-        flo = flo_alias(typing.cast(HydronicLayout, proactor.hardware_layout).ltn_g_node_alias)
+        flo = flo_alias(self.g_node_alias)
         for topic in (flo_recommendation_topic(flo), flo_refusal_topic(flo)):
             proactor.links.subscribe(client=self.SCADA_MQTT, topic=topic, qos=QOS.AtMostOnce)
 

@@ -80,7 +80,7 @@ class ScadaApp(App, ScadaAppInterface):
         self.unserved_posts = UnservedPosts(
             proactor=self.proactor,
             node_name=self.prime_actor.name,
-            scada_g_node_alias=self.hardware_layout.scada_g_node_alias,
+            scada_g_node_alias=self.g_node_alias,
             logger=self.proactor.logger,
         )
         # last, after every actor's routes: a POST nothing else serves
@@ -243,6 +243,11 @@ class ScadaApp(App, ScadaAppInterface):
     @property
     def hardware_layout(self) -> HydronicLayout:
         return typing.cast(HydronicLayout, self.config.layout)
+
+    @property
+    def g_node_alias(self) -> str:
+        """This scada's GNode alias."""
+        return self.hardware_layout.scada_g_node_alias
 
     def _get_name(self, layout: HydronicLayout) -> ProactorName:
         return ProactorName(
