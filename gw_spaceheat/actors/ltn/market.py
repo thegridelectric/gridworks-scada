@@ -21,6 +21,12 @@ def market_slot_name(ops: OperationalParams, slot_start_s: int) -> MarketSlotNam
     return is_market_slot_name(f"e.{ops.MarketProductName.value}.{ops.MarketMakerAlias}.{slot_start_s}")
 
 
+def slot_is_current(slot_name: MarketSlotName, now_s: float) -> bool:
+    """Whether the slot named is the one `now_s` falls in."""
+    slot_start_s = int(slot_name.split(".")[-1])
+    return slot_start_s == int(now_s) - int(now_s) % MARKET_SLOT_S
+
+
 def latest_price_topic(market_maker_alias: str) -> str:
     """The MQTT topic the maker's latest.price broadcast arrives on: its
     rjb routing key with dots as slashes."""

@@ -11,6 +11,7 @@ from gwproto import Message
 from actors.ltn.flo_service import FLO_DST, flo_alias, flo_recommendation_topic
 from actors.ltn.ltn import Ltn
 from actors.ltn.market import market_slot_name
+from clock import WallClock
 from gwsproto.named_types import Bid, FloParams, FloRecommendation
 from tests.actors.test_flo_request import ALIAS, START_S, build, ops
 from tests.named_types.test_flo_recommendation import example
@@ -49,6 +50,7 @@ def ltn_with_stubs(monkeypatch: pytest.MonkeyPatch) -> tuple[Ltn, Services]:
     monkeypatch.setattr(Ltn, "logger", property(lambda self: Logger()))
     monkeypatch.setattr(Ltn, "scada", property(lambda self: Node()))
     monkeypatch.setattr(Ltn, "ops", property(lambda self: ops()))
+    monkeypatch.setattr(Ltn, "plant_clock", property(lambda self: WallClock()))
     monkeypatch.setattr(Ltn, "log", lambda self, note: None)
     return ltn, services
 

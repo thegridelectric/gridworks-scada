@@ -1,6 +1,5 @@
 import csv
 import asyncio
-import time
 from pathlib import Path
 from datetime import datetime
 from functools import cached_property
@@ -77,7 +76,7 @@ from pydantic import BaseModel
 from actors.ltn.config import LtnSettings, DashboardSettings
 from actors.ltn.dashboard.dashboard import Dashboard
 from actors.ltn.data import LtnData
-from actors.ltn.market import RJB, cleared_pair_index, market_slot_name
+from actors.ltn.market import RJB, cleared_pair_index, market_slot_name, slot_is_current
 from actors.ltn.flo_service import FLO_DST, flo_alias
 from actors.ltn.flo_request import (
     PreviousRun,
@@ -100,6 +99,30 @@ class PriceForecast(BaseModel):
     def total_energy(self) -> List[float]:
         """Calculate the total price forecast by summing dp and lmp components."""
         return [dp + lmp for dp, lmp in zip(self.dp_usd_per_mwh, self.lmp_usd_per_mwh)]
+
+
+FORECAST_HOURS = 48
+
+
+def price_forecast_from(
+    timestamps: Sequence[float],
+    dp_usd_per_mwh: Sequence[float],
+    lmp_usd_per_mwh: Sequence[float],
+    now_s: float,
+) -> PriceForecast:
+    """The next FORECAST_HOURS hours of a saved forecast as seen at `now_s`:
+    hours already begun are dropped, and a forecast that ends early is
+    extended by repeating its last hour."""
+    keep = [i for i, t in enumerate(timestamps) if t > now_s]
+    if not keep:
+        raise ValueError("No forecasts available for the next hours!")
+    dp = [dp_usd_per_mwh[i] for i in keep]
+    lmp = [lmp_usd_per_mwh[i] for i in keep]
+    short = FORECAST_HOURS - len(keep)
+    if short > 0:
+        dp = dp + [dp[-1]] * short
+        lmp = lmp + [lmp[-1]] * short
+    return PriceForecast(dp_usd_per_mwh=dp, lmp_usd_per_mwh=lmp)
 
 
 class LtnMQTTCodec(MQTTCodec):
@@ -555,7 +578,7 @@ class Ltn(PrimeActor):
                 Dst=self.scada.name,
                 Payload=SendLayout(
                     FromGNodeAlias=self.g_node_alias,
-                    MessageCreatedMs=int(time.time() * 1000)
+                    MessageCreatedMs=self.plant_clock.now_ms()
                 ),
             )
         )
@@ -772,7 +795,7 @@ class Ltn(PrimeActor):
             Type=LogLevel.Warning,
             Summary=summary,
             Details=refusal.Detail or "",
-            CreatedMs=int(time.time() * 1000),
+            CreatedMs=self.plant_clock.now_ms(),
         )
         self.services.send_threadsafe(Message(Src=self.name, Dst=self.name, Payload=glitch))
 
@@ -786,21 +809,10 @@ class Ltn(PrimeActor):
         if not bid:
             return False
             
-        # Extract slot start time from market slot name
         try:
-            market_slot_name_parts = bid.MarketSlotName.split('.')
-            slot_start_s = int(market_slot_name_parts[-1])
-            
-            # Get current hour start in unix time
-            now = time.time()
-            current_hour_start_s = int(now - (now % 3600))
-            
-            # Check if bid is for current hour
-            if slot_start_s != current_hour_start_s:
-                self.log(f"Bid time mismatch: bid for {slot_start_s}, current hour starts at {current_hour_start_s}")
-                
+            if not slot_is_current(bid.MarketSlotName, self.plant_clock.now()):
+                self.log(f"Bid time mismatch: bid for {bid.MarketSlotName} is not for the current hour")
                 return False
-                
             return True
         except (ValueError, IndexError) as e:
             self.log(f"Error validating bid time: {e}")
@@ -821,7 +833,7 @@ class Ltn(PrimeActor):
                 Type=LogLevel.Warning,
                 Summary="Invalid bid timeframe",
                 Details=f"Stale bid detected. Bid slot start: {self.contract_handler.latest_bid.MarketSlotName}. Current price: {payload.MarketSlotName}",
-                CreatedMs=int(time.time() * 1000)
+                CreatedMs=self.plant_clock.now_ms()
             )
             self.contract_handler.latest_bid = None
             self.services.send_threadsafe(
@@ -1216,22 +1228,8 @@ class Ltn(PrimeActor):
                 dist_usd_mwh = [float(row[1]) for row in rows]
                 lmp_usd_mwh = [float(row[2]) for row in rows]
 
-                # Crop the beginning of the CSV and extend the end to get a forecast for the next 48 hours
-                time_now = time.time()
-                timestamps_forecast = [t for t in timestamps if t > time_now]
-                hours_available = len(timestamps_forecast)
-                if not hours_available:
-                    raise Exception("No forecasts available for the next hours!")
-                dp_forecast_usd_per_mwh = [p for p,t in zip(dist_usd_mwh, timestamps) if t > time_now]
-                lmp_forecast_usd_per_mwh = [p for p,t in zip(lmp_usd_mwh, timestamps) if t > time_now]
-                if hours_available < 48:
-                    dp_forecast_usd_per_mwh = dp_forecast_usd_per_mwh + [dp_forecast_usd_per_mwh[-1]] * (48-len(dp_forecast_usd_per_mwh))
-                    lmp_forecast_usd_per_mwh = lmp_forecast_usd_per_mwh + [lmp_forecast_usd_per_mwh[-1]] * (48-len(lmp_forecast_usd_per_mwh))
-
-                # Update the price forecast
-                self.price_forecast = PriceForecast(
-                    dp_usd_per_mwh=dp_forecast_usd_per_mwh,
-                    lmp_usd_per_mwh=lmp_forecast_usd_per_mwh,
+                self.price_forecast = price_forecast_from(
+                    timestamps, dist_usd_mwh, lmp_usd_mwh, self.plant_clock.now()
                 )
                 self.log("Successfully read price forecast from local CSV.")
                 # self.log(f"- LMP USD/MWh {self.price_forecast.lmp_usd_per_mwh}")
@@ -1248,7 +1246,7 @@ class Ltn(PrimeActor):
             Type=log_level,
             Summary=summary,
             Details=details,
-            CreatedMs=int(time.time() * 1000)
+            CreatedMs=self.plant_clock.now_ms()
         )
         self.services.send_threadsafe(Message(Src=self.name, Dst=self.name, Payload=glitch))
         self.log("Sent glitch")
