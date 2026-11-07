@@ -435,7 +435,10 @@ class Scada(PrimeActor, ScadaInterface):
                     self.log(f"Trouble with SendControlCapabilities: {e}")
             case SendLayout():
                 try:
-                    self._send_to(from_node, self.layout_lite)
+                    if from_node == self.ltn:
+                        self.announce_posture()
+                    else:
+                        self._send_to(from_node, self.layout_lite)
                 except Exception as e:
                     self.log(f"Trouble with SendLayout: {e}")
             case SendSnap():
@@ -1187,7 +1190,7 @@ class Scada(PrimeActor, ScadaInterface):
                 self._send_to(
                     self.ltn,
                     SlowContractRejection(
-                        FromGNodeAlias=self.layout.scada_g_node_alias,
+                        FromGNodeAlias=self.g_node_alias,
                         ContractId=ltn_hb.Contract.ContractId,
                         Reason=refusal,
                         MessageCreatedMs=int(time.time() * 1000),
@@ -1315,7 +1318,7 @@ class Scada(PrimeActor, ScadaInterface):
         # Still send warning since we haven't received a new contract
         if not self.contract_handler.latest_scada_hb:
             self._send_to(self.ltn, NoNewContractWarning(
-                FromGNodeAlias=self.layout.scada_g_node_alias,
+                FromGNodeAlias=self.g_node_alias,
                 ContractId=hb.Contract.ContractId,
                 GraceEndTimeS=grace_end_s
             ))
@@ -1388,7 +1391,7 @@ class Scada(PrimeActor, ScadaInterface):
     ) -> None:
         """Overwrites base method. Triggered when link state is activated"""
         if transition.link_name == self.services.upstream_client:
-            self._send_to(self.ltn, self.layout_lite)
+            self.announce_posture()
 
     ###########################################################
     # Command Trees - the handles of the Spaceheat Nodes form a tree
@@ -1575,7 +1578,7 @@ class Scada(PrimeActor, ScadaInterface):
             self._send_to(
                 self.ltn,
                 Glitch(
-                    FromGNodeAlias=self.layout.scada_g_node_alias,
+                    FromGNodeAlias=self.g_node_alias,
                     Node=self.node.name,
                     Type=LogLevel.Warning,
                     Summary=summary,
@@ -1593,7 +1596,7 @@ class Scada(PrimeActor, ScadaInterface):
             self._send_to(
                 self.ltn,
                 ScadaCommit(
-                    ScadaAlias=self.layout.scada_g_node_alias,
+                    ScadaAlias=self.g_node_alias,
                     GitCommit=commit,
                     MessageCreatedMs=int(time.time() * 1000),
                 ),
@@ -1639,7 +1642,7 @@ class Scada(PrimeActor, ScadaInterface):
         copied from the ops word, the rest derived now."""
         refusal = self.dispatch_refusal
         return HouseOperatingStatus(
-            ScadaAlias=self.layout.scada_g_node_alias,
+            ScadaAlias=self.g_node_alias,
             ValidationState=self.services.validation_state,
             Standby=self.ops.Standby,
             StandbyPosture=self.ops.StandbyPosture,
@@ -1662,8 +1665,21 @@ class Scada(PrimeActor, ScadaInterface):
             == self.last_operating_status.model_dump(exclude={"CreatedMs"})
         ):
             return
+        self.send_operating_status(status)
+
+    def send_operating_status(self, status: HouseOperatingStatus) -> None:
         self.last_operating_status = status
         self._send_to(self.ltn, status)
+
+    def announce_posture(self) -> None:
+        """What the LTN needs before it can act with this scada: the
+        layout.lite and the operating status, the status sent whether or
+        not it has changed. The LTN's link to the scada can come up with
+        no state on its side (an LTN restart the scada never saw), so the
+        posture goes out when the upstream link activates and in answer to
+        the LTN's send.layout."""
+        self._send_to(self.ltn, self.layout_lite)
+        self.send_operating_status(self.house_operating_status)
 
     def note_ltn_dispatching(self, dispatching: bool) -> None:
         if dispatching != self.ltn_dispatching:
@@ -1741,7 +1757,7 @@ class Scada(PrimeActor, ScadaInterface):
             ReportEvent(
                 MessageId=report.Id,
                 TimeCreatedMs=report.MessageCreatedMs,
-                Src=self.layout.scada_g_node_alias,
+                Src=self.g_node_alias,
                 Report=report,
             )
         )
@@ -1787,7 +1803,7 @@ class Scada(PrimeActor, ScadaInterface):
             if needed else ""
         )
         return Glitch(
-            FromGNodeAlias=self.layout.scada_g_node_alias,
+            FromGNodeAlias=self.g_node_alias,
             Node=self.node.name,
             Type=LogLevel.Warning,
             Summary="disabled-roster",
@@ -1850,7 +1866,7 @@ class Scada(PrimeActor, ScadaInterface):
                 self._send_to(
                     self.ltn,
                     Glitch(
-                        FromGNodeAlias=self.layout.scada_g_node_alias,
+                        FromGNodeAlias=self.g_node_alias,
                         Node=to_node.Name,
                         Type=LogLevel.Error,
                         Summary="actor-raised",
@@ -2025,6 +2041,11 @@ class Scada(PrimeActor, ScadaInterface):
         return self._layout
 
     @property
+    def g_node_alias(self) -> str:
+        """This scada's GNode alias."""
+        return self.layout.scada_g_node_alias
+
+    @property
     def admin(self) -> ShNode:
         return self.layout.node(CoreNodeNames.admin)
 
@@ -2172,7 +2193,7 @@ class Scada(PrimeActor, ScadaInterface):
             for interface in self.command_interfaces(node)
         ]
         return ScadaControlCapabilities(
-            FromGNodeAlias=self.layout.scada_g_node_alias,
+            FromGNodeAlias=self.g_node_alias,
             MessageCreatedMs=int(time.time() * 1000),
             RelayNodes=[node.to_gt() for node in relay_nodes],
             DacNodes=[node.to_gt() for node in dac_nodes],
@@ -2184,7 +2205,7 @@ class Scada(PrimeActor, ScadaInterface):
     @property
     def layout_lite(self) -> LayoutLite:
         return LayoutLite(
-            FromGNodeAlias=self.layout.scada_g_node_alias,
+            FromGNodeAlias=self.g_node_alias,
             HardwareLayoutTypeName=self.layout.layout_type_name,
             ZoneList=self.layout.zone_list,
             CriticalZoneList=self.layout.critical_zone_list,

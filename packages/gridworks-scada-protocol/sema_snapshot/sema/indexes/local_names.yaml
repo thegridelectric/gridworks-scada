@@ -7,6 +7,7 @@ enums:
   change.zone.call.source: change.zone.call.source
   day.of.week: day.of.week
   five.v.boss.state: five.v.boss.state
+  flo.refusal.reason: flo.refusal.reason
   fsm.report.type: fsm.report.type
   g.node.status: g.node.status
   gpio.sense.mode: gpio.sense.mode
@@ -109,6 +110,7 @@ types:
   flo.params: flo.params
   flo.params.house0: flo.params.house0
   flo.recommendation: flo.recommendation
+  flo.refusal: flo.refusal
   flo.tuning.alice: flo.tuning.alice
   flo.tuning.bruce: flo.tuning.bruce
   flow.hall.params: flow.hall.params

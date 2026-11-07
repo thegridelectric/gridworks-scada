@@ -9,11 +9,22 @@ from gwsproto.property_format import MarketSlotName, is_market_slot_name
 
 RJB = "rjb"
 
+# HACK: the market's slot length, and that slots start on the hour, are
+# hard-coded here. They are facts about the market the LTN joins, which the
+# MarketMaker posts and the ops word names; no word carries them yet.
+MARKET_SLOT_S = 3600
+
 
 def market_slot_name(ops: OperationalParams, slot_start_s: int) -> MarketSlotName:
     """The energy slot on the ops word's maker and product starting at
     `slot_start_s`."""
     return is_market_slot_name(f"e.{ops.MarketProductName.value}.{ops.MarketMakerAlias}.{slot_start_s}")
+
+
+def slot_is_current(slot_name: MarketSlotName, now_s: float) -> bool:
+    """Whether the slot named is the one `now_s` falls in."""
+    slot_start_s = int(slot_name.split(".")[-1])
+    return slot_start_s == int(now_s) - int(now_s) % MARKET_SLOT_S
 
 
 def latest_price_topic(market_maker_alias: str) -> str:

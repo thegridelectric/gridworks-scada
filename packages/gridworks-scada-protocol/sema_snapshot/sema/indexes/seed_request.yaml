@@ -74,6 +74,8 @@ initial_targets:
       versions: ["007"]
     flo.recommendation:
       versions: ["000"]
+    flo.refusal:
+      versions: ["000"]
     flow.hall.params:
       versions: ["101"]
     fsm.atomic.report:

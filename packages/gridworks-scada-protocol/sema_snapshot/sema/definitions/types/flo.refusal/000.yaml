@@ -1,0 +1,70 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/flo.refusal/000"
+
+title: "flo.refusal"
+type: object
+description: >
+  A FLO service's answer to one flo.params request that it cannot serve:
+  which bidder and slot it is for, and why there is no recommendation.
+  Sent in place of flo.recommendation and in the kind the request came,
+  so the bidder learns it is bidding on its own for that slot instead of
+  waiting; answered or refused is discriminated by the reply's TypeName,
+  never by inspecting a field.
+
+properties:
+
+  BidderAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      GNodeAlias of the bidder the refused request was for.
+
+  StartUnixS:
+    $ref: "https://schemas.electricity.works/formats/utc.seconds"
+    description: >
+      The refused request's StartUnixS, the market slot start, which with
+      BidderAlias pairs this refusal with its request.
+
+  Reason:
+    $ref: "https://schemas.electricity.works/enums/flo.refusal.reason/000"
+
+  Detail:
+    $ref: "https://schemas.electricity.works/formats/non.empty.string"
+    description: >
+      What the service can add in a line: the tuning or plant shape it
+      lacks, the first line of what the build said.
+
+  CreatedMs:
+    $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+    description: >
+      The service's clock when the refusal came to be.
+
+  TypeName:
+    const: "flo.refusal"
+
+  Version:
+    const: "000"
+
+required:
+  - BidderAlias
+  - StartUnixS
+  - Reason
+  - CreatedMs
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "BidderAlias": "hw1.isone.me.versant.keene.oak.ltn",
+      "StartUnixS": 1794402000,
+      "Reason": "BuildLost",
+      "Detail": "worker killed by signal 9",
+      "CreatedMs": 1794399946000,
+      "TypeName": "flo.refusal",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"

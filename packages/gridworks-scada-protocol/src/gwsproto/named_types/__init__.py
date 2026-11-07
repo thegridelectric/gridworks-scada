@@ -40,6 +40,7 @@ from gwsproto.named_types.flo_optimal_path import FloOptimalPath
 from gwsproto.named_types.flo_params import FloParams
 from gwsproto.named_types.flo_params_house0 import FloParamsHouse0
 from gwsproto.named_types.flo_recommendation import FloRecommendation
+from gwsproto.named_types.flo_refusal import FloRefusal
 from gwsproto.named_types.flow_hall_params import FlowHallParams
 from gwsproto.named_types.fsm_atomic_report import FsmAtomicReport
 from gwsproto.named_types.fsm_event import FsmEvent
@@ -233,6 +234,7 @@ __all__ = [
     "FloParams",
     "FloParamsHouse0",
     "FloRecommendation",
+    "FloRefusal",
     "FlowHallParams",
     "FsmAtomicReport",
     "FsmEvent",
