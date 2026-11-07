@@ -632,17 +632,13 @@ class Ltn(PrimeActor):
             return
 
         if not self.accepts_dispatch or self.service_mode != ServiceMode.Heating:
-            self.log("Should not be running FLOs when Scada is in Summer!! Sent glitch")
-            glitch = Glitch(
-                FromGNodeAlias=self.layout.ltn_g_node_alias,
-                Node=self.node.name,
-                Type=LogLevel.Warning,
-                Summary="Should not be running FLOs when Scada is in Summer!!",
-                Details="",
-                CreatedMs=int(time.time() * 1000)
+            # A known, occasional race: the main loop checked this before
+            # calling, and the scada's posture changed while the forecasts
+            # were fetched. Logged, not a glitch; nothing is wrong.
+            self.log(
+                f"Not asking the FLO for slot {slot_start_s}: the scada no "
+                f"longer accepts dispatch in Heating mode."
             )
-            self.services.send_threadsafe(
-                Message(Src=self.name, Dst=self.name, Payload=glitch))
             return
 
         self.log("Finding thermocline position and top temperature")
