@@ -23,15 +23,15 @@ cd packages/gridworks-admin
 uv version
 ```
 
-The subprojects are *not* developed as part of a [uv workspace] because the
-scada repo itself is not a uv project. If the scada repo is modified to us uv,
-the subprojects can be converted to workspace projects per the workspace
-documentation.
+The subprojects are *not* members of a [uv workspace]: the scada repo is a uv
+project that depends on them as editable path sources (`[tool.uv.sources]` in
+the root pyproject.toml), and each keeps its own `uv.lock`.
 
 ### Scada virtualenv
-The subprojects are installed in the **scada** development environment in
-editable mode by [mkenv.sh]. For example, all these commands access the 
-subprojects and work from the scada development environment:
+The subprojects are installed in the **scada** development environment
+(`.venv` at the repository root) in editable mode by [mkenv.sh]. For example,
+all these commands access the subprojects and work from the scada development
+environment:
 
 ```shell
 gwa
@@ -42,16 +42,13 @@ pytest
 While changes from source are automatically reflected in the scada development
 environment, changes to subproject's pyproject.toml are not. If you modify a
 subproject's pyproject.toml, for example by adding a dependency or by adding a 
-[command line script], those changes will *not* be reflected in the scada
-development environment until you either: 
-1. Reinstall the subproject in editable mode, for example: 
-   ```shell
-   pip install -e packages/gridworks-admin
-   ```
-2. Recreate the scada development environment with: 
-   ```shell
-   tools/mkenv.sh
-   ```
+[command line script], run `uv lock` at the repository root, commit the root
+`uv.lock`, and re-sync the scada development environment with: 
+```shell
+tools/mkenv.sh
+```
+The root `uv.lock` records each subproject's version too, so a version bump
+needs the root `uv lock` as well; CI's `uv sync --locked` fails without it.
 
 ### Subproject virtualenvs
 You can *usually ignore* the environments created in the subprojects by uv. 
@@ -84,15 +81,8 @@ uv add pycowsay
 
 If you run this command from the scada environment you will see a warning that
 scada environment is not modified. To see new dependencies reflected in the 
-scada environment run: 
-```shell
-pip install -e .
-```
-from the subproject directory or, for example:
-```shell
-pip install -e packages/gridworks-admin
-```
-from the repository directory.
+scada environment run `uv lock` and then `tools/mkenv.sh` from the repository
+directory.
 
 ## Testing
 Test the subprojects by running `pytest` from the repository root. 
@@ -111,7 +101,8 @@ To publish a new version to PyPI:
    uv version --bump patch
    ```
    or by manually modifying the pyproject.toml and then running `uv lock`.
-2. Merge to main. 
+2. Run `uv lock` at the repository root as well.
+3. Merge to main. 
 
 ## Installing and testing the published package
 

@@ -74,14 +74,17 @@
 # started. The journal has every event the LTN acked; an unacked event
 # of the line being left is lost with the line.
 #
-# Requirements and units: if the runtime requirements (base.txt, drivers.txt,
-# the packages' pyproject.toml) or the pi's unit files (service/ on the first
-# pi, service2/ on the second) differ between the box's current SHA and the
-# target, the roll stops before the checkout and says so; the venv is rebuilt
-# (tools/mkenv.sh) or the units reinstalled (service/install, service2/install)
-# by hand on the box, and the roll re-run. The test and dev requirements are
-# not compared: nothing the box runs imports them. A package's pyproject.toml
-# is compared without its version line and its pins on the sibling editable
+# Requirements and units: if the requirements (uv.lock on a uv line; base.txt,
+# drivers.txt on a pip line; the packages' pyproject.toml) or the pi's unit
+# files (service/ on the first pi, service2/ on the second) differ between the
+# box's current SHA and the target, the roll stops before the checkout and
+# says so; the venv is rebuilt (tools/mkenv-pi.sh on a pi, tools/mkenv.sh on
+# the LTN box) or the units reinstalled (service/install, service2/install)
+# by hand on the box, and the roll re-run. On a pip line the test and dev
+# requirements are not compared: nothing the box runs imports them. uv.lock
+# holds every group and the editable packages' versions, so a dev-only change
+# or a release bump stops the roll too. A package's pyproject.toml is
+# compared without its version line and its pins on the sibling editable
 # packages (scripts/roll_compare.py reqs): the venv installs both packages
 # editable from the checkout, so a release bump on one line changes nothing
 # the venv resolves. The comparison runs on the laptop's checkout of this repo
@@ -101,9 +104,10 @@ LTN_CONFIG="~/ltn-$HOUSE/.config/gridworks/ltn"
 # gwltn@.service is the ltn box's.
 PI_UNITS='service/gwspaceheat.service service/gwspaceheat-restart.service service/gwspaceheat-restart.timer'
 PI2_UNITS='service2/gwspaceheat2.service service2/gwspaceheat2-restart.service service2/gwspaceheat2-restart.timer'
-# What the box's venv must match: the runtime requirements byte for byte, and
-# the editable packages' pyproject.toml outside their version and sibling pins.
-RUNTIME_REQS='gw_spaceheat/requirements/base.txt gw_spaceheat/requirements/drivers.txt'
+# What the box's venv must match: the lock or the runtime requirements byte
+# for byte, and the editable packages' pyproject.toml outside their version
+# and sibling pins. The requirements files stay listed while pip lines exist.
+RUNTIME_REQS='uv.lock gw_spaceheat/requirements/base.txt gw_spaceheat/requirements/drivers.txt'
 REPO="$HERE/.."
 
 usage() { sed -n '2,19p' "$0"; exit 1; }
@@ -285,7 +289,7 @@ for pi in $PIS; do
     exit 1
   fi
   if venv_differs "$cur" "$TARGET"; then
-    echo "$pi: requirements differ between $cur and origin/$TARGET; rebuild the venv on the box (tools/mkenv.sh) after the checkout, by hand, then re-run"
+    echo "$pi: requirements differ between $cur and origin/$TARGET; rebuild the venv on the box (tools/mkenv-pi.sh) after the checkout, by hand, then re-run"
     exit 1
   fi
   ssh -n "$pi" "git -C $BOX_REPO checkout -q $TARGET && git -C $BOX_REPO merge -q --ff-only origin/$TARGET" || { echo "$pi: checkout or fast-forward failed (local branch ahead of origin?); refusing"; exit 1; }

@@ -65,7 +65,7 @@ Use the repo virtual environment created by:
 
 Then point your editor at:
 
-    gw_spaceheat/venv/bin/python
+    .venv/bin/python
 
 This ensures imports and installed dependencies match local development.
 
@@ -97,7 +97,7 @@ That is enough for most contributors.
 
 Usually caused by selecting the wrong interpreter. Re-select:
 
-    gw_spaceheat/venv/bin/python
+    .venv/bin/python
 
 ### Too many warnings
 

@@ -1,5 +1,0 @@
--r base.in
-board
-adafruit-circuitpython-ads1x15
-adafruit-circuitpython-pcf8575
-#git+https://github.com/bivab/smbus-cffi.git  #used by i2c devices: NCD relay board

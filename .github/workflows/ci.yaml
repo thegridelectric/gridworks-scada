@@ -75,17 +75,13 @@ jobs:
                 --key ${{ github.workspace }}/tests/.ci-ca/certs/ci/private/ci.pem \
                 -E
 
-      - name: Install Python 3
-        uses: actions/setup-python@v7
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
         with:
-          python-version-file: .python-version
+          enable-cache: true
 
       - name: Install Dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r gw_spaceheat/requirements/dev.txt
-          pip install -e packages/gridworks-scada-protocol
-          pip install -e packages/gridworks-admin
+        run: uv sync --locked
 
       - name: Copy Test .env
         uses: canastro/copy-file-action@master

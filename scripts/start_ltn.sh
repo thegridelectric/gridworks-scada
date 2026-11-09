@@ -44,7 +44,7 @@ if [[ -z "$session_name" ]]; then
   exit 1
 fi
 
-venv_activate="$repo_root/venv/bin/activate"
+venv_activate="$HOME/ltn-$session_name/gridworks-scada/.venv/bin/activate"
 if [[ ! -f "$venv_activate" ]]; then
   echo "Error: venv activate script not found at:"
   echo "  $venv_activate"

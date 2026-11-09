@@ -22,13 +22,24 @@ Clone the repository and enter it:
     git clone <repo-url>
     cd gridworks-scada
 
+Install [uv](https://docs.astral.sh/uv/) for the `pi` user (it lands in `~/.local/bin`):
+
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+
 Create the Python environment:
 
     ./tools/mkenv-pi.sh
 
+This syncs `.venv/` from `uv.lock` with the runtime dependencies and the
+`drivers` group, without the dev tools. uv uses the Python 3.12 that
+`.python-version` names, downloading it if the Pi has none.
+
+The services run `.venv/bin/python` directly; uv is needed only to build the
+environment, not to run the scada.
+
 Activate it if needed:
 
-    source gw_spaceheat/venv/bin/activate
+    source .venv/bin/activate
 
 Install the CLI:
 
