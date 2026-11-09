@@ -958,7 +958,7 @@ class Ltn(PrimeActor):
             self.log(note)
             return None
 
-    def _get_zone_info(self) -> tuple[dict[str, float], dict[str, float], dict[str, float], list[str]]:
+    def _get_zone_info(self) -> tuple[list[str], dict[str, float], dict[str, float], dict[str, float]]:
         circuits = {c.CircuitPosition: c for c in self.layout.hydronic.ZoneCallCircuits}
         zone_keys: list[str] = []
         temps: dict[str, float] = {}
