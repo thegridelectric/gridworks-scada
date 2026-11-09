@@ -1,5 +1,5 @@
 $schema: "https://json-schema.org/draft/2020-12/schema"
-$id: "https://schemas.electricity.works/types/flo.recommendation/000"
+$id: "https://schemas.electricity.works/types/flo.recommendation/001"
 
 title: "flo.recommendation"
 type: object
@@ -12,7 +12,9 @@ description: >
   i+1's price up to its own, and the bidder reads the cleared price's pair
   and takes the path at the same index. Quantities are the heat pump's
   electrical draw; the market's slot name and sign convention are the
-  bidder's to apply.
+  bidder's to apply. Two words annotate each path: the store's state
+  along it, named for the store model, and the penalties the optimizer
+  charged along it, named for the optimizer.
 
 properties:
 
@@ -43,6 +45,22 @@ properties:
       One path per pair, in the order of PqPairs: the path the optimizer
       expects if that pair's quantity clears.
 
+  StoreStateList:
+    type: array
+    items:
+      oneOf:
+        - $ref: "https://schemas.electricity.works/types/flo.tank.store.path/000"
+    description: >
+      One store-state word per path, in the order of OptimalPathList.
+
+  PathPenaltiesList:
+    type: array
+    items:
+      oneOf:
+        - $ref: "https://schemas.electricity.works/types/flo.path.penalties.bruce/000"
+    description: >
+      One penalties word per path, in the order of OptimalPathList.
+
   FloName:
     $ref: "https://schemas.electricity.works/formats/left.right.dot"
     description: >
@@ -67,7 +85,7 @@ properties:
     const: "flo.recommendation"
 
   Version:
-    const: "000"
+    const: "001"
 
 required:
   - BidderAlias
@@ -112,12 +130,60 @@ examples:
           "Version": "000"
         }
       ],
+      "StoreStateList": [
+        {
+          "StoreLayers": 12,
+          "TopFList": [158, 155, 158],
+          "MiddleFList": [128, 125, 128],
+          "BottomFList": [100, 100, 100],
+          "Thermocline1List": [6, 4, 6],
+          "Thermocline2List": [9, 7, 9],
+          "EmptyStoreWh": 20000,
+          "FullStoreWh": 45000,
+          "TypeName": "flo.tank.store.path",
+          "Version": "000"
+        },
+        {
+          "StoreLayers": 12,
+          "TopFList": [160, 158, 160],
+          "MiddleFList": [130, 128, 131],
+          "BottomFList": [100, 100, 101],
+          "Thermocline1List": [8, 6, 8],
+          "Thermocline2List": [11, 9, 10],
+          "EmptyStoreWh": 20000,
+          "FullStoreWh": 45000,
+          "TypeName": "flo.tank.store.path",
+          "Version": "000"
+        }
+      ],
+      "PathPenaltiesList": [
+        {
+          "RswtPenaltyUsdList": [0.0, 0.31, 0.0],
+          "StabilityPenaltyUsdList": [0.0, 0.0, 0.0],
+          "ShortCyclePenaltyUsdList": [0.0, 0.0, 0.0],
+          "TerminalCostUsd": 2.14,
+          "TerminalCostEmptyStoreUsd": 5.6,
+          "PathCostUsd": 9.1,
+          "TypeName": "flo.path.penalties.bruce",
+          "Version": "000"
+        },
+        {
+          "RswtPenaltyUsdList": [0.0, 0.0, 0.0],
+          "StabilityPenaltyUsdList": [0.0, 0.15, 0.0],
+          "ShortCyclePenaltyUsdList": [0.0, 0.0, 0.0],
+          "TerminalCostUsd": 1.87,
+          "TerminalCostEmptyStoreUsd": 5.6,
+          "PathCostUsd": 8.3,
+          "TypeName": "flo.path.penalties.bruce",
+          "Version": "000"
+        }
+      ],
       "FloName": "bruce",
       "FloRepo": "github.com/thdfw/optimal-flexibility",
       "FloGitCommit": "2711f59a0b1c2d3e4f5061728394a5b6c7d8e9f0",
       "CreatedMs": 1762008900000,
       "TypeName": "flo.recommendation",
-      "Version": "000"
+      "Version": "001"
     }
 
 x-gridworks:
@@ -147,3 +213,15 @@ x-gridworks:
       statement: >
         Every path's StartUnixS SHALL equal the first path's StartUnixS,
         the slot start of the request answered.
+    - number: 6
+      name: "StoreStatePerPath"
+      statement: >
+        When present, StoreStateList SHALL have the same length as
+        OptimalPathList, and each element's step lists SHALL have the
+        length of the path at the same index.
+    - number: 7
+      name: "PenaltiesPerPath"
+      statement: >
+        When present, PathPenaltiesList SHALL have the same length as
+        OptimalPathList, and each element's penalty lists SHALL have the
+        length of the path at the same index.

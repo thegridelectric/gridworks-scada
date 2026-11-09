@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-11-06T20:20:00Z"
+  last_updated: "2026-11-10T12:25:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -1556,21 +1556,59 @@ types:
             - "utc.seconds"
             - "uuid4.str"
 
-  flo.recommendation:
+  flo.path.penalties.bruce:
     latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "The penalties the bruce optimizer charged along one flo.optimal.path, per step, and the cost it assigned to the path's final state."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/flo.path.penalties.bruce/000"
+        created: "2026-11-09T20:20:00Z"
+        status: "published"
+        summary: "RswtPenaltyUsdList, StabilityPenaltyUsdList, ShortCyclePenaltyUsdList (USD per step), TerminalCostUsd, TerminalCostEmptyStoreUsd, PathCostUsd; axioms PenaltyListLengths, TerminalCostBound."
+        direct_dependencies:
+          structural: []
+
+  flo.previous.run:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "What a bidder keeps from one slot's recommendation once the market clears, for its next request: the cleared pair, the path it led to, and the price forecast for the slot after."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/flo.previous.run/000"
+        created: "2026-11-09T15:40:00Z"
+        status: "published"
+        summary: "Path (flo.optimal.path), ClearedPairIndex, ClearedPair with PriceUnit and QuantityUnit, NextSlotPriceX1000, CreatedMs; axiom PathStartsAtTheBid."
+        direct_dependencies:
+          structural:
+            - "flo.optimal.path:000"
+            - "market.price.unit:000"
+            - "market.quantity.unit:000"
+            - "non.negative.int"
+            - "price.quantity.unitless:001"
+            - "utc.milliseconds"
+
+  flo.recommendation:
+    latest_version: "001"
     owner: gridworks-energy
     versioning_strategy: "literal"
     description: "A FLO's answer to one flo.params request: the bid curve to submit for the slot and, per price-quantity pair, the optimal path that quantity leads to, with the FLO's provenance."
 
     versions:
-      "000":
-        schema_url: "https://schemas.electricity.works/types/flo.recommendation/000"
-        created: "2026-11-01T15:50:00Z"
+      "001":
+        schema_url: "https://schemas.electricity.works/types/flo.recommendation/001"
+        created: "2026-11-09T20:20:00Z"
         status: "published"
-        summary: "Bid fields (BidderAlias, PqPairs, PriceUnit, QuantityUnit), OptimalPathList index-linked to PqPairs, FloName, FloRepo, FloGitCommit, CreatedMs; axioms AtLeastOnePair, PathPerPair, FirstStepIsTheBid, PairsDescend, PathsStartTogether."
+        summary: "- StoreStateList: add (optional, oneOf flo.tank.store.path) - PathPenaltiesList: add (optional, oneOf flo.path.penalties.bruce)"
         direct_dependencies:
           structural:
             - "flo.optimal.path:000"
+            - "flo.path.penalties.bruce:000"
+            - "flo.tank.store.path:000"
             - "git.commit"
             - "left.right.dot"
             - "market.price.unit:000"
@@ -1598,6 +1636,22 @@ types:
             - "non.empty.string"
             - "utc.milliseconds"
             - "utc.seconds"
+
+  flo.tank.store.path:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "The state of a store of stratified water tanks at the end of each step of one flo.optimal.path: layer count, the three band temperatures and the two thermoclines as layer indices."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/flo.tank.store.path/000"
+        created: "2026-11-09T20:20:00Z"
+        status: "published"
+        summary: "StoreLayers, TopFList, MiddleFList, BottomFList (F), Thermocline1List, Thermocline2List (layer index from the top), EmptyStoreWh, FullStoreWh; axioms StepListLengths, ThermoclinesWithinTheStore, EmptyBelowFull."
+        direct_dependencies:
+          structural:
+            - "positive.int"
 
   flo.tuning.alice:
     latest_version: "000"

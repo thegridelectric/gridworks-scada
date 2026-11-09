@@ -72,8 +72,10 @@ initial_targets:
       versions: ["001"]
     flo.params.house0:
       versions: ["007"]
-    flo.recommendation:
+    flo.previous.run:
       versions: ["000"]
+    flo.recommendation:
+      versions: ["001"]
     flo.refusal:
       versions: ["000"]
     flow.hall.params:

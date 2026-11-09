@@ -1,0 +1,179 @@
+{
+  "TypeName": "flo.recommendation",
+  "Version": "001",
+  "BidderAlias": "hw1.isone.me.versant.keene.oak",
+  "PqPairs": [
+    {
+      "TypeName": "price.quantity.unitless",
+      "Version": "001",
+      "PriceX1000": 2000000,
+      "QuantityX1000": 0
+    },
+    {
+      "TypeName": "price.quantity.unitless",
+      "Version": "001",
+      "PriceX1000": 150000,
+      "QuantityX1000": 4200
+    }
+  ],
+  "PriceUnit": "USDPerMWh",
+  "QuantityUnit": "AvgkW",
+  "OptimalPathList": [
+    {
+      "TypeName": "flo.optimal.path",
+      "Version": "000",
+      "StartUnixS": 1762009200,
+      "StepDurationMinutes": [
+        60,
+        60,
+        60
+      ],
+      "HpAvgWList": [
+        0,
+        0,
+        3100
+      ],
+      "StoreWhList": [
+        34300,
+        27000,
+        32600
+      ]
+    },
+    {
+      "TypeName": "flo.optimal.path",
+      "Version": "000",
+      "StartUnixS": 1762009200,
+      "StepDurationMinutes": [
+        60,
+        60,
+        60
+      ],
+      "HpAvgWList": [
+        4200,
+        0,
+        3100
+      ],
+      "StoreWhList": [
+        38500,
+        31200,
+        36800
+      ]
+    }
+  ],
+  "StoreStateList": [
+    {
+      "TypeName": "flo.tank.store.path",
+      "Version": "000",
+      "StoreLayers": 12,
+      "TopFList": [
+        158,
+        155,
+        158
+      ],
+      "MiddleFList": [
+        128,
+        125,
+        128
+      ],
+      "BottomFList": [
+        100,
+        100,
+        100
+      ],
+      "Thermocline1List": [
+        6,
+        4,
+        6
+      ],
+      "Thermocline2List": [
+        9,
+        7,
+        9
+      ],
+      "EmptyStoreWh": 20000,
+      "FullStoreWh": 45000
+    },
+    {
+      "TypeName": "flo.tank.store.path",
+      "Version": "000",
+      "StoreLayers": 12,
+      "TopFList": [
+        160,
+        158,
+        160
+      ],
+      "MiddleFList": [
+        130,
+        128,
+        131
+      ],
+      "BottomFList": [
+        100,
+        100,
+        101
+      ],
+      "Thermocline1List": [
+        8,
+        6,
+        8
+      ],
+      "Thermocline2List": [
+        11,
+        9,
+        10
+      ],
+      "EmptyStoreWh": 20000,
+      "FullStoreWh": 45000
+    }
+  ],
+  "PathPenaltiesList": [
+    {
+      "TypeName": "flo.path.penalties.bruce",
+      "Version": "000",
+      "RswtPenaltyUsdList": [
+        0.0,
+        0.31,
+        0.0
+      ],
+      "StabilityPenaltyUsdList": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "ShortCyclePenaltyUsdList": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "TerminalCostUsd": 2.14,
+      "TerminalCostEmptyStoreUsd": 5.6,
+      "PathCostUsd": 9.1
+    },
+    {
+      "TypeName": "flo.path.penalties.bruce",
+      "Version": "000",
+      "RswtPenaltyUsdList": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "StabilityPenaltyUsdList": [
+        0.0,
+        0.15,
+        0.0
+      ],
+      "ShortCyclePenaltyUsdList": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "TerminalCostUsd": 1.87,
+      "TerminalCostEmptyStoreUsd": 5.6,
+      "PathCostUsd": 8.3
+    }
+  ],
+  "FloName": "bruce",
+  "FloRepo": "github.com/thdfw/optimal-flexibility",
+  "FloGitCommit": "2711f59a0b1c2d3e4f5061728394a5b6c7d8e9f0",
+  "CreatedMs": 1762008900000
+}
