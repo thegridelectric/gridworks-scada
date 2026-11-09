@@ -90,13 +90,6 @@ from actors.ltn.flo_request import (
     seconds_to_slot_start,
 )
 
-try:
-    from bruce.service import recommend_bytes
-except ImportError:
-    recommend_bytes = None  # type: ignore[assignment]
-
-BRUCE_FLO_AVAILABLE = recommend_bytes is not None
-
 
 class PriceForecast(BaseModel):
     dp_usd_per_mwh: List[float]
