@@ -187,7 +187,7 @@ Run:
 ruff check
 ```
 
-Ruff is advisory today and does not yet pass.
+CI fails the workflow when `ruff check` does not pass. The version is the one pinned in `gw_spaceheat/requirements/test.txt`.
 
 ### Sema conformance
 

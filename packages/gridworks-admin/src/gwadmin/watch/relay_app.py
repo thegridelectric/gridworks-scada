@@ -119,10 +119,12 @@ class RelaysApp(App):
         return f"{self.settings.curr_scada} - {self.settings.config.scadas[self.settings.curr_scada].long_name}"
 
     def compose(self) -> ComposeResult:
+        # Unused since the banner replaced the label. Left until we decide
+        # whether --show-scada-block should hide the banner again.
         if self.settings.config.show_selected_scada_block:
             selected_scada_block_classes = ""
         else:
-            selected_scada_block_classes = "undisplayed"
+            selected_scada_block_classes = "undisplayed"  # noqa: F841
         yield Header(show_clock=self.settings.config.show_clock)
         self.active_scada_banner = ActiveScadaBanner(
             self.settings.curr_scada,

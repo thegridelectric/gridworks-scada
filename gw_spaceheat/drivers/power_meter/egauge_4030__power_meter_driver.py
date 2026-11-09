@@ -106,7 +106,7 @@ class TryConnectResult(DriverResult[bool | None]):
 
     @property
     def had_disconnect(self) -> bool:
-        return any(type(warning) == EGaugeHadDisconnect for warning in self.warnings)
+        return any(type(warning) is EGaugeHadDisconnect for warning in self.warnings)
 
     def __str__(self) -> str:
         s = (

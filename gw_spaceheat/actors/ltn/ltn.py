@@ -57,7 +57,7 @@ from gwsproto.named_types import PowerWatts, Report, ReportEvent
 from gwsproto.named_types import SendSnap, MachineStates
 from actors.hydronic.store_temps import scrub_and_fill_store_temps
 from actors.ltn.contract_handler import LtnContractHandler
- 
+
 from gwsproto.named_types import (
     Bid, FloOptimalPath, FloParams, FloRecommendation, FloRefusal, Glitch, HouseOperatingStatus, LatestPrice,
     LayoutLite, NoNewContractWarning, OperationalParams, SendLayout,
@@ -89,6 +89,13 @@ from actors.ltn.flo_request import (
     save_previous_run,
     seconds_to_slot_start,
 )
+
+try:
+    from bruce.service import recommend_bytes
+except ImportError:
+    recommend_bytes = None  # type: ignore[assignment]
+
+BRUCE_FLO_AVAILABLE = recommend_bytes is not None
 
 
 class PriceForecast(BaseModel):

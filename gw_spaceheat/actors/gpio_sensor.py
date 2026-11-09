@@ -1,7 +1,7 @@
 import asyncio
 import time
 from typing import Sequence
-from result import Err, Ok, Result
+from result import Result
 
 from gwproto.message import Message
 

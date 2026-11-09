@@ -86,7 +86,7 @@ def watch():
         register
         for register in registers.registers()
         if (
-            not register.Address in excluded and
+            register.Address not in excluded and
             not register.Deprecated and
             not register.Name.startswith("Virtual")
         )

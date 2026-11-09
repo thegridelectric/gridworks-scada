@@ -69,9 +69,9 @@ class StorePumpMonitor:
             if pump_relay_state.State == RelayClosedOrOpen.RelayOpen:
                 return False
             
-            h.log(f"[StorePumpCheck] Store pump relay is closed")
+            h.log("[StorePumpCheck] Store pump relay is closed")
         else:
-            h.log(f"[StorePumpCheck] Store pump relay not found")
+            h.log("[StorePumpCheck] Store pump relay not found")
             return False
 
         # --------------------------------------------------------
