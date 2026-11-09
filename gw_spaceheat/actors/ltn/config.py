@@ -1,6 +1,5 @@
 import re
 import logging
-from pydantic import BaseModel
 
 from pydantic import BaseModel, PositiveInt, field_validator
 from pydantic_settings import SettingsConfigDict
