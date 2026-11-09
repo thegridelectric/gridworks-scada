@@ -43,7 +43,7 @@ dependencies = [
 [dependency-groups]
 # Raspberry Pi only.
 drivers = [
-    "board",
+    "adafruit-blinka",  # provides the `board` module; the PyPI package named `board` is unrelated
     "adafruit-circuitpython-ads1x15",
     "adafruit-circuitpython-pcf8575",
     # Blinka imports RPi.GPIO on a Raspberry Pi but does not declare it.
