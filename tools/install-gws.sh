@@ -9,5 +9,5 @@ then
   exit 0
 fi
 
-rm gw_spaceheat/venv/bin/gws > /dev/null 2>&1
-ln -s `pwd`/gw_spaceheat/gws gw_spaceheat/venv/bin
+rm .venv/bin/gws > /dev/null 2>&1
+ln -s `pwd`/gw_spaceheat/gws .venv/bin

@@ -9,11 +9,5 @@ then
   exit 0
 fi
 
-deactivate | true
-source gw_spaceheat/venv/bin/activate
-pip uninstall gridworks-protocol
-pip uninstall gridworks-proactor
-pip install -e ../gridworks-proactor --no-cache-dir
-pip uninstall gridworks-protocol
-pip install -e ../gridworks-protocol
-python -c "import gwproto; import gwproactor; print(gwproto.__file__); print(gwproactor.__file__)"
+uv pip install --no-cache -e ../gridworks-proactor -e ../gridworks-protocol
+.venv/bin/python -c "import gwproto; import gwproactor; print(gwproto.__file__); print(gwproactor.__file__)"

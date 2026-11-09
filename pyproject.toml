@@ -1,3 +1,80 @@
+[project]
+name = "gridworks-scada"
+version = "0.0.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "setuptools",
+    "numpy>=2.3.3",
+    "pydantic>=2.11.9",
+    "pydantic-settings>=2.11.0",
+    "python-dotenv>=1.1.1",
+    "paho-mqtt",
+    "pytz",
+    "xdg",
+    "result",
+    "transitions",
+    "gridworks-protocol>=1.3.3",
+    "gridworks-proactor",
+    "gridworks-scada-protocol",
+    "smbus2",
+    "pymodbus",
+    "pyserial",
+    "pyModbusTCP",
+    # ltn
+    "httpx",
+    # CLI tooling
+    # Intended behavior: invoking `gws` with no arguments should display the help
+    # screen and exit with code 0.
+    #
+    # Typer >=0.24 / Click >=8.3 changed group invocation semantics so that
+    # invoking a command group with no subcommand exits with code 2 (usage error).
+    # That breaks test_cli expectations and changes CLI behavior.
+    #
+    # Pin Typer/Click below those versions until CLI behavior is intentionally
+    # updated and tests adjusted accordingly.
+    "rich>=14.1.0",
+    "typer>=0.17.4,<0.24",
+    "click<8.3",
+    "trogon",
+    "textual>=6.1.0",
+    "textual-dev",
+]
+
+[dependency-groups]
+# Raspberry Pi only.
+drivers = [
+    "board",
+    "adafruit-circuitpython-ads1x15",
+    "adafruit-circuitpython-pcf8575",
+]
+dev = [
+    "gridworks-admin",
+    "pytest",
+    "coverage",
+    "mypy>=1.15.0",
+    "ruff>=0.9.6",
+    "black",
+    "pytest-asyncio",
+    "pyyaml",  # the sema conformance checker reads the snapshot indexes
+    "isort",
+    "gridworks-cert>=0.4.4",
+    "gridworks-proactor[tests]",
+    "requests",  # for ltn dashboard
+    "memray",
+]
+
+[tool.uv]
+package = false
+# The deployed scadas are Raspberry Pis running 64-bit Raspberry Pi OS.
+required-environments = [
+    "sys_platform == 'linux' and platform_machine == 'aarch64'",
+]
+
+[tool.uv.sources]
+gridworks-proactor = { git = "https://github.com/thegridelectric/gridworks-proactor.git", tag = "v4.1.13+jm3" }
+gridworks-scada-protocol = { path = "packages/gridworks-scada-protocol", editable = true }
+gridworks-admin = { path = "packages/gridworks-admin", editable = true }
+
 [tool.pytest.ini_options]
 pythonpath = ["gw_spaceheat"]
 log_format = "%(asctime)s %(message)s"

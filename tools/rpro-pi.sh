@@ -1,10 +1,10 @@
 # Helper script which restore virtual env on the pi to using gwproto and
-# gwproactor as defined in requirements file.
+# gwproactor as locked in uv.lock.
 #
 # Run from top level of repo.
 if [[ ( $@ == "--help") ||  $@ == "-h" ]]
 then
-  echo "Helper script which restore virtual env on the pi to using gwproto and gwproactor as defined in requirements file."
+  echo "Helper script which restore virtual env on the pi to using gwproto and gwproactor as locked in uv.lock."
   echo
   echo "Run from top level of repo."
   echo
@@ -12,4 +12,4 @@ then
 	exit 0
 fi
 
-tools/rpro.sh 'gw_spaceheat/requirements/drivers.txt'
+tools/rpro.sh --no-dev --group drivers

@@ -37,13 +37,14 @@ For most contributors:
 >
 > To keep the test broker running across reboots, register a user LaunchAgent (macOS) or systemd user unit (Linux) that runs `mosquitto -c <repo-root>/tests/config/local_mosquitto.conf` directly.
 
- 2. **Create venv**: Run `./tools/mkenv.sh`.  This creates `gw_spaceheat/venv/`
+ 2. **Create venv**: Install [uv](https://docs.astral.sh/uv/), then run `./tools/mkenv.sh`.  This runs `uv sync --locked`, which creates `.venv/` from `uv.lock`, and links the `gws` CLI into it.
     - (On a Raspberry Pi use `./tools/mkenv-pi.sh`.)
- 3.  **Activate venv**:  `source gw_spaceheat/venv/bin/activate`
+ 3.  **Activate venv**:  `source .venv/bin/activate`
  4.  **Export pythonpath**: include gw_spaceheat in the pythonpath
      - Linux/mac: `export PYTHONPATH=[PATH TO]/gridworks-scada/gw_spaceheat:$PYTHONPATH`
      - Windows in powershell: $env:PYTHONPATH="C:\Users\Joe\Coding\gridworks-scada\gw_spaceheat;$env:PYTHONPATH"
  5. **Run tests:** `pytest -v`
+ 6. **Before committing:** `./ci.sh` runs what CI runs (`uv sync --locked`, `ruff check`, the tests under coverage).
 
 ### Test Environment Notes
 
@@ -62,7 +63,7 @@ and a **local/downstream broker** at `localhost:18831`.
 ### Optional Shell Alias
 
 ```
-    alias gw="source $HOME/Coding/gridworks-scada/gw_spaceheat/venv/bin/activate \
+    alias gw="source $HOME/Coding/gridworks-scada/.venv/bin/activate \
     && cd $HOME/Coding/gridworks-scada \
     && export PYTHONPATH=$HOME/Coding/gridworks-scada/gw_spaceheat:$PYTHONPATH"
 ```
@@ -144,15 +145,20 @@ LTN_PATHS__HARDWARE_LAYOUT="../tlayouts/output/orange.generated.json"
 
 ### Dependencies
 
-Add package requirements in:
+Dependencies live in `pyproject.toml` and are locked in `uv.lock`:
 
-- `gw_spaceheat/requirements/dev.in` — development / CI
-- `gw_spaceheat/requirements/drivers.in` — Raspberry Pi only
-- `gw_spaceheat/requirements/base.in` — all environments
+- `[project] dependencies` — all environments
+- the `drivers` dependency group — Raspberry Pi only
+- the `dev` dependency group — development / CI
 
-Then run:
+Add one with, for example:
 
-    tools/pipc.sh
+    uv add httpx                   # all environments
+    uv add --group drivers board   # Raspberry Pi only
+    uv add --dev pytest            # development / CI
+
+`uv lock --upgrade-package <name>` moves one locked package; commit `uv.lock`
+with the change.
 
 ## Advanced: Using RabbitMQ for Multi-Repo Integration
 
