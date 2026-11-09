@@ -23,7 +23,7 @@ def main():
         import matplotlib.pyplot as plt
         import matplotlib.dates as mdates
     except ImportError:
-        print("Install matplotlib: pip install matplotlib")
+        print("matplotlib is not in the venv: uv run --with matplotlib scripts/plot_ram.py ...")
         return 1
 
     path = Path(args.csv_file)
