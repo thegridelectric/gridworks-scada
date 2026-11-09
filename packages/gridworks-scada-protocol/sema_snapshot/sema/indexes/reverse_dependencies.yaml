@@ -454,6 +454,10 @@ enums:
     '000':
       used_by:
       - gw.tou.window:000
+  flo.refusal.reason:
+    '000':
+      used_by:
+      - flo.refusal:000
   fsm.report.type:
     '000':
       used_by:
@@ -759,6 +763,7 @@ formats:
     - flo.params.house0:007
     - flo.params:001
     - flo.recommendation:000
+    - flo.refusal:000
     - fsm.atomic.report:001
     - fsm.event:000
     - g.node.gt:006
@@ -807,6 +812,7 @@ formats:
   non.empty.string:
     used_by:
     - flo.recommendation:000
+    - flo.refusal:000
     - gw.command.transition:000
     - gw.weather.channel.gt:002
     - gw.weather.forecast.bundle.gt:002
@@ -1001,6 +1007,7 @@ formats:
     - energy.instruction:000
     - flo.params:001
     - flo.recommendation:000
+    - flo.refusal:000
     - fsm.atomic.report:001
     - fsm.event:000
     - glitch:000
@@ -1034,6 +1041,7 @@ formats:
     - flo.optimal.path:000
     - flo.params.house0:007
     - flo.params:001
+    - flo.refusal:000
     - heating.forecast:000
     - report:003
     - slow.dispatch.contract:000

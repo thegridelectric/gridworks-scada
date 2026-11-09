@@ -1,0 +1,47 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/flo.refusal.reason/000"
+
+title: "flo.refusal.reason"
+type: "string"
+description: >
+  Why a FLO service did not answer a flo.params request with a
+  recommendation, carried on flo.refusal. The service is the only party
+  that knows whether it has an optimizer for the tuning, a model for the
+  plant, and a build that ran to the end in time.
+
+enum:
+  - "Unknown"
+  - "NoTuning"
+  - "NoMatrix"
+  - "BuildFailed"
+  - "BuildLost"
+  - "PastDeadline"
+
+default: "Unknown"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "Unknown": >
+      The reason was not one this vocabulary names. Also the default, so an
+      out-of-vocabulary reason reads as unexplained rather than as a
+      specific cause.
+
+    "NoTuning": >
+      The request's Tuning TypeName names no optimizer the service runs.
+
+    "NoMatrix": >
+      The service has no prepared model for the request's plant shape, and
+      does not build one in the request path.
+
+    "BuildFailed": >
+      The optimizer ran and raised before it produced a recommendation.
+
+    "BuildLost": >
+      The build was stopped before it finished: killed for memory, by a
+      crash, or at the service's own deadline.
+
+    "PastDeadline": >
+      The build finished, but later than the service sends a reply, since
+      the bidder has bid without it by then.

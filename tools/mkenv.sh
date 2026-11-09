@@ -56,14 +56,3 @@ then
 fi
 rm gw_spaceheat/venv/bin/gws > /dev/null 2>&1
 ln -s `pwd`/gw_spaceheat/gws gw_spaceheat/venv/bin
-
-# bruce, the FLO (optimal-flexibility): installed editable from the sibling
-# checkout ../optimal-flexibility by default, on the laptop as on a box, so
-# a bruce update is a pull of the sibling; every recommendation records
-# the sibling's commit. "no_flo" skips it.
-INSTALL_FLO="${3:-editable_flo}"
-
-if [ "$INSTALL_FLO" == "editable_flo" ]
-then
-  pip install -e ../optimal-flexibility/
-fi

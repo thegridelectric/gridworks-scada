@@ -1,11 +1,14 @@
 import re
 import logging
 from pydantic import BaseModel
+
+from pydantic import BaseModel, PositiveInt, field_validator
 from pydantic_settings import SettingsConfigDict
 
 from gwproactor.config import MQTTClient
 
 from actors.config import ScadaPathsSettings
+from actors.ltn.market import MARKET_SLOT_S
 from clock import ClockSource
 from weather_source import WeatherSourceKind
 
@@ -47,6 +50,10 @@ class LtnSettings(ScadaPathsSettings):
     contract_rep_logging_level: int = logging.INFO
     flo_logging_level: int = logging.INFO
     flo_horizon_hours: int = 48
+    # How many seconds before a market slot starts the LTN measures the
+    # store, asks the FLO and bids for that slot. Less than one slot, so
+    # each slot gets exactly one request.
+    bid_lead_s: PositiveInt = 180
     # Count no buffer energy when true.
     keep_buffer_full: bool = False
     clock_source: ClockSource = ClockSource.Wall
@@ -55,5 +62,14 @@ class LtnSettings(ScadaPathsSettings):
     weather_pull_timeout_s: float = 20
 
     model_config = SettingsConfigDict(env_prefix="LTN_", extra="ignore")
+
+    @field_validator("bid_lead_s")
+    @classmethod
+    def bid_lead_is_inside_one_slot(cls, v: int) -> int:
+        if v >= MARKET_SLOT_S:
+            raise ValueError(
+                f"bid_lead_s must be less than the market slot ({MARKET_SLOT_S} s), got {v}"
+            )
+        return v
 
 

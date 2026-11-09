@@ -241,6 +241,17 @@ types:
       - flo.optimal.path:000
       - price.quantity.unitless:001
       versionless_types: []
+  flo.refusal:
+    '000':
+      enums:
+      - flo.refusal.reason:000
+      formats:
+      - left.right.dot
+      - non.empty.string
+      - utc.milliseconds
+      - utc.seconds
+      types: []
+      versionless_types: []
   flo.tuning.alice:
     '000':
       enums: []

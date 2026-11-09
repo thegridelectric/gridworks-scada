@@ -15,7 +15,6 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   echo "Example: $(basename "$0") beech"
   echo "Starts/restarts tmux session 'beech' using repos under:"
   echo "  \$HOME/ltn-beech/gridworks-scada"
-  echo "  \$HOME/ltn-beech/optimal-flexibility"
   exit 0
 fi
 
@@ -59,9 +58,8 @@ if tmux has-session -t "$session_name" 2>/dev/null; then
 fi
 
 ltn_scada_repo="$HOME/ltn-$session_name/gridworks-scada"
-ltn_optimizer_repo="$HOME/ltn-$session_name/optimal-flexibility"
 
-for repo_dir in "$ltn_scada_repo" "$ltn_optimizer_repo"; do
+for repo_dir in "$ltn_scada_repo"; do
   if [[ ! -d "$repo_dir/.git" ]]; then
     echo "Error: expected git repo not found at:"
     echo "  $repo_dir"

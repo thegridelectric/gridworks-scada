@@ -374,7 +374,7 @@ async def test_the_main_loop_runs_no_flo_while_the_house_refuses_dispatch(
             flo_runs.append(slot_start_s)
 
         monkeypatch.setattr(ltn, "log", record_log)
-        monkeypatch.setattr(ltn, "run_flo", record_run)
+        monkeypatch.setattr(ltn, "ask_the_flo", record_run)
         await tst.await_for(
             lambda: ltn.operating_status is not None
             and ltn.operating_status.DispatchRefusalReason == DispatchRefusalReason.OperatorHold,
