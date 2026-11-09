@@ -46,6 +46,8 @@ drivers = [
     "board",
     "adafruit-circuitpython-ads1x15",
     "adafruit-circuitpython-pcf8575",
+    # Blinka imports RPi.GPIO on a Raspberry Pi but does not declare it.
+    "rpi-gpio; sys_platform == 'linux' and platform_machine == 'aarch64'",
 ]
 dev = [
     "gridworks-admin",

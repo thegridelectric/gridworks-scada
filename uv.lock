@@ -578,6 +578,7 @@ drivers = [
     { name = "adafruit-circuitpython-ads1x15" },
     { name = "adafruit-circuitpython-pcf8575" },
     { name = "board" },
+    { name = "rpi-gpio", marker = "platform_machine == 'aarch64' and sys_platform == 'linux'" },
 ]
 
 [package.metadata]
@@ -628,6 +629,7 @@ drivers = [
     { name = "adafruit-circuitpython-ads1x15" },
     { name = "adafruit-circuitpython-pcf8575" },
     { name = "board" },
+    { name = "rpi-gpio", marker = "platform_machine == 'aarch64' and sys_platform == 'linux'" },
 ]
 
 [[package]]
@@ -1237,6 +1239,12 @@ sdist = { url = "https://files.pythonhosted.org/packages/74/99/a4cab2acbb884f80e
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ef/45/615f5babd880b4bd7d405cc0dc348234c5ffb6ed1ea33e152ede08b2072d/rich-14.3.2-py3-none-any.whl", hash = "sha256:08e67c3e90884651da3239ea668222d19bea7b589149d8014a21c633420dbb69", size = 309963, upload-time = "2026-02-01T16:20:46.078Z" },
 ]
+
+[[package]]
+name = "rpi-gpio"
+version = "0.7.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c4/0f/10b524a12b3445af1c607c27b2f5ed122ef55756e29942900e5c950735f2/RPi.GPIO-0.7.1.tar.gz", hash = "sha256:cd61c4b03c37b62bba4a5acfea9862749c33c618e0295e7e90aa4713fb373b70", size = 29090, upload-time = "2022-02-06T15:15:06.022Z" }
 
 [[package]]
 name = "ruff"
