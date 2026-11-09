@@ -7,8 +7,7 @@
     "python.analysis.extraPaths": [
         "gw_spaceheat",
         "packages/gridworks-scada-protocol/src",
-        "packages/gridworks-admin/src",
-        "../optimal-flexibility/src"
+        "packages/gridworks-admin/src"
     ],
     // Enable this if you want Ruff to fix on save:
     // "editor.codeActionsOnSave": {
