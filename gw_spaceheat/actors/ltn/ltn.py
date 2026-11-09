@@ -102,6 +102,7 @@ from actors.ltn.flo_request import (
     previous_run_for,
     rswt_forecast_f,
     save_previous_run,
+    WATER_KWH_PER_KG_K,
 )
 
 
@@ -1226,10 +1227,10 @@ class Ltn(PrimeActor):
             buffer_available_energy = 0
             for bl in buffer_temperatures:
                 if buffer_temperatures[bl] >= rswt_minus_deltaT:
-                    buffer_available_energy += m_layer_kg * 4.187/3600 * (buffer_temperatures[bl]-rswt_minus_deltaT) * 5/9
+                    buffer_available_energy += m_layer_kg * WATER_KWH_PER_KG_K * (buffer_temperatures[bl]-rswt_minus_deltaT) * 5/9
             if round(buffer_available_energy,2) == 0:
                 for bl in buffer_temperatures:
-                    buffer_available_energy += - m_layer_kg * 4.187/3600 * (rswt - buffer_temperatures[bl]) * 5/9
+                    buffer_available_energy += - m_layer_kg * WATER_KWH_PER_KG_K * (rswt - buffer_temperatures[bl]) * 5/9
             self.log(f"Buffer available kWh: {round(buffer_available_energy,2)}")
             return round(buffer_available_energy,2)
         except Exception as e:

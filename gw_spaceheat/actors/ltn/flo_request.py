@@ -24,7 +24,7 @@ STEP_MINUTES = 60
 PRICE_MAX_USD_MWH = 2000.0
 PRICE_MIN_USD_MWH = -100.0
 
-WATER_CP_KWH_PER_KG_K = 4.184 / 3600
+WATER_KWH_PER_KG_K = 4.184 / 3600
 RSWT_RADIATOR_EXPONENT = 1.3
 
 
@@ -196,7 +196,7 @@ def adjust_load_for_buffer(load_kwh: list[float], buffer_available_kwh: float) -
 
 def rswt_forecast_f(curve: HeatingCurve, load_kwh: Sequence[float], t_room_f: float) -> list[float]:
     n = RSWT_RADIATOR_EXPONENT
-    cp = WATER_CP_KWH_PER_KG_K
+    cp = WATER_KWH_PER_KG_K
 
     mdot = float(curve.MassFlowKgH)
     q_dd = float(curve.DdPowerKw)
