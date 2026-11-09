@@ -1004,28 +1004,55 @@ class Ltn(PrimeActor):
             return
         temps = {}
         for ch_name in self.tank_temp_channel_names:
-            raw = self.latest_channel_values.get(ch_name)
-            if raw is None:
-                continue
-            try:
-                unit = self.layout.channel_registry.unit(ch_name)
-                if unit is None:
-                    raise Exception(
-                        f"temperature channels should have units! {ch_name}"
-                    )
-                temp_f = convert_temp_to_f(
-                    raw=raw,
-                    encoding=unit
-                )
-            except Exception as e:
-                note = f"Temperature conversion failed for {ch_name}: {e}"
-                self.log(note)
+            temp_f = self._get_latest_temp_f(ch_name)
+            if temp_f is None:
                 continue
             temps[ch_name] = temp_f
 
         self.latest_temps_f = temps.copy()
         self.fill_missing_store_temps()
         self.temperatures_available = set(self.tank_temp_channel_names) <= self.latest_temps_f.keys()
+
+    def _get_latest_temp_f(self, ch_name: str) -> float | None:
+        raw = self.latest_channel_values.get(ch_name)
+        if raw is None:
+            return None
+        try:
+            unit = self.layout.channel_registry.unit(ch_name)
+            if unit is None:
+                raise Exception(
+                    f"temperature channels should have units! {ch_name}"
+                )
+            return convert_temp_to_f(
+                raw=raw, 
+                encoding=unit
+            )
+        except Exception as e:
+            note = f"Temperature conversion failed for {ch_name}: {e}"
+            self.log(note)
+            return None
+
+    def _get_zone_info(self) -> tuple[dict[str, float], dict[str, float], dict[str, float], list[str]]:
+        circuits = {c.CircuitPosition: c for c in self.layout.hydronic.ZoneCallCircuits}
+        zone_keys: list[str] = []
+        temps: dict[str, float] = {}
+        setpoints: dict[str, float] = {}
+        thermal_mass: dict[str, float] = {}
+        for zone in self.layout.hydronic.Zones:
+            primary = circuits[zone.PrimaryCircuitPosition]
+            set_ch = primary.SetpointChannelName
+            assert set_ch is not None
+            zone_key = set_ch.removesuffix("-set")
+            zone_keys.append(zone_key)
+            thermal_mass[zone_key] = zone.KwhPerDegF
+            if primary.TempChannelName is not None:
+                temp_f = self._get_latest_temp_f(primary.TempChannelName)
+                if temp_f is not None:
+                    temps[zone_key] = round(temp_f, 1)
+            set_f = self._get_latest_temp_f(set_ch)
+            if set_f is not None:
+                setpoints[zone_key] = round(set_f, 1)
+        return zone_keys, temps, setpoints, thermal_mass
 
     async def get_RSWT(self, minus_deltaT=False):
         if self.weather_forecast is None:
@@ -1210,33 +1237,10 @@ class Ltn(PrimeActor):
             return 0
         
     async def get_house_available_kwh(self):
-        setpoints = {}
-        temps = {}
-        thermal_mass = {}
-        zone_names = []
-        for zone_setpoint in [x for x in self.latest_channel_values if 'zone' in x and 'set' in x]:
-            zone_name = zone_setpoint.replace('-set','')
-            zone_names.append(zone_name)
-            # Get setpoints for each zone
-            if self.latest_channel_values[zone_setpoint] is not None:
-                setpoints[zone_name] = round(self.latest_channel_values[zone_setpoint]/1000,1)
-            # Get temperatures for each zone
-            zone_temp = zone_setpoint.replace('-set','-temp')
-            if (zone_temp in self.latest_channel_values and self.latest_channel_values[zone_temp] is not None):
-                temps[zone_name] = round(self.latest_channel_values[zone_temp]/1000,1)
-            # Get thermal mass for each zone
-            zone_name_no_prefix = zone_name[6:] if zone_name[:4]=='zone' else zone_name
-            if zone_name_no_prefix in self.layout.zone_list:
-                zone_index = self.layout.zone_list.index(zone_name_no_prefix)
-                thermal_mass[zone_name] = self.layout.zone_kwh_per_deg_f_list[zone_index]
-
-        self.log(f"Found all zone setpoints: {setpoints}")
-        self.log(f"Found all zone temperatures: {temps}")
-        self.log(f"Found all zone thermal masses: {thermal_mass}")
+        zone_names, temps, setpoints, thermal_mass = self._get_zone_info()
+        self.log(f"Found information about {len(zone_names)} zones")
         house_availale_kwh = 0
         for zone in zone_names:
-            if 'zone4' in zone or 'upstairs' in zone:
-                continue
             if zone in temps and zone in setpoints and zone in thermal_mass:
                 house_availale_kwh += thermal_mass[zone] * (temps[zone] - setpoints[zone])
         house_availale_kwh = round(house_availale_kwh,2)
@@ -1281,20 +1285,15 @@ class Ltn(PrimeActor):
         self.log(f"OAT, last 4 hours (slot, °F): {self.last_four_oat_f}")
 
     async def average_house_temperature_f(self) -> float:
-        temps: list[float] = []
-        for zone_setpoint in sorted(x for x in self.latest_channel_values if "zone" in x and "set" in x):
-            zone_temp = zone_setpoint.replace("-set", "-temp")
-            raw = self.latest_channel_values.get(zone_temp)
-            if raw is not None:
-                temps.append(round(raw / 1000, 1))
-        if not temps:
+        dd_room_temp_f = float(self.ops.HeatingCurve.DdRoomTempF)
+        _, zone_temps, _, _ = self._get_zone_info()
+        if not zone_temps:
             self.log("No zone temperatures available, setting average temperature to DdRoomTempF")
-            average_temp = self.ops.HeatingCurve.DdRoomTempF
-        else:
-            average_temp = round(sum(temps) / len(temps), 1)
-            if average_temp < 40 or average_temp > 80:
-                self.log(f"Average house temperature is out of range ({average_temp}°F), setting to DdRoomTempF")
-                average_temp = self.ops.HeatingCurve.DdRoomTempF
+            return dd_room_temp_f
+        average_temp = round(sum(zone_temps.values()) / len(zone_temps), 1)
+        if average_temp < 40 or average_temp > 80:
+            self.log(f"Average house temperature is out of range ({average_temp}°F), setting to DdRoomTempF")
+            return dd_room_temp_f
         return average_temp
 
     async def get_weather(self, session: aiohttp.ClientSession) -> None:
