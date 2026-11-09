@@ -195,7 +195,7 @@ def adjust_load_for_buffer(load_kwh: list[float], buffer_available_kwh: float) -
 
 
 def rswt_forecast_f(curve: HeatingCurve, load_kwh: Sequence[float], t_room_f: float) -> list[float]:
-    n = RSWT_RADIATOR_EXPONENT
+    n = RSWT_RADIATOR_EXPONENT # TODO: make this a parameter?
     cp = WATER_KWH_PER_KG_K
 
     mdot = float(curve.MassFlowKgH)
