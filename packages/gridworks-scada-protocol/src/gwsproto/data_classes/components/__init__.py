@@ -45,6 +45,7 @@ __all__ = [
     "Component",
     "ElectricMeterComponent",
     "GpioRelayComponent",
+    "ScadaBoardComponent",
     "GpioSensorComponent",
     "HubitatComponent",
     "HubitatPollerComponent",

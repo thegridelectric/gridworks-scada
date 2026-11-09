@@ -17,10 +17,10 @@ from actors.ltn.flo_request import (
     load_forecast_kwh,
     adjust_load_for_buffer,
     load_previous_run,
-    minute_of_hour,
     next_slot_start_s,
     previous_run_for,
     save_previous_run,
+    seconds_to_slot_start,
 )
 from gwsproto.enums import SeasonalStorageMode, WeatherForecastFidelity
 from gwsproto.named_types import (
@@ -167,8 +167,9 @@ def test_a_previous_run_survives_the_disk(tmp_path: Path) -> None:
 def test_the_next_slot_is_the_next_whole_hour_of_the_epoch() -> None:
     assert next_slot_start_s(START_S - 180) == START_S
     assert next_slot_start_s(START_S) == START_S + 3600
-    assert minute_of_hour(START_S - 180) == 57
-    assert minute_of_hour(START_S) == 0
+    assert seconds_to_slot_start(START_S - 180) == 180
+    assert seconds_to_slot_start(START_S) == 3600
+    assert seconds_to_slot_start(START_S - 0.5) == 1
 
 
 def test_the_slot_does_not_move_at_a_clock_change() -> None:

@@ -38,6 +38,7 @@ from sema_snapshot.sema.types.flo_optimal_path import FloOptimalPath
 from sema_snapshot.sema.types.flo_params import FloParams
 from sema_snapshot.sema.types.flo_params_house0 import FloParamsHouse0
 from sema_snapshot.sema.types.flo_recommendation import FloRecommendation
+from sema_snapshot.sema.types.flo_refusal import FloRefusal
 from sema_snapshot.sema.types.flo_tuning_alice import FloTuningAlice
 from sema_snapshot.sema.types.flo_tuning_bruce import FloTuningBruce
 from sema_snapshot.sema.types.flow_hall_params import FlowHallParams
@@ -221,6 +222,7 @@ __all__ = [
     "FloParams",
     "FloParamsHouse0",
     "FloRecommendation",
+    "FloRefusal",
     "FloTuningAlice",
     "FloTuningBruce",
     "FlowHallParams",

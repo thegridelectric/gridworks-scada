@@ -1,0 +1,9 @@
+{
+  "TypeName": "flo.refusal",
+  "Version": "000",
+  "BidderAlias": "hw1.isone.me.versant.keene.oak.ltn",
+  "StartUnixS": 1794402000,
+  "Reason": "BuildLost",
+  "Detail": "worker killed by signal 9",
+  "CreatedMs": 1794399946000
+}

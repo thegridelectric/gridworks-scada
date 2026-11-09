@@ -180,6 +180,13 @@ types:
       "000":
         summary: "Bid fields (BidderAlias, PqPairs, PriceUnit, QuantityUnit), OptimalPathList index-linked to PqPairs, FloName, FloRepo, FloGitCommit, CreatedMs; axioms AtLeastOnePair, PathPerPair, FirstStepIsTheBid, PairsDescend, PathsStartTogether."
 
+  flo.refusal:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "BidderAlias and StartUnixS pair the refusal with its request as the recommendation does; Reason (flo.refusal.reason), optional Detail, CreatedMs."
+
   flo.tuning.alice:
     latest_version: "000"
     versioning_strategy: "literal"
@@ -1115,6 +1122,12 @@ enums:
       "000": {}
 
   five.v.boss.state:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  flo.refusal.reason:
     enum_type: "versioned"
     note: "This enum is versioned; new versions are additive only."
     versions:

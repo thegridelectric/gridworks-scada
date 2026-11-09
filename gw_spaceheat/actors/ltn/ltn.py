@@ -1,13 +1,9 @@
 import csv
 import asyncio
-import gc
-import multiprocessing
-import threading
-import time
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime
 from functools import cached_property
-from typing import Any, Dict, List, Optional, Tuple, cast, Callable
+from typing import Any, Dict, List, Optional, Tuple, cast
 from typing import Sequence
 
 import numpy as np
@@ -40,21 +36,12 @@ from clock import Clock
 from ltn_app_interface import LtnAppInterface
 from weather_source import ForecastPair
 from gwproto import HardwareLayout
-
-try:
-    from bruce.service import recommend_bytes
-except ImportError:
-    recommend_bytes = None  # type: ignore[assignment]
-
-BRUCE_FLO_AVAILABLE = recommend_bytes is not None
-
 from gwproto import Message, MQTTCodec, create_message_model
 from gwproto.messages import EventBase
 
 from gwproactor import QOS
 from gwproactor.config import LoggerLevels
-from gwproactor.logger import LoggerOrAdapter
-from gwproactor.message import DBGCommands, DBGPayload, MQTTReceiptPayload, PatInternalWatchdogMessage
+from gwproactor.message import DBGCommands, DBGPayload, MQTTReceiptPayload
 
 from gwsproto.conversions.temperature import convert_temp_to_f
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
@@ -70,9 +57,9 @@ from gwsproto.named_types import PowerWatts, Report, ReportEvent
 from gwsproto.named_types import SendSnap, MachineStates
 from actors.hydronic.store_temps import scrub_and_fill_store_temps
 from actors.ltn.contract_handler import LtnContractHandler
- 
+
 from gwsproto.named_types import (
-    Bid, FloOptimalPath, FloParams, FloRecommendation, Glitch, HouseOperatingStatus, LatestPrice,
+    Bid, FloOptimalPath, FloParams, FloRecommendation, FloRefusal, Glitch, HouseOperatingStatus, LatestPrice,
     LayoutLite, NoNewContractWarning, OperationalParams, SendLayout,
     SlowContractHeartbeat, SlowContractRejection,
     SnapshotSpaceheat, WaterStore,
@@ -89,7 +76,8 @@ from pydantic import BaseModel
 from actors.ltn.config import LtnSettings, DashboardSettings
 from actors.ltn.dashboard.dashboard import Dashboard
 from actors.ltn.data import LtnData
-from actors.ltn.market import RJB, cleared_pair_index, market_slot_name
+from actors.ltn.market import RJB, cleared_pair_index, market_slot_name, slot_is_current
+from actors.ltn.flo_service import FLO_DST, flo_alias
 from actors.ltn.flo_request import (
     PreviousRun,
     SeasonalFillForecast,
@@ -97,26 +85,20 @@ from actors.ltn.flo_request import (
     build_flo_params,
     load_forecast_kwh,
     load_previous_run,
-    minute_of_hour,
     next_slot_start_s,
     previous_run_for,
     rswt_forecast_f,
     save_previous_run,
+    seconds_to_slot_start,
     WATER_KWH_PER_KG_K,
 )
 
+try:
+    from bruce.service import recommend_bytes
+except ImportError:
+    recommend_bytes = None  # type: ignore[assignment]
 
-def _flo_worker(flo_params_bytes: bytes, result_queue: multiprocessing.Queue) -> None:
-    """Child process: the FLO boundary, `flo.params` bytes in and
-    `flo.recommendation` bytes out, then exit so the OS reclaims the
-    graph's memory."""
-    if not BRUCE_FLO_AVAILABLE:
-        result_queue.put(("error", "bruce graph optimizer package is not installed"))
-        return
-    try:
-        result_queue.put(("ok", recommend_bytes(flo_params_bytes)))
-    except Exception as e:
-        result_queue.put(("error", str(e)))
+BRUCE_FLO_AVAILABLE = recommend_bytes is not None
 
 
 class PriceForecast(BaseModel):
@@ -129,143 +111,41 @@ class PriceForecast(BaseModel):
         return [dp + lmp for dp, lmp in zip(self.dp_usd_per_mwh, self.lmp_usd_per_mwh)]
 
 
-class BidRunner(threading.Thread):
-    """One FLO run for one market slot, in one short-lived child process:
-    the request goes in as bytes, the recommendation comes back as bytes,
-    and the thread turns it into the bid. The parent holds no graph.
-    `stop` kills the child, so the LTN stops inside systemd's timeout."""
+FORECAST_HOURS = 48
 
-    def __init__(self, params: FloParams,
-                 ops: OperationalParams,
-                 io_loop_manager_name: str,
-                 ltn_name: str,
-                 ltn_g_node_alias: str,
-                 send_threadsafe: Callable[[Message], None],
-                 on_complete: Callable[[str], None],
-                 logger: LoggerOrAdapter,
-                 worker: Callable[..., None] = _flo_worker):
-        super().__init__(daemon=True)
-        self.stop_event = threading.Event()
-        self.logger = logger
-        self.flo_params = params
-        self.ops = ops
-        self.io_loop_manager_name = io_loop_manager_name
-        self.ltn_name = ltn_name
-        self.ltn_alias = ltn_g_node_alias
-        self.send_threadsafe = send_threadsafe
-        self.on_complete = on_complete
-        self.worker = worker
-        self.child: Optional[multiprocessing.process.BaseProcess] = None
 
-    def _run_in_child(self, target, args, timeout_s=30, max_total_s=300):
-        """Run target in a forked child process and return the result tuple.
-
-        Pats the watchdog every timeout_s seconds while waiting. Kills the
-        child and returns an error after max_total_s seconds, or as soon as
-        `stop` is called.
-        """
-        ctx = multiprocessing.get_context("forkserver")
-        result_queue = ctx.Queue()
-        proc = ctx.Process(target=target, args=(*args, result_queue), daemon=True)
-        self.child = proc
-        proc.start()
-
-        deadline = time.time() + max_total_s
-        next_pat = time.time()
-        result = None
-        while result is None:
-            if self.stop_event.is_set():
-                proc.kill()
-                proc.join(timeout=5)
-                return ("error", "stopped")
-            if time.time() > deadline:
-                self.logger.error(f"Child process timed out after {max_total_s}s — killing it")
-                proc.kill()
-                proc.join(timeout=5)
-                return ("error", f"Child process timed out after {max_total_s}s")
-            if time.time() >= next_pat:
-                self.pat_watchdog()
-                next_pat = time.time() + timeout_s
-            try:
-                result = result_queue.get(timeout=1)
-            except Exception:
-                if not proc.is_alive():
-                    result = ("error", "Child process died unexpectedly")
-                    break
-
-        proc.join(timeout=5)
-        if proc.is_alive():
-            proc.terminate()
-            proc.join(timeout=5)
-        self.child = None
-        return result
-
-    def run(self):
-        try:
-            self.logger.info("Running the FLO (in child process)...")
-            st = time.time()
-            request_bytes = self.flo_params.model_dump_json(by_alias=True).encode("utf-8")
-            result = self._run_in_child(self.worker, (request_bytes,))
-            if result[0] == "error":
-                if result[1] == "stopped":
-                    self.logger.info("FLO run stopped")
-                    return
-                self.logger.error(f"Error running the FLO: {result[1]}")
-                glitch = Glitch(
-                    FromGNodeAlias=self.ltn_alias,
-                    Node=self.ltn_name,
-                    Type=LogLevel.Error,
-                    Summary=f"{self.ltn_alias.split('.')[-2]}.{self.ltn_alias.split('.')[-1]} - Error running the FLO",
-                    Details=result[1],
-                    CreatedMs=int(time.time() * 1000)
-                )
-                self.send_threadsafe(Message(Src=self.ltn_name, Dst=self.ltn_name, Payload=glitch))
-                return
-
-            recommendation = FloRecommendation.model_validate_json(result[1])
-            self.logger.info(
-                f"FLO answered in {round(time.time()-st,2)} seconds: "
-                f"{len(recommendation.PqPairs)} PQ pairs."
-            )
-            bid = Bid(
-                BidderAlias=self.flo_params.GNodeAlias,
-                MarketSlotName=market_slot_name(self.ops, self.flo_params.StartUnixS),
-                PqPairs=list(recommendation.PqPairs),
-                InjectionIsPositive=True,
-                PriceUnit=MarketPriceUnit.USDPerMWh,
-                QuantityUnit=MarketQuantityUnit.AvgkW,
-                SignedMarketFeeTxn="BogusAlgoSignature",
-            )
-            # The recommendation, then the bid, through the LTN's message
-            # processing: the LTN holds the paths for the price that clears.
-            self.send_threadsafe(
-                Message(Src=self.ltn_name, Dst=self.ltn_name, Payload=recommendation)
-            )
-            self.send_threadsafe(Message(Src=self.ltn_name, Dst=self.ltn_name, Payload=bid))
-        except Exception as e:
-            self.logger.info(f"An error occured running the FLO or building the bid: {e}")
-        finally:
-            self.logger.info("Done running bid runner")
-            self.on_complete(self.ltn_name)
-
-    def stop(self):
-        """The run's poll sees the event within a second, kills the child
-        and the thread ends."""
-        self.logger.info("Stopping BidRunner")
-        self.stop_event.set()
-
-    def pat_watchdog(self):
-        self.send_threadsafe(
-            PatInternalWatchdogMessage(src=self.io_loop_manager_name)
-        )
+def price_forecast_from(
+    timestamps: Sequence[float],
+    dp_usd_per_mwh: Sequence[float],
+    lmp_usd_per_mwh: Sequence[float],
+    now_s: float,
+) -> PriceForecast:
+    """The next FORECAST_HOURS hours of a saved forecast as seen at `now_s`:
+    hours already begun are dropped, and a forecast that ends early is
+    extended by repeating its last hour."""
+    keep = [i for i, t in enumerate(timestamps) if t > now_s]
+    if not keep:
+        raise ValueError("No forecasts available for the next hours!")
+    dp = [dp_usd_per_mwh[i] for i in keep]
+    lmp = [lmp_usd_per_mwh[i] for i in keep]
+    short = FORECAST_HOURS - len(keep)
+    if short > 0:
+        dp = dp + [dp[-1]] * short
+        lmp = lmp + [lmp[-1]] * short
+    return PriceForecast(dp_usd_per_mwh=dp, lmp_usd_per_mwh=lmp)
 
 
 class LtnMQTTCodec(MQTTCodec):
+    """Decodes what reaches the LTN on its scada link: the scada's own
+    messages, the maker's bare latest.price on its rjb topic, and the
+    FLO's wrapped flo.recommendation or flo.refusal on the FLO's topics."""
+
     exp_src: str
     exp_dst: str = CoreNodeNames.ltn
 
     def __init__(self, hardware_layout: HydronicLayout):
         self.exp_src = hardware_layout.scada_g_node_alias
+        self.flo_alias = flo_alias(hardware_layout.ltn_g_node_alias)
         super().__init__(
             create_message_model(
                 model_name="LtnMessageDecoder",
@@ -289,10 +169,10 @@ class LtnMQTTCodec(MQTTCodec):
         )
 
     def validate_source_and_destination(self, src: str, dst: str) -> None:
-        if src != self.exp_src or dst != self.exp_dst:
+        if src not in (self.exp_src, self.flo_alias) or dst != self.exp_dst:
             raise ValueError(
                 "ERROR validating src and/or dst\n"
-                f"  exp: {self.exp_src} -> {self.exp_dst}\n"
+                f"  exp: {self.exp_src} or {self.flo_alias} -> {self.exp_dst}\n"
                 f"  got: {src} -> {dst}"
             )
 
@@ -340,7 +220,6 @@ class Ltn(PrimeActor):
     SCADA_MQTT = "scada_mqtt"
 
     data: LtnData
-    event_loop_thread: Optional[threading.Thread] = None
     dashboard: Optional[Dashboard]
     _stop_requested: bool = False
 
@@ -369,7 +248,7 @@ class Ltn(PrimeActor):
         if self.settings.dashboard.print_gui:
             self.dashboard = Dashboard(
                 settings=self.settings.dashboard,
-                ltn_g_node_alias=self.layout.ltn_g_node_alias,
+                ltn_g_node_alias=self.g_node_alias,
                 data_channels=self.layout.channel_registry,
                 logger=self.logger,
                 thermostat_names=DashboardSettings.thermostat_names(
@@ -389,8 +268,14 @@ class Ltn(PrimeActor):
             ),
             send_threadsafe=self.services.send_threadsafe,
         )
-        self.bid_runner: Optional[BidRunner] = None
-        self.send_bid_minute: int = 57
+        # The loop wakes every MAIN_LOOP_SLEEP_SECONDS; a lead shorter than
+        # that can pass between two wakes and the slot gets no bid.
+        if self.settings.bid_lead_s <= self.MAIN_LOOP_SLEEP_SECONDS:
+            raise ValueError(
+                f"bid_lead_s ({self.settings.bid_lead_s}) must exceed the main "
+                f"loop sleep ({self.MAIN_LOOP_SLEEP_SECONDS} s)"
+            )
+        self.bid_lead_s: int = self.settings.bid_lead_s
         # Gets strategy from scada sending LayoutLite
         self.layout_lite: Optional[LayoutLite] = None # Add this as a way of tracking if we've gotten the layout lite yet
         # TODO: read strategy from hardware layout: node = hardware_layout.node(...)
@@ -440,6 +325,11 @@ class Ltn(PrimeActor):
         return cast(HydronicLayout, self.services.hardware_layout)
 
     @property
+    def g_node_alias(self) -> str:
+        """This LTN's GNode alias."""
+        return self.layout.ltn_g_node_alias
+
+    @property
     def app(self) -> LtnAppInterface:
         if not isinstance(self.services, LtnAppInterface):
             raise RuntimeError(f"The LTN runs under an LtnAppInterface, not {type(self.services).__name__}")
@@ -457,7 +347,7 @@ class Ltn(PrimeActor):
     def water_store(self) -> WaterStore:
         store = self.layout.hydronic.WaterStore
         if store is None:
-            raise RuntimeError(f"Layout {self.layout.ltn_g_node_alias} has no water store to run a FLO on")
+            raise RuntimeError(f"Layout {self.g_node_alias} has no water store to run a FLO on")
         return store
 
     def _publish_to_scada(self, payload, qos: QOS = QOS.AtMostOnce) -> MQTTMessageInfo:
@@ -497,26 +387,6 @@ class Ltn(PrimeActor):
         )
         path_dbg = 0
         match message.Payload:
-            case Bid():
-                path_dbg |= 0x00000001
-                bid = message.Payload
-                self.contract_handler.latest_bid = bid
-                self.services.publish_message(
-                    self.SCADA_MQTT, 
-                    # Address the MarketMaker. "mm" is deliberately the gwbase
-                    # RoutingClass.MarketMaker token, so the wire key
-                    # gw.<src>.to.mm.<type> already matches the new/future rabbit
-                    # structure and resolves to TransportClass.MarketMaker — i.e. we
-                    # code to the gwbase transport encoding now. HACK (interim): it's
-                    # hard-coded because H0N has no MM node (the MM is external to the
-                    # scada lexicon); derive it once the LTN is a gwbase actor. OPS-387.
-                    Message(Src=self.publication_name, Dst="mm", Payload=bid)
-                )  
-                self.log(f"Bid: {bid}")
-            case FloRecommendation():
-                path_dbg |= 0x00000003
-                self.recommendation = message.Payload
-                self._message_for_scada_publish(message.Payload)
             case Glitch():
                 path_dbg |= 0x00000002
                 self._message_for_scada_publish(message.Payload)
@@ -559,6 +429,12 @@ class Ltn(PrimeActor):
                 self.contract_handler.process_slow_contract_heartbeat(decoded.Payload)
             case SlowContractRejection():
                 self.contract_handler.process_slow_contract_rejection(decoded.Payload)
+            case FloRecommendation():
+                path_dbg |= 0x00000800
+                self.process_flo_recommendation(decoded.Payload)
+            case FloRefusal():
+                path_dbg |= 0x00001000
+                self.process_flo_refusal(decoded.Payload)
             case LatestPrice():
                 path_dbg |= 0x00000400
                 if decoded.Header.Src == self.ops.MarketMakerAlias:
@@ -702,7 +578,7 @@ class Ltn(PrimeActor):
                 Src=self.name,
                 Dst=self.scada.name,
                 Payload=SendSnap(
-                    FromGNodeAlias=self.layout.ltn_g_node_alias,
+                    FromGNodeAlias=self.g_node_alias,
                 ),
             )
         )
@@ -713,8 +589,8 @@ class Ltn(PrimeActor):
                 Src=self.name,
                 Dst=self.scada.name,
                 Payload=SendLayout(
-                    FromGNodeAlias=self.layout.ltn_g_node_alias,
-                    MessageCreatedMs=int(time.time() * 1000)
+                    FromGNodeAlias=self.g_node_alias,
+                    MessageCreatedMs=self.plant_clock.now_ms()
                 ),
             )
         )
@@ -754,40 +630,40 @@ class Ltn(PrimeActor):
                 await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
                 continue
 
-            # One FLO run per slot, at the bid minute: the store is measured
-            # then, the FLO answers in one call, and the bid goes off the
-            # answer. The request stays until the next slot's replaces it,
-            # so the clearing price at :00 still finds it.
+            # One request to the FLO per slot, bid_lead_s before it starts:
+            # the store is measured then, the FLO answers over the broker,
+            # and the bid goes off the answer. The request stays until the
+            # next slot's replaces it, so the answer and the clearing price
+            # at the slot start both find it.
             now_s = self.plant_clock.now()
             slot_start_s = next_slot_start_s(now_s)
-            if minute_of_hour(now_s) < self.send_bid_minute:
-                self.log(f"Waiting for minute {self.send_bid_minute} to run the FLO.")
-            elif self.bid_runner is not None:
-                self.log("FLO run in progress.")
+            to_slot_s = seconds_to_slot_start(now_s)
+            if to_slot_s > self.bid_lead_s:
+                self.log(
+                    f"Waiting until {self.bid_lead_s} s before the slot to ask "
+                    f"the FLO ({to_slot_s} s to go)."
+                )
             elif self.flo_params is not None and self.flo_params.StartUnixS == slot_start_s:
-                self.log(f"Already ran the FLO for slot {slot_start_s}.")
+                self.log(f"Already asked the FLO for slot {slot_start_s}.")
             else:
                 try:
-                    await self.run_flo(session, slot_start_s)
+                    await self.ask_the_flo(session, slot_start_s)
                 except Exception as e:
-                    self.logger.exception("[ltn] Exception running the FLO! %s", e)
-                    self.log(f"Exception running the FLO! {e!r}")
+                    self.logger.exception("[ltn] Exception asking the FLO! %s", e)
+                    self.log(f"Exception asking the FLO! {e!r}")
 
             if self.contract_handler.latest_hb is None:
                 self.log("No active contract.")
 
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
-    async def run_flo(self, session: aiohttp.ClientSession, slot_start_s: int) -> None:
-        """Build the request for the slot and start the one FLO run.
+    async def ask_the_flo(self, session: aiohttp.ClientSession, slot_start_s: int) -> None:
+        """Build the request for the slot and send it to the FLO.
 
-        Async because it fetches the forecasts; the FLO itself runs in a
-        child process behind the BidRunner thread, which hands the
-        recommendation and the bid back through the LTN's messages.
+        Async because it fetches the forecasts. The FLO's answer arrives
+        on the scada link as a flo.recommendation, which
+        `process_flo_recommendation` turns into the bid.
         """
-        if not BRUCE_FLO_AVAILABLE:
-            self.log("bruce graph optimizer not installed — skipping FLO bid run")
-            return
         await self.get_weather(session)
         await self.get_price_forecast()
 
@@ -802,17 +678,12 @@ class Ltn(PrimeActor):
             return
 
         if not self.accepts_dispatch or self.service_mode != ServiceMode.Heating:
-            self.log("Should not be running FLOs when Scada is in Summer!! Sent glitch")
-            glitch = Glitch(
-                FromGNodeAlias=self.layout.ltn_g_node_alias,
-                Node=self.node.name,
-                Type=LogLevel.Warning,
-                Summary="Should not be running FLOs when Scada is in Summer!!",
-                Details="",
-                CreatedMs=int(time.time() * 1000)
-            )
-            self.services.send_threadsafe(
-                Message(Src=self.name, Dst=self.name, Payload=glitch)
+            # A known, occasional race: the main loop checked this before
+            # calling, and the scada's posture changed while the forecasts
+            # were fetched. Logged, not a glitch; nothing is wrong.
+            self.log(
+                f"Not asking the FLO for slot {slot_start_s}: the scada no "
+                f"longer accepts dispatch in Heating mode."
             )
             return
 
@@ -843,7 +714,7 @@ class Ltn(PrimeActor):
                 t_room_f=self.average_zone_temp_f,
                 last_four_dist_kwh=self.last_four_dist_kwh,
                 last_four_oat_f=self.last_four_oat_f,
-                g_node_alias=self.layout.ltn_g_node_alias,
+                g_node_alias=self.g_node_alias,
                 start_unix_s=slot_start_s,
                 created_ms=int(self.plant_clock.now() * 1000),
                 previous=previous_run_for(self.previous_run, slot_start_s),
@@ -853,35 +724,100 @@ class Ltn(PrimeActor):
             return
         self.log(f"FloParams:\n {self.flo_params.model_dump_json(by_alias=True)}\n")
         self.log(f"Settings ask for a {self.flo_horizon_hours} hour horizon; using {len(self.flo_params.StepDurationMinutes)}")
-        self._message_for_scada_publish(self.flo_params)
-        self.bid_runner = BidRunner(
-            params=self.flo_params,
-            ops=self.ops,
-            io_loop_manager_name=self.services.io_loop_manager.name,
-            ltn_name=self.name, 
-            ltn_g_node_alias=self.layout.ltn_g_node_alias,
-            send_threadsafe=self.services.send_threadsafe,
-            on_complete=self._cleanup_bid_runner,
-            logger=self.logger.add_category_logger(
-                "BID_RUNNER",
-                level=self.settings.flo_logging_level
-            ),
+        self.send_flo_params(self.flo_params)
+
+    def send_flo_params(self, params: FloParams) -> None:
+        """The request to the FLO, gw-wrapped on the scada broker and
+        addressed to the flo class, and a copy to the scada for the record."""
+        self._message_for_scada_publish(params)
+        self.services.publish_message(
+            self.SCADA_MQTT,
+            Message(Src=self.publication_name, Dst=FLO_DST, Payload=params),
         )
-        self.bid_runner.start()
-        self.log(f"Started the FLO run for slot {slot_start_s} in background")
+        self.log(f"Asked the FLO for slot {params.StartUnixS}")
 
-    def _cleanup_bid_runner(self, ltn_name: str) -> None:
-        """BidRunner thread exited (success or failure).
+    def process_flo_recommendation(self, recommendation: FloRecommendation) -> None:
+        """The FLO's answer. One that answers the request held becomes the
+        bid: it is kept for the price that clears, copied to the scada for
+        the record, and the bid goes to the maker. One for another bidder
+        or slot, or a second answer to the same request, is dropped."""
+        slot_start_s = recommendation.OptimalPathList[0].StartUnixS
+        if self.flo_params is None:
+            self.log(f"Dropping a flo.recommendation for slot {slot_start_s}: no request held")
+            return
+        if (
+            recommendation.BidderAlias != self.flo_params.GNodeAlias
+            or slot_start_s != self.flo_params.StartUnixS
+        ):
+            self.log(
+                f"Dropping a flo.recommendation for {recommendation.BidderAlias} slot "
+                f"{slot_start_s}: the request held is for {self.flo_params.GNodeAlias} "
+                f"slot {self.flo_params.StartUnixS}"
+            )
+            return
+        if (
+            self.recommendation is not None
+            and self.recommendation.OptimalPathList[0].StartUnixS == slot_start_s
+        ):
+            self.log(f"Dropping a second flo.recommendation for slot {slot_start_s}")
+            return
+        self.recommendation = recommendation
+        self._message_for_scada_publish(recommendation)
+        self.log(f"FLO answered slot {slot_start_s}: {len(recommendation.PqPairs)} PQ pairs.")
+        bid = Bid(
+            BidderAlias=self.flo_params.GNodeAlias,
+            MarketSlotName=market_slot_name(self.ops, self.flo_params.StartUnixS),
+            PqPairs=list(recommendation.PqPairs),
+            InjectionIsPositive=True,
+            PriceUnit=MarketPriceUnit.USDPerMWh,
+            QuantityUnit=MarketQuantityUnit.AvgkW,
+            SignedMarketFeeTxn="BogusAlgoSignature",
+        )
+        self.contract_handler.latest_bid = bid
+        self.services.publish_message(
+            self.SCADA_MQTT,
+            # Address the MarketMaker. "mm" is deliberately the gwbase
+            # RoutingClass.MarketMaker token, so the wire key
+            # gw.<src>.to.mm.<type> already matches the new/future rabbit
+            # structure and resolves to TransportClass.MarketMaker — i.e. we
+            # code to the gwbase transport encoding now. HACK (interim): it's
+            # hard-coded because H0N has no MM node (the MM is external to the
+            # scada lexicon); derive it once the LTN is a gwbase actor. OPS-387.
+            Message(Src=self.publication_name, Dst="mm", Payload=bid)
+        )
+        self.log(f"Bid: {bid}")
 
-        Note: This is called from the BidRunner thread."""
-        self.log("Cleaned up bid runner")
-        self.bid_runner = None
-        gc.collect()
+    def process_flo_refusal(self, refusal: FloRefusal) -> None:
+        """The FLO's answer that there is no recommendation. One for the
+        request held is copied to the scada for the record and raised as a
+        Warning glitch, so the fleet sees why the slot has no FLO bid; the
+        LTN bids as it does when no answer comes. One for another bidder
+        or slot is dropped."""
+        if (
+            self.flo_params is None
+            or refusal.BidderAlias != self.flo_params.GNodeAlias
+            or refusal.StartUnixS != self.flo_params.StartUnixS
+        ):
+            self.log(
+                f"Dropping a flo.refusal for {refusal.BidderAlias} slot "
+                f"{refusal.StartUnixS}: not the request held"
+            )
+            return
+        self._message_for_scada_publish(refusal)
+        summary = f"FLO refused slot {refusal.StartUnixS}: {refusal.Reason.value}"
+        self.log(f"{summary}, {refusal.Detail}")
+        glitch = Glitch(
+            FromGNodeAlias=self.g_node_alias,
+            Node=self.node.name,
+            Type=LogLevel.Warning,
+            Summary=summary,
+            Details=refusal.Detail or "",
+            CreatedMs=self.plant_clock.now_ms(),
+        )
+        self.services.send_threadsafe(Message(Src=self.name, Dst=self.name, Payload=glitch))
 
     def stop(self) -> None:
         self._stop_requested = True
-        if self.bid_runner is not None:
-            self.bid_runner.stop()
         super().stop()
 
     def latest_contract_is_live(self) -> bool:
@@ -890,21 +826,10 @@ class Ltn(PrimeActor):
         if not bid:
             return False
             
-        # Extract slot start time from market slot name
         try:
-            market_slot_name_parts = bid.MarketSlotName.split('.')
-            slot_start_s = int(market_slot_name_parts[-1])
-            
-            # Get current hour start in unix time
-            now = time.time()
-            current_hour_start_s = int(now - (now % 3600))
-            
-            # Check if bid is for current hour
-            if slot_start_s != current_hour_start_s:
-                self.log(f"Bid time mismatch: bid for {slot_start_s}, current hour starts at {current_hour_start_s}")
-                
+            if not slot_is_current(bid.MarketSlotName, self.plant_clock.now()):
+                self.log(f"Bid time mismatch: bid for {bid.MarketSlotName} is not for the current hour")
                 return False
-                
             return True
         except (ValueError, IndexError) as e:
             self.log(f"Error validating bid time: {e}")
@@ -920,12 +845,12 @@ class Ltn(PrimeActor):
         # Validate bid timeframe
         if not self.latest_contract_is_live():
             glitch = Glitch(
-                FromGNodeAlias=self.layout.ltn_g_node_alias,
+                FromGNodeAlias=self.g_node_alias,
                 Node=self.node.name,
                 Type=LogLevel.Warning,
                 Summary="Invalid bid timeframe",
                 Details=f"Stale bid detected. Bid slot start: {self.contract_handler.latest_bid.MarketSlotName}. Current price: {payload.MarketSlotName}",
-                CreatedMs=int(time.time() * 1000)
+                CreatedMs=self.plant_clock.now_ms()
             )
             self.contract_handler.latest_bid = None
             self.services.send_threadsafe(
@@ -1089,7 +1014,7 @@ class Ltn(PrimeActor):
             centroids = new_centroids
         return labels
 
-    async def get_three_layer_storage_model(self) -> Optional[Tuple[float, int, int, int, int]]:
+    async def get_three_layer_storage_model(self) -> Optional[Tuple[float, float, float, int, int]]:
         # Get all storage tank temperatures in a dict
         if self.tank_temp_channel_names is None:
             self.send_layout()
@@ -1357,22 +1282,8 @@ class Ltn(PrimeActor):
                 dist_usd_mwh = [float(row[1]) for row in rows]
                 lmp_usd_mwh = [float(row[2]) for row in rows]
 
-                # Crop the beginning of the CSV and extend the end to get a forecast for the next 48 hours
-                time_now = time.time()
-                timestamps_forecast = [t for t in timestamps if t > time_now]
-                hours_available = len(timestamps_forecast)
-                if not hours_available:
-                    raise Exception("No forecasts available for the next hours!")
-                dp_forecast_usd_per_mwh = [p for p,t in zip(dist_usd_mwh, timestamps) if t > time_now]
-                lmp_forecast_usd_per_mwh = [p for p,t in zip(lmp_usd_mwh, timestamps) if t > time_now]
-                if hours_available < 48:
-                    dp_forecast_usd_per_mwh = dp_forecast_usd_per_mwh + [dp_forecast_usd_per_mwh[-1]] * (48-len(dp_forecast_usd_per_mwh))
-                    lmp_forecast_usd_per_mwh = lmp_forecast_usd_per_mwh + [lmp_forecast_usd_per_mwh[-1]] * (48-len(lmp_forecast_usd_per_mwh))
-
-                # Update the price forecast
-                self.price_forecast = PriceForecast(
-                    dp_usd_per_mwh=dp_forecast_usd_per_mwh,
-                    lmp_usd_per_mwh=lmp_forecast_usd_per_mwh,
+                self.price_forecast = price_forecast_from(
+                    timestamps, dist_usd_mwh, lmp_usd_mwh, self.plant_clock.now()
                 )
                 self.log("Successfully read price forecast from local CSV.")
                 # self.log(f"- LMP USD/MWh {self.price_forecast.lmp_usd_per_mwh}")
@@ -1384,12 +1295,12 @@ class Ltn(PrimeActor):
 
     async def send_glitch(self, summary, details="", log_level=LogLevel.Info):
         glitch = Glitch(
-            FromGNodeAlias=self.layout.ltn_g_node_alias,
+            FromGNodeAlias=self.g_node_alias,
             Node=self.node.name,
             Type=log_level,
             Summary=summary,
             Details=details,
-            CreatedMs=int(time.time() * 1000)
+            CreatedMs=self.plant_clock.now_ms()
         )
         self.services.send_threadsafe(Message(Src=self.name, Dst=self.name, Payload=glitch))
         self.log("Sent glitch")

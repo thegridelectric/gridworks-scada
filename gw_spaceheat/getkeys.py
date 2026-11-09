@@ -204,7 +204,7 @@ if __name__ == "__main__":
             f"{rclone_dest_name}{rclone_dest_dir}",
         ],
         mkdir_private=[
-            f"rclone",
+            "rclone",
             "mkdir",
             f"{rclone_dest_name}{rclone_dest_private_dir}",
         ],

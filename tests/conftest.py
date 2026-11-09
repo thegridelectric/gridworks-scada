@@ -102,7 +102,7 @@ def copy_test_operational_params(default_test_env):  # noqa: F811
     yield
 
 @pytest.fixture(autouse=True)
-def always_restore_loggers(restore_loggers):
+def always_restore_loggers(restore_loggers):  # noqa: F811
     ...
 
 

@@ -35,6 +35,7 @@ from gwsproto.enums.change_zone_call_source import ChangeZoneCallSource
 from gwsproto.enums.day_of_week import DayOfWeek
 from gwsproto.enums.device_type import DeviceType
 from gwsproto.enums.dispatch_refusal_reason import DispatchRefusalReason
+from gwsproto.enums.flo_refusal_reason import FloRefusalReason
 from gwsproto.enums.move_sieg_valve import MoveSiegValve
 from gwsproto.enums.nolan_lc_buffer_only_state import NolanLcBufferOnlyState
 from gwsproto.enums.sieg_loop_strategy import SiegLoopStrategy
@@ -161,6 +162,7 @@ __all__ = [
     "DayOfWeek",
     "DeviceType",
     "DispatchRefusalReason",
+    "FloRefusalReason",
     "MoveSiegValve",
     "NolanLcBufferOnlyState",
     "SiegLoopStrategy",

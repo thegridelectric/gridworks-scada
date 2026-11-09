@@ -11,6 +11,7 @@ from sema_snapshot.sema.enums.device_type import DeviceType
 from sema_snapshot.sema.enums.dispatch_refusal_reason import DispatchRefusalReason
 from sema_snapshot.sema.enums.emission_method import EmissionMethod
 from sema_snapshot.sema.enums.five_v_boss_state import FiveVBossState
+from sema_snapshot.sema.enums.flo_refusal_reason import FloRefusalReason
 from sema_snapshot.sema.enums.fsm_report_type import FsmReportType
 from sema_snapshot.sema.enums.g_node_class import GNodeClass
 from sema_snapshot.sema.enums.g_node_status import GNodeStatus
@@ -108,6 +109,7 @@ __all__ = [
     "DispatchRefusalReason",
     "EmissionMethod",
     "FiveVBossState",
+    "FloRefusalReason",
     "FsmReportType",
     "GNodeClass",
     "GNodeStatus",

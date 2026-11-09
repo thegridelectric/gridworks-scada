@@ -93,11 +93,11 @@ jobs:
           source: "tests/config/.env-ci"
           target: "tests/.env-gw-spaceheat-test"
 
-      - name: Run Tests with Pytest under Coverage
+      - name: Run ci.sh
         env:
           GWPROACTOR_TEST_CA_CERT_PATH: ${{ github.workspace }}/tests/.ci-ca/ca.crt
           GWPROACTOR_TEST_CA_KEY_PATH: ${{ github.workspace }}/tests/.ci-ca/private/ca_key.pem
-        run: coverage run -m pytest -s
+        run: ./ci.sh -s
 
       - name: Upload coverage data
         if: always()

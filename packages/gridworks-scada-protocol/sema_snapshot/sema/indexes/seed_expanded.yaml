@@ -1,6 +1,6 @@
 metadata:
   generated_from: indexes/public_registry.yaml
-  generated_at: '2026-11-06T20:45:00Z'
+  generated_at: '2026-11-06T21:13:07Z'
   note: Transitive closure of initial_targets
 initial_targets:
 - ads.channel.config:000
@@ -26,6 +26,7 @@ initial_targets:
 - flo.params:001
 - flo.params.house0:007
 - flo.recommendation:000
+- flo.refusal:000
 - flow.hall.params:101
 - fsm.atomic.report:001
 - fsm.event:000
@@ -296,6 +297,9 @@ worklist:
     five.v.boss.state:
       '000':
         path: definitions/enums/five.v.boss.state/000.yaml
+    flo.refusal.reason:
+      '000':
+        path: definitions/enums/flo.refusal.reason/000.yaml
     fsm.report.type:
       '000':
         path: definitions/enums/fsm.report.type/000.yaml
@@ -600,6 +604,9 @@ worklist:
     flo.recommendation:
       '000':
         path: definitions/types/flo.recommendation/000.yaml
+    flo.refusal:
+      '000':
+        path: definitions/types/flo.refusal/000.yaml
     flo.tuning.alice:
       '000':
         path: definitions/types/flo.tuning.alice/000.yaml
