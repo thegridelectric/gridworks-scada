@@ -132,12 +132,8 @@ def load_forecast_kwh(
     t_room_f: float,
     last_four_dist_kwh: list[tuple[int, float | None] | None],
     last_four_oat_f: list[tuple[int, float | None] | None],
-    buffer_available_kwh: float | None = None,
 ) -> list[float]:
-    """
-    The house's hourly heat load forecasted using the latest regression model,
-    with the buffer's available energy added/taken off the first hours.
-    """
+    """Forecast of the house's hourly heat load from the regression model."""
     dist_kwh: list[float | None] = [None if item is None else item[1] for item in last_four_dist_kwh][-4:]
     oat_f: list[float | None] = [None if item is None else item[1] for item in last_four_oat_f][-4:]
     
@@ -179,8 +175,12 @@ def load_forecast_kwh(
             )
             load_window = [*load_window, load[-1]][-4:]
             oat_window = [*oat_window, oat][-4:]
-    if buffer_available_kwh is None:
-        return load
+    return load
+
+
+def adjust_load_for_buffer(load_kwh: list[float], buffer_available_kwh: float) -> list[float]:
+    """Add/remove load from the first hours to account for the buffer's current energy."""
+    load = list(load_kwh)
     remaining = buffer_available_kwh
     if remaining < 0:
         load[0] += -remaining
@@ -246,7 +246,8 @@ def build_flo_params(
         oat_f=weather.oat_f[:horizon],
         wind_speed_mph=weather.wind_speed_mph[:horizon],
     )
-    load = load_forecast_kwh(ops.HeatingCurve, weather, t_room_f, last_four_dist_kwh, last_four_oat_f, buffer_available_kwh)
+    load = load_forecast_kwh(ops.HeatingCurve, weather, t_room_f, last_four_dist_kwh, last_four_oat_f)
+    load_adjusted = adjust_load_for_buffer(load, buffer_available_kwh)
     tanks_modeled = water_store.TotalStoreTanks if storage_mode is SeasonalStorageMode.AllTanks else 1
     return FloParams(
         GNodeAlias=g_node_alias,
@@ -256,7 +257,7 @@ def build_flo_params(
         LmpUsdMwhList=[float(p) for p in lmp_usd_mwh[:horizon]],
         DistUsdMwhList=[float(p) for p in dist_usd_mwh[:horizon]],
         OatFList=[float(t) for t in weather.oat_f],
-        LoadKwhList=load,
+        LoadKwhList=load_adjusted,
         RswtFList=rswt_forecast_f(ops.HeatingCurve, load, t_room_f),
         WeatherForecastId=forecast.message.ForecastUid,
         SeasonalStorageMode=storage_mode,

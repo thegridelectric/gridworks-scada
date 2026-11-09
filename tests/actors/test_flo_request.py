@@ -15,6 +15,7 @@ from actors.ltn.flo_request import (
     StoreState,
     build_flo_params,
     load_forecast_kwh,
+    adjust_load_for_buffer,
     load_previous_run,
     minute_of_hour,
     next_slot_start_s,
@@ -131,9 +132,11 @@ def test_the_buffers_energy_comes_off_the_first_hours() -> None:
     curve = ops().HeatingCurve  # 5.5 - 0.10 * oat
     weather = HourlyForecast(time=[1, 2, 3], oat_f=[30.0, 30.0, 30.0], wind_speed_mph=[0.0, 0.0, 0.0])
     empty: list[tuple[int, float | None] | None] = []
-    assert load_forecast_kwh(curve, weather, AVERAGE_ZONE_TEMP_F, empty, empty, 0.0) == [2.5, 2.5, 2.5]
-    assert load_forecast_kwh(curve, weather, AVERAGE_ZONE_TEMP_F, empty, empty, 3.0) == [0.0, 2.0, 2.5]
-    assert load_forecast_kwh(curve, weather, AVERAGE_ZONE_TEMP_F, empty, empty, -1.0) == [3.5, 2.5, 2.5]
+    base = load_forecast_kwh(curve, weather, AVERAGE_ZONE_TEMP_F, empty, empty)
+    assert base == [2.5, 2.5, 2.5]
+    assert adjust_load_for_buffer(base, 0.0) == [2.5, 2.5, 2.5]
+    assert adjust_load_for_buffer(base, 3.0) == [0.0, 2.0, 2.5]
+    assert adjust_load_for_buffer(base, -1.0) == [3.5, 2.5, 2.5]
 
 
 def test_a_previous_run_is_handed_on() -> None:
