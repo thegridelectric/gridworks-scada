@@ -146,8 +146,12 @@ class LinkRelayDrive(RelayDrive):
     def reads_back(self) -> bool:
         return self._reads_back
 
-    async def set(self, action: ChangeRelayPin) -> None:
-        self.link.set_relay(self.relay_name, action)
+    async def set(self, action: ChangeRelayPin) -> Optional[str]:
+        try:
+            self.link.set_relay(self.relay_name, action)
+        except Exception as e:  # noqa: BLE001
+            return f"telling the plant raised {e!r}"
+        return None
 
     async def read(self) -> RelayRead:
         return RelayRead(await self.told(), None)

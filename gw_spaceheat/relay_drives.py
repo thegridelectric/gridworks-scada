@@ -291,10 +291,13 @@ class GpioRelayDrive(RelayDrive):
         self.gpio.setup(self.bcm_pin, GPIO.OUT)
 
     async def set(self, action: ChangeRelayPin) -> Optional[str]:
-        if action == ChangeRelayPin.Energize:
-            self.gpio.output(self.bcm_pin, self.gpio.HIGH)
-        else:
-            self.gpio.output(self.bcm_pin, self.gpio.LOW)
+        try:
+            if action == ChangeRelayPin.Energize:
+                self.gpio.output(self.bcm_pin, self.gpio.HIGH)
+            else:
+                self.gpio.output(self.bcm_pin, self.gpio.LOW)
+        except Exception as e:  # noqa: BLE001
+            return f"GPIO {self.bcm_pin} write raised {e!r}"
         return None
 
     async def read(self) -> RelayRead:

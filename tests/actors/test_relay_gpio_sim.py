@@ -14,7 +14,8 @@ import pytest
 
 from actors.relay import Relay
 from gwsproto.enums import ChangeRelayPin, ChangeRelayState, MainAutoEvent
-from gwsproto.named_types import FsmEvent, FsmFullReport
+from gwsproto.enums import LogLevel
+from gwsproto.named_types import FsmEvent, FsmFullReport, Glitch
 from gwsproto.names.core.node_names import CoreNodeNames
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from plant_link import InProcessPlantLink, LinkRelayDrive, PlantLinkKind
@@ -67,6 +68,48 @@ async def test_sim_gpio_relay_reports_to_its_boss(app: ScadaApp) -> None:
     assert dst == cycler.name
     assert report.TriggerId == event.TriggerId
     assert [a.Event for a in report.AtomicList] == [ChangeRelayState.OpenRelay, ChangeRelayPin.Energize]
+
+
+@pytest.mark.asyncio
+async def test_a_set_that_does_not_take_is_a_glitch_and_no_report(
+    app: ScadaApp, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Nothing retries on this relay's path, so the glitch is the only
+    word that it did not follow its command."""
+    scada = app.scada
+    vdc = scada.layout.vdc_relay
+    relay = scada.get_communicator(vdc.name)
+    assert isinstance(relay, Relay)
+    sent: list = []
+    relay._send_to = lambda dst, payload, src=None: sent.append((dst.name, payload))
+    cycler = scada.layout.node(HSNN.pico_cycler)
+
+    def unplugged(_relay_name: str, _action: ChangeRelayPin) -> None:
+        raise OSError("plant unplugged")
+
+    monkeypatch.setattr(app.plant_link, "actuate", unplugged)
+    event = FsmEvent(
+        FromHandle=cycler.handle,
+        ToHandle=vdc.handle,
+        EventType=ChangeRelayState.enum_name(),
+        EventName=ChangeRelayState.OpenRelay,
+        SendTimeUnixMs=int(time.time() * 1000),
+        TriggerId=str(uuid.uuid4()),
+    )
+
+    relay._process_event_message(cycler.name, event)
+    await asyncio.sleep(0)
+
+    [(dst, glitch)] = [(d, p) for d, p in sent if isinstance(p, Glitch)]
+    assert dst == CoreNodeNames.ltn
+    assert (glitch.Node, glitch.Type, glitch.Summary) == (
+        vdc.name,
+        LogLevel.Critical,
+        "relay-actuation-failed",
+    )
+    assert "OpenRelay" in glitch.Details
+    assert "plant unplugged" in glitch.Details
+    assert not [p for _, p in sent if isinstance(p, FsmFullReport)]
 
 
 @pytest.mark.asyncio

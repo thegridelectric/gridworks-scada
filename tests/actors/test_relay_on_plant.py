@@ -121,3 +121,36 @@ async def test_a_simulated_relay_sends_nothing_to_the_bus() -> None:
 
     bus = next(n.name for n in relay.layout.nodes.values() if n.ActorClass == "I2cBus")
     assert bus not in {dst for dst, _ in relay.sent}
+
+
+@pytest.mark.asyncio
+async def test_a_plant_that_cannot_be_told_is_a_failed_actuation_that_heals(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The link raising is the relay's failed write: the same glitch, the
+    command held, and the next pass through the plant commits it."""
+    relay, link = rig("gw.house0.no.sieg.hazel", "store-pump-relay")
+    relay.RETRY_BACKOFF_S = ()
+    cfg = relay.relay_actor_config
+    await relay._boot_adopt()
+
+    def no_plant_time(_relay_name: str, _action: ChangeRelayPin) -> None:
+        raise RuntimeError("no time before the first sim.timestep")
+
+    with monkeypatch.context() as m:
+        m.setattr(link, "actuate", no_plant_time)
+        cmd = await attempt(relay, energize=True)
+
+    [glitch] = sent(relay, Glitch)
+    assert glitch.Summary == "i2c-relay-actuation-failed"
+    assert "write failed: telling the plant raised" in glitch.Details
+    assert "no time before the first sim.timestep" in glitch.Details
+    assert relay.state == UNKNOWN_STATE
+    assert relay._i2c_command is cmd
+    assert not sent(relay, FsmFullReport)
+
+    await relay._verify_and_report()
+
+    assert link.actuations == [("store-pump-relay", ENERGIZE)]
+    assert relay.state == cfg.EnergizedState
+    assert [r.TriggerId for r in sent(relay, FsmFullReport)] == [cmd.trigger_id]

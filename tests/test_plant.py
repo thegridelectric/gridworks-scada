@@ -112,6 +112,34 @@ async def test_a_simulated_relay_takes_every_set_and_reads_what_the_plant_was_to
 
 
 @pytest.mark.asyncio
+async def test_a_drive_hands_back_what_its_device_throws_and_does_not_raise(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class DeadGpio:
+        HIGH, LOW = 1, 0
+
+        def output(self, pin: int, level: int) -> None:
+            raise RuntimeError("the channel is not set up as an OUTPUT")
+
+    on_pin = GpioRelayDrive(22)
+    on_pin.gpio = DeadGpio()
+    error = await on_pin.set(ENERGIZE)
+    assert error is not None
+    assert "GPIO 22" in error and "not set up as an OUTPUT" in error
+
+    link = in_process()
+
+    def unplugged(_relay_name: str, _action: ChangeRelayPin) -> None:
+        raise OSError("plant unplugged")
+
+    monkeypatch.setattr(link, "actuate", unplugged)
+    on_link = link.drive("store-pump-relay", reads_back=True)
+    error = await on_link.set(ENERGIZE)
+    assert error is not None and "plant unplugged" in error
+    assert await on_link.told() == ENERGIZE, "kept, so the link restates it"
+
+
+@pytest.mark.asyncio
 async def test_one_plant_holds_simulated_and_other_devices_side_by_side() -> None:
     """A house with a simulated tank sensor beside a board of its own: each
     node reaches what was put behind it, and neither sees the other's."""

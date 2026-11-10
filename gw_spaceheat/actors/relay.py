@@ -351,7 +351,15 @@ class Relay(ShNodeActor):
         now_ms = int(time.time() * 1000)
         error = await self.drive.set(relay_pin_event)
         if error is not None:
-            self.log(f"{relay_pin_event} did not take: {error}")
+            # The machine moved when the command arrived and nothing here
+            # retries, so the boss is left without its report and the glitch
+            # is the only word that the relay did not follow.
+            self._send_glitch(
+                "relay-actuation-failed",
+                f"{message.EventName}: {error}; no report sent, machine "
+                f"holds {self.state}",
+                LogLevel.Critical,
+            )
             return
         self.log(f"{relay_pin_event} set")
 

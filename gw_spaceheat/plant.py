@@ -63,7 +63,12 @@ Send = Callable[[ShNode, Any], None]
 class RelayDrive(ABC):
     """One relay, as its actor reaches it. A drive does one thing when
     asked and says how it went: confirming a set, retrying it and reporting
-    a glitch are the actor's."""
+    a glitch are the actor's.
+
+    A set or a read never raises. Whatever the device throws is caught in
+    the drive, the one place that knows what its device can throw, and
+    comes back as the reason. The actor catches nothing and reports every
+    reason it is handed."""
 
     @property
     @abstractmethod
