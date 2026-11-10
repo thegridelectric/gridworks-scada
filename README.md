@@ -143,6 +143,15 @@ SCADA_PATHS__HARDWARE_LAYOUT="../tlayouts/output/orange.generated.json"
 LTN_PATHS__HARDWARE_LAYOUT="../tlayouts/output/orange.generated.json"
 ```
 
+### A simulated layout's sensors
+
+A layout with a simulated device gets a plant link (`gw_spaceheat/plant_link.py`).
+Its `SimSensorActor` nodes report what arrives as `sim.plant.flux` on the
+`gridworks_mqtt` broker, addressed from the layout's TerminalAsset GNode to its
+Scada GNode, and report nothing while nothing publishes it.
+`SCADA_PLANT_LINK=InProcess` builds the link with no broker; the tests use that
+form and show the sensors their values directly.
+
 ### Dependencies
 
 Dependencies live in `pyproject.toml` and are locked in `uv.lock`:
