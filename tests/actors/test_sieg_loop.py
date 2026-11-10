@@ -627,8 +627,12 @@ async def test_an_automatic_move_reports_in_full_under_one_minted_id(tmp_path: P
     ]
     own = report.AtomicList[-1]
     assert (own.StateEnum, own.EventEnum, own.Event, own.FromState, own.ToState) == (
-        SiegValveState.enum_name(), None, None, SiegValveState.FullyKeep, SiegValveState.FullySend,
-    )
+        SiegValveState.enum_name(),
+        MoveSiegValve.enum_name(),
+        MoveSiegValve.MoveToFullSend,
+        SiegValveState.FullyKeep,
+        SiegValveState.FullySend,
+    ), "a move the strategy chose reports its direction as the boss would have commanded it"
     assert glitches(sent) == []
 
 

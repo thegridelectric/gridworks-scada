@@ -1,10 +1,10 @@
-"""StratProtect: the valve stays at keep while the heat pump is off or
-starting cold, opens toward send once the loop is hot, and fails to full
-send when the loop cannot see a running heat pump. A control state machine
-driven by hp-boss's reported state and the loop's own temperature and power
-reads. The valve's position is unknown at boot, so the loop waits for
-hp-boss's first report and then makes one full run to the stop that state
-wants: keep with the heat pump off, send when it is running unseen."""
+"""StratProtect keeps the buffer tank stratified while the heat pump is
+off and the primary pump runs: the Siegenthaler valve stays at keep while
+the heat pump is off or starting cold, opens toward send once the loop is
+hot, and goes to full send when the loop cannot tell what a running heat
+pump is doing. Its inputs are hp-boss's reported state and the loop's own
+leaving and entering water temperatures and heat pump power. The valve's
+position is unknown at boot, so the first move is a full run to a stop."""
 
 from enum import auto
 from typing import Optional

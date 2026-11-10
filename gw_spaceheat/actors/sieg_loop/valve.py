@@ -30,15 +30,19 @@ class SiegValveEvent(GwStrEnum):
 class Move:
     """One motor run and its written record. trigger_id names it in every
     relay command and in the full report; event is the boss's command when
-    the move was commanded, None when the strategy chose it; from_state is
-    the valve state before the run; atomics collects the relays' reports as
-    they arrive; pending holds, by relay name, the confirmation the loop is
-    waiting for from each relay commanded in the current phase; started is
-    set when the run picks the move up."""
+    the move was commanded, None when the strategy chose it; toward is the
+    run's direction as the move the boss would have commanded, set when the
+    run starts, and is what the loop's own atomic reports for a move the
+    strategy chose; from_state is the valve state before the run; atomics
+    collects the relays' reports as they arrive; pending holds, by relay
+    name, the confirmation the loop is waiting for from each relay
+    commanded in the current phase; started is set when the run picks the
+    move up."""
 
     trigger_id: str
     from_state: SiegValveState
     event: Optional[MoveSiegValve] = None
+    toward: Optional[MoveSiegValve] = None
     atomics: list[FsmAtomicReport] = field(default_factory=list)
     pending: dict[str, "asyncio.Future[bool]"] = field(default_factory=dict)
     started: bool = False
@@ -196,6 +200,7 @@ class SiegValve:
         clock = self.loop.services.clock
         toward_keep = delta_s > 0
         move = self.loop.begin_move(self.valve_state)
+        move.toward = MoveSiegValve.MoveToFullKeep if toward_keep else MoveSiegValve.MoveToFullSend
         self.move = move
         self.trigger_valve_event(
             SiegValveEvent.StartKeepingMore if toward_keep else SiegValveEvent.StartKeepingLess
