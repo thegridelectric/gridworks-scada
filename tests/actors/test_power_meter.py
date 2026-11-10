@@ -228,12 +228,14 @@ async def test_async_power_update(request: pytest.FixtureRequest):
         # the aggregate sees all six transactive channels move.
         assert data.latest_power_w == 6 * delta_w
 
+        # The LTN's count also moves on the 0 W the scada sent at start, so
+        # the wait is for the value.
+        ltn = h.parent_app.ltn
         await h.await_for(
-            lambda: ltn_received_counts['power.watts'] > initial,
+            lambda: ltn_received_counts['power.watts'] > initial
+            and ltn.data.latest_power_w == 6 * delta_w,
             "Ltn wait for power.watts",
         )
-        ltn = h.parent_app.ltn
-        assert ltn.data.latest_power_w == 6 * delta_w
 
 
 @pytest.mark.asyncio
