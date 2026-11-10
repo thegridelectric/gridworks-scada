@@ -274,6 +274,10 @@ initial_targets:
       versions: ["000"]
     sim.pico.tank.module.component.gt:
       versions: ["001"]
+    sim.plant.actuation:
+      versions: ["000"]
+    sim.plant.flux:
+      versions: ["000"]
     sim.sensor.component.gt:
       versions: ["000"]
     single.machine.state:

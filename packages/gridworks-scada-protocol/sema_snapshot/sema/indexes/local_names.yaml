@@ -213,6 +213,8 @@ types:
   sim.pico.btu.meter.component.gt: sim.pico.btu.meter.component.gt
   sim.pico.flow.module.component.gt: sim.pico.flow.module.component.gt
   sim.pico.tank.module.component.gt: sim.pico.tank.module.component.gt
+  sim.plant.actuation: sim.plant.actuation
+  sim.plant.flux: sim.plant.flux
   sim.sensor.component.gt: sim.sensor.component.gt
   single.machine.state: single.machine.state
   single.reading: single.reading

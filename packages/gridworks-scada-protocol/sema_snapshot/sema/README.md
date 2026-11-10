@@ -104,6 +104,8 @@ Staging words in this snapshot:
 - type sim.pico.btu.meter.component.gt:000
 - type sim.pico.flow.module.component.gt:000
 - type sim.pico.tank.module.component.gt:001
+- type sim.plant.actuation:000
+- type sim.plant.flux:000
 - type sim.sensor.component.gt:000
 - type web.server.component.gt:001
 - type zero.ten.power.on:000
