@@ -143,7 +143,7 @@ SCADA_PATHS__HARDWARE_LAYOUT="../tlayouts/output/orange.generated.json"
 LTN_PATHS__HARDWARE_LAYOUT="../tlayouts/output/orange.generated.json"
 ```
 
-### A simulated layout's sensors
+### A simulated layout's sensors and relays
 
 A device actor asks `services.plant` (`gw_spaceheat/plant.py`) for its own
 device by node name. For a simulated device what answers is the plant link
@@ -151,8 +151,12 @@ device by node name. For a simulated device what answers is the plant link
 Its `SimSensorActor` nodes report what arrives as `sim.plant.flux` on the
 `gridworks_mqtt` broker, addressed from the layout's TerminalAsset GNode to its
 Scada GNode, and report nothing while nothing publishes it.
+A relay on a simulated board sends its position to the plant as
+`sim.plant.actuation` when it is commanded and again on each verify pass. A
+relay on a board that is not simulated is driven on the board
+(`gw_spaceheat/relay_drives.py`).
 `SCADA_PLANT_LINK=InProcess` builds the link with no broker; the tests use that
-form and show the sensors their values directly.
+form, show the sensors their values directly and read the relay positions back.
 
 ### Dependencies
 

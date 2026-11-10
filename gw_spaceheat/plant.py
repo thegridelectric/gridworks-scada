@@ -12,8 +12,10 @@ nothing was routed for fails the boot.
 """
 
 from abc import ABC, abstractmethod
-from typing import Callable, Iterable, NamedTuple, Optional
+from enum import Enum, auto
+from typing import Any, Callable, Iterable, NamedTuple, Optional
 
+from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import ChangeRelayPin
 from gwsproto.property_format import SpaceheatName, UTCMilliseconds
 
@@ -39,19 +41,68 @@ class SensorSource(ABC):
         """Hand deliver every reading of these channels from now on."""
 
 
+class RelayRead(NamedTuple):
+    """One read of a relay: the position it holds, or None with why the
+    read failed. Interior to the scada and never serialised."""
+
+    position: Optional[ChangeRelayPin]
+    error: Optional[str]
+
+
+class Heard(Enum):
+    """What a relay drive made of a message its relay's actor was sent."""
+
+    NotMine = auto()
+    Taken = auto()
+    Repaired = auto()
+
+
+Send = Callable[[ShNode, Any], None]
+
+
 class RelayDrive(ABC):
     """One relay, as its actor reaches it. A drive does one thing when
-    asked and says how it went: verifying, retrying and reporting a glitch
-    are the actor's."""
+    asked and says how it went: confirming a set, retrying it and reporting
+    a glitch are the actor's."""
+
+    @property
+    @abstractmethod
+    def reads_back(self) -> bool:
+        """Whether read() tells what the relay holds. Where it cannot, the
+        actor believes what it last set."""
+
+    def attach(self, send: Send) -> None:
+        """The relay's actor is built. A drive that reaches its device
+        through another actor sends as the relay's node, with send."""
+
+    def hears(self, payload: Any) -> Heard:
+        """A message the relay's actor was sent and does not know itself:
+        the other half of what the drive sent. Repaired says the device
+        lost its position and is ready to be set again."""
+        return Heard.NotMine
 
     @abstractmethod
     async def set(self, action: ChangeRelayPin) -> Optional[str]:
-        """Put the relay in this position. None when it took, otherwise
-        why it did not."""
+        """Put the relay in this position. None when the device took the
+        write, otherwise why it did not."""
 
     @abstractmethod
-    async def read(self) -> Optional[ChangeRelayPin]:
-        """The position the relay holds, None when that cannot be told."""
+    async def read(self) -> RelayRead:
+        """The position the relay holds."""
+
+    async def told(self) -> Optional[ChangeRelayPin]:
+        """The position the device says it was last told to hold, None
+        when it cannot say. It differs from the last set when the device
+        has lost it."""
+        return None
+
+    async def evidence(self) -> str:
+        """What the device shows of itself after a set that did not
+        confirm, for the glitch."""
+        return ""
+
+    def check(self) -> None:
+        """A set did not take: have what the relay sits on check itself."""
 
 
 class Plant:

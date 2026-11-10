@@ -24,6 +24,7 @@ import paho.mqtt.client as mqtt
 from gwproactor.config import MQTTClient
 from gwproto import Message
 from gwproto.topic import MQTTTopic
+from gwsproto.data_classes.components import I2cRelayComponent
 from gwsproto.data_classes.components.component import BoardResidentComponent
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.enums import ActorClass, ChangeRelayPin
@@ -33,7 +34,7 @@ from gwsproto.property_format import SpaceheatName, UtcIso8601Millis, UTCMillise
 from pydantic import ValidationError
 
 from clock import Clock
-from plant import Deliver, Plant, PlantReadings, RelayDrive, SensorSource
+from plant import Deliver, Plant, PlantReadings, RelayDrive, RelayRead, SensorSource
 
 # A plant quiet for this long is taken as gone. Its next flux is a fresh
 # start, and a plant that has just started knows no relay position.
@@ -83,8 +84,8 @@ class PlantLink(SensorSource):
         """What the plant was last told of this relay, None if never told."""
         return self.positions.get(relay_name)
 
-    def drive(self, relay_name: SpaceheatName) -> "LinkRelayDrive":
-        return LinkRelayDrive(self, relay_name)
+    def drive(self, relay_name: SpaceheatName, *, reads_back: bool) -> "LinkRelayDrive":
+        return LinkRelayDrive(self, relay_name, reads_back=reads_back)
 
     def restate(self) -> None:
         for relay_name, action in self.positions.items():
@@ -131,18 +132,28 @@ class PlantLink(SensorSource):
 
 class LinkRelayDrive(RelayDrive):
     """A simulated relay. Setting it tells the plant, with nothing coming
-    back to say it arrived, so a set always takes and a read is what the
-    plant was last told."""
+    back to say it arrived, so a set always takes. It reads back where its
+    board does, so a simulated house boots and reports as the real one
+    would: what the plant was last told, and de-energized before the plant
+    was told anything, which is how a board powers on."""
 
-    def __init__(self, link: PlantLink, relay_name: SpaceheatName) -> None:
+    def __init__(self, link: PlantLink, relay_name: SpaceheatName, *, reads_back: bool) -> None:
         self.link = link
         self.relay_name = relay_name
+        self._reads_back = reads_back
+
+    @property
+    def reads_back(self) -> bool:
+        return self._reads_back
 
     async def set(self, action: ChangeRelayPin) -> None:
         self.link.set_relay(self.relay_name, action)
 
-    async def read(self) -> Optional[ChangeRelayPin]:
-        return self.link.relay(self.relay_name)
+    async def read(self) -> RelayRead:
+        return RelayRead(await self.told(), None)
+
+    async def told(self) -> ChangeRelayPin:
+        return self.link.relay(self.relay_name) or ChangeRelayPin.DeEnergize
 
 
 class InProcessPlantLink(PlantLink):
@@ -294,13 +305,19 @@ def build_plant_link(
 def route_simulated_devices(plant: Plant, layout: HydronicLayout, link: PlantLink) -> None:
     """Put the link behind the layout's simulated devices: every
     SimSensorActor node senses through it, and every relay on a simulated
-    board is driven through it."""
+    board is driven through it. An expander relay reads back where its
+    board's record says the board reads its pins."""
     for node in layout.nodes.values():
+        component = node.component
         if node.actor_class == ActorClass.SimSensorActor:
             plant.route_sensor(node.name, link)
         elif (
             node.actor_class == ActorClass.Relay
-            and isinstance(node.component, BoardResidentComponent)
-            and node.component.board_component.simulated
+            and isinstance(component, BoardResidentComponent)
+            and component.board_component.simulated
         ):
-            plant.route_relay(node.name, link.drive(node.name))
+            reads_back = (
+                isinstance(component, I2cRelayComponent)
+                and component.board_component.device_type.SupportsPinReadback
+            )
+            plant.route_relay(node.name, link.drive(node.name, reads_back=reads_back))
