@@ -128,6 +128,10 @@ class Scada2App(App, ScadaAppInterface):
         return self._clock
 
     @property
+    def plant_link(self) -> None:
+        return None
+
+    @property
     def weather_source(self) -> WeatherSource:
         return self._weather_source
 

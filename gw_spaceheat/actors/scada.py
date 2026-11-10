@@ -272,6 +272,8 @@ class Scada(PrimeActor, ScadaInterface):
         self._stop_requested = True
         if isinstance(self.services.clock, TimestepClock):
             self.services.clock.stop()
+        if self.services.plant_link is not None:
+            self.services.plant_link.stop()
 
     def _on_sim_timestep(self, time_unix_s: int) -> None:
         """Bridge keepalive: ping upstream on each received timestep so the
@@ -305,11 +307,14 @@ class Scada(PrimeActor, ScadaInterface):
         return self._data.ops
 
     def start_tasks(self) -> typing.Sequence[asyncio.Task]:
-        # The timestep clock's paho thread starts with the scada's tasks,
-        # not at construction: an instantiated-but-never-run scada (the
-        # in-process tests) has no use for it and would leak the thread.
+        # The paho threads of the timestep clock and the plant link start
+        # with the scada's tasks, not at construction: an
+        # instantiated-but-never-run scada (the in-process tests) has no use
+        # for them and would leak the threads.
         if isinstance(self.services.clock, TimestepClock):
             self.services.clock.start()
+        if self.services.plant_link is not None:
+            self.services.plant_link.start()
         # The stored contract is loaded before any message is processed, so
         # an offer never meets a contract still waiting in the store.
         loaded_contract_hb = self.contract_handler.initialize()

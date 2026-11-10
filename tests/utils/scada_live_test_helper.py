@@ -20,6 +20,7 @@ from gwsproto.named_types import DispatchHold, OperationalParams, TaDeed
 from gwsproto.property_format import LeftRightDotStr
 from tests.conftest import TEST_HARDWARE_LAYOUT_PATH
 from ltn_app import LtnApp
+from plant_link import PlantLinkKind
 from weather_source import WeatherSourceKind
 from scada2_app import Scada2App
 from scada_app import ScadaApp
@@ -225,6 +226,8 @@ class ScadaLiveTest(TreeLiveTest):
         primary_layout = child1_layout or child_layout or layout
         # The suite never reaches a live weather API.
         kwargs["child_app_settings"].weather_source = WeatherSourceKind.Sim
+        # Nor a plant on a broker: a test that needs one plays it in process.
+        kwargs["child_app_settings"].plant_link = PlantLinkKind.InProcess
         seeded_deed = Path(kwargs["child_app_settings"].paths.tadeed)
         if primary_layout is not None and seeded_deed.exists():
             deed_path = fixture_deed_path(primary_layout)

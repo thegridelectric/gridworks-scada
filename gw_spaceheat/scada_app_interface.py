@@ -7,6 +7,7 @@ from gwproactor import AppInterface
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
 from clock import Clock
+from plant_link import PlantLink
 from weather_source import WeatherSource
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.enums import TaValidationState
@@ -39,6 +40,13 @@ class ScadaAppInterface(AppInterface, ABC):
     @abstractmethod
     def clock(self) -> Clock:
         """The one clock every actor reads plant time from."""
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def plant_link(self) -> PlantLink | None:
+        """The connection to the simulated plant; None where no actor of
+        this scada reads or drives a simulated device."""
         raise NotImplementedError
 
     @property
