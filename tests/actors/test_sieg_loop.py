@@ -439,6 +439,140 @@ async def test_a_new_move_settles_the_travel_so_far_from_the_clock(tmp_path: Pat
     assert valve.valve_state == SiegValveState.FullyKeep
 
 
+async def advance_by_seconds(clock: ManualClock, seconds: int, actor: SiegLoop | None = None) -> None:
+    """Advance one second at a time, as a real clock does, so a motor run
+    stops when its own time is up and not when the test's step ends; with
+    an actor, its 30 s tick fires on the way."""
+    for s in range(1, seconds + 1):
+        clock.advance(1)
+        await settle()
+        if actor is not None and s % actor.CONTROL_INTERVAL_S == 0:
+            actor.tick()
+            await settle()
+
+
+@pytest.mark.asyncio
+async def test_a_target_asked_mid_run_is_sized_from_where_the_motor_is(tmp_path: Path) -> None:
+    """Full keep asked 40 s into a run toward send: the motor is 40 s from
+    the keep stop, so the run back is 40 s plus the overshoot and the hold
+    comes no sooner. A run sized from the position before the send run
+    started would stop after the overshoot alone, short of the stop."""
+    app, clock = manual_app(tmp_path, strategy=SiegLoopStrategy.HoldFullSend)
+    actor = sieg_loop_actor(app)
+    valve = actor.valve
+    sent = capture(actor)
+    valve.move_to_full_send()
+    await settle()
+    clock.advance(40)
+    await settle()
+    valve.move_to_full_keep()
+    await settle()
+    assert relay_events(sent) == TO_SEND + HOLD + TO_KEEP
+
+    await advance_by_seconds(clock, 39)
+    assert relay_events(sent) == TO_SEND + HOLD + TO_KEEP, "still running toward the keep stop"
+    await advance_by_seconds(clock, 1 + valve.OVERSHOOT_S)
+    assert relay_events(sent) == TO_SEND + HOLD + TO_KEEP + HOLD
+    assert valve.keep_seconds == valve.FULL_RANGE_S
+    assert valve.valve_state == SiegValveState.FullyKeep
+
+
+@pytest.mark.asyncio
+async def test_strat_protect_moves_nothing_until_hp_boss_has_reported(tmp_path: Path) -> None:
+    app, clock = manual_app(tmp_path, strategy=SiegLoopStrategy.StratProtect)
+    actor = sieg_loop_actor(app)
+    sent = capture(actor)
+    deliver(actor, actor.primary_scada.name, ActuatorsReady())
+    actor.tick()
+    await settle()
+    assert actor.strategy.control_state == SiegControlState.Initializing
+    assert relay_events(sent) == []
+
+
+@pytest.mark.asyncio
+async def test_strat_protect_homes_to_keep_in_one_run_when_the_heat_pump_is_off(tmp_path: Path) -> None:
+    """The valve's position is unknown at boot and only an endpoint makes it
+    known. With hp-boss off and no readings yet, the loop goes straight to
+    HpOff and runs the motor the full range to the keep stop: never a
+    detour to send, which would push the buffer around the loop for
+    minutes with the heat pump off."""
+    app, clock = manual_app(tmp_path, strategy=SiegLoopStrategy.StratProtect)
+    actor = sieg_loop_actor(app)
+    valve = actor.valve
+    sent = capture(actor)
+    deliver(actor, actor.hp_boss.name, hp_boss_state(actor, HpBossState.HpOff))
+    deliver(actor, actor.primary_scada.name, ActuatorsReady())
+    await settle()
+    assert actor.strategy.control_state == SiegControlState.HpOff
+    assert relay_events(sent) == TO_KEEP
+
+    full_run = valve.FULL_RANGE_S + valve.OVERSHOOT_S
+    await advance_by_seconds(clock, full_run - 1, actor)
+    assert relay_events(sent) == TO_KEEP, "the homing run is not cut short by the ticks"
+    await advance_by_seconds(clock, 1, actor)
+    assert relay_events(sent) == TO_KEEP + HOLD
+    assert valve.valve_state == SiegValveState.FullyKeep
+    assert valve.keep_seconds == valve.FULL_RANGE_S
+
+    read(actor, HCN.hp_lwt, 4500)
+    read(actor, HCN.hp_ewt, 4000)
+    read(actor, HCN.hp_odu_pwr, 100)
+    read(actor, HCN.hp_idu_pwr, 100)
+    await advance_by_seconds(clock, 60, actor)
+    assert actor.strategy.control_state == SiegControlState.HpOff
+    assert relay_events(sent) == TO_KEEP + HOLD, "readings arriving change nothing with the heat pump off"
+
+
+@pytest.mark.asyncio
+async def test_a_state_change_during_the_homing_run_starts_another_full_run(tmp_path: Path) -> None:
+    """hp-boss prepares to turn on 20 s into the homing run to keep. The
+    position is still unknown, so the loop's just-keep posture is reached
+    by a fresh full run to the keep stop rather than a run sized from the
+    boot guess, and only then is the valve homed."""
+    app, clock = manual_app(tmp_path, strategy=SiegLoopStrategy.StratProtect)
+    actor = sieg_loop_actor(app)
+    valve = actor.valve
+    sent = capture(actor)
+    deliver(actor, actor.hp_boss.name, hp_boss_state(actor, HpBossState.HpOff))
+    deliver(actor, actor.primary_scada.name, ActuatorsReady())
+    await settle()
+    await advance_by_seconds(clock, 20)
+    assert not valve.homed
+
+    read(actor, HCN.hp_lwt, 4500)
+    read(actor, HCN.hp_ewt, 4000)
+    read(actor, HCN.hp_odu_pwr, 100)
+    read(actor, HCN.hp_idu_pwr, 100)
+    deliver(actor, actor.hp_boss.name, hp_boss_state(actor, HpBossState.PreparingToTurnOn))
+    await settle()
+    assert actor.strategy.control_state == SiegControlState.HpStartingUp
+    assert relay_events(sent) == TO_KEEP + HOLD + TO_KEEP
+    full_run = valve.FULL_RANGE_S + valve.OVERSHOOT_S
+    await advance_by_seconds(clock, full_run - 1, actor)
+    assert relay_events(sent) == TO_KEEP + HOLD + TO_KEEP
+    assert not valve.homed
+    await advance_by_seconds(clock, 1, actor)
+    assert relay_events(sent) == TO_KEEP + HOLD + TO_KEEP + HOLD
+    assert valve.homed
+    assert valve.valve_state == SiegValveState.FullyKeep
+
+
+@pytest.mark.asyncio
+async def test_strat_protect_homes_to_send_when_the_heat_pump_is_on_and_the_loop_is_blind(tmp_path: Path) -> None:
+    app, clock = manual_app(tmp_path, strategy=SiegLoopStrategy.StratProtect)
+    actor = sieg_loop_actor(app)
+    valve = actor.valve
+    sent = capture(actor)
+    deliver(actor, actor.hp_boss.name, hp_boss_state(actor, HpBossState.HpOn))
+    deliver(actor, actor.primary_scada.name, ActuatorsReady())
+    await settle()
+    assert actor.strategy.control_state == SiegControlState.Blind
+    assert relay_events(sent) == TO_SEND
+    await advance_by_seconds(clock, valve.FULL_RANGE_S + valve.OVERSHOOT_S, actor)
+    assert relay_events(sent) == TO_SEND + HOLD
+    assert valve.valve_state == SiegValveState.FullySend
+
+
 @pytest.mark.asyncio
 async def test_one_valve_report_per_state_change(tmp_path: Path) -> None:
     """The valve state rides single.machine.state under sieg.valve.state, once
@@ -569,6 +703,7 @@ async def test_a_nack_ends_the_move_with_an_error_glitch(tmp_path: Path) -> None
     clock.advance(actor.valve.FULL_RANGE_S + actor.valve.OVERSHOOT_S)
     await settle()
     assert actor.valve.keep_seconds == actor.valve.FULL_RANGE_S, "the motor never ran"
+    assert not actor.valve.homed, "no motor time, so nothing is known about the position"
 
 
 # --- the command surface -----------------------------------------------------
@@ -769,10 +904,10 @@ async def test_a_move_after_a_stop_runs_the_full_range_and_re_homes(tmp_path: Pa
 
 @pytest.mark.asyncio
 async def test_a_commanded_move_holds_the_loop_until_the_tree_changes_hands(tmp_path: Path) -> None:
-    """StratProtect with no readings is blind and wants full send; admin's
-    MoveToFullKeep moves the valve to keep and the loop ignores its own
-    control until the tree returns to local control, noticed on the tick,
-    when it goes back to send."""
+    """StratProtect with hp-boss off homes to keep; admin's MoveToFullSend
+    moves the valve to send and the loop ignores its own control until the
+    tree returns to local control, noticed on the tick, when it goes back
+    to keep."""
     app, clock = manual_app(tmp_path, strategy=SiegLoopStrategy.StratProtect)
     actor = loop_under_admin(app)
     sent = capture(actor)
@@ -780,34 +915,35 @@ async def test_a_commanded_move_holds_the_loop_until_the_tree_changes_hands(tmp_
     deliver(actor, actor.primary_scada.name, ActuatorsReady())
     await settle()
     assert isinstance(actor.strategy, StratProtect)
-    assert actor.strategy.control_state == SiegControlState.Blind
-    clock.advance(actor.valve.FULL_RANGE_S + actor.valve.OVERSHOOT_S)
-    await settle()
-    assert actor.valve.valve_state == SiegValveState.FullySend
-    sent.clear()
-
-    deliver(actor, CoreNodeNames.admin, move(actor, MoveSiegValve.MoveToFullKeep))
-    await settle()
+    assert actor.strategy.control_state == SiegControlState.HpOff
+    assert relay_events(sent) == TO_KEEP
     clock.advance(actor.valve.FULL_RANGE_S + actor.valve.OVERSHOOT_S)
     await settle()
     assert actor.valve.valve_state == SiegValveState.FullyKeep
+    sent.clear()
+
+    deliver(actor, CoreNodeNames.admin, move(actor, MoveSiegValve.MoveToFullSend))
+    await settle()
+    clock.advance(actor.valve.FULL_RANGE_S + actor.valve.OVERSHOOT_S)
+    await settle()
+    assert actor.valve.valve_state == SiegValveState.FullySend
     sent.clear()
     deliver(actor, actor.hp_boss.name, hp_boss_state(actor, HpBossState.HpOn))
     deliver(actor, actor.hp_boss.name, hp_boss_state(actor, HpBossState.HpOff))
     actor.tick()
     await settle()
     assert relay_events(sent) == [], "the strategy's moves are withheld while admin's command holds"
-    assert actor.valve.valve_state == SiegValveState.FullyKeep
+    assert actor.valve.valve_state == SiegValveState.FullySend
 
     app.scada.auto_trigger(MainAutoEvent.AutoWakesUp)
     assert actor.node.handle.startswith(CoreNodeNames.auto)
     actor.tick()
     await settle()
     assert actor.automatic
-    assert relay_events(sent) == TO_SEND
+    assert relay_events(sent) == TO_KEEP
     clock.advance(actor.valve.FULL_RANGE_S + actor.valve.OVERSHOOT_S)
     await settle()
-    assert actor.valve.valve_state == SiegValveState.FullySend
+    assert actor.valve.valve_state == SiegValveState.FullyKeep
 
 
 @pytest.mark.asyncio

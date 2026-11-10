@@ -97,6 +97,7 @@ class SiegValve:
         )
         self.valve_state: SiegValveState = SiegValveState.FullyKeep
         self.keep_seconds: float = self.FULL_RANGE_S
+        self._homed = False
         self.t1 = 26  # keep onset: the keep opening appears
         self.t2 = 56  # keep complete: all flow is kept from here on
         self.task: Optional[asyncio.Task[None]] = None
@@ -106,21 +107,33 @@ class SiegValve:
         # ends by itself or is cancelled by the next run.
         self.stopping: Optional[Move] = None
 
+    @property
+    def homed(self) -> bool:
+        """Whether keep_seconds can be trusted. False at boot, when
+        keep_seconds is the keep stop with no evidence. True from the end
+        of the first run whose measured motor time in one direction is at
+        least FULL_RANGE_S + OVERSHOOT_S: such a run reaches that stop from
+        any starting position, and keep_seconds is set to the stop. It
+        stays True, since every later run starts from a trusted
+        keep_seconds and settles from the clock. A nacked run has no motor
+        time and does not count."""
+        return self._homed
+
     # --------------------------------------
     # Targets
     # --------------------------------------
 
     def move_to_full_send(self) -> None:
         self.loop.log("Moving to full send")
-        self.travel(-self.keep_seconds - self.OVERSHOOT_S)
+        self.travel_to(-self.OVERSHOOT_S)
 
     def move_to_full_keep(self) -> None:
         self.loop.log("Moving to full keep")
-        self.travel(-self.keep_seconds + self.FULL_RANGE_S + self.OVERSHOOT_S)
+        self.travel_to(self.FULL_RANGE_S + self.OVERSHOOT_S)
 
     def move_to_just_keep(self) -> None:
         self.loop.log("Moving to just keep")
-        self.travel(-self.keep_seconds + self.t2)
+        self.travel_to(self.t2)
 
     def full_run_to_send(self) -> None:
         self.loop.log("Full run to send")
@@ -147,12 +160,21 @@ class SiegValve:
     def travel(self, delta_s: float) -> None:
         """Run the motor for delta_s seconds: toward keep when positive,
         toward send when negative. Cancels the run in flight."""
-        if delta_s == 0:
-            self.loop.log("Already at target")
-            return
-        self.task = asyncio.create_task(self.run(delta_s, self.task), name="sieg valve travel")
+        self.task = asyncio.create_task(self.run(self.task, delta_s=delta_s), name="sieg valve travel")
 
-    async def run(self, delta_s: float, previous: Optional[asyncio.Task[None]]) -> None:
+    def travel_to(self, target_keep_seconds: float) -> None:
+        """Run the motor to a position in keep_seconds. Cancels the run in
+        flight; the run length is computed from where that run settles."""
+        self.task = asyncio.create_task(
+            self.run(self.task, target_keep_seconds=target_keep_seconds), name="sieg valve travel"
+        )
+
+    async def run(
+        self,
+        previous: Optional[asyncio.Task[None]],
+        delta_s: Optional[float] = None,
+        target_keep_seconds: Optional[float] = None,
+    ) -> None:
         """One move: the start transition commands the relays under the
         move's id, the motor clock starts once both relays have reported
         (or the loop's wait runs out), the stop transition opens the on/off
@@ -165,6 +187,12 @@ class SiegValve:
         if previous is not None and not previous.done():
             previous.cancel()
             await asyncio.wait([previous])
+        if delta_s is None:
+            assert target_keep_seconds is not None
+            delta_s = target_keep_seconds - self.keep_seconds
+        if delta_s == 0:
+            self.loop.log("Already at target")
+            return
         clock = self.loop.services.clock
         toward_keep = delta_s > 0
         move = self.loop.begin_move(self.valve_state)
@@ -196,6 +224,8 @@ class SiegValve:
                 self.move = stop
             moved = ran_s if toward_keep else -ran_s
             self.keep_seconds = min(self.FULL_RANGE_S, max(0, start_keep_seconds + moved))
+            if ran_s >= self.FULL_RANGE_S + self.OVERSHOOT_S:
+                self._homed = True
             if toward_keep:
                 at_stop = self.keep_seconds == self.FULL_RANGE_S
                 self.trigger_valve_event(

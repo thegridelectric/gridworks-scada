@@ -1,7 +1,10 @@
 """StratProtect: the valve stays at keep while the heat pump is off or
 starting cold, opens toward send once the loop is hot, and fails to full
-send when the loop cannot see its inputs. A control state machine driven by
-hp-boss's reported state and the loop's own temperature and power reads."""
+send when the loop cannot see a running heat pump. A control state machine
+driven by hp-boss's reported state and the loop's own temperature and power
+reads. The valve's position is unknown at boot, so the loop waits for
+hp-boss's first report and then makes one full run to the stop that state
+wants: keep with the heat pump off, send when it is running unseen."""
 
 from enum import auto
 from typing import Optional
@@ -88,7 +91,9 @@ class StratProtect(SiegStrategy):
             send_event=True,
         )
         self.control_state: SiegControlState = SiegControlState.Initializing
-        self.hp_boss_state = HpBossState.HpOn
+        # hp-boss's last reported state; None until it reports, and the
+        # loop leaves Initializing only on a report.
+        self.hp_boss_state: Optional[HpBossState] = None
         self.hp_turned_off_time: float | None = None
 
     # --------------------------------------
@@ -158,10 +163,13 @@ class StratProtect(SiegStrategy):
             if not self.loop.actuators_ready:
                 self.loop.log("Waiting for actuators to be ready to get out of Initializing state")
                 return
-            if self.is_blind():
-                self.trigger_control_event(SiegControlEvent.DoneInitializingBlind)
-            elif self.hp_boss_state == HpBossState.HpOff:
+            if self.hp_boss_state is None:
+                self.loop.log("Waiting for hp-boss to report to get out of Initializing state")
+                return
+            if self.hp_boss_state == HpBossState.HpOff:
                 self.trigger_control_event(SiegControlEvent.DoneInitializingHpOff)
+            elif self.is_blind():
+                self.trigger_control_event(SiegControlEvent.DoneInitializingBlind)
             elif self.hp_boss_state == HpBossState.PreparingToTurnOn:
                 self.trigger_control_event(SiegControlEvent.DoneInitializingHpStartingUp)
             elif self.hp_boss_state == HpBossState.HpOn:
@@ -170,13 +178,16 @@ class StratProtect(SiegStrategy):
                 else:
                     self.trigger_control_event(SiegControlEvent.DoneInitializingHpStartingUp)
 
-        # Get in/out of Blind state
-        if self.control_state != SiegControlState.Blind and self.is_blind():
+        # Get in/out of Blind state. Blind protects a running heat pump the
+        # loop cannot see; with the heat pump off there is nothing to
+        # protect and the valve stays at keep for the buffer.
+        if self.hp_boss_state == HpBossState.HpOff:
+            if self.control_state == SiegControlState.Blind:
+                self.trigger_control_event(SiegControlEvent.NoLongerBlindHpOff)
+        elif self.control_state != SiegControlState.Blind and self.is_blind():
             self.trigger_control_event(SiegControlEvent.BecameBlind)
         elif self.control_state == SiegControlState.Blind and not self.is_blind():
-            if self.hp_boss_state == HpBossState.HpOff:
-                self.trigger_control_event(SiegControlEvent.NoLongerBlindHpOff)
-            elif self.hp_boss_state == HpBossState.PreparingToTurnOn:
+            if self.hp_boss_state == HpBossState.PreparingToTurnOn:
                 self.trigger_control_event(SiegControlEvent.NoLongerBlindHpStartingUp)
             elif self.hp_boss_state == HpBossState.HpOn:
                 if self.hp_loop_is_getting_hot():
@@ -210,8 +221,16 @@ class StratProtect(SiegStrategy):
             self.move_for(self.control_state)
 
     def move_for(self, state: SiegControlState) -> None:
-        """The valve posture the control state calls for."""
+        """The valve posture the control state calls for. Until a run has
+        reached a stop the valve's position is unknown, and every move is
+        a full run to the stop on the posture's side."""
         valve = self.loop.valve
+        if not valve.homed:
+            if state in (SiegControlState.Blind, SiegControlState.HpHasLift):
+                valve.full_run_to_send()
+            else:
+                valve.full_run_to_keep()
+            return
         if state == SiegControlState.Blind:
             valve.move_to_full_send()
         elif state == SiegControlState.HpOff:
