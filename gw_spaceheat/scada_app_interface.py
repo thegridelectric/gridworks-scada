@@ -7,6 +7,7 @@ from gwproactor import AppInterface
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
 from clock import Clock
+from plant import Plant
 from plant_link import PlantLink
 from weather_source import WeatherSource
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
@@ -44,9 +45,15 @@ class ScadaAppInterface(AppInterface, ABC):
 
     @property
     @abstractmethod
+    def plant(self) -> Plant:
+        """Where a device actor asks for its own device, by node name."""
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
     def plant_link(self) -> PlantLink | None:
-        """The connection to the simulated plant; None where no actor of
-        this scada reads or drives a simulated device."""
+        """The connection to the simulated plant, started and stopped with
+        the scada's tasks; None where this scada has no simulated device."""
         raise NotImplementedError
 
     @property

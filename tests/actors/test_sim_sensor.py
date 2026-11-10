@@ -6,6 +6,7 @@ import pytest
 from gwsproto.named_types import SyncedReadings
 
 from actors.sim_sensor import SimSensorActor
+from plant import Plant
 from plant_link import InProcessPlantLink, PlantLinkKind
 from scada_app import ScadaApp
 from tests.utils.scada_live_test_helper import ScadaLiveTest
@@ -84,10 +85,10 @@ def test_a_sim_sensor_hears_only_its_own_channels(app: ScadaApp) -> None:
     assert ewt_sent == []
 
 
-def test_a_sim_sensor_with_no_plant_link_fails_the_boot(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_a_sim_sensor_the_plant_has_nothing_behind_fails_the_boot() -> None:
     scada_app = ScadaApp(app_settings=hazel_settings())
-    monkeypatch.setattr(ScadaApp, "plant_link", property(lambda _self: None))
-    with pytest.raises(ValueError, match="has no plant link"):
+    scada_app._plant = Plant()
+    with pytest.raises(ValueError, match="has no sensor source in the plant"):
         scada_app.instantiate()
 
 

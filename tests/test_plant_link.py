@@ -14,12 +14,12 @@ from gwproactor.config import MQTTClient
 from gwsproto.enums import ChangeRelayPin
 
 from clock import ManualClock
+from plant import PlantReadings
 from plant_link import (
     PLANT_SILENT_AFTER_S,
     BrokerPlantLink,
     InProcessPlantLink,
     PlantLinkKind,
-    PlantReadings,
     build_plant_link,
     plant_flux_topic,
 )

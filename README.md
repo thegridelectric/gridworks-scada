@@ -145,7 +145,9 @@ LTN_PATHS__HARDWARE_LAYOUT="../tlayouts/output/orange.generated.json"
 
 ### A simulated layout's sensors
 
-A layout with a simulated device gets a plant link (`gw_spaceheat/plant_link.py`).
+A device actor asks `services.plant` (`gw_spaceheat/plant.py`) for its own
+device by node name. For a simulated device what answers is the plant link
+(`gw_spaceheat/plant_link.py`), which a layout with a simulated device gets.
 Its `SimSensorActor` nodes report what arrives as `sim.plant.flux` on the
 `gridworks_mqtt` broker, addressed from the layout's TerminalAsset GNode to its
 Scada GNode, and report nothing while nothing publishes it.

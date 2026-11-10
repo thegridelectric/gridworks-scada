@@ -9,7 +9,7 @@ from gwsproto.named_types import SyncedReadings
 from result import Ok, Result
 
 from actors.sh_node_actor import ShNodeActor
-from plant_link import PlantReadings
+from plant import PlantReadings
 from scada_app_interface import ScadaAppInterface
 
 KEEPALIVE_S = 5
@@ -47,12 +47,7 @@ class SimSensorActor(ShNodeActor):
         if self.layout.node_disabled(self.name):
             self._channel_names = []
         self.feeds_derived = self.layout.feeds_derived(self._channel_names)
-        plant_link = self.services.plant_link
-        if plant_link is None:
-            raise ValueError(
-                f"ERROR. SimSensorActor {name} has no plant link to sense through."
-            )
-        plant_link.sense(self._channel_names, self.take)
+        self.services.plant.sense(self.name, self._channel_names, self.take)
 
     @property
     def monitored_names(self) -> Sequence[MonitoredName]:

@@ -2,9 +2,11 @@
 
 A layout with a simulated device has no hardware behind it. What its
 sensors see arrives from the plant as ``sim.plant.flux``, and each relay
-position goes to the plant as ``sim.plant.actuation``. Actors reach the
-link through ``services.plant_link`` and speak channel names and relay
-node names only: no address, register or pin crosses.
+position goes to the plant as ``sim.plant.actuation``. Channel names and
+relay node names are all that cross: no address, register or pin.
+
+Actors do not hold the link. They ask ``services.plant`` for their own
+device, and the link is what answers for a simulated one.
 
 The link is not an actor, has no node in the layout and holds no physics.
 A layout with no simulated device builds none.
@@ -13,22 +15,25 @@ A layout with no simulated device builds none.
 import asyncio
 import logging
 import time
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from datetime import datetime, timezone
 from enum import auto
-from typing import Any, Callable, Iterable, Mapping, NamedTuple, Optional
+from typing import Any, Callable, Iterable, Mapping, Optional
 
 import paho.mqtt.client as mqtt
 from gwproactor.config import MQTTClient
 from gwproto import Message
 from gwproto.topic import MQTTTopic
-from gwsproto.enums import ChangeRelayPin
+from gwsproto.data_classes.components.component import BoardResidentComponent
+from gwsproto.data_classes.hydronic_layout import HydronicLayout
+from gwsproto.enums import ActorClass, ChangeRelayPin
 from gwsproto.enums.gw_str_enum import GwStrEnum
 from gwsproto.named_types import SimPlantActuation, SimPlantFlux
 from gwsproto.property_format import SpaceheatName, UtcIso8601Millis, UTCMilliseconds
 from pydantic import ValidationError
 
 from clock import Clock
+from plant import Deliver, Plant, PlantReadings, RelayDrive, SensorSource
 
 # A plant quiet for this long is taken as gone. Its next flux is a fresh
 # start, and a plant that has just started knows no relay position.
@@ -44,20 +49,7 @@ class PlantLinkKind(GwStrEnum):
     InProcess = auto()
 
 
-class PlantReadings(NamedTuple):
-    """Channel values at one plant read time, in each channel's own encoding.
-    The link hands a sensor the part of a flux its channels cover. Interior
-    to the scada: a slice of ``sim.plant.flux``, never serialised."""
-
-    channel_names: tuple[SpaceheatName, ...]
-    values: tuple[int, ...]
-    read_time_ms: UTCMilliseconds
-
-
-Deliver = Callable[[PlantReadings], None]
-
-
-class PlantLink(ABC):
+class PlantLink(SensorSource):
     def __init__(self, *, silent_after_s: float, monotonic: Callable[[], float]) -> None:
         self.silent_after_s = silent_after_s
         self.monotonic = monotonic
@@ -72,9 +64,10 @@ class PlantLink(ABC):
     def stop(self) -> None:
         """Close what start() opened."""
 
-    def sense(self, channel_names: Iterable[str], deliver: Deliver) -> None:
-        """Route these channels' plant values to deliver. A channel has one
-        sensor, as it has one capturing node in the layout."""
+    def sense(self, channel_names: Iterable[SpaceheatName], deliver: Deliver) -> None:
+        """Route these channels' plant values to deliver: the part of each
+        flux they cover. A channel has one sensor, as it has one capturing
+        node in the layout."""
         for name in channel_names:
             if name in self.sensor_by_channel:
                 raise ValueError(f"channel {name} already has a sensor on the plant link")
@@ -89,6 +82,9 @@ class PlantLink(ABC):
     def relay(self, relay_name: str) -> Optional[ChangeRelayPin]:
         """What the plant was last told of this relay, None if never told."""
         return self.positions.get(relay_name)
+
+    def drive(self, relay_name: SpaceheatName) -> "LinkRelayDrive":
+        return LinkRelayDrive(self, relay_name)
 
     def restate(self) -> None:
         for relay_name, action in self.positions.items():
@@ -131,6 +127,22 @@ class PlantLink(ABC):
     @abstractmethod
     def actuate(self, relay_name: str, action: ChangeRelayPin) -> None:
         """Send one relay position to the plant."""
+
+
+class LinkRelayDrive(RelayDrive):
+    """A simulated relay. Setting it tells the plant, with nothing coming
+    back to say it arrived, so a set always takes and a read is what the
+    plant was last told."""
+
+    def __init__(self, link: PlantLink, relay_name: SpaceheatName) -> None:
+        self.link = link
+        self.relay_name = relay_name
+
+    async def set(self, action: ChangeRelayPin) -> None:
+        self.link.set_relay(self.relay_name, action)
+
+    async def read(self) -> Optional[ChangeRelayPin]:
+        return self.link.relay(self.relay_name)
 
 
 class InProcessPlantLink(PlantLink):
@@ -277,3 +289,18 @@ def build_plant_link(
             monotonic=time.monotonic,
         )
     raise ValueError(f"Unknown plant link kind {kind}")
+
+
+def route_simulated_devices(plant: Plant, layout: HydronicLayout, link: PlantLink) -> None:
+    """Put the link behind the layout's simulated devices: every
+    SimSensorActor node senses through it, and every relay on a simulated
+    board is driven through it."""
+    for node in layout.nodes.values():
+        if node.actor_class == ActorClass.SimSensorActor:
+            plant.route_sensor(node.name, link)
+        elif (
+            node.actor_class == ActorClass.Relay
+            and isinstance(node.component, BoardResidentComponent)
+            and node.component.board_component.simulated
+        ):
+            plant.route_relay(node.name, link.drive(node.name))
