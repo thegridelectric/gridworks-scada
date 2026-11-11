@@ -88,7 +88,7 @@ def test_a_sim_sensor_hears_only_its_own_channels(app: ScadaApp) -> None:
 def test_a_sim_sensor_the_plant_has_nothing_behind_fails_the_boot() -> None:
     scada_app = ScadaApp(app_settings=hazel_settings())
     scada_app._plant = Plant()
-    with pytest.raises(ValueError, match="has no sensor source in the plant"):
+    with pytest.raises(ValueError, match="has no device in the plant"):
         scada_app.instantiate()
 
 

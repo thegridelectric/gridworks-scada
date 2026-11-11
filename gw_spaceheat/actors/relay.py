@@ -44,7 +44,7 @@ from gwsproto.property_format import NonNegativeInt, UTCMilliseconds, UUID4Str
 from result import Err, Ok, Result
 from transitions import Machine
 from actors.sh_node_actor import ShNodeActor
-from plant import Heard
+from plant import Heard, RelayDrive
 from scada_app_interface import ScadaAppInterface
 from gwsproto.enums import LogLevel, ChangeKeepSend, HpLoopKeepSend
 from gwsproto.named_types import FsmEvent, Glitch, SingleMachineState, SingleReading
@@ -168,8 +168,7 @@ class Relay(ShNodeActor):
         self._i2c_command: I2cCommand | None = None
         self._enforce_failing = False
         self._ready = asyncio.Event()
-        self.drive = self.services.plant.relay(self.name)
-        self.drive.attach(lambda dst, payload: self._send_to(dst, payload))
+        self.drive = self.my_device(RelayDrive)
 
         self.initialize_fsm()
         self._stop_requested = False

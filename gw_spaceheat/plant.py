@@ -1,23 +1,57 @@
 """The house as the scada's device actors reach it.
 
-A device actor asks the plant for its own device by node name: a sensor
-asks for the readings of its channels, a relay for something to drive.
-What answers is chosen once, where the app is built, and the actor cannot
-tell which it has. Channel names and relay positions are all an actor
-says to the plant: no address, register or pin.
+A device actor asks the plant for its own device, by node name and by the
+kind of device it drives. What answers is chosen once, where the app is
+built, and the actor cannot tell which it has. Channel names, positions and
+levels are all an actor says to its device: no address, register or pin.
 
 The plant routes and does nothing else. It holds no device logic, no
 retry and no state beyond its routes. An actor that asks for a node
-nothing was routed for fails the boot.
+nothing was routed for, or for a kind the node's device is not, fails the
+boot.
 """
 
 from abc import ABC, abstractmethod
 from enum import Enum, auto
-from typing import Any, Callable, Iterable, NamedTuple, Optional
+from typing import Any, Callable, Iterable, NamedTuple, Optional, TypeVar
 
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import ChangeRelayPin
 from gwsproto.property_format import SpaceheatName, UTCMilliseconds
+
+
+Send = Callable[[ShNode, Any], None]
+
+
+class Heard(Enum):
+    """What a device made of a message its actor was sent."""
+
+    NotMine = auto()
+    Taken = auto()
+    Repaired = auto()
+
+
+class Device:
+    """What stands behind one node, reached by that node's actor alone.
+
+    A device does one thing when asked and says how it went. Nothing it is
+    asked to do raises: whatever its hardware throws is caught in the
+    device, the one place that knows what its hardware can throw, and
+    comes back as the reason. The actor catches nothing and reports every
+    reason it is handed."""
+
+    def attach(self, send: Send) -> None:
+        """The device's actor is built. A device that reaches its hardware
+        through another actor sends as its own actor's node, with send."""
+
+    def hears(self, payload: Any) -> Heard:
+        """A message the device's actor was sent and does not know itself:
+        the other half of what the device sent. Repaired says the hardware
+        lost what it was last set to and is ready to be set again."""
+        return Heard.NotMine
+
+
+DeviceT = TypeVar("DeviceT", bound=Device)
 
 
 class PlantReadings(NamedTuple):
@@ -33,8 +67,8 @@ class PlantReadings(NamedTuple):
 Deliver = Callable[[PlantReadings], None]
 
 
-class SensorSource(ABC):
-    """Where a sensing device's readings come from."""
+class SensorSource(Device, ABC):
+    """A sensing device that reports when it has something to report."""
 
     @abstractmethod
     def sense(self, channel_names: Iterable[SpaceheatName], deliver: Deliver) -> None:
@@ -49,42 +83,16 @@ class RelayRead(NamedTuple):
     error: Optional[str]
 
 
-class Heard(Enum):
-    """What a relay drive made of a message its relay's actor was sent."""
-
-    NotMine = auto()
-    Taken = auto()
-    Repaired = auto()
-
-
-Send = Callable[[ShNode, Any], None]
-
-
-class RelayDrive(ABC):
+class RelayDrive(Device, ABC):
     """One relay, as its actor reaches it. A drive does one thing when
     asked and says how it went: confirming a set, retrying it and reporting
-    a glitch are the actor's.
-
-    A set or a read never raises. Whatever the device throws is caught in
-    the drive, the one place that knows what its device can throw, and
-    comes back as the reason. The actor catches nothing and reports every
-    reason it is handed."""
+    a glitch are the actor's."""
 
     @property
     @abstractmethod
     def reads_back(self) -> bool:
         """Whether read() tells what the relay holds. Where it cannot, the
         actor believes what it last set."""
-
-    def attach(self, send: Send) -> None:
-        """The relay's actor is built. A drive that reaches its device
-        through another actor sends as the relay's node, with send."""
-
-    def hears(self, payload: Any) -> Heard:
-        """A message the relay's actor was sent and does not know itself:
-        the other half of what the drive sent. Repaired says the device
-        lost its position and is ready to be set again."""
-        return Heard.NotMine
 
     @abstractmethod
     async def set(self, action: ChangeRelayPin) -> Optional[str]:
@@ -112,32 +120,20 @@ class RelayDrive(ABC):
 
 class Plant:
     def __init__(self) -> None:
-        self.source_by_node: dict[SpaceheatName, SensorSource] = {}
-        self.drive_by_node: dict[SpaceheatName, RelayDrive] = {}
+        self.device_by_node: dict[SpaceheatName, Device] = {}
 
-    def route_sensor(self, node_name: SpaceheatName, source: SensorSource) -> None:
-        if node_name in self.source_by_node:
-            raise ValueError(f"{node_name} already has a sensor source in the plant")
-        self.source_by_node[node_name] = source
+    def route(self, node_name: SpaceheatName, device: Device) -> None:
+        if node_name in self.device_by_node:
+            raise ValueError(f"{node_name} already has a device in the plant")
+        self.device_by_node[node_name] = device
 
-    def route_relay(self, node_name: SpaceheatName, drive: RelayDrive) -> None:
-        if node_name in self.drive_by_node:
-            raise ValueError(f"{node_name} already has a relay drive in the plant")
-        self.drive_by_node[node_name] = drive
-
-    def sense(
-        self,
-        node_name: SpaceheatName,
-        channel_names: Iterable[SpaceheatName],
-        deliver: Deliver,
-    ) -> None:
-        source = self.source_by_node.get(node_name)
-        if source is None:
-            raise ValueError(f"{node_name} has no sensor source in the plant")
-        source.sense(channel_names, deliver)
-
-    def relay(self, node_name: SpaceheatName) -> RelayDrive:
-        drive = self.drive_by_node.get(node_name)
-        if drive is None:
-            raise ValueError(f"{node_name} has no relay drive in the plant")
-        return drive
+    def device(self, node_name: SpaceheatName, kind: type[DeviceT]) -> DeviceT:
+        device = self.device_by_node.get(node_name)
+        if device is None:
+            raise ValueError(f"{node_name} has no device in the plant")
+        if not isinstance(device, kind):
+            raise ValueError(
+                f"{node_name} has a {type(device).__name__} in the plant, "
+                f"which is no {kind.__name__}"
+            )
+        return device

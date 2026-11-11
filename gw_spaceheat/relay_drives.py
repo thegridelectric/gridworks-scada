@@ -6,7 +6,6 @@ address and registers, the pin, the level that energizes. The relay's actor
 holds none of it.
 """
 
-import asyncio
 import uuid
 from typing import Any, NamedTuple, Optional
 
@@ -20,12 +19,12 @@ from gwsproto.named_types import (
     I2cReadBit,
     I2cReadReg,
     I2cRegAddress,
-    I2cResult,
     I2cWriteBit,
 )
 from gwsproto.property_format import NonNegativeInt
 
 from actors.i2c_bus import ExpanderCheckRequested, ExpanderReinitialized
+from bus_talk import BusTalk, the_bus_node
 from drivers import tca9555
 from plant import Heard, Plant, RelayDrive, RelayRead, Send
 
@@ -78,14 +77,6 @@ def resolve_i2c_actuation(layout: HydronicLayout, node: ShNode) -> I2cActuation:
             f"{node.name}: board record {record.DeviceType} has no "
             f"expander with ExpanderIdx {capability.ExpanderIdx}"
         )
-    bus_nodes = [
-        n for n in layout.nodes.values() if n.ActorClass == ActorClass.I2cBus
-    ]
-    if len(bus_nodes) != 1:
-        raise ValueError(
-            f"{node.name}: expected exactly one I2cBus node in the "
-            f"layout; found {len(bus_nodes)}"
-        )
     if expander.ExpanderType == I2cExpanderType.Tca9555:
         input_register = tca9555.input_register(capability.RegisterIndex)
         config_register: int | None = tca9555.config_register(
@@ -95,7 +86,7 @@ def resolve_i2c_actuation(layout: HydronicLayout, node: ShNode) -> I2cActuation:
         input_register = capability.RegisterIndex
         config_register = None
     return I2cActuation(
-        bus_node=bus_nodes[0],
+        bus_node=the_bus_node(layout, node.name),
         i2c_address=board.expander_address(expander),
         expander_type=expander.ExpanderType,
         output_register=capability.RegisterIndex,
@@ -129,27 +120,19 @@ class I2cRelayDrive(RelayDrive):
     actor sent as the relay's node, and the bus actor's reply comes back to
     the relay's actor, which hands it down through hears()."""
 
-    BUS_OP_TIMEOUT_S = 1.0
-
     def __init__(self, at: I2cActuation) -> None:
         self.at = at
-        self.send: Optional[Send] = None
-        self.pending_results: dict[str, "asyncio.Future[I2cResult]"] = {}
+        self.bus = BusTalk(at.bus_node)
 
     @property
     def reads_back(self) -> bool:
         return self.at.supports_readback
 
     def attach(self, send: Send) -> None:
-        self.send = send
+        self.bus.attach(send)
 
     def hears(self, payload: Any) -> Heard:
-        if isinstance(payload, I2cResult):
-            future = self.pending_results.pop(payload.TriggerId, None)
-            if future is not None and not future.done():
-                future.set_result(payload)
-            # a late reply after timeout is dropped; the timeout already
-            # glitched
+        if self.bus.hears(payload):
             return Heard.Taken
         if isinstance(payload, ExpanderReinitialized):
             # The bus actor tells every i2c relay; only the ones on the
@@ -170,26 +153,9 @@ class I2cRelayDrive(RelayDrive):
             return ChangeRelayPin.Energize
         return ChangeRelayPin.DeEnergize
 
-    async def bus_op(
-        self, payload: I2cWriteBit | I2cReadBit | I2cReadReg
-    ) -> I2cResult | None:
-        """Send one op to the bus actor and await its I2cResult (None on
-        timeout)."""
-        assert self.send is not None
-        future: "asyncio.Future[I2cResult]" = (
-            asyncio.get_running_loop().create_future()
-        )
-        self.pending_results[payload.TriggerId] = future
-        self.send(self.at.bus_node, payload)
-        try:
-            return await asyncio.wait_for(future, timeout=self.BUS_OP_TIMEOUT_S)
-        except asyncio.TimeoutError:
-            self.pending_results.pop(payload.TriggerId, None)
-            return None
-
     async def read_bit(self, register: int) -> RelayRead:
         a = self.at
-        result = await self.bus_op(
+        result = await self.bus.op(
             I2cReadBit(
                 Bus=a.bus_node.name,
                 Address=I2cBitAddress(
@@ -208,7 +174,7 @@ class I2cRelayDrive(RelayDrive):
 
     async def set(self, action: ChangeRelayPin) -> Optional[str]:
         a = self.at
-        result = await self.bus_op(
+        result = await self.bus.op(
             I2cWriteBit(
                 Bus=a.bus_node.name,
                 Address=I2cBitAddress(
@@ -247,7 +213,7 @@ class I2cRelayDrive(RelayDrive):
         if a.config_register is not None:
             registers.append(("config", a.config_register))
         for label, register in registers:
-            result = await self.bus_op(
+            result = await self.bus.op(
                 I2cReadReg(
                     Bus=a.bus_node.name,
                     Address=I2cRegAddress(
@@ -266,10 +232,7 @@ class I2cRelayDrive(RelayDrive):
     def check(self) -> None:
         """Ask the bus actor to check this relay's expander for a reset
         now; a reset found there comes back as ExpanderReinitialized."""
-        assert self.send is not None
-        self.send(
-            self.at.bus_node, ExpanderCheckRequested(I2cAddress=self.at.i2c_address)
-        )
+        self.bus.tell(ExpanderCheckRequested(I2cAddress=self.at.i2c_address))
 
 
 class GpioRelayDrive(RelayDrive):
@@ -315,8 +278,6 @@ def route_board_relays(plant: Plant, layout: HydronicLayout) -> None:
         ):
             continue
         if isinstance(component, I2cRelayComponent):
-            plant.route_relay(
-                node.name, I2cRelayDrive(resolve_i2c_actuation(layout, node))
-            )
+            plant.route(node.name, I2cRelayDrive(resolve_i2c_actuation(layout, node)))
         elif isinstance(component, GpioRelayComponent):
-            plant.route_relay(node.name, GpioRelayDrive(resolve_gpio_pin(layout, node)))
+            plant.route(node.name, GpioRelayDrive(resolve_gpio_pin(layout, node)))

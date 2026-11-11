@@ -67,10 +67,10 @@ def in_process() -> InProcessPlantLink:
 def test_a_sensor_senses_through_the_source_behind_its_node() -> None:
     plant = Plant()
     link = in_process()
-    plant.route_sensor("hp-lwt", link)
+    plant.route("hp-lwt", link)
     got: list[PlantReadings] = []
 
-    plant.sense("hp-lwt", ["hp-lwt"], got.append)
+    plant.device("hp-lwt", SensorSource).sense(["hp-lwt"], got.append)
     link.show({"hp-lwt": 5_200}, READ_MS)
 
     assert got == [PlantReadings(("hp-lwt",), (5_200,), READ_MS)]
@@ -78,21 +78,22 @@ def test_a_sensor_senses_through_the_source_behind_its_node() -> None:
 
 def test_a_node_nothing_was_routed_for_cannot_sense_or_be_driven() -> None:
     plant = Plant()
-    with pytest.raises(ValueError, match="hp-lwt has no sensor source"):
-        plant.sense("hp-lwt", ["hp-lwt"], lambda _readings: None)
-    with pytest.raises(ValueError, match="store-pump-relay has no relay drive"):
-        plant.relay("store-pump-relay")
+    with pytest.raises(ValueError, match="hp-lwt has no device in the plant"):
+        plant.device("hp-lwt", SensorSource)
+    plant.route("hp-lwt", in_process())
+    with pytest.raises(ValueError, match="hp-lwt has a InProcessPlantLink in the plant, which is no RelayDrive"):
+        plant.device("hp-lwt", RelayDrive)
 
 
 def test_a_node_is_routed_once() -> None:
     plant = Plant()
     link = in_process()
-    plant.route_sensor("hp-lwt", link)
-    plant.route_relay("store-pump-relay", link.drive("store-pump-relay", reads_back=False))
-    with pytest.raises(ValueError, match="hp-lwt already has a sensor source"):
-        plant.route_sensor("hp-lwt", BenchSource())
-    with pytest.raises(ValueError, match="store-pump-relay already has a relay drive"):
-        plant.route_relay("store-pump-relay", BenchDrive())
+    plant.route("hp-lwt", link)
+    plant.route("store-pump-relay", link.drive("store-pump-relay", reads_back=False))
+    with pytest.raises(ValueError, match="hp-lwt already has a device"):
+        plant.route("hp-lwt", BenchSource())
+    with pytest.raises(ValueError, match="store-pump-relay already has a device"):
+        plant.route("store-pump-relay", BenchDrive())
 
 
 @pytest.mark.asyncio
@@ -147,14 +148,14 @@ async def test_one_plant_holds_simulated_and_other_devices_side_by_side() -> Non
     link = in_process()
     bench_source = BenchSource()
     bench_drive = BenchDrive()
-    plant.route_sensor("tank1", link)
-    plant.route_sensor("hp-lwt", bench_source)
-    plant.route_relay("store-pump-relay", link.drive("store-pump-relay", reads_back=False))
-    plant.route_relay("vdc-relay", bench_drive)
+    plant.route("tank1", link)
+    plant.route("hp-lwt", bench_source)
+    plant.route("store-pump-relay", link.drive("store-pump-relay", reads_back=False))
+    plant.route("vdc-relay", bench_drive)
     from_link: list[PlantReadings] = []
     from_bench: list[PlantReadings] = []
-    plant.sense("tank1", ["tank1-depth1"], from_link.append)
-    plant.sense("hp-lwt", ["hp-lwt"], from_bench.append)
+    plant.device("tank1", SensorSource).sense(["tank1-depth1"], from_link.append)
+    plant.device("hp-lwt", SensorSource).sense(["hp-lwt"], from_bench.append)
 
     link.show({"tank1-depth1": 4_800}, READ_MS)
     bench_source.read("hp-lwt", 5_200)
@@ -162,14 +163,14 @@ async def test_one_plant_holds_simulated_and_other_devices_side_by_side() -> Non
     assert from_link == [PlantReadings(("tank1-depth1",), (4_800,), READ_MS)]
     assert from_bench == [PlantReadings(("hp-lwt",), (5_200,), READ_MS)]
 
-    assert await plant.relay("store-pump-relay").set(ENERGIZE) is None
-    assert await plant.relay("vdc-relay").set(ENERGIZE) is None
+    assert await plant.device("store-pump-relay", RelayDrive).set(ENERGIZE) is None
+    assert await plant.device("vdc-relay", RelayDrive).set(ENERGIZE) is None
     assert link.actuations == [("store-pump-relay", ENERGIZE)]
-    assert await plant.relay("vdc-relay").read() == RelayRead(ENERGIZE, None)
+    assert await plant.device("vdc-relay", RelayDrive).read() == RelayRead(ENERGIZE, None)
 
     bench_drive.fault = "expander 0x21 did not answer"
-    assert await plant.relay("vdc-relay").set(DE_ENERGIZE) == "expander 0x21 did not answer"
-    assert await plant.relay("vdc-relay").read() == RelayRead(ENERGIZE, None)
+    assert await plant.device("vdc-relay", RelayDrive).set(DE_ENERGIZE) == "expander 0x21 did not answer"
+    assert await plant.device("vdc-relay", RelayDrive).read() == RelayRead(ENERGIZE, None)
 
 
 def app_on(pair: str, layout: Optional[Path] = None) -> ScadaApp:
@@ -195,13 +196,13 @@ def test_the_app_puts_the_link_behind_sim_sensors_and_simulated_board_relays(
     link = app.plant_link
     assert isinstance(link, InProcessPlantLink)
 
-    assert len(app.plant.source_by_node) == sim_sensors
-    assert all(source is link for source in app.plant.source_by_node.values())
-    assert len(app.plant.drive_by_node) == relays
-    for name, drive in app.plant.drive_by_node.items():
-        assert isinstance(drive, LinkRelayDrive)
+    devices = app.plant.device_by_node
+    assert sum(device is link for device in devices.values()) == sim_sensors
+    drives = {n: d for n, d in devices.items() if isinstance(d, LinkRelayDrive)}
+    assert len(drives) == relays
+    for name, drive in drives.items():
         assert (drive.link, drive.relay_name) == (link, name)
-    assert sum(d.reads_back for d in app.plant.drive_by_node.values()) == reading_back
+    assert sum(d.reads_back for d in drives.values()) == reading_back
 
 
 @pytest.mark.parametrize(
@@ -218,7 +219,9 @@ def test_the_app_puts_the_board_behind_the_relays_of_a_board_that_is_not_simulat
     layout.write_text(
         (CONFIG / f"{pair}.layout.json").read_text().replace(f'"{sim_board}"', f'"{board}"')
     )
-    drives = list(app_on(pair, layout).plant.drive_by_node.values())
+    drives = [
+        d for d in app_on(pair, layout).plant.device_by_node.values() if isinstance(d, RelayDrive)
+    ]
 
     assert sum(isinstance(d, I2cRelayDrive) for d in drives) == on_expanders
     assert sum(isinstance(d, GpioRelayDrive) for d in drives) == on_gpio
@@ -231,12 +234,12 @@ async def test_a_simulated_house_relay_is_driven_through_the_plant_by_its_node_n
     link = app.plant_link
     assert isinstance(link, InProcessPlantLink)
 
-    assert await app.plant.relay("store-pump-relay").set(ENERGIZE) is None
+    assert await app.plant.device("store-pump-relay", RelayDrive).set(ENERGIZE) is None
 
     assert link.actuations == [("store-pump-relay", ENERGIZE)]
-    assert await app.plant.relay("store-pump-relay").read() == RelayRead(ENERGIZE, None)
-    with pytest.raises(ValueError, match="dist-010v has no relay drive"):
-        app.plant.relay("dist-010v")
+    assert await app.plant.device("store-pump-relay", RelayDrive).read() == RelayRead(ENERGIZE, None)
+    with pytest.raises(ValueError, match="dist-010v has no device in the plant"):
+        app.plant.device("dist-010v", RelayDrive)
 
 
 @pytest.mark.asyncio
@@ -245,5 +248,4 @@ async def test_the_secondary_scada_has_a_plant_with_nothing_behind_it(
 ) -> None:
     async with ScadaLiveTest(request=request) as h:
         plant = h.child2_app.plant
-        assert plant.source_by_node == {}
-        assert plant.drive_by_node == {}
+        assert plant.device_by_node == {}

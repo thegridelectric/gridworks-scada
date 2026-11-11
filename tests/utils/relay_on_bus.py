@@ -11,7 +11,5 @@ def relay_on_bus(app: ScadaApp, relay_name: str) -> Relay:
     node = app.hardware_layout.node(relay_name)
     assert node is not None
     app._plant = Plant()
-    app.plant.route_relay(
-        relay_name, I2cRelayDrive(resolve_i2c_actuation(app.hardware_layout, node))
-    )
+    app.plant.route(relay_name, I2cRelayDrive(resolve_i2c_actuation(app.hardware_layout, node)))
     return Relay(relay_name, app)

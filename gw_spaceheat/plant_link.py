@@ -314,7 +314,7 @@ def route_simulated_devices(plant: Plant, layout: HydronicLayout, link: PlantLin
     for node in layout.nodes.values():
         component = node.component
         if node.actor_class == ActorClass.SimSensorActor:
-            plant.route_sensor(node.name, link)
+            plant.route(node.name, link)
         elif (
             node.actor_class == ActorClass.Relay
             and isinstance(component, BoardResidentComponent)
@@ -324,4 +324,4 @@ def route_simulated_devices(plant: Plant, layout: HydronicLayout, link: PlantLin
                 isinstance(component, I2cRelayComponent)
                 and component.board_component.device_type.SupportsPinReadback
             )
-            plant.route_relay(node.name, link.drive(node.name, reads_back=reads_back))
+            plant.route(node.name, link.drive(node.name, reads_back=reads_back))
