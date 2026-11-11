@@ -16,7 +16,10 @@ from gwsproto.data_classes.components import (
 )
 
 from gwsproto.named_types import SingleReading
+from plant import PinInput, Streaks
 from scada_app_interface import ScadaAppInterface
+
+
 class GpioSensor(ShNodeActor):
     """
     Reads a single GPIO input pin and publishes its raw logical state
@@ -42,7 +45,6 @@ class GpioSensor(ShNodeActor):
         if self.component.gt.SenseMode != GpioSenseMode.Polling:
             raise Exception("GpioSensor only works for Polling right now"
                             f", not {self.component.gt.SenseMode}")
-        self.gpio_pin = self._resolve_gpio_pin()
         self.channel_name = next(
             dc.Name
             for dc in self.layout.data_channels.values()
@@ -61,38 +63,14 @@ class GpioSensor(ShNodeActor):
         self.latest_value: int | None = None
         self._stop_requested = False
 
-        # Real pin only on a real board; a SimGw108 board has no GPIO and
-        # reads sim_pin_value, which a test or the simulated plant sets.
-        self.sim_pin_value: int = 1
-        if self.component.board_component.simulated:
-            self.GPIO = None
-        else:
-            import RPi.GPIO as GPIO
-            self.GPIO = GPIO
-
-    def _resolve_gpio_pin(self) -> int:
-        """GpioName resolved against the NativeGpioInputs of the layout's
-        board device-type records — the board record carries the physical
-        BCM pin."""
-        gpio_name = self.component.gt.GpioName
-        for record in self.layout.device_types.values():
-            for pin in getattr(record, "NativeGpioInputs", []):
-                if pin.Name == gpio_name:
-                    return pin.BcmPin
-        raise ValueError(
-            f"{self.name}: no board device-type record in the layout carries "
-            f"a native GPIO input named {gpio_name}"
-        )
+        self.pin = self.my_device(PinInput)
+        self.streaks = Streaks()
 
     def start(self):
-        if self.GPIO:
-            self.GPIO.setmode(self.GPIO.BCM)
-            self.GPIO.setup(self.gpio_pin, self.GPIO.IN)
-
         self.services.add_task(
             asyncio.create_task(self.main(), name=f"{self.name}-main")
         )
-        self.log(f"GpioSensor started on GPIO {self.gpio_pin}")
+        self.log("GpioSensor started")
 
     def next_capture_time(self) -> float:
         now = time.time()
@@ -103,11 +81,16 @@ class GpioSensor(ShNodeActor):
         """ Update prev_value, latest_value,
         If value changed then return True. Else return False
         """
-        if self.GPIO:
-            raw = self.GPIO.input(self.gpio_pin)
-            latest = 1 if raw else 0
-        else:
-            latest = self.sim_pin_value
+        read = self.pin.read()
+        for said in self.streaks.fresh(self.channel_name, read.said):
+            self.send_warning(said.summary, f"{self.channel_name}: {said.details}")
+        latest = read.value
+        if latest is None:
+            # Nothing is held while the pin cannot be read, so nothing is
+            # published, and the next value read publishes as a first one.
+            self.prev_value = None
+            self.latest_value = None
+            return False
         if latest != self.latest_value:
             self.prev_value = self.latest_value
             self.latest_value = latest

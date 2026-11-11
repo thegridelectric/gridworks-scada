@@ -54,6 +54,31 @@ class Device:
 DeviceT = TypeVar("DeviceT", bound=Device)
 
 
+class Said(NamedTuple):
+    """Something a device says of itself, for its actor to report as a
+    glitch. A streak one is said by every call that fails the same way and
+    is reported once, until a call no longer says it."""
+
+    summary: str
+    details: str
+    streak: bool
+
+
+class Streaks:
+    """Which of the things an actor's device says are new to report."""
+
+    def __init__(self) -> None:
+        self.running: dict[str, set[str]] = {}
+
+    def fresh(self, about: str, said: Iterable[Said]) -> list[Said]:
+        """What to report of what one call said. about names what was
+        asked, so that two channels failing the same way are two streaks."""
+        said = list(said)
+        running = self.running.get(about, set())
+        self.running[about] = {s.summary for s in said if s.streak}
+        return [s for s in said if not s.streak or s.summary not in running]
+
+
 class PlantReadings(NamedTuple):
     """Channel values at one read time, in each channel's own encoding.
     What a sensor source hands a sensor. Interior to the scada and never
@@ -116,6 +141,26 @@ class RelayDrive(Device, ABC):
 
     def check(self) -> None:
         """A set did not take: have what the relay sits on check itself."""
+
+
+PIN_READ_FAILED = "gpio-read-failed"
+
+
+class PinRead(NamedTuple):
+    """One read of an input pin: 0 or 1, or None with what the device said
+    of a read that failed. None with nothing said is a pin with nothing to
+    read yet."""
+
+    value: Optional[int]
+    said: tuple[Said, ...]
+
+
+class PinInput(Device, ABC):
+    """One digital input, read when its actor asks."""
+
+    @abstractmethod
+    def read(self) -> PinRead:
+        """The pin's level now."""
 
 
 class Plant:

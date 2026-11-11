@@ -34,7 +34,18 @@ from gwsproto.property_format import SpaceheatName, UtcIso8601Millis, UTCMillise
 from pydantic import ValidationError
 
 from clock import Clock
-from plant import Deliver, Plant, PlantReadings, RelayDrive, RelayRead, SensorSource
+from plant import (
+    PIN_READ_FAILED,
+    Deliver,
+    PinInput,
+    PinRead,
+    Plant,
+    PlantReadings,
+    RelayDrive,
+    RelayRead,
+    Said,
+    SensorSource,
+)
 
 # A plant quiet for this long is taken as gone. Its next flux is a fresh
 # start, and a plant that has just started knows no relay position.
@@ -54,6 +65,7 @@ class PlantLink(SensorSource):
     def __init__(self, *, silent_after_s: float, monotonic: Callable[[], float]) -> None:
         self.silent_after_s = silent_after_s
         self.monotonic = monotonic
+        self.born_at = monotonic()
         self.heard_at: Optional[float] = None
         self.sensor_by_channel: dict[str, Deliver] = {}
         self.positions: dict[str, ChangeRelayPin] = {}
@@ -96,6 +108,14 @@ class PlantLink(SensorSource):
             self.heard_at is None
             or self.monotonic() - self.heard_at > self.silent_after_s
         )
+
+    def plant_is_gone(self) -> bool:
+        """Whether a polled device should call its plant missing: no flux
+        for the silence threshold. A plant never heard is given the same
+        threshold from the link's own start, so a scada and a plant that
+        boot together meet without a failed read between them."""
+        since = self.heard_at if self.heard_at is not None else self.born_at
+        return self.monotonic() - since > self.silent_after_s
 
     def take(self, flux: PlantReadings) -> None:
         """One flux from the plant: each sensor gets its own channels, in
@@ -158,6 +178,41 @@ class LinkRelayDrive(RelayDrive):
 
     async def told(self) -> ChangeRelayPin:
         return self.link.relay(self.relay_name) or ChangeRelayPin.DeEnergize
+
+
+PLANT_GONE = "the plant is silent"
+
+
+class LinkChannels:
+    """A simulated device that is read when asked. It keeps the latest plant
+    value of each of its channels. While the plant is gone a read fails, as
+    a device that stops answering does; a channel the plant has not sent
+    yet has nothing to read and no failure."""
+
+    def __init__(self, link: PlantLink, channel_names: Iterable[SpaceheatName]) -> None:
+        self.link = link
+        self.latest: dict[str, int] = {}
+        link.sense(channel_names, self.keep)
+
+    def keep(self, readings: PlantReadings) -> None:
+        self.latest.update(zip(readings.channel_names, readings.values))
+
+    def value(self, channel_name: str) -> tuple[Optional[int], Optional[str]]:
+        if self.link.plant_is_gone():
+            return None, PLANT_GONE
+        return self.latest.get(channel_name), None
+
+
+class LinkPinInput(LinkChannels, PinInput):
+    def __init__(self, link: PlantLink, channel_name: SpaceheatName) -> None:
+        super().__init__(link, [channel_name])
+        self.channel_name = channel_name
+
+    def read(self) -> PinRead:
+        value, error = self.value(self.channel_name)
+        if error is not None:
+            return PinRead(None, (Said(PIN_READ_FAILED, error, True),))
+        return PinRead(value, ())
 
 
 class InProcessPlantLink(PlantLink):
@@ -306,22 +361,31 @@ def build_plant_link(
     raise ValueError(f"Unknown plant link kind {kind}")
 
 
+def captured_channel_names(layout: HydronicLayout, node_name: str) -> list[SpaceheatName]:
+    return [dc.Name for dc in layout.data_channels.values() if dc.CapturedByNodeName == node_name]
+
+
 def route_simulated_devices(plant: Plant, layout: HydronicLayout, link: PlantLink) -> None:
     """Put the link behind the layout's simulated devices: every
-    SimSensorActor node senses through it, and every relay on a simulated
-    board is driven through it. An expander relay reads back where its
-    board's record says the board reads its pins."""
+    SimSensorActor node, and every device on a simulated board. An expander
+    relay reads back where its board's record says the board reads its
+    pins."""
     for node in layout.nodes.values():
         component = node.component
         if node.actor_class == ActorClass.SimSensorActor:
             plant.route(node.name, link)
-        elif (
-            node.actor_class == ActorClass.Relay
-            and isinstance(component, BoardResidentComponent)
+            continue
+        if not (
+            isinstance(component, BoardResidentComponent)
             and component.board_component.simulated
         ):
+            continue
+        if node.actor_class == ActorClass.Relay:
             reads_back = (
                 isinstance(component, I2cRelayComponent)
                 and component.board_component.device_type.SupportsPinReadback
             )
             plant.route(node.name, link.drive(node.name, reads_back=reads_back))
+        elif node.actor_class == ActorClass.GpioSensor:
+            [channel_name] = captured_channel_names(layout, node.name)
+            plant.route(node.name, LinkPinInput(link, channel_name))
