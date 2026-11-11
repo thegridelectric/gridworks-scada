@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import typing
 from gwsproto.data_classes.components import ElectricMeterComponent
@@ -6,7 +7,10 @@ from actors.config import ScadaSettings
 from pathlib import Path
 from sema_to_dc import load_layout
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
-from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import GridworksSimPm1_PowerMeterDriver
+from drivers.power_meter.egauge_4030__power_meter_driver import EGuage4030_PowerMeterDriver
+from drivers.power_meter.plant_link__power_meter_driver import PlantLink_PowerMeterDriver, PlantSilent
+from drivers.power_meter.power_meter_driver import PowerMeterDriver
+from plant_link import PlantLinkKind
 
 from scada_app import ScadaApp
 from gwproactor_test.certs import uses_tls
@@ -22,15 +26,18 @@ from actors.power_meter import DriverThreadSetupHelper
 from actors.power_meter import PowerMeter
 from actors.power_meter import PowerMeterDriverThread
 from tests.utils.scada_live_test_helper import ScadaLiveTest
+from tests.utils.standing_plant import StandingPlant
 
 
 def test_power_meter_small():
     settings = ScadaApp.get_settings()
     if uses_tls(settings):
         copy_keys("scada", settings)
+    settings.plant_link = PlantLinkKind.InProcess
     settings.paths.mkdirs()
     scada_app = ScadaApp(app_settings=settings)
     scada_app.instantiate()
+    StandingPlant(scada_app)
     scada = scada_app.scada
     layout = scada.layout
     # Raise exception if initiating node is anything except the unique power meter node
@@ -188,14 +195,10 @@ async def test_async_power_update(request: pytest.FixtureRequest):
                 PowerMeter
             )._sync_thread
         )
-        driver = typing.cast(
-            GridworksSimPm1_PowerMeterDriver,
-            p.driver
-        )
 
         delta_w = int(p.async_power_reporting_threshold * p.nameplate_agg_power_w) + 1
 
-        driver.fake_power_w += delta_w
+        h.plant.meter_reads(delta_w)
         # the aggregate and the channel readings are two messages; wait for both
         await h.await_for(
                 lambda: data.latest_power_w > 0
@@ -224,7 +227,7 @@ async def test_async_power_update(request: pytest.FixtureRequest):
         assert data.latest_channel_values["hp-ctrl-box-pwr"] == delta_w
         assert data.latest_channel_values[HCN.hp_odu_pwr] == delta_w
 
-        # The sim driver applies fake_power_w to every metered channel, so
+        # The test's plant puts the same watts on every metered channel, so
         # the aggregate sees all six transactive channels move.
         assert data.latest_power_w == 6 * delta_w
 
@@ -264,18 +267,17 @@ async def test_whitewire_power_through_the_sim_meter_becomes_the_zone_heat_call(
             "primary-pump-pwr",
             "store-pump-pwr",
         }
-        driver = typing.cast(GridworksSimPm1_PowerMeterDriver, p.driver)
 
         await h.await_for(
             lambda: data.latest_channel_values.get("zone1-main-heat-call") == 0,
             "heat call idle at 0 W",
         )
-        driver.fake_power_w = 50
+        h.plant.meter_reads(50)
         await h.await_for(
             lambda: data.latest_channel_values.get("zone1-main-heat-call") == 1,
             "heat call calling at 50 W",
         )
-        driver.fake_power_w = 0
+        h.plant.meter_reads(0)
         await h.await_for(
             lambda: data.latest_channel_values.get("zone1-main-heat-call") == 0,
             "heat call idle again at 0 W",
@@ -303,18 +305,17 @@ async def test_secondary_pump_power_through_the_sim_meter_becomes_secondary_pump
             )._sync_thread,
         )
         assert HCN.secondary_pump_pwr in {ch.Name for ch in p.derived_input_channels}
-        driver = typing.cast(GridworksSimPm1_PowerMeterDriver, p.driver)
 
         await h.await_for(
             lambda: data.latest_channel_values.get(HCN.secondary_pump_running) == 0,
             "secondary pump off at 0 W",
         )
-        driver.fake_power_w = 50
+        h.plant.meter_reads(50)
         await h.await_for(
             lambda: data.latest_channel_values.get(HCN.secondary_pump_running) == 1,
             "secondary pump running at 50 W",
         )
-        driver.fake_power_w = 20
+        h.plant.meter_reads(20)
         await h.await_for(
             lambda: data.latest_channel_values.get(HCN.secondary_pump_running) == 0,
             "secondary pump off at the threshold",
@@ -382,13 +383,12 @@ async def test_a_lost_meter_channel_goes_unknown_and_stops_reporting(
         h.start_child1()
         data = h.child1_app.scada.data
         p = meter_thread(h)
-        driver = typing.cast(GridworksSimPm1_PowerMeterDriver, p.driver)
         await h.await_for(
             lambda: data.latest_channel_values.get(HCN.hp_odu_pwr) is not None,
             "first hp-odu-pwr reading",
         )
         sent = record_meter_messages(p)
-        driver.no_value_channel_names = {HCN.hp_odu_pwr}
+        h.plant.hide({HCN.hp_odu_pwr})
         await h.await_for(
             lambda: data.latest_channel_values[HCN.hp_odu_pwr] is None,
             "hp-odu-pwr unknown at the scada",
@@ -417,7 +417,6 @@ async def test_a_short_gap_in_meter_reads_is_not_a_loss(
         h.start_child1()
         data = h.child1_app.scada.data
         p = meter_thread(h)
-        driver = typing.cast(GridworksSimPm1_PowerMeterDriver, p.driver)
         await h.await_for(
             lambda: data.latest_channel_values.get(HCN.hp_odu_pwr) == 0,
             "first hp-odu-pwr reading",
@@ -425,14 +424,14 @@ async def test_a_short_gap_in_meter_reads_is_not_a_loss(
         sent = record_meter_messages(p)
         # The watts move while the channel returns no value, so a value
         # that stays at 0 shows the reads in the gap came back empty.
-        driver.no_value_channel_names = {HCN.hp_odu_pwr}
-        driver.fake_power_w = 700
+        h.plant.hide({HCN.hp_odu_pwr})
+        h.plant.meter_reads(700)
         await h.await_for(
             lambda: data.latest_channel_values[HCN.hp_idu_pwr] == 700,
             "a poll inside the gap",
         )
         assert data.latest_channel_values[HCN.hp_odu_pwr] == 0
-        driver.no_value_channel_names = set()
+        h.plant.hide(set())
         await h.await_for(
             lambda: data.latest_channel_values[HCN.hp_odu_pwr] == 700,
             "hp-odu-pwr read again",
@@ -454,18 +453,17 @@ async def test_a_recovered_meter_channel_reports_on_that_poll(
         h.start_child1()
         data = h.child1_app.scada.data
         p = meter_thread(h)
-        driver = typing.cast(GridworksSimPm1_PowerMeterDriver, p.driver)
         await h.await_for(
             lambda: data.latest_channel_values.get(WHITEWIRE) == 0,
             "first whitewire reading",
         )
-        driver.no_value_channel_names = {WHITEWIRE}
+        h.plant.hide({WHITEWIRE})
         await h.await_for(
             lambda: data.latest_channel_values[WHITEWIRE] is None,
             "whitewire unknown at the scada",
         )
         sent = record_meter_messages(p)
-        driver.no_value_channel_names = set()
+        h.plant.hide(set())
         await h.await_for(
             lambda: data.latest_channel_values[WHITEWIRE] == 0,
             "whitewire back at the scada",
@@ -498,19 +496,18 @@ async def test_a_recovered_transactive_channel_reports_aggregate_power(
         h.start_child1()
         data = h.child1_app.scada.data
         p = meter_thread(h)
-        driver = typing.cast(GridworksSimPm1_PowerMeterDriver, p.driver)
         assert HCN.hp_odu_pwr in p.transactive_channel_names
         await h.await_for(
             lambda: data.latest_channel_values.get(HCN.hp_odu_pwr) == 0,
             "first hp-odu-pwr reading",
         )
-        driver.no_value_channel_names = {HCN.hp_odu_pwr}
+        h.plant.hide({HCN.hp_odu_pwr})
         await h.await_for(
             lambda: data.latest_channel_values[HCN.hp_odu_pwr] is None,
             "hp-odu-pwr unknown at the scada",
         )
         sent = record_meter_messages(p)
-        driver.no_value_channel_names = set()
+        h.plant.hide(set())
         await h.await_for(
             lambda: data.latest_channel_values[HCN.hp_odu_pwr] == 0,
             "hp-odu-pwr back at the same watts",
@@ -529,9 +526,11 @@ def test_periodic_power_report_lands_on_the_period_boundary(monkeypatch: pytest.
     settings = ScadaApp.get_settings()
     if uses_tls(settings):
         copy_keys("scada", settings)
+    settings.plant_link = PlantLinkKind.InProcess
     settings.paths.mkdirs()
     scada_app = ScadaApp(app_settings=settings)
     scada_app.instantiate()
+    StandingPlant(scada_app)
     layout = scada_app.scada.layout
     meter = PowerMeter(CoreNodeNames.asset_power_meter, services=scada_app)
     driver_thread: PowerMeterDriverThread = meter._sync_thread
@@ -581,13 +580,14 @@ def test_the_power_meter_creates_transactive_power(monkeypatch: pytest.MonkeyPat
     settings = ScadaApp.get_settings()
     if uses_tls(settings):
         copy_keys("scada", settings)
+    settings.plant_link = PlantLinkKind.InProcess
     settings.paths.mkdirs()
     scada_app = ScadaApp(app_settings=settings)
     scada_app.instantiate()
+    plant = StandingPlant(scada_app)
     meter = PowerMeter(CoreNodeNames.asset_power_meter, services=scada_app)
     p: PowerMeterDriverThread = meter._sync_thread
     p.set_async_loop(asyncio.new_event_loop(), asyncio.Queue())
-    driver = typing.cast(GridworksSimPm1_PowerMeterDriver, p.driver)
     assert p.transactive_period_s == 300
     assert p.derived_channels_created() == {"transactive-power"}
 
@@ -604,13 +604,13 @@ def test_the_power_meter_creates_transactive_power(monkeypatch: pytest.MonkeyPat
         CoreNodeNames.primary_scada
     }
 
-    # 6 metered transactive channels; the sim driver puts fake_power_w on each.
+    # 6 metered transactive channels; the test's plant puts the same watts on each.
     ratio_w = p.async_power_reporting_threshold * p.nameplate_agg_power_w
     below = int(ratio_w / 6) - 1
     above = int(ratio_w / 6) + 1
     sent.clear()
     clock["now"] = boundary + 290.0
-    driver.fake_power_w = below
+    plant.meter_reads(below)
     p._iterate()  # inside the period, below the ratio
     assert transactive_messages(sent) == []
 
@@ -622,8 +622,98 @@ def test_the_power_meter_creates_transactive_power(monkeypatch: pytest.MonkeyPat
 
     sent.clear()
     clock["now"] = boundary + 320.0
-    driver.fake_power_w = below + above
+    plant.meter_reads(below + above)
     p._iterate()  # a change above the ratio inside the period
     assert transactive_messages(sent) == [
         ("power.watts", 6 * (below + above)), ("transactive-power", 6 * (below + above))
     ]
+
+
+# --- the meter behind the power meter ------------------------------------------
+
+
+def nolan_app(layout: Path | None = None) -> ScadaApp:
+    settings = ScadaApp.get_settings()
+    if layout is not None:
+        settings.paths.hardware_layout = layout
+        settings.paths.operational_params = (
+            Path(__file__).parent.parent / "config" / "gw.nolan.operational.params.json"
+        )
+    settings.plant_link = PlantLinkKind.InProcess
+    settings.paths.mkdirs()
+    return ScadaApp(app_settings=settings)
+
+
+def test_a_simulated_meter_reads_the_plants_latest_flux_and_never_raises() -> None:
+    app = nolan_app()
+    link = app.plant_link
+    driver = app.plant.device(CoreNodeNames.asset_power_meter, PowerMeterDriver)
+    assert isinstance(driver, PlantLink_PowerMeterDriver)
+    hp_odu = app.hardware_layout.data_channels[HCN.hp_odu_pwr]
+    ctrl_box = app.hardware_layout.data_channels["hp-ctrl-box-pwr"]
+    now = [0.0]
+    link.monotonic = lambda: now[0]
+    link.born_at = 0.0
+
+    nothing_yet = driver.read_telemetry_value(hp_odu).unwrap()
+    assert (nothing_yet.value, nothing_yet.warnings) == (None, [])
+
+    link.show({HCN.hp_odu_pwr: 700, "hp-ctrl-box-pwr": 30}, 1_735_689_600_123)
+    assert driver.read_telemetry_value(hp_odu).unwrap().value == 700
+    link.show({"hp-ctrl-box-pwr": 30}, 1_735_689_600_123)
+    left_out = driver.read_telemetry_value(hp_odu).unwrap()
+    assert (left_out.value, left_out.warnings) == (None, [])
+    assert driver.read_telemetry_value(ctrl_box).unwrap().value == 30
+
+    now[0] = link.silent_after_s + 1
+    silent = driver.read_telemetry_value(ctrl_box).unwrap()
+    assert silent.value is None
+    assert [(type(w), str(w)) for w in silent.warnings] == [(PlantSilent, "the plant is silent")]
+    assert driver.start().is_ok()
+    assert driver.read_hw_uid().is_ok()
+
+
+def test_a_silent_plant_is_a_meter_warning_and_then_a_lost_channel() -> None:
+    app = nolan_app()
+    app.instantiate()
+    link = app.plant_link
+    meter = PowerMeter(CoreNodeNames.asset_power_meter, services=app)
+    p: PowerMeterDriverThread = meter._sync_thread
+    p.set_async_loop(asyncio.new_event_loop(), asyncio.Queue())
+    sent = record_meter_messages(p)
+    link.show({name: 0 for name in [ch.Name for ch in p.my_channels]}, 1_735_689_600_123)
+    p._iterate()
+    assert flatlined_names(sent) == []
+
+    now = [0.0]
+    link.monotonic = lambda: now[0]
+    link.heard_at = 0.0
+    now[0] = link.silent_after_s + 1
+    p.lost_after_s = 0.0
+    sent.clear()
+    p._iterate()
+    p._iterate()
+
+    glitches = [m.Payload for m in sent if m.Payload.TypeName == "glitch"]
+    assert {g.Summary for g in glitches} == {"meter-read-warning"}
+    assert len(glitches) == len(p.my_channels), "one warning a channel, not one a read"
+    assert f"{HCN.hp_odu_pwr}: PlantSilent: the plant is silent" in {g.Details for g in glitches}
+    assert sorted(flatlined_names(sent)) == sorted(ch.Name for ch in p.my_channels)
+
+
+def test_an_egauge_layout_has_the_egauge_behind_the_power_meter(tmp_path: Path) -> None:
+    settings = ScadaApp.get_settings()
+    d = json.loads(Path(settings.paths.hardware_layout).read_text())
+    for record in d["DeviceTypes"]:
+        if record.get("DeviceType") == "SimPowerMeter":
+            record["DeviceType"] = "EgaugePowerMeter"
+    for component in d["Components"]:
+        if component["TypeName"] == "electric.meter.component.gt":
+            component["DeviceType"] = "EgaugePowerMeter"
+            component["ModbusHost"] = "127.0.0.1"
+            component["ModbusPort"] = 502
+    layout = tmp_path / "layout.json"
+    layout.write_text(json.dumps(d))
+
+    driver = nolan_app(layout).plant.device(CoreNodeNames.asset_power_meter, PowerMeterDriver)
+    assert isinstance(driver, EGuage4030_PowerMeterDriver)

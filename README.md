@@ -151,8 +151,9 @@ device by node name, and what answers is chosen once where the app is built
 the hardware itself: a relay is driven on the board
 (`gw_spaceheat/relay_drives.py`), a GPIO input is read on its pin
 (`gw_spaceheat/pin_inputs.py`), a 0-10 V output is set on the board's DAC
-(`gw_spaceheat/dac_drives.py`) and a thermistor is read on the board's ADC
-(`gw_spaceheat/thermistor_inputs.py`).
+(`gw_spaceheat/dac_drives.py`), a thermistor is read on the board's ADC
+(`gw_spaceheat/thermistor_inputs.py`) and the power meter reads its eGauge
+(`gw_spaceheat/drivers/power_meter/`).
 
 For a simulated device what answers is the plant link
 (`gw_spaceheat/plant_link.py`), which a layout with a simulated device gets.
@@ -161,11 +162,12 @@ addressed from the layout's TerminalAsset GNode to its Scada GNode:
 
 - a `SimSensorActor` node reports its channels as they arrive, and reports
   nothing while nothing publishes them;
-- a GPIO sensor or a thermistor reader on a simulated board reads the latest
-  value of each of its channels. It has nothing to read until the plant sends
-  one, and its read fails once the plant has been silent for 15 s. A thermistor
-  reader reports the plant's temperature, and its microvolts where the plant
-  sends them;
+- a GPIO sensor or a thermistor reader on a simulated board, and a simulated
+  power meter, read each of their channels in the plant's latest flux. A flux
+  is all the plant shows: a channel it leaves out has no value, and neither has
+  any channel before the first flux. The read fails once the plant has been
+  silent for 15 s. A thermistor reader reports the plant's temperature, and its
+  microvolts where the plant sends them;
 - a relay on a simulated board sends its position to the plant as
   `sim.plant.actuation` when it is commanded and again on each verify pass;
 - a 0-10 V output on a simulated board keeps the level it is set and reports
@@ -173,6 +175,9 @@ addressed from the layout's TerminalAsset GNode to its Scada GNode:
 
 `SCADA_PLANT_LINK=InProcess` builds the link with no broker; the tests use that
 form, show the devices their values directly and read the relay positions back.
+A live test's primary scada has a plant that is always there
+(`tests/utils/standing_plant.py`), showing 0 W on every metered channel until
+the test shows something else.
 
 ### Dependencies
 

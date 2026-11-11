@@ -7,9 +7,11 @@ either way, so a layout that misplaces a device fails the boot whether or
 not its board is simulated.
 """
 
+import logging
 from typing import Optional
 
 from gwsproto.data_classes.components import (
+    ElectricMeterComponent,
     GpioRelayComponent,
     GpioSensorComponent,
     I2cDacOutputComponent,
@@ -18,10 +20,13 @@ from gwsproto.data_classes.components import (
 )
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.data_classes.sh_node import ShNode
-from gwsproto.enums import ActorClass
+from gwsproto.enums import ActorClass, DeviceType, SimDeviceType
 from gwsproto.property_format import SpaceheatName
 
+from actors.config import ScadaSettings
 from dac_drives import I2cDacDrive, KeptLevelDrive, resolve_dac_output
+from drivers.power_meter.egauge_4030__power_meter_driver import EGuage4030_PowerMeterDriver
+from drivers.power_meter.plant_link__power_meter_driver import PlantLink_PowerMeterDriver
 from pin_inputs import GpioPinInput, resolve_gpio_input_pin
 from plant import Device, Plant
 from plant_link import LinkPinInput, LinkThermistorInput, PlantLink
@@ -38,15 +43,17 @@ def captured_channel_names(layout: HydronicLayout, node_name: str) -> list[Space
     return [dc.Name for dc in layout.data_channels.values() if dc.CapturedByNodeName == node_name]
 
 
-def route_devices(plant: Plant, layout: HydronicLayout, link: Optional[PlantLink]) -> None:
+def route_devices(
+    plant: Plant, layout: HydronicLayout, link: Optional[PlantLink], settings: ScadaSettings
+) -> None:
     for node in layout.nodes.values():
-        device = device_behind(layout, node, link)
+        device = device_behind(layout, node, link, settings)
         if device is not None:
             plant.route(node.name, device)
 
 
 def device_behind(
-    layout: HydronicLayout, node: ShNode, link: Optional[PlantLink]
+    layout: HydronicLayout, node: ShNode, link: Optional[PlantLink], settings: ScadaSettings
 ) -> Optional[Device]:
     """The device of one node, None for a node that has none."""
 
@@ -93,4 +100,13 @@ def device_behind(
                 },
             )
         return Ads1115ThermistorInput(adc)
+    if actor_class == ActorClass.PowerMeter and isinstance(component, ElectricMeterComponent):
+        meter_type = component.device_type.DeviceType
+        if meter_type == SimDeviceType.SimPowerMeter:
+            return PlantLink_PowerMeterDriver(component, settings, the_link())
+        if meter_type == DeviceType.EgaugePowerMeter:
+            return EGuage4030_PowerMeterDriver(
+                component, settings, logger=logging.getLogger(settings.logging.base_log_name)
+            )
+        raise NotImplementedError(f"No ElectricMeter driver yet for {meter_type}")
     return None

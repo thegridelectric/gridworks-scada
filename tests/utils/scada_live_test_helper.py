@@ -20,7 +20,7 @@ from gwsproto.named_types import DispatchHold, OperationalParams, TaDeed
 from gwsproto.property_format import LeftRightDotStr
 from tests.conftest import TEST_HARDWARE_LAYOUT_PATH
 from ltn_app import LtnApp
-from plant_link import PlantLinkKind
+from plant_link import InProcessPlantLink, PlantLinkKind
 from weather_source import WeatherSourceKind
 from scada2_app import Scada2App
 from scada_app import ScadaApp
@@ -29,6 +29,7 @@ from actors.config import DEFAULT_TA_DEED_FILE
 from actors.hydronic.shared import dispatch_channels
 from actors.scada import Scada
 from sema_to_dc import load_layout
+from tests.utils.standing_plant import StandingPlant
 
 
 def fixture_deed_path(layout: HydronicLayout) -> Optional[Path]:
@@ -226,7 +227,7 @@ class ScadaLiveTest(TreeLiveTest):
         primary_layout = child1_layout or child_layout or layout
         # The suite never reaches a live weather API.
         kwargs["child_app_settings"].weather_source = WeatherSourceKind.Sim
-        # Nor a plant on a broker: a test that needs one plays it in process.
+        # Nor a plant on a broker: the test plays it in process, as self.plant.
         kwargs["child_app_settings"].plant_link = PlantLinkKind.InProcess
         seeded_deed = Path(kwargs["child_app_settings"].paths.tadeed)
         if primary_layout is not None and seeded_deed.exists():
@@ -258,6 +259,8 @@ class ScadaLiveTest(TreeLiveTest):
         apps inside its constructor, so this is the one place before that."""
         app = super()._make_app(app_type, app_settings, **kwargs)
         app.sub_types.proactor_type = RecordingProactor
+        if isinstance(app, ScadaApp) and isinstance(app.plant_link, InProcessPlantLink):
+            self.plant = StandingPlant(app)
         for ws in app.config.layout.get_components_by_type(WebServerComponent):
             if id(ws.web_server_gt) not in self.reassigned_web_servers:
                 self.reassigned_web_servers.add(id(ws.web_server_gt))

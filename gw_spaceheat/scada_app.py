@@ -72,7 +72,7 @@ class ScadaApp(App, ScadaAppInterface):
             clock=self._clock,
         )
         self._plant = Plant()
-        route_devices(self._plant, self.hardware_layout, self._plant_link)
+        route_devices(self._plant, self.hardware_layout, self._plant_link, self.settings)
         self._weather_source = weather_source if weather_source is not None else build_weather_source(
             self.settings.weather_source,
             load_operational_params(self.settings),

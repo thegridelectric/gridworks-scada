@@ -14,9 +14,13 @@ from gwsproto.data_classes.components.electric_meter_component import \
     ElectricMeterComponent
 from drivers.driver_result import DriverResult
 from gwsproto.enums import TelemetryName
+from plant import Device
 
 
-class PowerMeterDriver(ABC):
+class PowerMeterDriver(Device, ABC):
+    """An electric meter, as the power meter's thread reads it. The thread
+    starts it, and logs through the logger the power meter gives it."""
+
     component: ElectricMeterComponent
     settings: ScadaSettings
     logger: LoggerOrAdapter

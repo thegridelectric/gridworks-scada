@@ -48,6 +48,7 @@ from plant import (
 # A plant quiet for this long is taken as gone. Its next flux is a fresh
 # start, and a plant that has just started knows no relay position.
 PLANT_SILENT_AFTER_S = 15.0
+PLANT_GONE = "the plant is silent"
 
 MODULE_LOGGER = logging.getLogger(__name__)
 
@@ -66,6 +67,8 @@ class PlantLink(SensorSource):
         self.born_at = monotonic()
         self.heard_at: Optional[float] = None
         self.sensor_by_channel: dict[str, Deliver] = {}
+        self.polled_channels: set[str] = set()
+        self.latest: dict[str, int] = {}
         self.positions: dict[str, ChangeRelayPin] = {}
         self.unsensed_channels: set[str] = set()
 
@@ -80,9 +83,29 @@ class PlantLink(SensorSource):
         flux they cover. A channel has one sensor, as it has one capturing
         node in the layout."""
         for name in channel_names:
-            if name in self.sensor_by_channel:
-                raise ValueError(f"channel {name} already has a sensor on the plant link")
+            self.claim(name)
             self.sensor_by_channel[name] = deliver
+
+    def poll(self, channel_names: Iterable[SpaceheatName]) -> None:
+        """These channels are read when their device is asked, with
+        latest_value(), and not handed on as they arrive."""
+        for name in channel_names:
+            self.claim(name)
+            self.polled_channels.add(name)
+
+    def claim(self, channel_name: str) -> None:
+        if channel_name in self.sensor_by_channel or channel_name in self.polled_channels:
+            raise ValueError(f"channel {channel_name} already has a sensor on the plant link")
+
+    def latest_value(self, channel_name: str) -> tuple[Optional[int], Optional[str]]:
+        """A polled channel's value in the plant's latest flux, or None
+        with why the read failed. A flux is all the plant shows: a channel
+        it leaves out has no value, and neither has any channel before the
+        first flux. While the plant is gone the read fails, as a device
+        that stops answering does."""
+        if self.plant_is_gone():
+            return None, PLANT_GONE
+        return self.latest.get(channel_name), None
 
     def set_relay(self, relay_name: str, action: ChangeRelayPin) -> None:
         """Tell the plant a relay's position and keep it. Telling it again
@@ -122,8 +145,11 @@ class PlantLink(SensorSource):
         if self.plant_is_silent():
             self.restate()
         self.heard_at = self.monotonic()
+        self.latest = dict(zip(flux.channel_names, flux.values))
         indexes_by_sensor: dict[Deliver, list[int]] = {}
         for i, name in enumerate(flux.channel_names):
+            if name in self.polled_channels:
+                continue
             deliver = self.sensor_by_channel.get(name)
             if deliver is None:
                 self.note_unsensed(name)
@@ -178,59 +204,38 @@ class LinkRelayDrive(RelayDrive):
         return self.link.relay(self.relay_name) or ChangeRelayPin.DeEnergize
 
 
-PLANT_GONE = "the plant is silent"
-
-
-class LinkChannels:
-    """A simulated device that is read when asked. It keeps the latest plant
-    value of each of its channels. While the plant is gone a read fails, as
-    a device that stops answering does; a channel the plant has not sent
-    yet has nothing to read and no failure."""
-
-    def __init__(self, link: PlantLink, channel_names: Iterable[SpaceheatName]) -> None:
-        self.link = link
-        self.latest: dict[str, int] = {}
-        link.sense(channel_names, self.keep)
-
-    def keep(self, readings: PlantReadings) -> None:
-        self.latest.update(zip(readings.channel_names, readings.values))
-
-    def value(self, channel_name: str) -> tuple[Optional[int], Optional[str]]:
-        if self.link.plant_is_gone():
-            return None, PLANT_GONE
-        return self.latest.get(channel_name), None
-
-
-class LinkPinInput(LinkChannels, PinInput):
+class LinkPinInput(PinInput):
     def __init__(self, link: PlantLink, channel_name: SpaceheatName) -> None:
-        super().__init__(link, [channel_name])
+        self.link = link
         self.channel_name = channel_name
+        link.poll([channel_name])
 
     def read(self) -> PinRead:
-        value, error = self.value(self.channel_name)
+        value, error = self.link.latest_value(self.channel_name)
         if error is not None:
             return PinRead(None, (Said(PIN_READ_FAILED, error, True),))
         return PinRead(value, ())
 
 
-class LinkThermistorInput(LinkChannels, ThermistorInput):
+class LinkThermistorInput(ThermistorInput):
     """A simulated reader's thermistors: the plant's temperature for each,
     and its microvolts where the plant sends them."""
 
     def __init__(
         self, link: PlantLink, microvolts_channel_by_temp_channel: Mapping[str, str]
     ) -> None:
-        super().__init__(
-            link,
-            [*microvolts_channel_by_temp_channel, *microvolts_channel_by_temp_channel.values()],
-        )
+        self.link = link
         self.microvolts_channel_by_temp_channel = microvolts_channel_by_temp_channel
+        link.poll(microvolts_channel_by_temp_channel)
+        link.poll(microvolts_channel_by_temp_channel.values())
 
     async def read(self, temp_channel_name: SpaceheatName) -> ThermistorRead:
-        temp_c_x100, error = self.value(temp_channel_name)
+        temp_c_x100, error = self.link.latest_value(temp_channel_name)
         if error is not None:
             return ThermistorRead(None, None, (Said("i2c-thermistor-read-failed", error, True),))
-        microvolts, _ = self.value(self.microvolts_channel_by_temp_channel[temp_channel_name])
+        microvolts, _ = self.link.latest_value(
+            self.microvolts_channel_by_temp_channel[temp_channel_name]
+        )
         return ThermistorRead(microvolts, temp_c_x100, ())
 
 
