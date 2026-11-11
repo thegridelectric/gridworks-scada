@@ -313,8 +313,9 @@ class Scada(PrimeActor, ScadaInterface):
         # for them and would leak the threads.
         if isinstance(self.services.clock, TimestepClock):
             self.services.clock.start()
-        if self.services.plant_link is not None:
-            self.services.plant_link.start()
+        plant_tasks = (
+            self.services.plant_link.start() if self.services.plant_link is not None else []
+        )
         # The stored contract is loaded before any message is processed, so
         # an offer never meets a contract still waiting in the store.
         loaded_contract_hb = self.contract_handler.initialize()
@@ -322,6 +323,7 @@ class Scada(PrimeActor, ScadaInterface):
             self.resume_at_first_forecast(loaded_contract_hb), name="contract_resumer"
         )
         return [
+            *plant_tasks,
             asyncio.create_task(self.report_sending_task(), name="report_sender"),
             asyncio.create_task(self.snap_sending_task(), name="snap_sender"),
             asyncio.create_task(

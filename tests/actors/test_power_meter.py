@@ -26,7 +26,7 @@ from actors.power_meter import DriverThreadSetupHelper
 from actors.power_meter import PowerMeter
 from actors.power_meter import PowerMeterDriverThread
 from tests.utils.scada_live_test_helper import ScadaLiveTest
-from tests.utils.standing_plant import StandingPlant
+from tests.utils.played_plant import PlayedPlant
 
 
 def test_power_meter_small():
@@ -37,7 +37,7 @@ def test_power_meter_small():
     settings.paths.mkdirs()
     scada_app = ScadaApp(app_settings=settings)
     scada_app.instantiate()
-    StandingPlant(scada_app)
+    PlayedPlant(scada_app)
     scada = scada_app.scada
     layout = scada.layout
     # Raise exception if initiating node is anything except the unique power meter node
@@ -530,7 +530,7 @@ def test_periodic_power_report_lands_on_the_period_boundary(monkeypatch: pytest.
     settings.paths.mkdirs()
     scada_app = ScadaApp(app_settings=settings)
     scada_app.instantiate()
-    StandingPlant(scada_app)
+    PlayedPlant(scada_app)
     layout = scada_app.scada.layout
     meter = PowerMeter(CoreNodeNames.asset_power_meter, services=scada_app)
     driver_thread: PowerMeterDriverThread = meter._sync_thread
@@ -584,7 +584,7 @@ def test_the_power_meter_creates_transactive_power(monkeypatch: pytest.MonkeyPat
     settings.paths.mkdirs()
     scada_app = ScadaApp(app_settings=settings)
     scada_app.instantiate()
-    plant = StandingPlant(scada_app)
+    plant = PlayedPlant(scada_app)
     meter = PowerMeter(CoreNodeNames.asset_power_meter, services=scada_app)
     p: PowerMeterDriverThread = meter._sync_thread
     p.set_async_loop(asyncio.new_event_loop(), asyncio.Queue())

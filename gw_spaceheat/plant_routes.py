@@ -11,8 +11,10 @@ posts to its node's actor over HTTP, and nothing in the scada asks it.
 """
 
 import logging
+import time
 from typing import Optional
 
+from gwproactor.config import MQTTClient
 from gwsproto.data_classes.components import (
     ElectricMeterComponent,
     GpioRelayComponent,
@@ -29,23 +31,66 @@ from gwsproto.enums import ActorClass, DeviceType, SimDeviceType
 from gwsproto.property_format import SpaceheatName
 
 from actors.config import ScadaSettings
+from clock import Clock
 from dac_drives import I2cDacDrive, KeptLevelDrive, resolve_dac_output
 from drivers.power_meter.egauge_4030__power_meter_driver import EGuage4030_PowerMeterDriver
 from drivers.power_meter.plant_link__power_meter_driver import PlantLink_PowerMeterDriver
 from pin_inputs import GpioPinInput, resolve_gpio_input_pin
 from plant import Device, Plant
-from plant_link import LinkPinInput, LinkThermistorInput, PlantLink
+from plant_link import (
+    PLANT_SILENT_AFTER_S,
+    BrokerPlantLink,
+    InProcessPlantLink,
+    LinkPinInput,
+    LinkThermistorInput,
+    PlantLink,
+    PlantLinkKind,
+)
 from relay_drives import (
     GpioRelayDrive,
     I2cRelayDrive,
     resolve_gpio_pin,
     resolve_i2c_actuation,
 )
+from standing_plant import StandingPlantLink
 from thermistor_inputs import Ads1115ThermistorInput, resolve_thermistor_adc
 
 
 def captured_channel_names(layout: HydronicLayout, node_name: str) -> list[SpaceheatName]:
     return [dc.Name for dc in layout.data_channels.values() if dc.CapturedByNodeName == node_name]
+
+
+def build_plant_link(
+    kind: PlantLinkKind,
+    layout: HydronicLayout,
+    *,
+    simulated: bool,
+    mqtt_config: MQTTClient,
+    clock: Clock,
+) -> Optional[PlantLink]:
+    """The plant link the settings ask for, and none at all for a layout
+    with no simulated device."""
+    if not simulated:
+        return None
+    if kind == PlantLinkKind.Standing:
+        return StandingPlantLink(
+            layout,
+            silent_after_s=PLANT_SILENT_AFTER_S,
+            monotonic=time.monotonic,
+            wall=time.time,
+        )
+    if kind == PlantLinkKind.InProcess:
+        return InProcessPlantLink(silent_after_s=PLANT_SILENT_AFTER_S, monotonic=time.monotonic)
+    if kind == PlantLinkKind.Broker:
+        return BrokerPlantLink(
+            config=mqtt_config,
+            scada_alias=layout.scada_g_node_alias,
+            plant_alias=layout.terminal_asset_g_node_alias,
+            clock=clock,
+            silent_after_s=PLANT_SILENT_AFTER_S,
+            monotonic=time.monotonic,
+        )
+    raise ValueError(f"Unknown plant link kind {kind}")
 
 
 def route_devices(

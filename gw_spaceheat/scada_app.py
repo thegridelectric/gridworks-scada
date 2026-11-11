@@ -25,8 +25,8 @@ from sema_to_dc import load_layout
 from gwsproto.names.core.node_names import CoreNodeNames, ScadaWeb
 from clock import Clock, build_clock
 from plant import Plant
-from plant_link import PlantLink, build_plant_link
-from plant_routes import route_devices
+from plant_link import PlantLink
+from plant_routes import build_plant_link, route_devices
 from weather_source import WeatherSource, build_weather_source
 from scada_app_interface import ScadaAppInterface
 from universe import assert_universe_coherence
@@ -65,10 +65,9 @@ class ScadaApp(App, ScadaAppInterface):
         )
         self._plant_link = build_plant_link(
             self.settings.plant_link,
-            self.is_simulated,
+            self.hardware_layout,
+            simulated=self.is_simulated,
             mqtt_config=self.settings.gridworks_mqtt,
-            scada_alias=self.hardware_layout.scada_g_node_alias,
-            plant_alias=self.hardware_layout.terminal_asset_g_node_alias,
             clock=self._clock,
         )
         self._plant = Plant()

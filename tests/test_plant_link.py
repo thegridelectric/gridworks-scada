@@ -20,10 +20,11 @@ from plant_link import (
     BrokerPlantLink,
     InProcessPlantLink,
     PlantLinkKind,
-    build_plant_link,
     plant_flux_topic,
 )
+from plant_routes import build_plant_link
 from scada_app import ScadaApp
+from standing_plant import StandingPlantLink
 from tests.named_types.sema_oracle import codec
 
 CONFIG = Path(__file__).parent / "config"
@@ -269,24 +270,24 @@ def test_broker_link_subscribes_and_restates_on_every_connect() -> None:
     ] * 2
 
 
-def test_no_plant_link_without_a_simulated_device() -> None:
-    link = build_plant_link(
-        PlantLinkKind.Broker,
-        False,
-        mqtt_config=MQTTClient(),
-        scada_alias=SCADA_ALIAS,
-        plant_alias=PLANT_ALIAS,
-        clock=ManualClock(start_s=1_700_000_000),
-    )
-    assert link is None
-
-
 def app_settings(pair: str):
     settings = ScadaApp.get_settings()
     settings.paths.hardware_layout = CONFIG / f"{pair}.layout.json"
     settings.paths.operational_params = CONFIG / f"{pair}.operational.params.json"
     settings.paths.mkdirs()
     return settings
+
+
+def test_no_plant_link_without_a_simulated_device() -> None:
+    layout = ScadaApp(app_settings=app_settings("gw.house0.no.sieg.hazel")).hardware_layout
+    link = build_plant_link(
+        PlantLinkKind.Broker,
+        layout,
+        simulated=False,
+        mqtt_config=MQTTClient(),
+        clock=ManualClock(start_s=1_700_000_000),
+    )
+    assert link is None
 
 
 @pytest.mark.parametrize("pair", ["gw.house0.no.sieg.hazel", "gw.nolan"])
@@ -309,3 +310,10 @@ def test_settings_pick_the_in_process_plant_link() -> None:
     settings.plant_link = PlantLinkKind.InProcess
     app = ScadaApp(app_settings=settings)
     assert isinstance(app.plant_link, InProcessPlantLink)
+
+
+def test_settings_pick_the_standing_plant_link() -> None:
+    settings = app_settings("gw.house0.no.sieg.hazel")
+    settings.plant_link = PlantLinkKind.Standing
+    app = ScadaApp(app_settings=settings)
+    assert isinstance(app.plant_link, StandingPlantLink)

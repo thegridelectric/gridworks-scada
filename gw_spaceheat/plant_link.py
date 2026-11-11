@@ -14,11 +14,10 @@ A layout with no simulated device builds none.
 
 import asyncio
 import logging
-import time
 from abc import abstractmethod
 from datetime import datetime, timezone
 from enum import auto
-from typing import Any, Callable, Iterable, Mapping, Optional
+from typing import Any, Callable, Iterable, Mapping, Optional, Sequence
 
 import paho.mqtt.client as mqtt
 from gwproactor.config import MQTTClient
@@ -54,10 +53,13 @@ MODULE_LOGGER = logging.getLogger(__name__)
 
 
 class PlantLinkKind(GwStrEnum):
-    """The settings value that picks how a simulated layout reaches its plant."""
+    """The settings value that picks how a simulated layout reaches its
+    plant: a terminal asset on the broker, a test playing the plant in
+    process, or the plant that stands inside the scada."""
 
     Broker = auto()
     InProcess = auto()
+    Standing = auto()
 
 
 class PlantLink(SensorSource):
@@ -72,8 +74,10 @@ class PlantLink(SensorSource):
         self.positions: dict[str, ChangeRelayPin] = {}
         self.unsensed_channels: set[str] = set()
 
-    def start(self) -> None:
-        """Open the connection to the plant, where there is one to open."""
+    def start(self) -> Sequence[asyncio.Task[None]]:
+        """Open the connection to the plant, where there is one to open.
+        What comes back is for the scada to watch with its own tasks."""
+        return []
 
     def stop(self) -> None:
         """Close what start() opened."""
@@ -304,10 +308,11 @@ class BrokerPlantLink(PlantLink):
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
 
-    def start(self) -> None:
+    def start(self) -> Sequence[asyncio.Task[None]]:
         self.loop = asyncio.get_running_loop()
         self.client.connect_async(self.config.host, self.config.port, keepalive=self.config.keepalive)
         self.client.loop_start()
+        return []
 
     def stop(self) -> None:
         self.client.loop_stop()
@@ -357,29 +362,3 @@ class BrokerPlantLink(PlantLink):
         )
         self.client.publish(message.mqtt_topic(), message.model_dump_json().encode(), qos=0)
 
-
-def build_plant_link(
-    kind: PlantLinkKind,
-    simulated: bool,
-    *,
-    mqtt_config: MQTTClient,
-    scada_alias: str,
-    plant_alias: str,
-    clock: Clock,
-) -> Optional[PlantLink]:
-    """The plant link the settings ask for, and none at all for a layout
-    with no simulated device."""
-    if not simulated:
-        return None
-    if kind == PlantLinkKind.InProcess:
-        return InProcessPlantLink(silent_after_s=PLANT_SILENT_AFTER_S, monotonic=time.monotonic)
-    if kind == PlantLinkKind.Broker:
-        return BrokerPlantLink(
-            config=mqtt_config,
-            scada_alias=scada_alias,
-            plant_alias=plant_alias,
-            clock=clock,
-            silent_after_s=PLANT_SILENT_AFTER_S,
-            monotonic=time.monotonic,
-        )
-    raise ValueError(f"Unknown plant link kind {kind}")

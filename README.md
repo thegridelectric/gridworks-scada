@@ -167,7 +167,7 @@ addressed from the layout's TerminalAsset GNode to its Scada GNode:
   same, and takes each flux that carries one of its channels as a pico's post.
   When no flux has carried one for 2.5 capture periods it reports the pico
   missing, and the pico cycler power-cycles the 5 V bus as it does for a real
-  pico. The scada does not read the word's `SimLifeS` and `SimRebootS`;
+  pico. The actor does not read the word's `SimLifeS` and `SimRebootS`;
 - a GPIO sensor or a thermistor reader on a simulated board, and a simulated
   power meter, read each of their channels in the plant's latest flux. A flux
   is all the plant shows: a channel it leaves out has no value, and neither has
@@ -179,12 +179,25 @@ addressed from the layout's TerminalAsset GNode to its Scada GNode:
 - a 0-10 V output on a simulated board keeps the level it is set and reports
   it. No level goes to the plant.
 
-`SCADA_PLANT_LINK=InProcess` builds the link with no broker; the tests use that
-form, show the devices their values directly and read the relay positions back.
-A live test's primary scada has a plant that is always there
-(`tests/utils/standing_plant.py`), showing 0 W on every metered channel, every
-tank at rest and every BTU-metered loop with standing flow until the test shows
-something else.
+`SCADA_PLANT_LINK` picks where those values come from:
+
+- `Broker`, the default, is a terminal asset on the `gridworks_mqtt` broker.
+  With none running the scada has no sensors: its meter, GPIO and thermistor
+  reads fail after 15 s and its other channels flatline.
+- `Standing` puts a plant inside the scada (`gw_spaceheat/standing_plant.py`),
+  so the scada runs with nothing beside it. Every channel holds one value: 0 W
+  on a metered channel, a plausible figure for its telemetry on a
+  `SimSensorActor` channel every 5 s, a tank at rest at 55, 50 and 45 °C, a
+  BTU-metered loop at 4 gpm and 50 °C with no lift, a GPIO input at 1 and a
+  board thermistor at 0.2 V. No relay moves any of them. A pico posts once a
+  capture period, goes quiet `SimLifeS` after its boot and boots again
+  `SimRebootS` after the vdc relay closes following an open.
+- `InProcess` builds the link with no broker and no plant. The tests use it:
+  they show the devices their values directly and read the relay positions
+  back. A live test's primary scada has a plant the test plays
+  (`tests/utils/played_plant.py`), showing 0 W on every metered channel, every
+  tank at rest and every BTU-metered loop with standing flow until the test
+  shows something else.
 
 ### Dependencies
 

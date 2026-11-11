@@ -127,6 +127,44 @@ def failed(summary: str, details: str) -> ThermistorRead:
     return ThermistorRead(None, None, (Said(summary, details, True),))
 
 
+def temp_beta(at: ThermistorAdc, cfg: I2cThermistorChannelConfig, r_therm_kohms: float) -> float:
+    if at.temp_calc_method != TempCalcMethod.SimpleBeta:
+        raise ValueError(f"Using temp_beta when TempCalcMethod is {at.temp_calc_method}")
+    return (
+        1 / ((1 / THERMISTOR_T0) + (math.log(r_therm_kohms / THERMISTOR_R0_KOHMS) / cfg.ThermistorBeta))
+        - 273
+    )
+
+
+def thermistor_reading(
+    at: ThermistorAdc, temp_channel_name: SpaceheatName, volts: float
+) -> ThermistorRead:
+    """What a thermistor reads when its ADC input is at volts."""
+    device_cfg = at.channels.device_configs[temp_channel_name]
+    r_fixed = at.capability.SeriesResistanceKOhms
+    v_ref = at.capability.AdcReferenceVolts
+    if volts <= 0.01:
+        return failed("i2c-thermistor-shorted", f"{volts:.6f} V indicates a shorted thermistor")
+    if volts >= v_ref:
+        return failed(
+            "i2c-thermistor-broken",
+            f"{volts:.6f} V indicates a broken or missing thermistor",
+        )
+    try:
+        microvolts = int(volts * 1_000_000)
+        r_therm = r_fixed * volts / (v_ref - volts)
+        temp_c = temp_beta(at, device_cfg, r_therm)
+        if temp_c <= 0:
+            return failed(
+                "i2c-thermistor-broken",
+                f"{volts:.6f} V implies {temp_c:.2f} C, indicating a broken or missing thermistor",
+            )
+        temp_c_x100 = int(temp_c * 100)
+    except Exception as e:  # noqa: BLE001
+        return failed("i2c-thermistor-invalid-reading", f"failed to convert reading ({e})")
+    return ThermistorRead(microvolts, temp_c_x100, ())
+
+
 class Ads1115ThermistorInput(ThermistorInput):
     def __init__(self, at: ThermistorAdc) -> None:
         self.at = at
@@ -204,44 +242,9 @@ class Ads1115ThermistorInput(ThermistorInput):
             return None, conv.Error
         return ads1115.volts_from_raw(conv.Value), None
 
-    def temp_beta(self, cfg: I2cThermistorChannelConfig, r_therm_kohms: float) -> float:
-        if self.at.temp_calc_method != TempCalcMethod.SimpleBeta:
-            raise ValueError(
-                f"Using temp_beta when TempCalcMethod is {self.at.temp_calc_method}"
-            )
-        return (
-            1 / ((1 / THERMISTOR_T0) + (math.log(r_therm_kohms / THERMISTOR_R0_KOHMS) / cfg.ThermistorBeta))
-            - 273
-        )
-
     async def read(self, temp_channel_name: SpaceheatName) -> ThermistorRead:
-        device_cfg = self.at.channels.device_configs[temp_channel_name]
         electrical_cfg = self.at.channels.electrical_cfg_by_device[temp_channel_name]
         volts, error = await self.read_volts(electrical_cfg)
         if volts is None:
             return failed("i2c-thermistor-read-failed", f"{error}")
-
-        r_fixed = self.at.capability.SeriesResistanceKOhms
-        v_ref = self.at.capability.AdcReferenceVolts
-        if volts <= 0.01:
-            return failed(
-                "i2c-thermistor-shorted", f"{volts:.6f} V indicates a shorted thermistor"
-            )
-        if volts >= v_ref:
-            return failed(
-                "i2c-thermistor-broken",
-                f"{volts:.6f} V indicates a broken or missing thermistor",
-            )
-        try:
-            microvolts = int(volts * 1_000_000)
-            r_therm = r_fixed * volts / (v_ref - volts)
-            temp_c = self.temp_beta(device_cfg, r_therm)
-            if temp_c <= 0:
-                return failed(
-                    "i2c-thermistor-broken",
-                    f"{volts:.6f} V implies {temp_c:.2f} C, indicating a broken or missing thermistor",
-                )
-            temp_c_x100 = int(temp_c * 100)
-        except Exception as e:  # noqa: BLE001
-            return failed("i2c-thermistor-invalid-reading", f"failed to convert reading ({e})")
-        return ThermistorRead(microvolts, temp_c_x100, ())
+        return thermistor_reading(self.at, temp_channel_name, volts)

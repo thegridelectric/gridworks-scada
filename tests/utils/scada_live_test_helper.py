@@ -30,7 +30,7 @@ from actors.config import DEFAULT_TA_DEED_FILE
 from actors.hydronic.shared import dispatch_channels
 from actors.scada import Scada
 from sema_to_dc import load_layout
-from tests.utils.standing_plant import StandingPlant
+from tests.utils.played_plant import PlayedPlant
 
 
 def fixture_deed_path(layout: HydronicLayout) -> Optional[Path]:
@@ -115,7 +115,7 @@ def fixture_config_dir(ops_path: Path, layout_name: str) -> Path:
 
 def fresh_buffer(scada: Scada, for_s: int = 3600) -> None:
     """Stamp the family's dispatch channels as read `for_s` from now, so the
-    scada is not blind for the test's duration: the standing plant shows
+    scada is not blind for the test's duration: the played plant shows
     the tanks once, when the scada starts, and that reading goes stale."""
     channels = dispatch_channels(scada.layout)
     stamp = int((time.time() + for_s) * 1000)
@@ -159,7 +159,7 @@ class RecordingProactor(InstrumentedProactor):
 class ScadaLiveTest(TreeLiveTest):
     UPLOADER_LONG_NAME = "test_uploader"
     reassigned_web_servers: set[int]
-    plant: StandingPlant
+    plant: PlayedPlant
 
     @classmethod
     def parent_app_type(cls) -> type[LtnApp]:
@@ -228,8 +228,10 @@ class ScadaLiveTest(TreeLiveTest):
         primary_layout = child1_layout or child_layout or layout
         # The suite never reaches a live weather API.
         kwargs["child_app_settings"].weather_source = WeatherSourceKind.Sim
-        # Nor a plant on a broker: the test plays it in process, as self.plant.
-        kwargs["child_app_settings"].plant_link = PlantLinkKind.InProcess
+        # Nor a plant on a broker: the test plays it in process, as
+        # self.plant, unless it asks for the plant that stands in the scada.
+        if kwargs["child_app_settings"].plant_link != PlantLinkKind.Standing:
+            kwargs["child_app_settings"].plant_link = PlantLinkKind.InProcess
         seeded_deed = Path(kwargs["child_app_settings"].paths.tadeed)
         if primary_layout is not None and seeded_deed.exists():
             deed_path = fixture_deed_path(primary_layout)
@@ -261,7 +263,7 @@ class ScadaLiveTest(TreeLiveTest):
         app = super()._make_app(app_type, app_settings, **kwargs)
         app.sub_types.proactor_type = RecordingProactor
         if isinstance(app, ScadaApp) and isinstance(app.plant_link, InProcessPlantLink):
-            self.plant = StandingPlant(app)
+            self.plant = PlayedPlant(app)
         for ws in app.config.layout.get_components_by_type(WebServerComponent):
             if id(ws.web_server_gt) not in self.reassigned_web_servers:
                 self.reassigned_web_servers.add(id(ws.web_server_gt))
@@ -269,7 +271,7 @@ class ScadaLiveTest(TreeLiveTest):
         return app
 
     def start_child(self) -> typing.Self:
-        """The standing plant shows its sensed channels once the scada's
+        """The played plant shows its sensed channels once the scada's
         proactor has started, which is its task's first step: the callback
         queued here runs after it."""
         super().start_child()
