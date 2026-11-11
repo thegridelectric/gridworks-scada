@@ -41,7 +41,7 @@ from gwsproto.named_types import (
 from gwproto.message import Message
 from scada_app import ScadaApp
 from sema_to_dc import assemble_runtime_layout
-from tests.utils.relay_on_bus import relay_on_bus
+from tests.utils.on_bus import relay_on_bus
 
 
 @pytest.fixture

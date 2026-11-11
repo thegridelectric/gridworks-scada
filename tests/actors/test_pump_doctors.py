@@ -19,7 +19,6 @@ from gwsproto.names.core.node_names import CoreNodeNames
 from actors.procedural.dist_pump_doctor import DistPumpDoctor
 from actors.procedural.dist_pump_monitor import DistPumpMonitor
 from actors.procedural.store_pump_doctor import StorePumpDoctor
-from actors.zero_ten_outputer import code_from_volts_times_ten
 from scada_app import ScadaApp
 from sema_to_dc import zero_ten_power_on_volts_times_ten
 
@@ -128,7 +127,7 @@ def test_doctor_zeroes_its_010v_through_the_command_tree(host, doctor_cls, flow_
     levels: list[int] = []
 
     async def record_level(total_seconds: float, pat_every: float = 20.0) -> None:
-        levels.append(out.target_code)
+        levels.append(out.target_level)
 
     h.await_with_watchdog = record_level
     doctor = doctor_cls(host=h)
@@ -140,8 +139,8 @@ def test_doctor_zeroes_its_010v_through_the_command_tree(host, doctor_cls, flow_
     asyncio.run(doctor.run())
     assert scada_failures == []
     assert [p.Summary for _, p in out_sent if isinstance(p, Glitch)] == []
-    assert levels[0] == code_from_volts_times_ten(0, out.facts)
-    assert out.target_code == out.power_on_code
+    assert levels[0] == 0
+    assert out.target_level == out.power_on_level
     acks = [p for _, p in out_sent if isinstance(p, DispatchAck)]
     assert [a.ToHandle for a in acks] == [h.command_node.handle, h.command_node.handle]
 

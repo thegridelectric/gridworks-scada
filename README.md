@@ -149,8 +149,10 @@ A device actor asks `services.plant` (`gw_spaceheat/plant.py`) for its own
 device by node name, and what answers is chosen once where the app is built
 (`gw_spaceheat/plant_routes.py`). A device on a board that is not simulated is
 the hardware itself: a relay is driven on the board
-(`gw_spaceheat/relay_drives.py`) and a GPIO input is read on its pin
-(`gw_spaceheat/pin_inputs.py`).
+(`gw_spaceheat/relay_drives.py`), a GPIO input is read on its pin
+(`gw_spaceheat/pin_inputs.py`), a 0-10 V output is set on the board's DAC
+(`gw_spaceheat/dac_drives.py`) and a thermistor is read on the board's ADC
+(`gw_spaceheat/thermistor_inputs.py`).
 
 For a simulated device what answers is the plant link
 (`gw_spaceheat/plant_link.py`), which a layout with a simulated device gets.
@@ -159,11 +161,15 @@ addressed from the layout's TerminalAsset GNode to its Scada GNode:
 
 - a `SimSensorActor` node reports its channels as they arrive, and reports
   nothing while nothing publishes them;
-- a GPIO sensor on a simulated board reads the latest value of its channel. It
-  has nothing to read until the plant sends one, and its read fails once the
-  plant has been silent for 15 s;
+- a GPIO sensor or a thermistor reader on a simulated board reads the latest
+  value of each of its channels. It has nothing to read until the plant sends
+  one, and its read fails once the plant has been silent for 15 s. A thermistor
+  reader reports the plant's temperature, and its microvolts where the plant
+  sends them;
 - a relay on a simulated board sends its position to the plant as
-  `sim.plant.actuation` when it is commanded and again on each verify pass.
+  `sim.plant.actuation` when it is commanded and again on each verify pass;
+- a 0-10 V output on a simulated board keeps the level it is set and reports
+  it. No level goes to the plant.
 
 `SCADA_PLANT_LINK=InProcess` builds the link with no broker; the tests use that
 form, show the devices their values directly and read the relay positions back.

@@ -238,7 +238,7 @@ async def test_a_simulated_house_relay_is_driven_through_the_plant_by_its_node_n
 
     assert link.actuations == [("store-pump-relay", ENERGIZE)]
     assert await app.plant.device("store-pump-relay", RelayDrive).read() == RelayRead(ENERGIZE, None)
-    with pytest.raises(ValueError, match="dist-010v has no device in the plant"):
+    with pytest.raises(ValueError, match="dist-010v has a KeptLevelDrive in the plant, which is no RelayDrive"):
         app.plant.device("dist-010v", RelayDrive)
 
 

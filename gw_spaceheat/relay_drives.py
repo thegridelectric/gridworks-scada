@@ -10,10 +10,9 @@ import uuid
 from typing import Any, NamedTuple, Optional
 
 from gwsproto.data_classes.components import GpioRelayComponent, I2cRelayComponent
-from gwsproto.data_classes.components.component import BoardResidentComponent
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.data_classes.sh_node import ShNode
-from gwsproto.enums import ActorClass, ChangeRelayPin, I2cExpanderType
+from gwsproto.enums import ChangeRelayPin, I2cExpanderType
 from gwsproto.named_types import (
     I2cBitAddress,
     I2cReadBit,
@@ -26,7 +25,7 @@ from gwsproto.property_format import NonNegativeInt
 from actors.i2c_bus import ExpanderCheckRequested, ExpanderReinitialized
 from bus_talk import BusTalk, the_bus_node
 from drivers import tca9555
-from plant import Heard, Plant, RelayDrive, RelayRead, Send
+from plant import Heard, RelayDrive, RelayRead, Send
 
 
 class I2cActuation(NamedTuple):
@@ -265,19 +264,3 @@ class GpioRelayDrive(RelayDrive):
 
     async def read(self) -> RelayRead:
         return RelayRead(None, "a GPIO relay's pin is not read")
-
-
-def route_board_relays(plant: Plant, layout: HydronicLayout) -> None:
-    """Put the board behind every relay on a board that is not simulated."""
-    for node in layout.nodes.values():
-        component = node.component
-        if (
-            node.actor_class != ActorClass.Relay
-            or not isinstance(component, BoardResidentComponent)
-            or component.board_component.simulated
-        ):
-            continue
-        if isinstance(component, I2cRelayComponent):
-            plant.route(node.name, I2cRelayDrive(resolve_i2c_actuation(layout, node)))
-        elif isinstance(component, GpioRelayComponent):
-            plant.route(node.name, GpioRelayDrive(resolve_gpio_pin(layout, node)))

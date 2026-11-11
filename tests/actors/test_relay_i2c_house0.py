@@ -20,7 +20,7 @@ from gwsproto.named_types import FsmFullReport, I2cResult, SingleMachineState, S
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
 from relay_drives import resolve_i2c_actuation
 from scada_app import ScadaApp
-from tests.utils.relay_on_bus import relay_on_bus
+from tests.utils.on_bus import relay_on_bus
 
 CONFIG = Path(__file__).parent.parent / "config"
 PAIRS = {

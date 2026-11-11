@@ -24,10 +24,7 @@ import paho.mqtt.client as mqtt
 from gwproactor.config import MQTTClient
 from gwproto import Message
 from gwproto.topic import MQTTTopic
-from gwsproto.data_classes.components import I2cRelayComponent
-from gwsproto.data_classes.components.component import BoardResidentComponent
-from gwsproto.data_classes.hydronic_layout import HydronicLayout
-from gwsproto.enums import ActorClass, ChangeRelayPin
+from gwsproto.enums import ChangeRelayPin
 from gwsproto.enums.gw_str_enum import GwStrEnum
 from gwsproto.named_types import SimPlantActuation, SimPlantFlux
 from gwsproto.property_format import SpaceheatName, UtcIso8601Millis, UTCMilliseconds
@@ -39,12 +36,13 @@ from plant import (
     Deliver,
     PinInput,
     PinRead,
-    Plant,
     PlantReadings,
     RelayDrive,
     RelayRead,
     Said,
     SensorSource,
+    ThermistorInput,
+    ThermistorRead,
 )
 
 # A plant quiet for this long is taken as gone. Its next flux is a fresh
@@ -215,6 +213,27 @@ class LinkPinInput(LinkChannels, PinInput):
         return PinRead(value, ())
 
 
+class LinkThermistorInput(LinkChannels, ThermistorInput):
+    """A simulated reader's thermistors: the plant's temperature for each,
+    and its microvolts where the plant sends them."""
+
+    def __init__(
+        self, link: PlantLink, microvolts_channel_by_temp_channel: Mapping[str, str]
+    ) -> None:
+        super().__init__(
+            link,
+            [*microvolts_channel_by_temp_channel, *microvolts_channel_by_temp_channel.values()],
+        )
+        self.microvolts_channel_by_temp_channel = microvolts_channel_by_temp_channel
+
+    async def read(self, temp_channel_name: SpaceheatName) -> ThermistorRead:
+        temp_c_x100, error = self.value(temp_channel_name)
+        if error is not None:
+            return ThermistorRead(None, None, (Said("i2c-thermistor-read-failed", error, True),))
+        microvolts, _ = self.value(self.microvolts_channel_by_temp_channel[temp_channel_name])
+        return ThermistorRead(microvolts, temp_c_x100, ())
+
+
 class InProcessPlantLink(PlantLink):
     """The plant link with no broker: the test is the plant. It shows the
     scada channel values and reads back what the relays told it."""
@@ -359,33 +378,3 @@ def build_plant_link(
             monotonic=time.monotonic,
         )
     raise ValueError(f"Unknown plant link kind {kind}")
-
-
-def captured_channel_names(layout: HydronicLayout, node_name: str) -> list[SpaceheatName]:
-    return [dc.Name for dc in layout.data_channels.values() if dc.CapturedByNodeName == node_name]
-
-
-def route_simulated_devices(plant: Plant, layout: HydronicLayout, link: PlantLink) -> None:
-    """Put the link behind the layout's simulated devices: every
-    SimSensorActor node, and every device on a simulated board. An expander
-    relay reads back where its board's record says the board reads its
-    pins."""
-    for node in layout.nodes.values():
-        component = node.component
-        if node.actor_class == ActorClass.SimSensorActor:
-            plant.route(node.name, link)
-            continue
-        if not (
-            isinstance(component, BoardResidentComponent)
-            and component.board_component.simulated
-        ):
-            continue
-        if node.actor_class == ActorClass.Relay:
-            reads_back = (
-                isinstance(component, I2cRelayComponent)
-                and component.board_component.device_type.SupportsPinReadback
-            )
-            plant.route(node.name, link.drive(node.name, reads_back=reads_back))
-        elif node.actor_class == ActorClass.GpioSensor:
-            [channel_name] = captured_channel_names(layout, node.name)
-            plant.route(node.name, LinkPinInput(link, channel_name))

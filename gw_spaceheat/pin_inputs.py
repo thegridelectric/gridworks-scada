@@ -5,9 +5,8 @@ from typing import Any
 from gwsproto.data_classes.components import GpioSensorComponent
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.data_classes.sh_node import ShNode
-from gwsproto.enums import ActorClass
 
-from plant import PIN_READ_FAILED, PinInput, PinRead, Plant, Said, Send
+from plant import PIN_READ_FAILED, PinInput, PinRead, Said, Send
 
 
 def resolve_gpio_input_pin(layout: HydronicLayout, node: ShNode) -> int:
@@ -47,16 +46,3 @@ class GpioPinInput(PinInput):
                 None, (Said(PIN_READ_FAILED, f"GPIO {self.bcm_pin} read raised {e!r}", True),)
             )
         return PinRead(1 if raw else 0, ())
-
-
-def route_board_pins(plant: Plant, layout: HydronicLayout) -> None:
-    """Put the pin behind every GPIO sensor on a board that is not
-    simulated."""
-    for node in layout.nodes.values():
-        component = node.component
-        if (
-            node.actor_class == ActorClass.GpioSensor
-            and isinstance(component, GpioSensorComponent)
-            and not component.board_component.simulated
-        ):
-            plant.route(node.name, GpioPinInput(resolve_gpio_input_pin(layout, node)))

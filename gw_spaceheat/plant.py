@@ -163,6 +163,60 @@ class PinInput(Device, ABC):
         """The pin's level now."""
 
 
+class Prepared(NamedTuple):
+    """How a device's one step after boot went. note is what the device did
+    to be ready, for the log."""
+
+    ready: bool
+    said: tuple[Said, ...]
+    note: str
+
+
+class LevelSet(NamedTuple):
+    """One set of a level: the level the output holds, as near the one
+    asked as the device steps, or None with what the device said of a set
+    that did not take."""
+
+    held: Optional[int]
+    said: tuple[Said, ...]
+
+
+class LevelDrive(Device, ABC):
+    """One 0-10 V output, as its actor drives it. A level is volts times
+    ten. Holding the level over time, by setting it again, is the
+    actor's."""
+
+    @abstractmethod
+    async def prepare(self, power_on_level: int) -> Prepared:
+        """Make the output ready to be set, once after boot. A device that
+        keeps the level it powers on at is made to keep this one. Asked
+        again until it is ready."""
+
+    @abstractmethod
+    async def set(self, level: int) -> LevelSet:
+        """Hold this level."""
+
+
+class ThermistorRead(NamedTuple):
+    """One read of a thermistor: its microvolts and its temperature in
+    hundredths of a degree C, or no temperature with what the device said
+    of the read. A device that measures no voltage gives a temperature
+    alone. No temperature with nothing said is a thermistor with nothing
+    to read yet."""
+
+    microvolts: Optional[int]
+    temp_c_x100: Optional[int]
+    said: tuple[Said, ...]
+
+
+class ThermistorInput(Device, ABC):
+    """The thermistors of one reader, each read when its actor asks."""
+
+    @abstractmethod
+    async def read(self, temp_channel_name: SpaceheatName) -> ThermistorRead:
+        """The thermistor whose temperature this channel reports."""
+
+
 class Plant:
     def __init__(self) -> None:
         self.device_by_node: dict[SpaceheatName, Device] = {}
