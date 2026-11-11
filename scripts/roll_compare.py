@@ -1,9 +1,11 @@
 """Compare what a roll must find equal before it moves a box.
 
 Used by scripts/roll.sh. A layout matches only byte for byte. An
-operational-params file matches when everything but its DispatchHold
-block is equal, because the scada writes that block itself (the cold
-latch sets ServiceContractBroken; an operator hold sets OperatorHold).
+operational-params file matches when everything but
+DispatchHold.ServiceContractBroken is equal: the scada writes that one
+field itself (the cold latch), so a box's value survives a roll. Every
+other field, DispatchHold.OperatorHold among them, comes from the
+committed tlayouts JSON and differs when the box is behind it.
 An editable package's pyproject.toml matches when everything but its
 own version line and its pins on the sibling editable packages is
 equal: the box installs those packages editable from the checkout, so
@@ -19,7 +21,7 @@ import json
 import sys
 from pathlib import Path
 
-SCADA_WRITTEN = "DispatchHold"
+SCADA_WRITTEN = "DispatchHold.ServiceContractBroken"
 EDITABLE_PACKAGES = ("gridworks-scada-protocol", "gridworks-admin")
 
 
@@ -33,15 +35,12 @@ def flatten(value, prefix=""):
     return {prefix: json.dumps(value, sort_keys=True)}
 
 
-def differing_paths(committed: dict, box: dict, ignore_top: str | None) -> list[str]:
+def differing_paths(committed: dict, box: dict, ignore: str | None) -> list[str]:
+    """Dotted leaf paths whose values differ, less the one path `ignore` names."""
     a = flatten(committed)
     b = flatten(box)
     paths = sorted(set(a) | set(b))
-    return [
-        p for p in paths
-        if a.get(p) != b.get(p)
-        and not (ignore_top and p.split(".")[0] == ignore_top)
-    ]
+    return [p for p in paths if a.get(p) != b.get(p) and p != ignore]
 
 
 def layout_matches(committed: bytes, box: bytes) -> bool:
