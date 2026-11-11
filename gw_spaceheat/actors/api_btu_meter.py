@@ -9,28 +9,21 @@ from actors.pico_actor_base import PicoActorBase
 from actors.pico_identity import PicoIdentity
 from actors.pico_liveness import PicoLiveness
 from actors.pico_post_refusal import RefusedPosts, refused_post, unknown_pico, unreadable_post
-from actors.sim_pico_source import SIM_PICO_TICK_S, SimPicoSource
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwsproto.data_classes.components import PicoBtuMeterComponent, SimPicoBtuMeterComponent
-from gwsproto.enums import DeviceType, PicoBoardVariant, RelayClosedOrOpen, SimDeviceType
-from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames
+from gwsproto.enums import DeviceType, PicoBoardVariant, SimDeviceType
 from gwsproto.names.core.node_names import ScadaWeb
 from gwsproto.named_types import (
     AsyncBtuParams, ChannelFlatlined, Glitch,
     MultichannelSnapshot, PicoMissing, SyncedReadings
 )
+from plant import PlantReadings, SensorSource
 from result import Ok, Result
 from scada_app_interface import ScadaAppInterface
-
-# A loop with standing flow and no lift: 4 gpm, both pipes at 50 C, no CT
-# voltage. Fixed until the plant drives loop flow and temperatures.
-SIM_LOOP_GPM_X100 = 400
-SIM_LOOP_CELSIUS_X100 = 5000
-SIM_CT_VOLTS_X100 = 0
 
 # The pico drops a thermistor at either rail before it posts; one near a
 # rail gets past that guard as a temperature no hydronic pipe reaches.
@@ -38,25 +31,11 @@ IMPLAUSIBLE_BELOW_C = -40.0
 IMPLAUSIBLE_ABOVE_C = 130.0
 
 
-def snapshot_without(
-    reading: MultichannelSnapshot, channel_names: set[str]
-) -> MultichannelSnapshot:
-    """The snapshot with the named channels dropped from its lists."""
-    kept = [
-        i for i, name in enumerate(reading.ChannelNameList) if name not in channel_names
-    ]
-    return MultichannelSnapshot(
-        HwUid=reading.HwUid,
-        ChannelNameList=[reading.ChannelNameList[i] for i in kept],
-        MeasurementList=[reading.MeasurementList[i] for i in kept],
-        UnitList=[reading.UnitList[i] for i in kept],
-    )
-
-
 class ApiBtuMeter(PicoActorBase):
-    """Reads a pico BTU meter over HTTP. When the component is the sim word
-    the actor runs its own SimPicoSource, posting snapshots to itself on the
-    path the web handler uses for a real pico's post."""
+    """Reads a pico BTU meter's posts over HTTP. A component of the sim
+    word has no pico: the plant shows its channels, already in each
+    channel's encoding, and each flux that carries one is taken as a post,
+    so a plant that stops showing them is a pico that stopped posting."""
 
     _stop_requested: bool
     _component: PicoBtuMeterComponent | SimPicoBtuMeterComponent
@@ -146,30 +125,15 @@ class ApiBtuMeter(PicoActorBase):
         }
         self.feeds_derived = self.layout.feeds_derived(self.enabled_channel_names)
 
-        self.sim_pico: Optional[SimPicoSource[MultichannelSnapshot]] = None
         if isinstance(self._component, SimPicoBtuMeterComponent):
-            assert self.pico_uid
-            channel_names = [self.flow_channel.Name, self.hot_temp_channel.Name, self.cold_temp_channel.Name]
-            measurements = [SIM_LOOP_GPM_X100, SIM_LOOP_CELSIUS_X100, SIM_LOOP_CELSIUS_X100]
-            units = ["GpmTimes100", "CelsiusTimes100", "CelsiusTimes100"]
-            if self.ct_channel is not None:
-                channel_names.append(self.ct_channel.Name)
-                measurements.append(SIM_CT_VOLTS_X100)
-                units.append("VoltsTimes100")
-            self.sim_pico = SimPicoSource(
-                reading=MultichannelSnapshot(
-                    HwUid=self.pico_uid,
-                    ChannelNameList=channel_names,
-                    MeasurementList=measurements,
-                    UnitList=units,
-                ),
-                without=snapshot_without,
-                capture_period_s=self.liveness.expected_post_s,
-                life_s=self._component.gt.SimLifeS,
-                reboot_s=self._component.gt.SimRebootS,
-                booted_at=time.time(),
+            self.my_device(SensorSource).sense(
+                [
+                    ch.Name
+                    for ch in self.layout.data_channels.values()
+                    if ch.CapturedByNodeName == self.name
+                ],
+                self.take_from_plant,
             )
-        self.sim_relay_seen: Optional[tuple[str, int]] = None
 
     @cached_property
     def async_btu_params_path(self) -> str:
@@ -352,14 +316,33 @@ class ApiBtuMeter(PicoActorBase):
                 # Keep other measurements as-is
                 converted_values.append(measurement)
             channel_names.append(channel_name)
+        self.report_readings(channel_names, converted_values, int(time.time() * 1000))
+
+    def take_from_plant(self, readings: PlantReadings) -> None:
+        if self.disabled:
+            return
+        now = time.time()
+        self.liveness.heard(now)
+        enabled = [
+            i for i, name in enumerate(readings.channel_names) if name in self.enabled_channel_names
+        ]
+        for i in enabled:
+            self.channel_liveness[readings.channel_names[i]].heard(now)
+        self.report_readings(
+            [readings.channel_names[i] for i in enabled],
+            [readings.values[i] for i in enabled],
+            readings.read_time_ms,
+        )
+
+    def report_readings(
+        self, channel_names: list[str], values: list[int], read_time_ms: int
+    ) -> None:
         if not channel_names:
             return
-
-        # Create and send the synced readings message
         msg = SyncedReadings(
             ChannelNameList=channel_names,  # TODO OPS-35 disambiguate between AboutNodeNames and ChannelNames
-            ValueList=converted_values,
-            ScadaReadTimeUnixMs=int(time.time() * 1000),
+            ValueList=values,
+            ScadaReadTimeUnixMs=read_time_ms,
         )
         self._send_to(self.pico_cycler, msg)
         self._send_to(self.primary_scada, msg)
@@ -381,35 +364,6 @@ class ApiBtuMeter(PicoActorBase):
         self.services.add_task(
             asyncio.create_task(self.main(), name="ApiBtuMeter keepalive")
         )
-        if self.sim_pico is not None and not self.disabled:
-            self.services.add_task(
-                asyncio.create_task(self.sim_pico_main(), name="ApiBtuMeter sim pico")
-            )
-
-    def feed_sim_relay_state(self, now: float) -> None:
-        """Hand the source each new vdc relay state from the scada's latest
-        machine states."""
-        assert self.sim_pico is not None
-        sms = self.data.latest_machine_state.get(HydronicSpaceheatNodeNames.vdc_relay)
-        if sms is None:
-            return
-        seen = (sms.State, sms.UnixMs)
-        if seen == self.sim_relay_seen:
-            return
-        self.sim_relay_seen = seen
-        self.sim_pico.relay_state(RelayClosedOrOpen(sms.State), now)
-
-    async def sim_pico_main(self) -> None:
-        assert self.sim_pico is not None
-        while not self._stop_requested:
-            now = time.time()
-            self.feed_sim_relay_state(now)
-            reading = self.sim_pico.tick(now)
-            if reading is not None:
-                self.services.send_threadsafe(
-                    Message(Src=self.name, Dst=self.name, Payload=reading)
-                )
-            await asyncio.sleep(SIM_PICO_TICK_S)
 
     def stop(self) -> None:
         """IOLoop will take care of stop."""

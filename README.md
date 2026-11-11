@@ -153,7 +153,8 @@ the hardware itself: a relay is driven on the board
 (`gw_spaceheat/pin_inputs.py`), a 0-10 V output is set on the board's DAC
 (`gw_spaceheat/dac_drives.py`), a thermistor is read on the board's ADC
 (`gw_spaceheat/thermistor_inputs.py`) and the power meter reads its eGauge
-(`gw_spaceheat/drivers/power_meter/`).
+(`gw_spaceheat/drivers/power_meter/`). A tank module or BTU meter with a real
+pico has no device there: the pico posts to its actor over HTTP.
 
 For a simulated device what answers is the plant link
 (`gw_spaceheat/plant_link.py`), which a layout with a simulated device gets.
@@ -162,6 +163,11 @@ addressed from the layout's TerminalAsset GNode to its Scada GNode:
 
 - a `SimSensorActor` node reports its channels as they arrive, and reports
   nothing while nothing publishes them;
+- a tank module or BTU meter whose component is a `sim.pico.*` word does the
+  same, and takes each flux that carries one of its channels as a pico's post.
+  When no flux has carried one for 2.5 capture periods it reports the pico
+  missing, and the pico cycler power-cycles the 5 V bus as it does for a real
+  pico. The scada does not read the word's `SimLifeS` and `SimRebootS`;
 - a GPIO sensor or a thermistor reader on a simulated board, and a simulated
   power meter, read each of their channels in the plant's latest flux. A flux
   is all the plant shows: a channel it leaves out has no value, and neither has
@@ -176,8 +182,9 @@ addressed from the layout's TerminalAsset GNode to its Scada GNode:
 `SCADA_PLANT_LINK=InProcess` builds the link with no broker; the tests use that
 form, show the devices their values directly and read the relay positions back.
 A live test's primary scada has a plant that is always there
-(`tests/utils/standing_plant.py`), showing 0 W on every metered channel until
-the test shows something else.
+(`tests/utils/standing_plant.py`), showing 0 W on every metered channel, every
+tank at rest and every BTU-metered loop with standing flow until the test shows
+something else.
 
 ### Dependencies
 

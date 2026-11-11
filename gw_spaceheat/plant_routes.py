@@ -5,6 +5,9 @@ for any other.
 A board device's place on its board is resolved from the board's record
 either way, so a layout that misplaces a device fails the boot whether or
 not its board is simulated.
+
+A pico-fed node has a device here only when it is simulated: a real pico
+posts to its node's actor over HTTP, and nothing in the scada asks it.
 """
 
 import logging
@@ -17,6 +20,8 @@ from gwsproto.data_classes.components import (
     I2cDacOutputComponent,
     I2cRelayComponent,
     I2cThermistorReaderComponent,
+    SimPicoBtuMeterComponent,
+    SimPicoTankModuleComponent,
 )
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.data_classes.sh_node import ShNode
@@ -65,6 +70,8 @@ def device_behind(
     component = node.component
     actor_class = node.actor_class
     if actor_class == ActorClass.SimSensorActor:
+        return the_link()
+    if isinstance(component, (SimPicoTankModuleComponent, SimPicoBtuMeterComponent)):
         return the_link()
     if actor_class == ActorClass.Relay and isinstance(component, I2cRelayComponent):
         actuation = resolve_i2c_actuation(layout, node)

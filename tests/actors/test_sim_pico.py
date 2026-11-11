@@ -1,124 +1,31 @@
-"""A simulated tank pico posts, dies, and reboots on the sim component's
-script (SimLifeS / SimRebootS), so the pico-cycler loop can be exercised
-on a simulated layout.
-
-The source is pure: every method takes the current time, so these tests
-drive it with explicit instants and no clock patching. The actor half
-checks that ApiTankModule builds a source from the sim word and feeds it the vdc relay's state from the scada's latest
-machine states."""
+"""A tank module or BTU meter of the sim word has no pico: the plant shows
+its channels and the actor takes each flux that carries one as a post. It
+sends what the plant showed, in the channels' own encoding, where a real
+pico's readings go, counts the pico heard, and leaves out a channel the
+layout disables. A real pico's node has no device in the plant."""
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 
-from actors.api_btu_meter import SIM_LOOP_CELSIUS_X100, SIM_LOOP_GPM_X100, ApiBtuMeter
-from actors.api_tank_module import (
-    SIM_TANK_AT_REST_C,
-    ApiTankModule,
-    microvolts_at_c,
-    microvolts_without,
-)
+from actors.api_btu_meter import ApiBtuMeter
+from actors.api_tank_module import ApiTankModule, microvolts_at_c
 from actors.pico_cycler import PicoCycler
-from actors.sim_pico_source import SimPicoSource
 from gwsproto.data_classes.components import SimPicoBtuMeterComponent, SimPicoTankModuleComponent
-from gwsproto.enums import RelayClosedOrOpen
-from gwsproto.named_types import MicroVolts, MultichannelSnapshot, SingleMachineState, SyncedReadings
-from gwproto import Message
+from gwsproto.named_types import SyncedReadings
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames
+from plant import SensorSource
+from plant_link import InProcessPlantLink, PlantLinkKind
 from scada_app import ScadaApp
+from tests.actors.test_pico_identity import boot, with_real_pico
 
 CONFIG = Path(__file__).parent.parent / "config"
 PAIRS = {
     "nolan": ("gw.nolan.layout.json", "gw.nolan.operational.params.json"),
     "house0-orange": ("gw.house0.orange.layout.json", "gw.house0.orange.operational.params.json"),
 }
-PERIOD = 60
-ABOUT = ["buffer-depth1", "buffer-depth2", "buffer-depth3"]
-UV = [1_000_000, 1_100_000, 1_200_000]
-
-
-def source(life_s=None, reboot_s=None, booted_at=0.0) -> SimPicoSource[MicroVolts]:
-    return SimPicoSource(
-        reading=MicroVolts(HwUid="sim-buffer-pico", AboutNodeNameList=ABOUT, MicroVoltsList=UV),
-        without=microvolts_without,
-        capture_period_s=PERIOD,
-        life_s=life_s,
-        reboot_s=reboot_s,
-        booted_at=booted_at,
-    )
-
-
-def posts(src: SimPicoSource[MicroVolts], instants: list[float]) -> list[float]:
-    """The instants at which ticking at each instant produced a reading."""
-    return [t for t in instants if src.tick(t) is not None]
-
-
-def test_posts_at_the_capture_period() -> None:
-    src = source()
-    reading = src.tick(0.0)
-    assert isinstance(reading, MicroVolts)
-    assert reading.HwUid == "sim-buffer-pico"
-    assert reading.AboutNodeNameList == ABOUT
-    assert reading.MicroVoltsList == UV
-    assert posts(src, [1.0, 30.0, 59.0, 60.0, 61.0, 119.0, 120.0]) == [60.0, 120.0]
-
-
-def test_a_post_drops_the_omitted_names_until_they_are_cleared() -> None:
-    src = source()
-    src.omitted_names = {ABOUT[1]}
-    reading = src.tick(0.0)
-    assert reading is not None
-    assert reading.AboutNodeNameList == [ABOUT[0], ABOUT[2]]
-    assert reading.MicroVoltsList == [UV[0], UV[2]]
-    src.omitted_names = set()
-    assert src.tick(float(PERIOD)) == src.reading
-
-
-def test_no_life_means_it_never_dies() -> None:
-    src = source()
-    assert posts(src, [float(t) for t in range(0, 24 * 3600, PERIOD)]) == [
-        float(t) for t in range(0, 24 * 3600, PERIOD)
-    ]
-
-
-def test_goes_silent_after_sim_life() -> None:
-    src = source(life_s=150)
-    assert posts(src, [0.0, 60.0, 120.0, 150.0, 180.0, 3600.0]) == [0.0, 60.0, 120.0]
-    assert not src.alive
-
-
-def test_dead_pico_stays_dead_without_reboot() -> None:
-    src = source(life_s=10)
-    assert posts(src, [0.0, 10.0]) == [0.0]
-    src.relay_state(RelayClosedOrOpen.RelayOpen, 20.0)
-    src.relay_state(RelayClosedOrOpen.RelayClosed, 25.0)
-    assert posts(src, [30.0, 300.0, 3000.0]) == []
-
-
-def test_reboots_after_relay_closes_following_an_open() -> None:
-    src = source(life_s=10, reboot_s=15)
-    assert posts(src, [0.0, 10.0]) == [0.0]
-    src.relay_state(RelayClosedOrOpen.RelayOpen, 20.0)
-    src.relay_state(RelayClosedOrOpen.RelayClosed, 25.0)
-    # boots at 40; the life clock restarts from the boot
-    assert posts(src, [30.0, 39.0, 40.0, 45.0, 49.0, 50.0]) == [40.0]
-    assert not src.alive
-
-
-def test_relay_open_kills_a_living_pico() -> None:
-    src = source(reboot_s=5)
-    assert posts(src, [0.0]) == [0.0]
-    src.relay_state(RelayClosedOrOpen.RelayOpen, 1.0)
-    assert posts(src, [60.0, 120.0]) == []
-    src.relay_state(RelayClosedOrOpen.RelayClosed, 130.0)
-    assert posts(src, [134.0, 135.0, 194.0, 195.0]) == [135.0, 195.0]
-
-
-def test_a_close_with_no_prior_open_schedules_nothing() -> None:
-    src = source(life_s=10, reboot_s=5)
-    assert posts(src, [0.0, 10.0]) == [0.0]
-    src.relay_state(RelayClosedOrOpen.RelayClosed, 20.0)
-    assert posts(src, [25.0, 100.0]) == []
+READ_MS = 1_700_000_000_000
 
 
 def test_microvolts_round_trip_through_simple_beta() -> None:
@@ -135,16 +42,30 @@ def test_microvolts_round_trip_through_simple_beta() -> None:
     assert abs(temp_c - 50.0) < 0.05
 
 
-@pytest.fixture(params=sorted(PAIRS))
-def app(request: pytest.FixtureRequest) -> ScadaApp:
-    layout, ops = PAIRS[request.param]
+def make_app(pair_name: str) -> ScadaApp:
+    layout, ops = PAIRS[pair_name]
     settings = ScadaApp.get_settings()
     settings.paths.hardware_layout = CONFIG / layout
     settings.paths.operational_params = CONFIG / ops
     settings.paths.mkdirs()
+    settings.plant_link = PlantLinkKind.InProcess
     scada_app = ScadaApp(app_settings=settings)
     scada_app.instantiate()
     return scada_app
+
+
+@pytest.fixture(params=sorted(PAIRS))
+def app(request: pytest.FixtureRequest) -> ScadaApp:
+    return make_app(request.param)
+
+
+def link(app: ScadaApp) -> InProcessPlantLink:
+    assert isinstance(app.plant_link, InProcessPlantLink)
+    return app.plant_link
+
+
+def impl(actor) -> ApiTankModule:
+    return getattr(actor, "_impl", actor)
 
 
 def tank_actors(app: ScadaApp) -> list[ApiTankModule]:
@@ -155,97 +76,107 @@ def tank_actors(app: ScadaApp) -> list[ApiTankModule]:
     ]
 
 
-def impl(actor) -> ApiTankModule:
-    return getattr(actor, "_impl", actor)
+def capture_sends(actor: Any) -> list[tuple[str, Any]]:
+    sent: list[tuple[str, Any]] = []
+    actor._send_to = lambda dst, payload, src=None: sent.append((dst.name, payload))
+    return sent
 
 
-def test_sim_tank_actors_carry_a_source(app: ScadaApp) -> None:
+def test_a_sim_tank_sends_what_the_plant_shows_where_a_picos_readings_go(app: ScadaApp) -> None:
     actors = tank_actors(app)
     assert actors, "no ApiTankModule actors on this layout"
     for a in actors:
         assert isinstance(a._component, SimPicoTankModuleComponent)
-        assert a.sim_pico is not None
-        assert a.sim_pico.reading.HwUid == a._component.gt.PicoHwUid
-        assert a.sim_pico.capture_period_s == a.liveness.expected_post_s
-        assert a.sim_pico.reading.AboutNodeNameList == [a.depth_about_nodes[d] for d in (1, 2, 3)]
-        assert a.sim_pico.reading.MicroVoltsList == [
-            microvolts_at_c(SIM_TANK_AT_REST_C[d], a._component.gt.ThermistorBeta) for d in (1, 2, 3)
-        ]
-        assert a.sim_pico.life_s == a._component.gt.SimLifeS
-        assert a.sim_pico.reboot_s == a._component.gt.SimRebootS
+        assert app.plant.device(a.name, SensorSource) is app.plant_link
+        channels = a.flatlined_channel_names()
+        assert channels, f"{a.name} has no enabled channel"
+        shown = {name: 4000 + i for i, name in enumerate(channels)}
+        sent = capture_sends(a)
+        a.liveness.last_heard = 0.0
 
+        link(app).show(shown, READ_MS)
 
-def test_actor_feeds_relay_state_from_latest_machine_states(app: ScadaApp) -> None:
-    a = tank_actors(app)[0]
-    assert a.sim_pico is not None
-    a.sim_pico.reboot_s = 5
-    vdc = a.layout.nodes[HydronicSpaceheatNodeNames.vdc_relay]
-
-    def relay(state: RelayClosedOrOpen, unix_ms: int) -> None:
-        app.scada.data.latest_machine_state[HydronicSpaceheatNodeNames.vdc_relay] = SingleMachineState(
-            MachineHandle=vdc.handle,
-            StateEnum=RelayClosedOrOpen.enum_name(),
-            State=state.value,
-            UnixMs=unix_ms,
+        assert not a.missing()
+        expected = SyncedReadings(
+            ChannelNameList=channels,
+            ValueList=[shown[name] for name in channels],
+            ScadaReadTimeUnixMs=READ_MS,
         )
-
-    a.feed_sim_relay_state(1.0)  # nothing recorded yet: no-op
-    relay(RelayClosedOrOpen.RelayOpen, 1_700_000_001_000)
-    a.feed_sim_relay_state(1.0)
-    assert not a.sim_pico.alive
-    a.feed_sim_relay_state(2.0)  # same record, fed once
-    relay(RelayClosedOrOpen.RelayClosed, 1_700_000_003_000)
-    a.feed_sim_relay_state(3.0)
-    assert a.sim_pico.reboot_at == 8.0
+        assert sent == [
+            (a.pico_cycler.name, expected),
+            (a.primary_scada.name, expected),
+            (a.derived_generator.name, expected),
+        ]
 
 
-# --- the BTU meter over the sim word ------------------------------------------
+def test_a_flux_without_one_depth_is_a_post_without_it(app: ScadaApp) -> None:
+    a = tank_actors(app)[0]
+    channels = a.flatlined_channel_names()
+    left_out = channels[1]
+    sent = capture_sends(a)
+
+    link(app).show({name: 4000 for name in channels if name != left_out}, READ_MS)
+
+    assert {tuple(readings.ChannelNameList) for _, readings in sent} == {
+        tuple(name for name in channels if name != left_out)
+    }
+
+
+def test_a_flux_with_none_of_its_channels_is_no_post(app: ScadaApp) -> None:
+    a = tank_actors(app)[0]
+    sent = capture_sends(a)
+    a.liveness.last_heard = 0.0
+
+    link(app).show({}, READ_MS)
+
+    assert sent == []
+    assert a.missing()
+
+
+def test_a_sim_tank_leaves_out_a_channel_the_layout_disables() -> None:
+    app = make_app("nolan")
+    a = app.get_communicator_as_type("fancoil", ApiTankModule)
+    assert a is not None
+    disabled = "fancoil-depth3-device"
+    assert a.layout.channel_disabled(disabled)
+    sent = capture_sends(a)
+
+    link(app).show(
+        {f"fancoil-depth{depth}-device": 4000 for depth in (1, 2, 3)}, READ_MS
+    )
+
+    assert sent, "the enabled depths were not sent"
+    for _, readings in sent:
+        assert disabled not in readings.ChannelNameList
+    assert disabled not in link(app).unsensed_channels
 
 
 @pytest.fixture
 def btu() -> ApiBtuMeter:
-    """The Nolan pair's primary-btu. Sends are captured, not delivered."""
-    layout_name, ops_name = PAIRS["nolan"]
-    settings = ScadaApp.get_settings()
-    settings.paths.hardware_layout = CONFIG / layout_name
-    settings.paths.operational_params = CONFIG / ops_name
-    settings.paths.mkdirs()
-    app = ScadaApp(app_settings=settings)
-    app.instantiate()
-    actor = app.get_communicator_as_type("primary-btu", ApiBtuMeter)
+    actor = make_app("nolan").get_communicator_as_type("primary-btu", ApiBtuMeter)
     assert actor is not None
-    actor.sent = []
-    actor._send_to = lambda dst, payload, src=None: actor.sent.append(payload)
     return actor
 
 
-def test_sim_btu_actor_carries_a_source(btu: ApiBtuMeter) -> None:
+def test_a_sim_btu_meter_sends_what_the_plant_shows(btu: ApiBtuMeter) -> None:
     assert isinstance(btu._component, SimPicoBtuMeterComponent)
-    assert btu.sim_pico is not None
-    reading = btu.sim_pico.reading
-    assert reading.HwUid == btu._component.gt.HwUid
-    assert reading.ChannelNameList == ["primary-flow", "hp-lwt", "hp-ewt"]
-    assert reading.MeasurementList == [SIM_LOOP_GPM_X100, SIM_LOOP_CELSIUS_X100, SIM_LOOP_CELSIUS_X100]
-    assert btu.sim_pico.capture_period_s == btu.liveness.expected_post_s
-    assert btu.sim_pico.life_s == btu._component.gt.SimLifeS
-    assert btu.sim_pico.reboot_s == btu._component.gt.SimRebootS
+    plant_link = btu.services.plant.device(btu.name, SensorSource)
+    assert isinstance(plant_link, InProcessPlantLink)
+    shown = {"primary-flow": 410, "hp-lwt": 5100, "hp-ewt": 4600}
+    sent = capture_sends(btu)
+    btu.liveness.last_heard = 0.0
 
-
-def test_sim_btu_reading_goes_out_on_the_real_path(btu: ApiBtuMeter) -> None:
-    """The source's snapshot, processed the way a real pico's post is, marks
-    the pico heard and sends readings in each channel's declared encoding."""
-    assert btu.sim_pico is not None
-    reading = btu.sim_pico.tick(0.0)
-    assert isinstance(reading, MultichannelSnapshot)
-
-    btu.process_message(Message(Src=btu.name, Dst=btu.name, Payload=reading))
+    plant_link.show(shown, READ_MS)
 
     assert not btu.missing()
-    sent = next(p for p in btu.sent if isinstance(p, SyncedReadings))
-    registry = btu.layout.channel_registry
-    assert sent.ValueList[0] == SIM_LOOP_GPM_X100
-    assert registry.temperature("hp-lwt", sent.ValueList[1]).f == pytest.approx(122.0)
-    assert registry.temperature("hp-ewt", sent.ValueList[2]).f == pytest.approx(122.0)
+    expected = SyncedReadings(
+        ChannelNameList=list(shown),
+        ValueList=list(shown.values()),
+        ScadaReadTimeUnixMs=READ_MS,
+    )
+    assert (btu.pico_cycler.name, expected) in sent
+    assert (btu.primary_scada.name, expected) in sent
+    assert all(payload == expected for _, payload in sent)
 
 
 def test_pico_cycler_tracks_the_sim_btu_pico(btu: ApiBtuMeter) -> None:
@@ -254,21 +185,31 @@ def test_pico_cycler_tracks_the_sim_btu_pico(btu: ApiBtuMeter) -> None:
     assert "sim-primary-btu-pico" in cycler.picos
 
 
-def test_sim_btu_with_a_ct_posts_its_ct_channel() -> None:
-    layout_name, ops_name = PAIRS["nolan"]
-    settings = ScadaApp.get_settings()
-    settings.paths.hardware_layout = CONFIG / layout_name
-    settings.paths.operational_params = CONFIG / ops_name
-    settings.paths.mkdirs()
-    app = ScadaApp(app_settings=settings)
-    app.instantiate()
-    meters = [
-        app.get_communicator_as_type(n.name, ApiBtuMeter)
-        for n in app.hardware_layout.nodes.values()
-        if n.actor_class == "ApiBtuMeter"
-    ]
-    with_ct = [a for a in meters if a is not None and a.ct_channel is not None]
-    assert with_ct, "no sim BTU meter with a CT on the Nolan pair"
-    for a in with_ct:
-        assert a.sim_pico is not None
-        assert a.ct_channel.Name in a.sim_pico.reading.ChannelNameList
+def test_a_sim_btu_meter_leaves_out_a_channel_the_layout_disables() -> None:
+    app = make_app("nolan")
+    a = app.get_communicator_as_type("secondary-btu", ApiBtuMeter)
+    assert a is not None and a.ct_channel is not None
+    disabled = a.ct_channel.Name
+    assert a.layout.channel_disabled(disabled)
+    sent = capture_sends(a)
+
+    link(app).show({disabled: 12, a.flow_channel.Name: 410}, READ_MS)
+
+    assert sent, "the enabled flow was not sent"
+    assert all(readings.ChannelNameList == [a.flow_channel.Name] for _, readings in sent)
+    assert disabled not in link(app).unsensed_channels
+
+
+@pytest.mark.parametrize(
+    ("node_name", "uid_field"), [("tank1", "PicoHwUid"), ("primary-btu", "HwUid")]
+)
+def test_a_real_picos_node_has_no_device_in_the_plant(
+    tmp_path: Path, node_name: str, uid_field: str
+) -> None:
+    pair = PAIRS["nolan"]
+    app = boot(tmp_path, pair, with_real_pico(pair, node_name, uid_field))
+    with pytest.raises(ValueError, match=f"{node_name} has no device in the plant"):
+        app.plant.device(node_name, SensorSource)
+    still_simulated = "buffer"
+    assert app.plant.device(still_simulated, SensorSource) is app.plant_link
+

@@ -209,17 +209,16 @@ async def test_a_sim_zones_pin_drives_its_heat_call(request: pytest.FixtureReque
     async with ScadaLiveTest(request=request, child_app_settings=nolan_settings()) as h:
         h.start_child1()
         data = h.child1_app.scada.data
-        link = the_link(h.child1_app)
 
-        link.show({OPTO_INPUT: 1}, READ_MS)
+        h.plant.show({OPTO_INPUT: 1})
         await h.await_for(
             lambda: data.latest_channel_values.get(HEAT_CALL) == 0, "heat call idle, pin 1"
         )
-        link.show({OPTO_INPUT: 0}, READ_MS)
+        h.plant.show({OPTO_INPUT: 0})
         await h.await_for(
             lambda: data.latest_channel_values.get(HEAT_CALL) == 1, "heat call calling, pin 0"
         )
-        link.show({OPTO_INPUT: 1}, READ_MS)
+        h.plant.show({OPTO_INPUT: 1})
         await h.await_for(
             lambda: data.latest_channel_values.get(HEAT_CALL) == 0, "heat call idle again, pin 1"
         )
@@ -231,7 +230,7 @@ async def test_a_sim_zone_already_calling_at_boot_is_seen_at_boot(
 ) -> None:
     async with ScadaLiveTest(request=request, child_app_settings=nolan_settings()) as h:
         h.add_child1()
-        the_link(h.child1_app).show({OPTO_INPUT: 0}, READ_MS)
+        h.plant.show({OPTO_INPUT: 0})
         h.start_child1()
         data = h.child1_app.scada.data
         await h.await_for(

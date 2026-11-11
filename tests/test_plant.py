@@ -183,11 +183,11 @@ def app_on(pair: str, layout: Optional[Path] = None) -> ScadaApp:
 
 
 @pytest.mark.parametrize(
-    ("pair", "sim_sensors", "relays", "reading_back"),
-    [("gw.house0.no.sieg.hazel", 11, 11, 0), ("gw.nolan", 0, 20, 19)],
+    ("pair", "sim_sensors", "sim_picos", "relays", "reading_back"),
+    [("gw.house0.no.sieg.hazel", 11, 3, 11, 0), ("gw.nolan", 0, 9, 20, 19)],
 )
-def test_the_app_puts_the_link_behind_sim_sensors_and_simulated_board_relays(
-    pair: str, sim_sensors: int, relays: int, reading_back: int
+def test_the_app_puts_the_link_behind_sim_sensors_sim_picos_and_simulated_board_relays(
+    pair: str, sim_sensors: int, sim_picos: int, relays: int, reading_back: int
 ) -> None:
     """A simulated relay reads back where its board does: the Krida board
     reads no pin, and the gw108 reads its expander pins and not its one
@@ -197,7 +197,7 @@ def test_the_app_puts_the_link_behind_sim_sensors_and_simulated_board_relays(
     assert isinstance(link, InProcessPlantLink)
 
     devices = app.plant.device_by_node
-    assert sum(device is link for device in devices.values()) == sim_sensors
+    assert sum(device is link for device in devices.values()) == sim_sensors + sim_picos
     drives = {n: d for n, d in devices.items() if isinstance(d, LinkRelayDrive)}
     assert len(drives) == relays
     for name, drive in drives.items():

@@ -1,3 +1,4 @@
+import asyncio
 import shutil
 import socket
 import time
@@ -113,10 +114,9 @@ def fixture_config_dir(ops_path: Path, layout_name: str) -> Path:
 
 
 def fresh_buffer(scada: Scada, for_s: int = 3600) -> None:
-    """Stamp the family's dispatch channels as read now, so the scada is not
-    blind for the test's duration. The suite simulates no tank module, so
-    nothing posts buffer temperatures; this stands in for that sensor. A
-    simulated tank module retires it."""
+    """Stamp the family's dispatch channels as read `for_s` from now, so the
+    scada is not blind for the test's duration: the standing plant shows
+    the tanks once, when the scada starts, and that reading goes stale."""
     channels = dispatch_channels(scada.layout)
     stamp = int((time.time() + for_s) * 1000)
     for name in channels:
@@ -159,6 +159,7 @@ class RecordingProactor(InstrumentedProactor):
 class ScadaLiveTest(TreeLiveTest):
     UPLOADER_LONG_NAME = "test_uploader"
     reassigned_web_servers: set[int]
+    plant: StandingPlant
 
     @classmethod
     def parent_app_type(cls) -> type[LtnApp]:
@@ -266,6 +267,15 @@ class ScadaLiveTest(TreeLiveTest):
                 self.reassigned_web_servers.add(id(ws.web_server_gt))
                 ws.web_server_gt.Port = free_port()
         return app
+
+    def start_child(self) -> typing.Self:
+        """The standing plant shows its sensed channels once the scada's
+        proactor has started, which is its task's first step: the callback
+        queued here runs after it."""
+        super().start_child()
+        if isinstance(self.child_app.plant_link, InProcessPlantLink):
+            asyncio.get_running_loop().call_soon(self.plant.scada_started)
+        return self
 
     # noinspection PyMethodMayBeStatic
     def default_quiescent_total_children_events(self) -> int:

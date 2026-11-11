@@ -12,18 +12,17 @@ from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwsproto.data_classes.components import PicoTankModuleComponent, SimPicoTankModuleComponent
-from gwsproto.enums import RelayClosedOrOpen, TempCalcMethod
-from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames
+from gwsproto.enums import TempCalcMethod
 from gwsproto.named_types import Glitch, SyncedReadings, TankModuleParams
 from result import Ok, Result
 from actors.pico_identity import PicoIdentity
 from actors.pico_liveness import PicoLiveness
 from actors.pico_post_refusal import RefusedPosts, refused_post, unknown_pico, unreadable_post
 from actors.sh_node_actor import ShNodeActor
-from actors.sim_pico_source import SIM_PICO_TICK_S, SimPicoSource
 from gwsproto.names.core.node_names import ScadaWeb
 from gwsproto.named_types import PicoMissing, ChannelFlatlined, MicroVolts
 
+from plant import PlantReadings, SensorSource
 from scada_app_interface import ScadaAppInterface
 
 R_FIXED_KOHMS = 5.65  # The voltage divider resistors in the TankModule
@@ -35,21 +34,6 @@ OPEN_THERMISTOR_REPORT_S = 24 * 3600  # an open thermistor is reported once a da
 # of the tank range, so one authored delta means the same thing on every
 # module whatever its beta.
 CAPTURE_DELTA_MATCH_C = (130 - 32) * 5 / 9
-# A tank at rest, stratified: depth1 is the top. Fixed until the plant drives
-# tank temperatures.
-SIM_TANK_AT_REST_C: dict[int, float] = {1: 55.0, 2: 50.0, 3: 45.0}
-
-
-def microvolts_without(reading: MicroVolts, about_node_names: set[str]) -> MicroVolts:
-    """The reading with the named depths dropped from its lists."""
-    kept = [
-        i for i, name in enumerate(reading.AboutNodeNameList) if name not in about_node_names
-    ]
-    return MicroVolts(
-        HwUid=reading.HwUid,
-        AboutNodeNameList=[reading.AboutNodeNameList[i] for i in kept],
-        MicroVoltsList=[reading.MicroVoltsList[i] for i in kept],
-    )
 
 
 def microvolts_at_c(temp_c: float, beta: int) -> int:
@@ -74,11 +58,10 @@ def micro_volt_capture_delta(delta_celsius_x100: int, beta: int) -> int:
 
 
 class ApiTankModule(ShNodeActor):
-    """Reads a pico tank module over HTTP. When the component is the sim
-    word the actor runs its own SimPicoSource, posting microvolts to itself
-    on the same path the web handler uses. The source lives in the actor
-    rather than as its own node or in the plant, a choice to re-evaluate: a
-    plant-side pico posting over HTTP would test the real ingress path."""
+    """Reads a pico tank module's posts over HTTP. A component of the sim
+    word has no pico: the plant shows its channels, already in each
+    channel's encoding, and each flux that carries one is taken as a post,
+    so a plant that stops showing them is a pico that stopped posting."""
 
     _stop_requested: bool
 
@@ -195,23 +178,15 @@ class ApiTankModule(ShNodeActor):
             for name in self.flatlined_channel_names()
         }
 
-        self.sim_pico: Optional[SimPicoSource[MicroVolts]] = None
         if isinstance(self._component, SimPicoTankModuleComponent):
-            assert self.pico_uid
-            beta = self._component.gt.ThermistorBeta
-            self.sim_pico = SimPicoSource(
-                reading=MicroVolts(
-                    HwUid=self.pico_uid,
-                    AboutNodeNameList=[self.depth_about_nodes[d] for d in (1, 2, 3)],
-                    MicroVoltsList=[microvolts_at_c(SIM_TANK_AT_REST_C[d], beta) for d in (1, 2, 3)],
-                ),
-                without=microvolts_without,
-                capture_period_s=self.liveness.expected_post_s,
-                life_s=self._component.gt.SimLifeS,
-                reboot_s=self._component.gt.SimRebootS,
-                booted_at=time.time(),
+            self.my_device(SensorSource).sense(
+                [
+                    ch.Name
+                    for ch in self.layout.data_channels.values()
+                    if ch.CapturedByNodeName == self.name
+                ],
+                self.take_from_plant,
             )
-        self.sim_relay_seen: Optional[tuple[str, int]] = None
 
     @cached_property
     def microvolts_path(self) -> str:
@@ -400,6 +375,24 @@ class ApiTankModule(ShNodeActor):
             else:
                 raise Exception(f"No code for {self._component.gt.TempCalcMethod}!")
 
+        self.report_readings(channel_name_list, value_list, int(time.time() * 1000))
+
+    def take_from_plant(self, readings: PlantReadings) -> None:
+        if self.disabled:
+            return
+        self.liveness.heard(time.time())
+        enabled = [
+            i for i, name in enumerate(readings.channel_names) if name in self.channel_liveness
+        ]
+        self.report_readings(
+            [readings.channel_names[i] for i in enabled],
+            [readings.values[i] for i in enabled],
+            readings.read_time_ms,
+        )
+
+    def report_readings(
+        self, channel_name_list: list[str], value_list: list[int], read_time_ms: int
+    ) -> None:
         now = time.time()
         for channel_name in channel_name_list:
             self.channel_liveness[channel_name].heard(now)
@@ -407,7 +400,7 @@ class ApiTankModule(ShNodeActor):
             msg = SyncedReadings(
                 ChannelNameList=channel_name_list,
                 ValueList=value_list,
-                ScadaReadTimeUnixMs=int(time.time() * 1000),
+                ScadaReadTimeUnixMs=read_time_ms,
             )
             self._send_to(self.pico_cycler, msg)
             self._send_to(self.primary_scada, msg)
@@ -429,35 +422,6 @@ class ApiTankModule(ShNodeActor):
         self.services.add_task(
             asyncio.create_task(self.main(), name="ApiTankModule keepalive")
         )
-        if self.sim_pico is not None and not self.disabled:
-            self.services.add_task(
-                asyncio.create_task(self.sim_pico_main(), name="ApiTankModule sim pico")
-            )
-
-    def feed_sim_relay_state(self, now: float) -> None:
-        """Hand the source each new vdc relay state from the scada's latest
-        machine states."""
-        assert self.sim_pico is not None
-        sms = self.data.latest_machine_state.get(HydronicSpaceheatNodeNames.vdc_relay)
-        if sms is None:
-            return
-        seen = (sms.State, sms.UnixMs)
-        if seen == self.sim_relay_seen:
-            return
-        self.sim_relay_seen = seen
-        self.sim_pico.relay_state(RelayClosedOrOpen(sms.State), now)
-
-    async def sim_pico_main(self) -> None:
-        assert self.sim_pico is not None
-        while not self._stop_requested:
-            now = time.time()
-            self.feed_sim_relay_state(now)
-            reading = self.sim_pico.tick(now)
-            if reading is not None:
-                self.services.send_threadsafe(
-                    Message(Src=self.name, Dst=self.name, Payload=reading)
-                )
-            await asyncio.sleep(SIM_PICO_TICK_S)
 
     def stop(self) -> None:
         """IOLoop will take care of stop."""
