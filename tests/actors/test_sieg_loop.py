@@ -557,6 +557,99 @@ async def test_a_state_change_during_the_homing_run_starts_another_full_run(tmp_
     assert valve.valve_state == SiegValveState.FullyKeep
 
 
+async def homed_at_keep_with_the_heat_pump_off(tmp_path: Path):
+    """StratProtect on the manual clock, cold loop, heat pump off and the
+    valve homed at the keep stop."""
+    app, clock = manual_app(tmp_path, strategy=SiegLoopStrategy.StratProtect)
+    actor = sieg_loop_actor(app)
+    valve = actor.valve
+    sent = capture(actor)
+    read(actor, HCN.hp_lwt, 3000)
+    read(actor, HCN.hp_ewt, 2800)
+    read(actor, HCN.hp_odu_pwr, 0)
+    read(actor, HCN.hp_idu_pwr, 0)
+    deliver(actor, actor.hp_boss.name, hp_boss_state(actor, HpBossState.HpOff))
+    deliver(actor, actor.primary_scada.name, ActuatorsReady())
+    await settle()
+    await advance_by_seconds(clock, valve.FULL_RANGE_S + valve.OVERSHOOT_S, actor)
+    assert valve.homed
+    assert valve.valve_state == SiegValveState.FullyKeep
+    assert relay_events(sent) == TO_KEEP + HOLD
+    return actor, clock, sent
+
+
+@pytest.mark.asyncio
+async def test_a_start_parks_on_the_cusp_and_opens_when_the_outdoor_unit_draws_power(tmp_path: Path) -> None:
+    """hp-boss preparing to turn on runs the valve from the keep stop to
+    just keep, where the first second of an open sends water. The open to
+    full send comes when the outdoor unit draws more than an idle heat
+    pump does."""
+    actor, clock, sent = await homed_at_keep_with_the_heat_pump_off(tmp_path)
+    valve = actor.valve
+    strategy = actor.strategy
+    assert isinstance(strategy, StratProtect)
+
+    deliver(actor, actor.hp_boss.name, hp_boss_state(actor, HpBossState.PreparingToTurnOn))
+    deliver(actor, actor.hp_boss.name, hp_boss_state(actor, HpBossState.HpOn))
+    await settle()
+    assert strategy.control_state == SiegControlState.HpStartingUp
+    assert relay_events(sent) == TO_KEEP + HOLD + TO_SEND
+    park = valve.FULL_RANGE_S + valve.OVERSHOOT_S - valve.t2
+    await advance_by_seconds(clock, park, actor)
+    assert relay_events(sent) == TO_KEEP + HOLD + TO_SEND + HOLD
+    assert valve.valve_state == SiegValveState.SteadyBlend
+    assert abs(valve.keep_seconds - valve.t2) < 1
+    assert strategy.control_state == SiegControlState.HpStartingUp
+
+    read(actor, HCN.hp_odu_pwr, StratProtect.IDLE_POWER_W + 200)
+    actor.tick()
+    await settle()
+    assert strategy.control_state == SiegControlState.HpHasLift
+    assert relay_events(sent) == TO_KEEP + HOLD + TO_SEND + HOLD + TO_SEND
+    await advance_by_seconds(clock, valve.t2 + valve.OVERSHOOT_S, actor)
+    assert valve.valve_state == SiegValveState.FullySend
+
+
+@pytest.mark.asyncio
+async def test_the_heat_pump_turned_off_while_parked_returns_the_valve_to_the_keep_stop(tmp_path: Path) -> None:
+    """hp-boss turning off during the start, before the outdoor unit draws
+    power, leaves HpStartingUp for HpOff and runs the valve from the park
+    back to full keep."""
+    actor, clock, sent = await homed_at_keep_with_the_heat_pump_off(tmp_path)
+    valve = actor.valve
+    strategy = actor.strategy
+    assert isinstance(strategy, StratProtect)
+    deliver(actor, actor.hp_boss.name, hp_boss_state(actor, HpBossState.PreparingToTurnOn))
+    deliver(actor, actor.hp_boss.name, hp_boss_state(actor, HpBossState.HpOn))
+    await settle()
+    await advance_by_seconds(clock, valve.FULL_RANGE_S + valve.OVERSHOOT_S - valve.t2, actor)
+    assert strategy.control_state == SiegControlState.HpStartingUp
+    assert valve.valve_state == SiegValveState.SteadyBlend
+
+    deliver(actor, actor.hp_boss.name, hp_boss_state(actor, HpBossState.HpOff))
+    await settle()
+    assert strategy.control_state == SiegControlState.HpOff
+    assert relay_events(sent) == TO_KEEP + HOLD + TO_SEND + HOLD + TO_KEEP
+    await advance_by_seconds(clock, valve.FULL_RANGE_S + valve.OVERSHOOT_S, actor)
+    assert valve.valve_state == SiegValveState.FullyKeep
+    assert strategy.control_state == SiegControlState.HpOff
+
+
+@pytest.mark.asyncio
+async def test_a_start_whose_outdoor_unit_never_draws_power_stays_parked(tmp_path: Path) -> None:
+    actor, clock, sent = await homed_at_keep_with_the_heat_pump_off(tmp_path)
+    strategy = actor.strategy
+    assert isinstance(strategy, StratProtect)
+    deliver(actor, actor.hp_boss.name, hp_boss_state(actor, HpBossState.PreparingToTurnOn))
+    deliver(actor, actor.hp_boss.name, hp_boss_state(actor, HpBossState.HpOn))
+    await settle()
+    assert strategy.control_state == SiegControlState.HpStartingUp
+    await advance_by_seconds(clock, 20 * 60, actor)
+    assert strategy.control_state == SiegControlState.HpStartingUp
+    assert relay_events(sent) == TO_KEEP + HOLD + TO_SEND + HOLD
+    assert actor.valve.valve_state == SiegValveState.SteadyBlend
+
+
 @pytest.mark.asyncio
 async def test_strat_protect_homes_to_send_when_the_heat_pump_is_on_and_the_loop_is_blind(tmp_path: Path) -> None:
     app, clock = manual_app(tmp_path, strategy=SiegLoopStrategy.StratProtect)
@@ -571,6 +664,47 @@ async def test_strat_protect_homes_to_send_when_the_heat_pump_is_on_and_the_loop
     await advance_by_seconds(clock, valve.FULL_RANGE_S + valve.OVERSHOOT_S, actor)
     assert relay_events(sent) == TO_SEND + HOLD
     assert valve.valve_state == SiegValveState.FullySend
+
+
+@pytest.mark.asyncio
+async def test_a_second_run_after_a_stop_does_not_go_blind(tmp_path: Path) -> None:
+    """Power long after an off command means blind only while hp-boss
+    still says off. A start clears the off timer, so the compressor
+    coming on in the next run opens the loop as HpHasLift, not Blind."""
+    app, clock = manual_app(tmp_path, strategy=SiegLoopStrategy.StratProtect)
+    actor = sieg_loop_actor(app)
+    strategy = actor.strategy
+    assert isinstance(strategy, StratProtect)
+    capture(actor)
+    read(actor, HCN.hp_lwt, 3000)
+    read(actor, HCN.hp_ewt, 2800)
+    read(actor, HCN.hp_odu_pwr, 0)
+    read(actor, HCN.hp_idu_pwr, 0)
+    deliver(actor, actor.hp_boss.name, hp_boss_state(actor, HpBossState.HpOff))
+    deliver(actor, actor.primary_scada.name, ActuatorsReady())
+    await settle()
+    assert strategy.control_state == SiegControlState.HpOff
+
+    deliver(actor, actor.hp_boss.name, hp_boss_state(actor, HpBossState.PreparingToTurnOn))
+    deliver(actor, actor.hp_boss.name, hp_boss_state(actor, HpBossState.HpOn))
+    read(actor, HCN.hp_odu_pwr, 3000)
+    actor.tick()
+    await settle()
+    assert strategy.control_state == SiegControlState.HpHasLift
+
+    deliver(actor, actor.hp_boss.name, hp_boss_state(actor, HpBossState.HpOff))
+    read(actor, HCN.hp_odu_pwr, 0)
+    await advance_by_seconds(clock, 2 * StratProtect.OFF_SETTLE_S, actor)
+    assert strategy.control_state == SiegControlState.HpOff
+
+    deliver(actor, actor.hp_boss.name, hp_boss_state(actor, HpBossState.PreparingToTurnOn))
+    deliver(actor, actor.hp_boss.name, hp_boss_state(actor, HpBossState.HpOn))
+    assert strategy.control_state == SiegControlState.HpStartingUp
+    read(actor, HCN.hp_odu_pwr, 3000)
+    actor.tick()
+    await settle()
+    assert strategy.blind_reason() is None
+    assert strategy.control_state == SiegControlState.HpHasLift
 
 
 @pytest.mark.asyncio
