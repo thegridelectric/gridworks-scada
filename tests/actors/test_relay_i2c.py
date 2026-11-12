@@ -41,6 +41,7 @@ from gwsproto.named_types import (
 from gwproto.message import Message
 from scada_app import ScadaApp
 from sema_to_dc import assemble_runtime_layout
+from tests.utils.on_bus import relay_on_bus
 
 
 @pytest.fixture
@@ -68,8 +69,8 @@ def app() -> tuple[ScadaApp, NolanLayout]:
 def rig(app: tuple[ScadaApp, NolanLayout]) -> tuple[Relay, I2cBus]:
     scada_app, layout = app
     relay_name = layout.Hydronic.ZoneCallCircuits[0].FailsafeRelayNode
-    relay = Relay(relay_name, scada_app)
-    bus = I2cBus(relay._i2c.bus_node.name, scada_app)
+    relay = relay_on_bus(scada_app, relay_name)
+    bus = I2cBus(relay.drive.at.bus_node.name, scada_app)
     bus.sent = []
     relay.sent = []
 
@@ -111,7 +112,7 @@ def command(relay: Relay, *, energize: bool) -> I2cCommand:
 
 
 def pin(relay: Relay, bus: I2cBus) -> int:
-    a = relay._i2c
+    a = relay.drive.at
     return (bus.i2c.expanders[a.i2c_address].read(a.input_register) >> a.bit_index) & 1
 
 
@@ -147,7 +148,7 @@ async def test_por_boot_adopts_deenergized(rig) -> None:
 @pytest.mark.asyncio
 async def test_warm_takeover_inherits_latched_hold(rig) -> None:
     relay, bus = rig
-    a = relay._i2c
+    a = relay.drive.at
     expander = bus.i2c.expanders[a.i2c_address]
     expander.write(tca9555.CONFIG_PORT_0, 0x00)
     expander.write(tca9555.CONFIG_PORT_1, 0x00)
@@ -187,7 +188,7 @@ async def test_transient_eio_heals_on_verify_pass(rig) -> None:
     await boot(relay, bus)
     relay.sent.clear()
     cmd = command(relay, energize=True)
-    bus.i2c.inject_fault(relay._i2c.i2c_address, count=1)
+    bus.i2c.inject_fault(relay.drive.at.i2c_address, count=1)
     relay._i2c_command = cmd
     await relay._attempt_command(cmd)
     assert relay.state == ZoneCallSource.WallThermostat  # no commit
@@ -206,7 +207,7 @@ async def test_permanent_eio_glitches_once_per_streak(rig) -> None:
     await boot(relay, bus)
     relay.sent.clear()
     cmd = command(relay, energize=True)
-    bus.i2c.inject_fault(relay._i2c.i2c_address, count=None)
+    bus.i2c.inject_fault(relay.drive.at.i2c_address, count=None)
     relay._i2c_command = cmd
     await relay._attempt_command(cmd)
     await relay._verify_and_report()
@@ -231,10 +232,10 @@ async def test_reset_detected_repaired_reasserted(rig) -> None:
     bus.sent.clear()
     relay.sent.clear()
 
-    bus.i2c.power_on_reset(relay._i2c.i2c_address)  # the OPS-452 mid-run reset
+    bus.i2c.power_on_reset(relay.drive.at.i2c_address)  # the OPS-452 mid-run reset
     await bus._check_expanders()
     assert len(glitches(bus, "i2c-expander-reset")) == 1
-    expander = bus.i2c.expanders[relay._i2c.i2c_address]
+    expander = bus.i2c.expanders[relay.drive.at.i2c_address]
     assert expander.read(tca9555.CONFIG_PORT_0) == 0x00  # re-initialized
     assert pin(relay, bus) == 0  # safe-off: the relay dropped
 
@@ -254,7 +255,7 @@ async def test_reset_repair_pokes_immediate_reassert(rig) -> None:
     assert pin(relay, bus) == 1
     relay.sent.clear()
 
-    bus.i2c.power_on_reset(relay._i2c.i2c_address)
+    bus.i2c.power_on_reset(relay.drive.at.i2c_address)
     await bus._check_expanders()  # detect + repair + poke
     await asyncio.sleep(0.1)  # the poked re-assert task runs
     assert pin(relay, bus) == 1  # restored with NO manual verify call
@@ -271,23 +272,23 @@ async def test_garbled_read_does_not_false_positive(rig) -> None:
     await relay._attempt_command(cmd)
 
     # relay side: a garbled pin read is confirmed by the re-read
-    bus.i2c.inject_read_garble(relay._i2c.i2c_address, count=1)
+    bus.i2c.inject_read_garble(relay.drive.at.i2c_address, count=1)
     assert await relay._read_pin_confirmed(1) == (1, None)
 
     # bus side: a garbled config read must not fire a reset repair
     bus.sent.clear()
-    bus.i2c.inject_read_garble(relay._i2c.i2c_address, count=1)
+    bus.i2c.inject_read_garble(relay.drive.at.i2c_address, count=1)
     await bus._check_expanders()
     assert not glitches(bus, "i2c-expander-reset")
     assert pin(relay, bus) == 1  # nothing was re-initialized
 
     # nor on a check a relay requested
-    bus.i2c.inject_read_garble(relay._i2c.i2c_address, count=1)
+    bus.i2c.inject_read_garble(relay.drive.at.i2c_address, count=1)
     bus.process_message(
         Message(
             Src=relay.name,
             Dst=bus.name,
-            Payload=ExpanderCheckRequested(I2cAddress=relay._i2c.i2c_address),
+            Payload=ExpanderCheckRequested(I2cAddress=relay.drive.at.i2c_address),
         )
     )
     await asyncio.sleep(0.7)
@@ -305,7 +306,7 @@ async def test_actuation_failure_triggers_expander_check(rig) -> None:
     bus.sent.clear()
     relay.sent.clear()
 
-    bus.i2c.power_on_reset(relay._i2c.i2c_address)
+    bus.i2c.power_on_reset(relay.drive.at.i2c_address)
     cmd = command(relay, energize=True)
     relay._i2c_command = cmd
     await relay._attempt_command(cmd)  # the write lands on floating pins
@@ -314,7 +315,7 @@ async def test_actuation_failure_triggers_expander_check(rig) -> None:
 
     await asyncio.sleep(0.7)  # the requested check: read, 0.5 s, confirm
     assert len(glitches(bus, "i2c-expander-reset")) == 1
-    expander = bus.i2c.expanders[relay._i2c.i2c_address]
+    expander = bus.i2c.expanders[relay.drive.at.i2c_address]
     assert expander.read(tca9555.CONFIG_PORT_0) == 0x00
     assert pin(relay, bus) == 1  # re-asserted on ExpanderReinitialized
     assert relay.state == ZoneCallSource.Scada
@@ -328,7 +329,7 @@ async def test_failed_attempt_retries_on_backoff(rig) -> None:
     await boot(relay, bus)
     relay.sent.clear()
     cmd = command(relay, energize=True)
-    bus.i2c.inject_fault(relay._i2c.i2c_address, count=1)
+    bus.i2c.inject_fault(relay.drive.at.i2c_address, count=1)
     relay._i2c_command = cmd
     await relay._attempt_command(cmd)
     assert relay._i2c_command is cmd
@@ -353,7 +354,7 @@ async def test_newer_command_ends_the_retries(rig) -> None:
     relay.RETRY_BACKOFF_S = (0.1,)
     await boot(relay, bus)
     first = command(relay, energize=True)
-    bus.i2c.inject_fault(relay._i2c.i2c_address, count=1)
+    bus.i2c.inject_fault(relay.drive.at.i2c_address, count=1)
     relay._i2c_command = first
     await relay._attempt_command(first)
     second = command(relay, energize=False)
@@ -370,7 +371,7 @@ async def test_readback_failure_keeps_error_and_forensics(rig) -> None:
     relay.RETRY_BACKOFF_S = ()
     await boot(relay, bus)
     relay.sent.clear()
-    a = relay._i2c
+    a = relay.drive.at
     real_read = bus.i2c.read_byte_data
     failed = []
 
@@ -395,11 +396,11 @@ async def test_check_request_is_debounced(rig) -> None:
     relay, bus = rig
     await boot(relay, bus)
     bus.sent.clear()
-    bus.i2c.power_on_reset(relay._i2c.i2c_address)
+    bus.i2c.power_on_reset(relay.drive.at.i2c_address)
     request = Message(
         Src=relay.name,
         Dst=bus.name,
-        Payload=ExpanderCheckRequested(I2cAddress=relay._i2c.i2c_address),
+        Payload=ExpanderCheckRequested(I2cAddress=relay.drive.at.i2c_address),
     )
     for _ in range(8):  # eight relays failing in one pass
         assert bus.process_message(request).is_ok()

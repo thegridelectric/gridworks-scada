@@ -18,7 +18,9 @@ from gwproto.message import Message
 from gwsproto.enums import ChangeRelayPin, I2cExpanderType, RelayClosedOrOpen
 from gwsproto.named_types import FsmFullReport, I2cResult, SingleMachineState, SingleReading
 from gwsproto.names.hydronic_spaceheat.node_names import HydronicSpaceheatNodeNames as HSNN
+from relay_drives import resolve_i2c_actuation
 from scada_app import ScadaApp
+from tests.utils.on_bus import relay_on_bus
 
 CONFIG = Path(__file__).parent.parent / "config"
 PAIRS = {
@@ -46,8 +48,8 @@ def app(request: pytest.FixtureRequest) -> ScadaApp:
 @pytest.fixture
 def sim_rig() -> tuple[Relay, I2cBus]:
     scada_app = make_app("house0-orange")
-    relay = Relay(HSNN.vdc_relay, scada_app)
-    bus = I2cBus(relay._i2c.bus_node.name, scada_app)
+    relay = relay_on_bus(scada_app, HSNN.vdc_relay)
+    bus = I2cBus(relay.drive.at.bus_node.name, scada_app)
     relay.sent = []
 
     def relay_send(dst, payload, src=None):
@@ -83,7 +85,7 @@ def command(relay: Relay, *, energize: bool) -> I2cCommand:
 
 
 def port_level(relay: Relay, bus: I2cBus) -> int:
-    a = relay._i2c
+    a = relay.drive.at
     port = bus.i2c.pcf8575s[a.i2c_address].read_bytes(2)
     return (port[a.output_register] >> a.bit_index) & 1
 
@@ -93,23 +95,20 @@ def test_every_house0_relay_resolves_against_the_krida_record(app: ScadaApp) -> 
     board = layout.scada_board()
     addresses = board.gt.I2cAddressList
     assert addresses == [0x20, 0x21]
-    relays = [
-        Relay(n.name, app) for n in layout.nodes.values() if n.ActorClass == "Relay"
-    ]
+    relays = [n for n in layout.nodes.values() if n.ActorClass == "Relay"]
     assert len(relays) == 13
+    actuation_by_name = {n.name: resolve_i2c_actuation(layout, n) for n in relays}
     for relay in relays:
-        a = relay._i2c
-        assert a is not None, relay.name
+        a = actuation_by_name[relay.name]
         assert a.expander_type == I2cExpanderType.Pcf8575
         assert a.config_register is None
         assert a.input_register == a.output_register
         assert a.energized_level == 0
         assert not a.supports_readback
-        marking = int(relay._component.gt.RelayName.removeprefix("Relay"))
+        marking = int(relay.component.gt.RelayName.removeprefix("Relay"))
         assert a.i2c_address == addresses[(marking - 1) // 16]
-    by_name = {r.name: r for r in relays}
-    assert by_name[HSNN.vdc_relay]._i2c.i2c_address == 0x20
-    assert by_name["zone1-main-failsafe-relay"]._i2c.i2c_address == 0x21  # Relay17
+    assert actuation_by_name[HSNN.vdc_relay].i2c_address == 0x20
+    assert actuation_by_name["zone1-main-failsafe-relay"].i2c_address == 0x21  # Relay17
 
 
 def test_bus_backend_is_pcf8575_only_on_the_sim_pair() -> None:
@@ -144,7 +143,7 @@ async def test_house0_relay_energizes_low_and_reports(sim_rig) -> None:
     assert relay.state == RelayClosedOrOpen.RelayClosed
     assert port_level(relay, bus) == 1
     # the other fifteen pins on the port are untouched by the read-modify-write
-    a = relay._i2c
+    a = relay.drive.at
     port = bus.i2c.pcf8575s[a.i2c_address].read_bytes(2)
     assert port == [0xFF, 0xFF]
 

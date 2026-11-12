@@ -16,11 +16,9 @@ from typing import Any
 
 import pytest
 
-from actors.api_tank_module import ApiTankModule
 from actors.contract_handler import CONTRACT_FILE_NAME
 from actors.leaf_ally_loader import LeafAlly
 from actors.scada import Scada
-from actors.sim_pico_source import SimPicoSource
 from gwsproto.enums import (
     DispatchRefusalReason,
     LeafAllyAllTanksState,
@@ -96,20 +94,20 @@ def leaf_ally(scada: Scada) -> LeafAlly:
     return ally
 
 
-def hold_buffer_pico(app: ScadaApp) -> SimPicoSource:
-    """Willow's simulated buffer pico, held before its first post so the
-    scada stays blind until `release_buffer_pico`. Call it right after
-    `start_child1`, before the loop runs the pico's first tick."""
-    buffer = app.get_communicator_as_type("buffer", ApiTankModule)
-    assert buffer is not None and buffer.sim_pico is not None
-    buffer.sim_pico.alive = False
-    return buffer.sim_pico
+BUFFER_CHANNELS = [
+    f"buffer-depth{depth}-{kind}" for depth in (1, 2, 3) for kind in ("device", "micro-v")
+]
 
 
-def release_buffer_pico(pico: SimPicoSource) -> None:
-    """The held pico boots now and posts on its next tick."""
-    pico.booted_at = time.time()
-    pico.alive = True
+def hold_buffer(h: ScadaLiveTest) -> None:
+    """The plant shows no buffer channel, so the scada stays blind until
+    `release_buffer`. Call it right after `start_child1`, before the loop
+    runs and the plant shows its first flux."""
+    h.plant.hide(BUFFER_CHANNELS)
+
+
+def release_buffer(h: ScadaLiveTest) -> None:
+    h.plant.hide(set())
 
 
 def live_contract(scada: Scada) -> SlowDispatchContract:
@@ -308,7 +306,7 @@ async def test_a_resumed_contract_waits_for_the_first_fresh_buffer(
         store(app, stored)
 
         h.start_child1()
-        pico = hold_buffer_pico(app)  # before the loop runs its first tick
+        hold_buffer(h)  # before the loop runs
         scada = app.scada
         sends = Sends(monkeypatch, scada)
         await scada_tasks_started(h)
@@ -318,14 +316,14 @@ async def test_a_resumed_contract_waits_for_the_first_fresh_buffer(
             "ERROR waiting out the startup seconds",
             timeout=PAST_STARTUP_S + 5,
         )
-        assert not scada.buffer_fresh(), "the held pico posted"
+        assert not scada.buffer_fresh(), "the plant showed the held buffer"
         latest = scada.contract_handler.latest_scada_hb
         assert latest is not None, "the resumed contract was given up while blind"
         assert latest.Contract.ContractId == contract.ContractId
         assert sends.heartbeats_to_ltn() == [], "a heartbeat left before the buffer was read"
         assert scada.auto_state == MainAutoState.LocalControl
 
-        release_buffer_pico(pico)
+        release_buffer(h)
         await h.await_for(
             lambda: bool(sends.heartbeats_to_ltn()),
             "ERROR waiting for the scada to take the stored contract up again",
@@ -356,7 +354,7 @@ async def test_a_live_stored_contract_is_ended_by_a_scada_still_blind_at_the_bou
         contract_file = store(app, stored)
 
         h.start_child1()
-        hold_buffer_pico(app)  # before the loop runs its first tick
+        hold_buffer(h)  # before the loop runs
         scada = app.scada
         sends = Sends(monkeypatch, scada)
         await h.await_for(

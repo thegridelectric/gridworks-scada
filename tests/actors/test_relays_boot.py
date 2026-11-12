@@ -165,7 +165,7 @@ def assert_standby_posture(h: ScadaLiveTest, relays: dict[str, Relay], energized
     ]
     assert outputs and all(outputs)
     for output in outputs:
-        assert output.target_code == output.power_on_code
+        assert output.target_level == output.power_on_level
     hp_boss = scada.services.get_communicator_as_type(HSNN.hp_boss, HpBoss)
     assert hp_boss is not None
     assert hp_boss.state == HpBossState.HpOff

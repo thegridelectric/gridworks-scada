@@ -1,0 +1,8 @@
+{
+  "TypeName": "sim.plant.actuation",
+  "Version": "000",
+  "RelayName": "hp-scada-ops-relay",
+  "Action": "Energize",
+  "ActuationTimeUnixMs": 1735689600123,
+  "ActualTimeUtc": "2026-06-12T13:20:00.000Z"
+}

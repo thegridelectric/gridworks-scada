@@ -1,7 +1,6 @@
 """Implements Relay Actors"""
 import asyncio
 import time
-import uuid
 from typing import Dict, List, NamedTuple, Sequence, Optional
 
 from gwsproto.enums import SemaEnum
@@ -10,14 +9,12 @@ from gwsproto.data_classes.data_channel import DataChannel
 from gwproactor import  MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 
-from drivers import tca9555
 from gwsproto.data_classes.components import (
     I2cRelayComponent,
     GpioRelayComponent,
 )
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
-    ActorClass,
     AquastatControl,
     ChangeAquastatControl,
     ChangeHeatPumpControl,
@@ -29,7 +26,6 @@ from gwsproto.enums import (
     ChangeZoneCallSource,
     FsmReportType,
     HeatPumpControl,
-    I2cExpanderType,
     PrimaryPumpControl,
     RelayClosedOrOpen,
     RelayPinState,
@@ -43,18 +39,12 @@ from gwsproto.enums import (
 from gwsproto.named_types import (
     FsmAtomicReport,
     FsmFullReport,
-    I2cBitAddress,
-    I2cReadBit,
-    I2cReadReg,
-    I2cRegAddress,
-    I2cResult,
-    I2cWriteBit,
 )
 from gwsproto.property_format import NonNegativeInt, UTCMilliseconds, UUID4Str
 from result import Err, Ok, Result
 from transitions import Machine
-from actors.i2c_bus import ExpanderCheckRequested, ExpanderReinitialized
 from actors.sh_node_actor import ShNodeActor
+from plant import Heard, RelayDrive
 from scada_app_interface import ScadaAppInterface
 from gwsproto.enums import LogLevel, ChangeKeepSend, HpLoopKeepSend
 from gwsproto.named_types import FsmEvent, Glitch, SingleMachineState, SingleReading
@@ -101,25 +91,14 @@ STATE_ENUM_BY_NAME: dict[str, type[SemaEnum]] = {
 }
 
 
-class I2cActuation(NamedTuple):
-    """Physical actuation facts for one board-resident i2c relay, resolved
-    once at init from the board record and component: where the bit lives
-    (bus node, chip address, output/input/config registers, bit index),
-    which expander chip protocol drives it, the pin level that energizes
-    the relay, and whether the board supports pin readback (confirmed vs
-    commanded-belief semantics). On a PCF8575 the "registers" are the two
-    bytes of its one port word, so input and output coincide and there is
-    no config register. Field types mirror i2c.bit.address."""
+def pin_action(pin_value: int) -> ChangeRelayPin:
+    return ChangeRelayPin.Energize if pin_value == 1 else ChangeRelayPin.DeEnergize
 
-    bus_node: ShNode
-    i2c_address: NonNegativeInt
-    expander_type: I2cExpanderType
-    output_register: NonNegativeInt
-    input_register: NonNegativeInt
-    config_register: NonNegativeInt | None
-    bit_index: NonNegativeInt
-    energized_level: NonNegativeInt
-    supports_readback: bool
+
+def pin_of(position: Optional[ChangeRelayPin]) -> int | None:
+    if position is None:
+        return None
+    return 1 if position == ChangeRelayPin.Energize else 0
 
 
 class I2cCommand(NamedTuple):
@@ -127,8 +106,8 @@ class I2cCommand(NamedTuple):
     relay's enforcement target until confirmation succeeds — the verify loop
     retries it (converge-on-intent, the summer hack's enforce behavior), so a
     transient bus failure heals without the boss re-commanding. A newer
-    command supersedes it. Field types mirror the wire: pin_value is
-    i2c.write.bit's 0/1 (NonNegativeInt + BitValueRange, so not PositiveInt);
+    command supersedes it. pin_value is 1 to energize and 0 to de-energize
+    (NonNegativeInt, so not PositiveInt);
     the states/events are values of the config-declared vocabularies."""
 
     pin_value: NonNegativeInt
@@ -142,7 +121,6 @@ class I2cCommand(NamedTuple):
 
 class Relay(ShNodeActor):
     STATE_REPORT_S = 300
-    BUS_OP_TIMEOUT_S = 1.0
     READY_TIMEOUT_S = 10.0
     # A failed attempt retries on its own at these delays before the verify
     # pass takes over.
@@ -187,117 +165,15 @@ class Relay(ShNodeActor):
         self.my_event_enum: type[SemaEnum] = ChangeRelayState
         self.my_state_enum: type[SemaEnum] = RelayClosedOrOpen
 
-        self._i2c: I2cActuation | None = None
         self._i2c_command: I2cCommand | None = None
         self._enforce_failing = False
-        self._pending_results: dict[str, "asyncio.Future[I2cResult]"] = {}
         self._ready = asyncio.Event()
-        if isinstance(self._component, I2cRelayComponent):
-            self._i2c = self._resolve_i2c_actuation()
+        self.drive = self.my_device(RelayDrive)
 
         self.initialize_fsm()
         self._stop_requested = False
         if not isinstance(self._component, I2cRelayComponent):
             self.state = self.relay_actor_config.DeEnergizedState
-
-        self._gpio_pin: int | None = None
-        if isinstance(self._component, GpioRelayComponent):
-            self._gpio_pin = self._resolve_gpio_pin()
-
-        # A GPIO relay on a real board owns its pin; on a simulated board
-        # (SimGw108) and for every non-GPIO relay there is no GPIO at all.
-        if (
-            isinstance(self._component, GpioRelayComponent)
-            and not self._component.board_component.simulated
-        ):
-            import RPi.GPIO as GPIO
-            self.GPIO = GPIO
-            self.GPIO.setmode(GPIO.BCM)
-            self.GPIO.setup(self._gpio_pin, GPIO.OUT)
-        else:
-            self.GPIO = None
-
-    def _resolve_gpio_pin(self) -> int:
-        """GpioName resolved against the NativeGpioOutputs of the layout's
-        board device-type records — the board record carries the physical
-        BCM pin."""
-        gpio_name = self._component.gt.GpioName
-        for record in self.layout.device_types.values():
-            for pin in getattr(record, "NativeGpioOutputs", []):
-                if pin.Name == gpio_name:
-                    return pin.BcmPin
-        raise ValueError(
-            f"{self.name}: no board device-type record in the layout carries "
-            f"a native GPIO output named {gpio_name}"
-        )
-
-    def _resolve_i2c_actuation(self) -> I2cActuation:
-        """RelayName resolved against THIS component's board record — the
-        record's I2cRelays map holds the physical position (expander, output
-        register, bit) and the board component holds any field-chosen
-        expander address; the layout never restates either."""
-        assert isinstance(self._component, I2cRelayComponent)
-        board = self._component.board_component
-        record = board.device_type
-        relay_name = self._component.gt.RelayName
-        capability = next(
-            (r for r in record.I2cRelays if r.RelayName == relay_name), None
-        )
-        if capability is None:
-            raise ValueError(
-                f"{self.name}: board record {record.DeviceType} has no "
-                f"I2cRelays entry named {relay_name}"
-            )
-        expander = next(
-            (
-                e
-                for e in record.Expanders
-                if e.ExpanderIdx == capability.ExpanderIdx
-            ),
-            None,
-        )
-        if expander is None:
-            raise ValueError(
-                f"{self.name}: board record {record.DeviceType} has no "
-                f"expander with ExpanderIdx {capability.ExpanderIdx}"
-            )
-        bus_nodes = [
-            n
-            for n in self.layout.nodes.values()
-            if n.ActorClass == ActorClass.I2cBus
-        ]
-        if len(bus_nodes) != 1:
-            raise ValueError(
-                f"{self.name}: expected exactly one I2cBus node in the "
-                f"layout; found {len(bus_nodes)}"
-            )
-        if expander.ExpanderType == I2cExpanderType.Tca9555:
-            input_register = tca9555.input_register(capability.RegisterIndex)
-            config_register: int | None = tca9555.config_register(
-                capability.RegisterIndex
-            )
-        else:
-            input_register = capability.RegisterIndex
-            config_register = None
-        return I2cActuation(
-            bus_node=bus_nodes[0],
-            i2c_address=board.expander_address(expander),
-            expander_type=expander.ExpanderType,
-            output_register=capability.RegisterIndex,
-            input_register=input_register,
-            config_register=config_register,
-            bit_index=capability.BitIndex,
-            energized_level=record.RelayEnergizedLevel,
-            supports_readback=record.SupportsPinReadback,
-        )
-
-    def _level(self, pin_value: int) -> int:
-        """The expander pin level for a logical pin value (1 = energize):
-        the board's energizing level, inverted on an active-low board."""
-        a = self._i2c
-        assert a is not None
-        return pin_value if a.energized_level == 1 else 1 - pin_value
-
 
     def my_channel(self) -> DataChannel:
         relay_config = next(
@@ -450,16 +326,21 @@ class Relay(ShNodeActor):
 
         """Actuate relay and complete FSM reporting"""
         if isinstance(self._component, GpioRelayComponent):
-            self._gpio_actuate_and_report(
-                relay_pin_event,
-                old_pin_state,
-                new_pin_state,
-                message
+            self.services.add_task(
+                asyncio.create_task(
+                    self._gpio_actuate_and_report(
+                        relay_pin_event,
+                        old_pin_state,
+                        new_pin_state,
+                        message
+                    ),
+                    name=f"{self.name}-actuate-{message.TriggerId}",
+                )
             )
         else:
             raise Exception(f"Unsupported relay component {type(self._component)}")
 
-    def _gpio_actuate_and_report(
+    async def _gpio_actuate_and_report(
         self,
         relay_pin_event: ChangeRelayPin,
         old_pin_state: RelayPinState,
@@ -467,17 +348,19 @@ class Relay(ShNodeActor):
         message: FsmEvent,
     ) -> None:
         now_ms = int(time.time() * 1000)
-        pin = self._gpio_pin
-        if self.GPIO is None:
-            # A simulated board has no pin to write; the relay's word to its
-            # boss (the pin report and the full report) goes out regardless.
-            self.log("Simulated board; skipping GPIO actuation")
-        elif relay_pin_event == ChangeRelayPin.Energize:
-            self.GPIO.output(pin, self.GPIO.HIGH)
-            self.log(f"Energizing: Setting pin {pin} to High")
-        else:
-            self.GPIO.output(pin, self.GPIO.LOW)
-            self.log(f"De-energizing: Setting pin {pin} to Low")
+        error = await self.drive.set(relay_pin_event)
+        if error is not None:
+            # The machine moved when the command arrived and nothing here
+            # retries, so the boss is left without its report and the glitch
+            # is the only word that the relay did not follow.
+            self._send_glitch(
+                "relay-actuation-failed",
+                f"{message.EventName}: {error}; no report sent, machine "
+                f"holds {self.state}",
+                LogLevel.Critical,
+            )
+            return
+        self.log(f"{relay_pin_event} set")
 
         self.reports_by_trigger[message.TriggerId].append(
             FsmAtomicReport(
@@ -504,30 +387,13 @@ class Relay(ShNodeActor):
                 )
             )
 
-    async def _bus_op(
-        self, payload: I2cWriteBit | I2cReadBit | I2cReadReg
-    ) -> I2cResult | None:
-        """Send one op to the bus actor and await its I2cResult (None on
-        timeout)."""
-        assert self._i2c is not None
-        future: "asyncio.Future[I2cResult]" = (
-            asyncio.get_running_loop().create_future()
-        )
-        self._pending_results[payload.TriggerId] = future
-        self._send_to(self._i2c.bus_node, payload)
-        try:
-            return await asyncio.wait_for(future, timeout=self.BUS_OP_TIMEOUT_S)
-        except asyncio.TimeoutError:
-            self._pending_results.pop(payload.TriggerId, None)
-            return None
-
     async def _read_pin_confirmed(
         self, expected_pin: int
     ) -> tuple[int | None, str | None]:
-        """A single garbled i2c read must not be believed: a reading that
+        """A single garbled read must not be believed: a reading that
         disagrees with expectation is confirmed by a second read 0.5 s later
         (the OPS-452 false-positive guard) before anyone acts on it. The
-        pair is the level (None on a failed read) and the bus error text."""
+        pair is the pin value (None on a failed read) and the error text."""
         pin, error = await self._read_pin_with_error()
         if pin is None or pin == expected_pin:
             return pin, error
@@ -535,83 +401,16 @@ class Relay(ShNodeActor):
         return await self._read_pin_with_error()
 
     async def _read_pin(self) -> int | None:
-        """The actual level at the relay's pin, via the expander's input-port
-        register. None on bus failure."""
+        """The pin value the relay holds: 1 energized, 0 de-energized,
+        None on a failed read."""
         pin, _error = await self._read_pin_with_error()
         return pin
 
     async def _read_pin_with_error(self) -> tuple[int | None, str | None]:
-        """The pin level with the bus error text kept: (level, None) on a
+        """The pin value with the error text kept: (value, None) on a
         good read, (None, error) on a failed one."""
-        a = self._i2c
-        assert a is not None
-        result = await self._bus_op(
-            I2cReadBit(
-                Bus=a.bus_node.name,
-                Address=I2cBitAddress(
-                    I2cAddress=a.i2c_address,
-                    RegisterIndex=a.input_register,
-                    BitIndex=a.bit_index,
-                ),
-                TriggerId=str(uuid.uuid4()),
-            )
-        )
-        if result is None:
-            return None, "bus op timeout"
-        if not result.Success:
-            return None, result.Error or "bus op failed"
-        return self._level(result.Value), None
-
-    async def _write_pin(self, pin_value: int) -> str | None:
-        """Drive the relay's output bit to the level for a logical pin value.
-        Returns an error string on failure, None on success."""
-        a = self._i2c
-        assert a is not None
-        result = await self._bus_op(
-            I2cWriteBit(
-                Bus=a.bus_node.name,
-                Address=I2cBitAddress(
-                    I2cAddress=a.i2c_address,
-                    RegisterIndex=a.output_register,
-                    BitIndex=a.bit_index,
-                ),
-                Value=self._level(pin_value),
-                TriggerId=str(uuid.uuid4()),
-            )
-        )
-        if result is None:
-            return "bus op timeout"
-        if not result.Success:
-            return result.Error or "bus op failed"
-        return None
-
-    async def _register_forensics(self) -> str:
-        """Snapshot the expander's output and config registers for the port —
-        the diagnostic pair that separates a stuck pin (output right, input
-        wrong) from the reset signature (config back in input mode). A
-        register-less expander has only its port byte to show."""
-        a = self._i2c
-        assert a is not None
-        readings = []
-        registers = [("output", a.output_register)]
-        if a.config_register is not None:
-            registers.append(("config", a.config_register))
-        for label, register in registers:
-            result = await self._bus_op(
-                I2cReadReg(
-                    Bus=a.bus_node.name,
-                    Address=I2cRegAddress(
-                        I2cAddress=a.i2c_address, RegisterIndex=register
-                    ),
-                    NumBytes=1,
-                    TriggerId=str(uuid.uuid4()),
-                )
-            )
-            if result is None or not result.Success or result.Value is None:
-                readings.append(f"{label}[{register}]=unreadable")
-            else:
-                readings.append(f"{label}[{register}]=0x{result.Value:02x}")
-        return " ".join(readings)
+        read = await self.drive.read()
+        return pin_of(read.position), read.error
 
     def _send_glitch(self, summary: str, details: str, level: LogLevel) -> None:
         self._send_to(
@@ -625,54 +424,23 @@ class Relay(ShNodeActor):
             ),
         )
 
-    async def _read_output_bit(self) -> int | None:
-        """The commanded flip-flop bit (output register) — read before the
-        periodic re-assert purely as drift evidence (the 07-16 tell was
-        output bits reading 1 forty minutes after being set 0)."""
-        a = self._i2c
-        assert a is not None
-        result = await self._bus_op(
-            I2cReadBit(
-                Bus=a.bus_node.name,
-                Address=I2cBitAddress(
-                    I2cAddress=a.i2c_address,
-                    RegisterIndex=a.output_register,
-                    BitIndex=a.bit_index,
-                ),
-                TriggerId=str(uuid.uuid4()),
-            )
-        )
-        if result is None or not result.Success:
-            return None
-        return self._level(result.Value)
-
     async def _assert_pin(self, pin_value: int) -> str | None:
-        """Drive the bit and, on a readback board, confirm it at the pin.
-        Returns an error description on failure, None on success."""
-        a = self._i2c
-        assert a is not None
-        error = await self._write_pin(pin_value)
+        """Set the relay and, where the drive reads back, confirm it at
+        the pin. Returns an error description on failure, None on success."""
+        error = await self.drive.set(pin_action(pin_value))
         if error is not None:
             return f"write failed: {error}"
-        if a.supports_readback:
+        if self.drive.reads_back:
             pin, read_error = await self._read_pin_confirmed(pin_value)
             if pin is None:
-                forensics = await self._register_forensics()
+                forensics = await self.drive.evidence()
                 return f"confirming readback failed: {read_error}; {forensics}"
             if pin != pin_value:
-                forensics = await self._register_forensics()
+                forensics = await self.drive.evidence()
                 return (
                     f"commanded pin {pin_value}, pin reads {pin}; {forensics}"
                 )
         return None
-
-    def _request_expander_check(self) -> None:
-        """A failed assert asks the bus actor to check this relay's expander
-        for a reset now; a reset found there comes back as
-        ExpanderReinitialized and the re-assert."""
-        a = self._i2c
-        assert a is not None
-        self._send_to(a.bus_node, ExpanderCheckRequested(I2cAddress=a.i2c_address))
 
     def _commit_command(self, command: I2cCommand) -> None:
         """Confirmation succeeded: commit the FSM, report to the boss, and
@@ -764,7 +532,7 @@ class Relay(ShNodeActor):
                 "verify pass",
                 LogLevel.Critical,
             )
-            self._request_expander_check()
+            self.drive.check()
             self.services.add_task(
                 asyncio.create_task(
                     self._retry_command(command),
@@ -776,7 +544,7 @@ class Relay(ShNodeActor):
 
     async def _retry_command(self, command: I2cCommand) -> None:
         """The short backoff after a failed attempt. Each retry re-asserts
-        the target; a success commits it, a failure asks the bus for a check
+        the target; a success commits it, a failure asks the drive for a check
         again (debounced there). A newer command ends the retries, and the
         verify pass owns the target after the last one."""
         for delay in self.RETRY_BACKOFF_S:
@@ -789,16 +557,14 @@ class Relay(ShNodeActor):
                 self._commit_command(command)
                 return
             self.log(f"retry of {command.event_name} still failing: {error}")
-            self._request_expander_check()
+            self.drive.check()
 
     async def _boot_adopt(self) -> None:
         """Readback boards adopt state from the pins at boot — a latched hold
         left by a stopped service is inherited as confirmed state, not
-        overwritten. No-readback boards (and sim) stay Unknown until the
+        overwritten. No-readback boards stay Unknown until the
         first command asserts a posture."""
-        a = self._i2c
-        assert a is not None
-        if not a.supports_readback:
+        if not self.drive.reads_back:
             self._ready.set()
             return
         pin: int | None = None
@@ -828,7 +594,8 @@ class Relay(ShNodeActor):
         must not depend on the readback being trustworthy), then confirm at
         the pin. The target is the pending command if one is unconfirmed
         (converge-on-intent retry), else the machine's confirmed state. The
-        output register is read first purely for the drift evidence trail."""
+        position the device says it was told is read first purely for the
+        drift evidence trail."""
         if not self._ready.is_set():
             return
         command = self._i2c_command
@@ -846,19 +613,17 @@ class Relay(ShNodeActor):
                     self.log(
                         f"retry of {command.event_name} still failing: {error}"
                     )
-                self._request_expander_check()
+                self.drive.check()
                 return
             self.log(f"{command.event_name} confirmed on verify-pass retry")
             self._commit_command(command)
             return
         if self.state == UNKNOWN_STATE:
             return
-        a = self._i2c
-        assert a is not None
         cfg = self.relay_actor_config
         expected_pin = 1 if self.state == cfg.EnergizedState else 0
-        if a.supports_readback:
-            drifted = await self._read_output_bit()
+        if self.drive.reads_back:
+            drifted = pin_of(await self.drive.told())
             if drifted is not None and drifted != expected_pin:
                 self._send_glitch(
                     "i2c-relay-drift",
@@ -878,7 +643,7 @@ class Relay(ShNodeActor):
                 )
             else:
                 self.log(f"enforce still failing: {error}")
-            self._request_expander_check()
+            self.drive.check()
             return
         self._enforce_failing = False
         self.send_state()
@@ -888,24 +653,17 @@ class Relay(ShNodeActor):
             return self._process_event_message(
                 from_name=message.Header.Src, message=message.Payload
             )
-        if isinstance(message.Payload, I2cResult):
-            future = self._pending_results.pop(message.Payload.TriggerId, None)
-            if future is not None and not future.done():
-                future.set_result(message.Payload)
-            # a late reply after timeout is dropped; the timeout already
-            # glitched
-            return Ok(True)
-        if isinstance(message.Payload, ExpanderReinitialized):
-            # The bus actor repaired a reset on this expander: re-assert
-            # immediately rather than at the next 5-minute verify pass.
-            a = self._i2c
-            if a is not None and message.Payload.I2cAddress == a.i2c_address:
-                self.services.add_task(
-                    asyncio.create_task(
-                        self._verify_and_report(),
-                        name=f"{self.name}-reset-reassert",
-                    )
+        heard = self.drive.hears(message.Payload)
+        if heard == Heard.Repaired:
+            # Re-assert immediately rather than at the next 5-minute
+            # verify pass.
+            self.services.add_task(
+                asyncio.create_task(
+                    self._verify_and_report(),
+                    name=f"{self.name}-reset-reassert",
                 )
+            )
+        if heard != Heard.NotMine:
             return Ok(True)
 
         return Err(

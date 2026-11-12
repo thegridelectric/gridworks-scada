@@ -411,6 +411,36 @@ async def test_strat_protect_answers_preparing_to_turn_on_with_ready(app: ScadaA
 
 
 @pytest.mark.asyncio
+async def test_strat_protect_logs_why_it_goes_blind(tmp_path: Path) -> None:
+    """Going blind, the loop logs the reason and how long ago hp-boss last
+    turned to HpOff: here a heat pump still drawing past the settle time."""
+    app, clock = manual_app(tmp_path, strategy=SiegLoopStrategy.StratProtect)
+    actor = sieg_loop_actor(app)
+    capture(actor)
+    strategy = actor.strategy
+    assert isinstance(strategy, StratProtect)
+    read(actor, HCN.hp_lwt, 4500)
+    read(actor, HCN.hp_ewt, 4000)
+    read(actor, HCN.hp_odu_pwr, 3000)
+    read(actor, HCN.hp_idu_pwr, 200)
+    deliver(actor, actor.hp_boss.name, hp_boss_state(actor, HpBossState.HpOff))
+    deliver(actor, actor.primary_scada.name, ActuatorsReady())
+    await settle()
+    assert strategy.control_state == SiegControlState.HpOff
+
+    logged: list[str] = []
+    actor.log = logged.append
+    clock.advance(strategy.OFF_SETTLE_S + 1)
+    strategy.tick()
+    await settle()
+    assert strategy.control_state == SiegControlState.Blind
+    assert "Blind: 3200W over 500W 120s after off; hp-boss last turned to HpOff 121s ago" in logged
+    clock.advance(actor.valve.FULL_RANGE_S + actor.valve.OVERSHOOT_S)
+    await settle()
+    assert actor.valve.valve_state == SiegValveState.FullySend
+
+
+@pytest.mark.asyncio
 async def test_a_new_move_settles_the_travel_so_far_from_the_clock(tmp_path: Path) -> None:
     """A move toward send cut short by a move toward keep: the motor stops,
     keep_seconds is what the clock says ran, and the motor reverses from

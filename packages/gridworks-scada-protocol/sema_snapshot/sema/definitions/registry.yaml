@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-11-06T20:20:00Z"
+  last_updated: "2026-11-09T01:50:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -122,6 +122,13 @@ formats:
     created: "2024-09-02T15:00:00Z"
     status: "published"
     description: "Single-segment lowercase identifier with optional internal hyphen-separated words"
+
+  utc.iso8601.millis:
+    owner: gridworks-energy
+    schema_url: "https://schemas.electricity.works/formats/utc.iso8601.millis"
+    created: "2026-02-22T16:43:00Z"
+    status: "published"
+    description: "UTC timestamp in ISO 8601 format with exactly three digits of fractional seconds and Z suffix"
 
   utc.iso8601.seconds:
     owner: gridworks-energy
@@ -3607,6 +3614,43 @@ types:
             - "positive.int"
             - "temp.calc.method:000"
             - "uuid4.str"
+
+  sim.plant.actuation:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "The energize/de-energize of a single simulated relay, sent to the plant so it folds the actuation into its physics; the inverse boundary of sim.plant.flux, with a simulated state time and a human-readable wall-clock time."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/sim.plant.actuation/000"
+        created: "2026-06-12T00:00:00Z"
+        status: "staging"
+        summary: "Initial Sema version"
+        direct_dependencies:
+          structural:
+            - "change.relay.pin:000"
+            - "spaceheat.name"
+            - "utc.iso8601.millis"
+            - "utc.milliseconds"
+
+  sim.plant.flux:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A simulated plant's native source emission of its physical state: parallel channel and value lists at one simulated read time plus the wall-clock emission time; a simulation-boundary shadow of synced.readings."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/sim.plant.flux/000"
+        created: "2026-06-12T00:00:00Z"
+        status: "staging"
+        summary: "Initial Sema version"
+        direct_dependencies:
+          structural:
+            - "spaceheat.name"
+            - "utc.iso8601.millis"
+            - "utc.milliseconds"
 
   sim.sensor.component.gt:
     latest_version: "000"

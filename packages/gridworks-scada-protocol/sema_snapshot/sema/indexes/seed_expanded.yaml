@@ -1,6 +1,6 @@
 metadata:
   generated_from: indexes/public_registry.yaml
-  generated_at: '2026-11-06T21:13:07Z'
+  generated_at: '2026-11-10T10:55:02Z'
   note: Transitive closure of initial_targets
 initial_targets:
 - ads.channel.config:000
@@ -126,6 +126,8 @@ initial_targets:
 - sim.pico.btu.meter.component.gt:000
 - sim.pico.flow.module.component.gt:000
 - sim.pico.tank.module.component.gt:001
+- sim.plant.actuation:000
+- sim.plant.flux:000
 - sim.sensor.component.gt:000
 - single.machine.state:000
 - single.reading:000
@@ -264,6 +266,8 @@ worklist:
       path: definitions/formats/sema.version.yaml
     spaceheat.name:
       path: definitions/formats/spaceheat.name.yaml
+    utc.iso8601.millis:
+      path: definitions/formats/utc.iso8601.millis.yaml
     utc.iso8601.seconds:
       path: definitions/formats/utc.iso8601.seconds.yaml
     utc.milliseconds:
@@ -913,6 +917,12 @@ worklist:
     sim.pico.tank.module.component.gt:
       '001':
         path: definitions/types/sim.pico.tank.module.component.gt/001.yaml
+    sim.plant.actuation:
+      '000':
+        path: definitions/types/sim.plant.actuation/000.yaml
+    sim.plant.flux:
+      '000':
+        path: definitions/types/sim.plant.flux/000.yaml
     sim.sensor.component.gt:
       '000':
         path: definitions/types/sim.sensor.component.gt/000.yaml

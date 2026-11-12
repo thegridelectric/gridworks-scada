@@ -342,17 +342,17 @@ def test_outputer_drops_a_dispatch_whose_sender_is_not_its_from_handle(app: Scad
     would have passed it; the wire source is the pico-cycler."""
     actor = an_outputer(app)
     sent = capture(actor)
-    before = actor.target_code
+    before = actor.target_level
     command = dispatch(actor, 55)
     deliver(actor, command, src=HSNN.pico_cycler)
-    assert actor.target_code == before
+    assert actor.target_level == before
     assert_dropped_as_bad_sender(sent, actor)
 
 
 def test_outputer_drops_a_dispatch_from_a_sender_not_in_the_layout(app: ScadaApp) -> None:
     actor = an_outputer(app)
     sent = capture(actor)
-    before = actor.target_code
+    before = actor.target_level
     deliver(actor, dispatch(actor, 55), src="nobody")
-    assert actor.target_code == before
+    assert actor.target_level == before
     assert sent == []

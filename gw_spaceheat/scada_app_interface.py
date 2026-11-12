@@ -7,6 +7,8 @@ from gwproactor import AppInterface
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
 from clock import Clock
+from plant import Plant
+from plant_link import PlantLink
 from weather_source import WeatherSource
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.enums import TaValidationState
@@ -43,6 +45,19 @@ class ScadaAppInterface(AppInterface, ABC):
 
     @property
     @abstractmethod
+    def plant(self) -> Plant:
+        """Where a device actor asks for its own device, by node name."""
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def plant_link(self) -> PlantLink | None:
+        """The connection to the simulated plant, started and stopped with
+        the scada's tasks; None where this scada has no simulated device."""
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
     def weather_source(self) -> WeatherSource:
         """Where the derived generator and the LTN get their weather forecast."""
         raise NotImplementedError
@@ -51,11 +66,12 @@ class ScadaAppInterface(AppInterface, ABC):
     def is_simulated(self) -> bool:
         """The plant is simulated: the layout carries a simulated device.
 
-        Its one job is the sim-time bridge in Scada, deciding whether the
-        scada reads time.time() or the time coordinator's simulated
-        timestep. It is NOT the place to ask whether the scada may trade
-        (validation_state) or which silicon to drive (the layout's board
-        record, ScadaBoardComponent.simulated).
+        It decides two things: whether the scada reads time.time() or the
+        time coordinator's simulated timestep (the sim-time bridge in
+        Scada), and whether the scada has a plant link. It is NOT the place
+        to ask whether the scada may trade (validation_state) or which
+        silicon to drive (the layout's board record,
+        ScadaBoardComponent.simulated).
         """
         return self.hardware_layout.has_simulated_component()
 

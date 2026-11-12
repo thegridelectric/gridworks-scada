@@ -143,6 +143,62 @@ SCADA_PATHS__HARDWARE_LAYOUT="../tlayouts/output/orange.generated.json"
 LTN_PATHS__HARDWARE_LAYOUT="../tlayouts/output/orange.generated.json"
 ```
 
+### A simulated layout's devices
+
+A device actor asks `services.plant` (`gw_spaceheat/plant.py`) for its own
+device by node name, and what answers is chosen once where the app is built
+(`gw_spaceheat/plant_routes.py`). A device on a board that is not simulated is
+the hardware itself: a relay is driven on the board
+(`gw_spaceheat/relay_drives.py`), a GPIO input is read on its pin
+(`gw_spaceheat/pin_inputs.py`), a 0-10 V output is set on the board's DAC
+(`gw_spaceheat/dac_drives.py`), a thermistor is read on the board's ADC
+(`gw_spaceheat/thermistor_inputs.py`) and the power meter reads its eGauge
+(`gw_spaceheat/drivers/power_meter/`). A tank module or BTU meter with a real
+pico has no device there: the pico posts to its actor over HTTP.
+
+For a simulated device what answers is the plant link
+(`gw_spaceheat/plant_link.py`), which a layout with a simulated device gets.
+Channel values arrive as `sim.plant.flux` on the `gridworks_mqtt` broker,
+addressed from the layout's TerminalAsset GNode to its Scada GNode:
+
+- a `SimSensorActor` node reports its channels as they arrive, and reports
+  nothing while nothing publishes them;
+- a tank module or BTU meter whose component is a `sim.pico.*` word does the
+  same, and takes each flux that carries one of its channels as a pico's post.
+  When no flux has carried one for 2.5 capture periods it reports the pico
+  missing, and the pico cycler power-cycles the 5 V bus as it does for a real
+  pico. The actor does not read the word's `SimLifeS` and `SimRebootS`;
+- a GPIO sensor or a thermistor reader on a simulated board, and a simulated
+  power meter, read each of their channels in the plant's latest flux. A flux
+  is all the plant shows: a channel it leaves out has no value, and neither has
+  any channel before the first flux. The read fails once the plant has been
+  silent for 15 s. A thermistor reader reports the plant's temperature, and its
+  microvolts where the plant sends them;
+- a relay on a simulated board sends its position to the plant as
+  `sim.plant.actuation` when it is commanded and again on each verify pass;
+- a 0-10 V output on a simulated board keeps the level it is set and reports
+  it. No level goes to the plant.
+
+`SCADA_PLANT_LINK` picks where those values come from:
+
+- `Broker`, the default, is a terminal asset on the `gridworks_mqtt` broker.
+  With none running the scada has no sensors: its meter, GPIO and thermistor
+  reads fail after 15 s and its other channels flatline.
+- `Standing` puts a plant inside the scada (`gw_spaceheat/standing_plant.py`),
+  so the scada runs with nothing beside it. Every channel holds one value: 0 W
+  on a metered channel, a plausible figure for its telemetry on a
+  `SimSensorActor` channel every 5 s, a tank at rest at 55, 50 and 45 °C, a
+  BTU-metered loop at 4 gpm and 50 °C with no lift, a GPIO input at 1 and a
+  board thermistor at 0.2 V. No relay moves any of them. A pico posts once a
+  capture period, goes quiet `SimLifeS` after its boot and boots again
+  `SimRebootS` after the vdc relay closes following an open.
+- `InProcess` builds the link with no broker and no plant. The tests use it:
+  they show the devices their values directly and read the relay positions
+  back. A live test's primary scada has a plant the test plays
+  (`tests/utils/played_plant.py`), showing 0 W on every metered channel, every
+  tank at rest and every BTU-metered loop with standing flow until the test
+  shows something else.
+
 ### Dependencies
 
 Dependencies live in `pyproject.toml` and are locked in `uv.lock`:

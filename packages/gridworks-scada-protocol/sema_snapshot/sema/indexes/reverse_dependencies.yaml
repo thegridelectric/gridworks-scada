@@ -445,6 +445,10 @@ enums:
     '000':
       used_by:
       - g.node.gt:006
+  change.relay.pin:
+    '000':
+      used_by:
+      - sim.plant.actuation:000
   change.relay.state:
     '000':
       used_by:
@@ -984,6 +988,8 @@ formats:
     - relay.control.config:000
     - sim.pico.btu.meter.component.gt:000
     - sim.pico.flow.module.component.gt:000
+    - sim.plant.actuation:000
+    - sim.plant.flux:000
     - single.reading:000
     - slow.contract.heartbeat:002
     - spaceheat.node.gt:303
@@ -992,6 +998,10 @@ formats:
     - ticklist.hall.report:000
     - ticklist.reed.report:000
     - zero.ten.power.on:000
+  utc.iso8601.millis:
+    used_by:
+    - sim.plant.actuation:000
+    - sim.plant.flux:000
   utc.iso8601.seconds:
     used_by:
     - gw.weather.channel.gt:002
@@ -1025,6 +1035,8 @@ formats:
     - scada.control.capabilities:003
     - send.control.capabilities:000
     - send.layout:001
+    - sim.plant.actuation:000
+    - sim.plant.flux:000
     - single.machine.state:000
     - single.reading:000
     - slow.contract.heartbeat:002

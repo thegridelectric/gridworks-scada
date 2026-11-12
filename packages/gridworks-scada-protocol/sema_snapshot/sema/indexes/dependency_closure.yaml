@@ -1623,6 +1623,25 @@ types:
       - uuid4.str
       types: []
       versionless_types: []
+  sim.plant.actuation:
+    '000':
+      enums:
+      - change.relay.pin:000
+      formats:
+      - spaceheat.name
+      - utc.iso8601.millis
+      - utc.milliseconds
+      types: []
+      versionless_types: []
+  sim.plant.flux:
+    '000':
+      enums: []
+      formats:
+      - spaceheat.name
+      - utc.iso8601.millis
+      - utc.milliseconds
+      types: []
+      versionless_types: []
   sim.sensor.component.gt:
     '000':
       enums: []

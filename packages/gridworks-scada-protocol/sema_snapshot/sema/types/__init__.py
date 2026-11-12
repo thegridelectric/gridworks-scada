@@ -144,6 +144,8 @@ from sema_snapshot.sema.types.sim_pico_flow_module_component_gt import (
 from sema_snapshot.sema.types.sim_pico_tank_module_component_gt import (
     SimPicoTankModuleComponentGt,
 )
+from sema_snapshot.sema.types.sim_plant_actuation import SimPlantActuation
+from sema_snapshot.sema.types.sim_plant_flux import SimPlantFlux
 from sema_snapshot.sema.types.sim_sensor_component_gt import SimSensorComponentGt
 from sema_snapshot.sema.types.simple_sim_layout import SimpleSimLayout
 from sema_snapshot.sema.types.single_machine_state import SingleMachineState
@@ -300,6 +302,8 @@ __all__ = [
     "SimPicoBtuMeterComponentGt",
     "SimPicoFlowModuleComponentGt",
     "SimPicoTankModuleComponentGt",
+    "SimPlantActuation",
+    "SimPlantFlux",
     "SimSensorComponentGt",
     "SimpleSimLayout",
     "SingleMachineState",

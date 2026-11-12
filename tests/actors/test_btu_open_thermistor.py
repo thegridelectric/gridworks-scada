@@ -98,7 +98,13 @@ def test_a_channel_the_pico_stops_posting_is_one_warning_a_day(
             if second % period == 0:
                 reading = snapshot(actor, 5000)
                 if not hot_posts:
-                    reading = api_btu_meter.snapshot_without(reading, {hot})
+                    kept = [i for i, name in enumerate(reading.ChannelNameList) if name != hot]
+                    reading = MultichannelSnapshot(
+                        HwUid=reading.HwUid,
+                        ChannelNameList=[reading.ChannelNameList[i] for i in kept],
+                        MeasurementList=[reading.MeasurementList[i] for i in kept],
+                        UnitList=[reading.UnitList[i] for i in kept],
+                    )
                 actor._process_multichannel_snapshot(reading)
             if second % 10 == 0:
                 actor.check_liveness()

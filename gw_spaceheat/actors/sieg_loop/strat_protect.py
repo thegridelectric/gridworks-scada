@@ -172,6 +172,9 @@ class StratProtect(SiegStrategy):
 
         # Get in/out of Blind state
         if self.control_state != SiegControlState.Blind and self.is_blind():
+            off = self.hp_turned_off_time
+            since_off = "never" if off is None else f"{self.loop.services.clock.now() - off:.0f}s ago"
+            self.loop.log(f"Blind: {self.blind_reason()}; hp-boss last turned to HpOff {since_off}")
             self.trigger_control_event(SiegControlEvent.BecameBlind)
         elif self.control_state == SiegControlState.Blind and not self.is_blind():
             if self.hp_boss_state == HpBossState.HpOff:

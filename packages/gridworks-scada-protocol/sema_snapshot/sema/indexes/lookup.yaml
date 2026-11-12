@@ -644,6 +644,16 @@ types:
     versioning_strategy: literal
     versions:
       '001': definitions/types/sim.pico.tank.module.component.gt/001.yaml
+  sim.plant.actuation:
+    latest_version: '000'
+    versioning_strategy: literal
+    versions:
+      '000': definitions/types/sim.plant.actuation/000.yaml
+  sim.plant.flux:
+    latest_version: '000'
+    versioning_strategy: literal
+    versions:
+      '000': definitions/types/sim.plant.flux/000.yaml
   sim.sensor.component.gt:
     latest_version: '000'
     versioning_strategy: literal
@@ -1150,6 +1160,7 @@ formats:
   positive.int.as.str: definitions/formats/positive.int.as.str.yaml
   sema.version: definitions/formats/sema.version.yaml
   spaceheat.name: definitions/formats/spaceheat.name.yaml
+  utc.iso8601.millis: definitions/formats/utc.iso8601.millis.yaml
   utc.iso8601.seconds: definitions/formats/utc.iso8601.seconds.yaml
   utc.milliseconds: definitions/formats/utc.milliseconds.yaml
   utc.seconds: definitions/formats/utc.seconds.yaml
