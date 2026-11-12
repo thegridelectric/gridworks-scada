@@ -249,6 +249,7 @@ def build_flo_params(
     )
     load = load_forecast_kwh(ops.HeatingCurve, weather, t_room_f, last_four_dist_kwh, last_four_oat_f)
     load_adjusted = adjust_load_for_buffer(load, buffer_available_kwh)
+    rswt = rswt_forecast_f(ops.HeatingCurve, load, t_room_f)
     tanks_modeled = water_store.TotalStoreTanks if storage_mode is SeasonalStorageMode.AllTanks else 1
     return FloParams(
         GNodeAlias=g_node_alias,
@@ -259,7 +260,7 @@ def build_flo_params(
         DistUsdMwhList=[float(p) for p in dist_usd_mwh[:horizon]],
         OatFList=[float(t) for t in weather.oat_f],
         LoadKwhList=load_adjusted,
-        RswtFList=rswt_forecast_f(ops.HeatingCurve, load, t_room_f),
+        RswtFList=rswt,
         WeatherForecastId=forecast.message.ForecastUid,
         SeasonalStorageMode=storage_mode,
         TanksModeled=tanks_modeled,

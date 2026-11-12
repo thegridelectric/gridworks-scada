@@ -1213,6 +1213,7 @@ class Ltn(PrimeActor):
         if average_temp < 40 or average_temp > 80:
             self.log(f"Average house temperature is out of range ({average_temp}°F), setting to DdRoomTempF")
             return dd_room_temp_f
+        self.log(f"Average house temperature: {average_temp}°F")
         return average_temp
 
     async def get_weather(self, session: aiohttp.ClientSession) -> None:
