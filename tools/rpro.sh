@@ -1,18 +1,12 @@
-dev_requirements=gw_spaceheat/requirements/dev.txt
-
 if [[ ( $@ == "--help") ||  $@ == "-h" ]]
 then
-  echo "Helper script which restore virtual env to using gwproto and gwproactor as defined in requirements file."
+  echo "Helper script which restore virtual env to using gwproto and gwproactor as locked in uv.lock."
   echo
   echo "Run from top level of repo."
   echo
-	echo "Usage: $0 [requirements file (default: $dev_requirements)]"
+	echo "Usage: $0 [uv sync options]"
 	exit 0
 fi
 
-deactivate | true
-source gw_spaceheat/venv/bin/activate
-pip uninstall gridworks-proactor
-pip uninstall gridworks-protocol
-pip install -r ${1:-$dev_requirements}
-python -c "import gwproto; import gwproactor; print(gwproto.__file__); print(gwproactor.__file__)"
+uv sync --locked "$@" --reinstall-package gridworks-proactor --reinstall-package gridworks-protocol
+.venv/bin/python -c "import gwproto; import gwproactor; print(gwproto.__file__); print(gwproactor.__file__)"

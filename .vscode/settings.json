@@ -1,5 +1,5 @@
 {
-    "python.defaultInterpreterPath": "${workspaceFolder}/gw_spaceheat/venv/bin/python",
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
     "python.analysis.typeCheckingMode": "basic",
 	"ruff.enable": true,
 	"ruff.fixAll": true,
@@ -9,6 +9,12 @@
         "packages/gridworks-scada-protocol/src",
         "packages/gridworks-admin/src"
     ],
+    "cursorpyright.analysis.extraPaths": [
+        "gw_spaceheat",
+        "packages/gridworks-scada-protocol/src",
+        "packages/gridworks-admin/src"
+    ],
+    "cursorpyright.analysis.typeCheckingMode": "basic",
     // Enable this if you want Ruff to fix on save:
     // "editor.codeActionsOnSave": {
     //   "source.fixAll": true
