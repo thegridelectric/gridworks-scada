@@ -1010,10 +1010,7 @@ class Scada(PrimeActor, ScadaInterface):
             )
             self._data.latest_channel_values[ch.Name] = payload.ValueList[idx]
             self._data.latest_channel_unix_ms[ch.Name] = payload.ScadaReadTimeUnixMs
-            # A capturer this scada runs posts to the derived generator itself.
-            # One on the other scada cannot: that scada republishes every synced
-            # reading to us, so these are the only copy the derived generator
-            # will see. dist-swt and dist-rwt are read on scada2.
+            # Posts to the derived generator
             capturer = self._layout.parent_node(ch.captured_by_node) if channel_name in self._layout.data_channels else self.node
             if (
                 channel_name in self._layout.data_channels
