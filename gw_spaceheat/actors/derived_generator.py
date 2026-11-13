@@ -8,7 +8,6 @@ from enum import StrEnum, auto
 from typing import Callable, Optional, Protocol, Sequence
 from result import Ok, Result
 from datetime import datetime
-from zoneinfo import ZoneInfo
 from gwproto import Message
 
 from gwsproto.data_classes.sh_node import ShNode
@@ -963,38 +962,14 @@ class DerivedGenerator(ShNodeActor):
                 self._rolling_dist_buffers[ch] = []
             return
 
-        ny = ZoneInfo("America/New_York")
-
-        def hms(unix_ms: int) -> str:
-            return datetime.fromtimestamp(unix_ms / 1000, ny).strftime("%H:%M:%S")
-
-        if events:
-            self.log(
-                f"Rolling dist integrate tick now={hms(now_ms)} "
-                f"pending_events={len(events)} cursor={hms(t_cursor)}"
-            )
-
         for ms, ch, val in events:
             if ms > t_cursor:
-                self.log(
-                    f"Rolling dist integrate [{hms(t_cursor)}..{hms(ms)}): "
-                    f"{HCN.dist_flow}={held.get(HCN.dist_flow)}, "
-                    f"{HCN.dist_swt}={held.get(HCN.dist_swt)}, "
-                    f"{HCN.dist_rwt}={held.get(HCN.dist_rwt)}"
-                )
                 self._rolling_dist_add_wh(t_cursor, ms, self._rolling_dist_power_kw(held))
-            self.log(f"Rolling dist input update {ch}={val} @{hms(ms)}")
             held[ch] = val
             last_ms[ch] = ms
             t_cursor = ms
 
         if now_ms > t_cursor:
-            self.log(
-                f"Rolling dist integrate [{hms(t_cursor)}..{hms(now_ms)}): "
-                f"{HCN.dist_flow}={held.get(HCN.dist_flow)}, "
-                f"{HCN.dist_swt}={held.get(HCN.dist_swt)}, "
-                f"{HCN.dist_rwt}={held.get(HCN.dist_rwt)}"
-            )
             self._rolling_dist_add_wh(t_cursor, now_ms, self._rolling_dist_power_kw(held))
 
         self._rolling_dist_integrated_until_ms = now_ms
