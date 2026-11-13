@@ -126,6 +126,9 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
             for ch in self._hardware_layout.data_channels.values()
             if ch.AboutNodeName in my_channel_names
         ]
+        self.derived_input_channels = {
+            ch for ch in self.my_channels if hardware_layout.feeds_derived([ch.Name])
+        }
         setup_helper = MpDriverThreadSetupHelper(node, settings, hardware_layout)
         self.tuning_by_ch = {
             self._hardware_layout.data_channels[cfg.ChannelName]: (
@@ -205,7 +208,7 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
             self._put_to_async_queue(message)
 
     def report_sampled_telemetry_values(self, channel_list: List[DataChannel]):
-
+        now_ms = int(1000 * time.time())
         self._put_to_async_queue(
             Message(
                 Src=self.name,
@@ -216,10 +219,28 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
                         lambda x: self.latest_telemetry_value[x.Name],
                         channel_list,
                     )),
-                    ScadaReadTimeUnixMs=int(1000 * time.time())
+                    ScadaReadTimeUnixMs=now_ms
                 )
             )
         )
+        derived_input_list = [
+            ch for ch in channel_list if ch in self.derived_input_channels
+        ]
+        if derived_input_list:
+            self._put_to_async_queue(
+                Message(
+                    Src=self.name,
+                    Dst=CoreNodeNames.derived_generator,
+                    Payload=SyncedReadings(
+                        ChannelNameList=[ch.Name for ch in derived_input_list],
+                        ValueList=[
+                            self.latest_telemetry_value[ch.Name]
+                            for ch in derived_input_list
+                        ],
+                        ScadaReadTimeUnixMs=now_ms,
+                    ),
+                )
+            )
         for ch in channel_list:
             self._last_sampled_s[ch.Name] = int(time.time())
             self.last_reported_telemetry_value[ch.Name] = self.latest_telemetry_value[
