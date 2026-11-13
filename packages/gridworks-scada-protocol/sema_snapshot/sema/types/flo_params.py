@@ -13,18 +13,18 @@ from sema_snapshot.sema.types.flo_tuning_bruce import FloTuningBruce
 
 
 class FloParams(SemaType):
-    """Sema: https://schemas.electricity.works/types/flo.params/001"""
+    """Sema: https://schemas.electricity.works/types/flo.params/002"""
 
     g_node_alias: LeftRightDot
     created_ms: UTCMilliseconds
     start_unix_s: UTCSeconds
     step_duration_minutes: list[PositiveInt]
-    lmp_usd_mwh_list: list[StrictFloat]
-    dist_usd_mwh_list: list[StrictFloat]
+    price_usd_mwh_list: list[StrictFloat]
     oat_f_list: list[StrictFloat]
     load_kwh_list: list[StrictFloat]
     rswt_f_list: list[StrictFloat]
     weather_forecast_id: UUID4Str
+    price_forecast_id: UUID4Str
     seasonal_storage_mode: SeasonalStorageMode
     tanks_modeled: PositiveInt
     gallons_per_tank: PositiveInt
@@ -49,19 +49,18 @@ class FloParams(SemaType):
     previous_estimate_elec_usd_mwh_now: StrictFloat | None = None
     tuning: FloTuningAlice | FloTuningBruce
     type_name: Literal["flo.params"] = "flo.params"
-    version: Literal["001"] = "001"
+    version: Literal["002"] = "002"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
         """
         Axiom 1: StepListLengths
-        StepDurationMinutes, LmpUsdMwhList, DistUsdMwhList, OatFList,
-        LoadKwhList and RswtFList SHALL be non-empty and of the same length.
+        StepDurationMinutes, PriceUsdMwhList, OatFList, LoadKwhList and
+        RswtFList SHALL be non-empty and of the same length.
         """
         lengths = {
             "StepDurationMinutes": len(self.step_duration_minutes),
-            "LmpUsdMwhList": len(self.lmp_usd_mwh_list),
-            "DistUsdMwhList": len(self.dist_usd_mwh_list),
+            "PriceUsdMwhList": len(self.price_usd_mwh_list),
             "OatFList": len(self.oat_f_list),
             "LoadKwhList": len(self.load_kwh_list),
             "RswtFList": len(self.rswt_f_list),

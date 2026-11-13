@@ -130,7 +130,7 @@ properties:
       With MarketProductName and a slot start it forms the market slot name.
 
   MarketProductName:
-    $ref: "https://schemas.electricity.works/enums/gw.market.product.name/000"
+    $ref: "https://schemas.electricity.works/enums/gw.market.product.name/001"
     description: >
       The market product this house bids into: the second segment of its
       market slot names.

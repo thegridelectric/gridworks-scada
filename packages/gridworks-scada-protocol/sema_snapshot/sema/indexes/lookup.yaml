@@ -115,10 +115,10 @@ types:
     versions:
       '000': definitions/types/flo.optimal.path/000.yaml
   flo.params:
-    latest_version: '001'
+    latest_version: '002'
     versioning_strategy: literal
     versions:
-      '001': definitions/types/flo.params/001.yaml
+      '002': definitions/types/flo.params/002.yaml
   flo.params.house0:
     latest_version: '007'
     versioning_strategy: literal
@@ -274,6 +274,11 @@ types:
     versioning_strategy: literal
     versions:
       '000': definitions/types/gw.operational.params/000.yaml
+  gw.price.forecast:
+    latest_version: '000'
+    versioning_strategy: literal
+    versions:
+      '000': definitions/types/gw.price.forecast/000.yaml
   gw.recorded.setpoints:
     latest_version: '000'
     versioning_strategy: literal
@@ -808,9 +813,9 @@ enums:
       '000': definitions/enums/gw.g.node.class/000.yaml
   gw.market.product.name:
     enum_type: versioned
-    latest_version: '000'
+    latest_version: '001'
     versions:
-      '000': definitions/enums/gw.market.product.name/000.yaml
+      '001': definitions/enums/gw.market.product.name/001.yaml
   gw.primary.flow.source:
     enum_type: versioned
     latest_version: '000'

@@ -122,6 +122,7 @@ from gwsproto.named_types.pico_flow_module_component_gt import PicoFlowModuleCom
 from gwsproto.named_types.pico_missing import PicoMissing
 from gwsproto.named_types.pico_tank_module_component_gt import PicoTankModuleComponentGt
 from gwsproto.named_types.power_watts import PowerWatts
+from gwsproto.named_types.price_forecast import PriceForecast
 from gwsproto.named_types.price_quantity_unitless import PriceQuantityUnitless
 from gwsproto.named_types.recorded_setpoints import RecordedSetpoints
 from gwsproto.named_types.relay_control_config import RelayControlConfig
@@ -307,6 +308,7 @@ __all__ = [
     "PicoMissing",
     "PicoTankModuleComponentGt",
     "PowerWatts",
+    "PriceForecast",
     "PriceQuantityUnitless",
     "RecordedSetpoints",
     "RelayControlConfig",

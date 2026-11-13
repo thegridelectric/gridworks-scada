@@ -12,18 +12,18 @@ from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
 class FloParams(GwsprotoSemaType):
-    """Sema: https://schemas.electricity.works/types/flo.params/001"""
+    """Sema: https://schemas.electricity.works/types/flo.params/002"""
 
     GNodeAlias: LeftRightDotStr
     CreatedMs: UTCMilliseconds
     StartUnixS: UTCSeconds
     StepDurationMinutes: List[PositiveInt]
-    LmpUsdMwhList: List[float]
-    DistUsdMwhList: List[float]
+    PriceUsdMwhList: List[float]
     OatFList: List[float]
     LoadKwhList: List[float]
     RswtFList: List[float]
     WeatherForecastId: UUID4Str
+    PriceForecastId: UUID4Str
     SeasonalStorageMode: SeasonalStorageMode
     TanksModeled: PositiveInt
     GallonsPerTank: PositiveInt
@@ -51,19 +51,18 @@ class FloParams(GwsprotoSemaType):
         Field(discriminator="TypeName"),
     ]
     TypeName: Literal["flo.params"] = "flo.params"
-    Version: Literal["001"] = "001"
+    Version: Literal["002"] = "002"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
         """
         Axiom 1: StepListLengths.
-        StepDurationMinutes, LmpUsdMwhList, DistUsdMwhList, OatFList,
-        LoadKwhList and RswtFList SHALL be non-empty and of the same length.
+        StepDurationMinutes, PriceUsdMwhList, OatFList, LoadKwhList and
+        RswtFList SHALL be non-empty and of the same length.
         """
         lengths = {
             "StepDurationMinutes": len(self.StepDurationMinutes),
-            "LmpUsdMwhList": len(self.LmpUsdMwhList),
-            "DistUsdMwhList": len(self.DistUsdMwhList),
+            "PriceUsdMwhList": len(self.PriceUsdMwhList),
             "OatFList": len(self.OatFList),
             "LoadKwhList": len(self.LoadKwhList),
             "RswtFList": len(self.RswtFList),

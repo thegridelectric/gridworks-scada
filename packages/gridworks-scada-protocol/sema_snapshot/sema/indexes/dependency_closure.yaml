@@ -199,7 +199,7 @@ types:
       types: []
       versionless_types: []
   flo.params:
-    '001':
+    '002':
       enums:
       - gw1.seasonal.storage.mode:000
       formats:
@@ -796,7 +796,7 @@ types:
     '000':
       enums:
       - day.of.week:000
-      - gw.market.product.name:000
+      - gw.market.product.name:001
       - gw.standby.posture:000
       - gw1.seasonal.storage.mode:000
       - gw1.service.mode:000
@@ -822,6 +822,18 @@ types:
       - gw.tou.window:000
       - heating.curve:000
       - zero.ten.power.on:000
+      versionless_types: []
+  gw.price.forecast:
+    '000':
+      enums:
+      - gw.market.product.name:001
+      - market.price.unit:000
+      formats:
+      - left.right.dot
+      - utc.milliseconds
+      - utc.seconds
+      - uuid4.str
+      types: []
       versionless_types: []
   gw.recorded.setpoints:
     '000':

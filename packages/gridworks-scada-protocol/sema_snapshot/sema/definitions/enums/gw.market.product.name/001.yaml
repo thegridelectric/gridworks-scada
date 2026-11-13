@@ -1,5 +1,5 @@
 $schema: "https://json-schema.org/draft/2020-12/schema"
-$id: "https://schemas.electricity.works/enums/gw.market.product.name/000"
+$id: "https://schemas.electricity.works/enums/gw.market.product.name/001"
 
 title: "gw.market.product.name"
 type: "string"
@@ -19,12 +19,13 @@ enum:
   - "rt30gate5"
   - "rt15gate5"
   - "rt5gate5"
+  - "rt60gate1"
 
 default: "unknown"
 
 x-gridworks:
   owner: "gridworks-energy"
-  version: "000"
+  version: "001"
   value_descriptions:
     "unknown": "Default unknown"
     "da60": "Day-ahead energy, 60-minute slots"
@@ -34,3 +35,4 @@ x-gridworks:
     "rt30gate5": "Real-time energy, 30-minute slots, gate closing 5 minutes prior to start"
     "rt15gate5": "Real-time energy, 15-minute slots, gate closing 5 minutes prior to start"
     "rt5gate5": "Real-time energy, 5-minute slots, gate closing 5 minutes prior to start"
+    "rt60gate1": "Real-time energy, 60-minute slots, gate closing 1 minute prior to start"

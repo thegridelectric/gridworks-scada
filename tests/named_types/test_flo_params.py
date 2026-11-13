@@ -1,4 +1,4 @@
-"""flo.params 001: the twin agrees with the snapshot on the word's example
+"""flo.params 002: the twin agrees with the snapshot on the word's example
 and refuses each axiom's violation."""
 
 import copy
@@ -24,12 +24,12 @@ EXAMPLE = {
     "CreatedMs": 1762008900000,
     "StartUnixS": 1762009200,
     "StepDurationMinutes": [60, 60, 60],
-    "LmpUsdMwhList": [28.14, 28.53, 46.38],
-    "DistUsdMwhList": [50.13, 50.13, 487.63],
+    "PriceUsdMwhList": [78.27, 78.66, 534.01],
     "OatFList": [30.0, 29.0, 28.5],
     "LoadKwhList": [3.5, 3.6, 3.8],
     "RswtFList": [120.0, 121.0, 122.5],
     "WeatherForecastId": "5f1c2b3a-8d4e-4f60-9a7b-1c2d3e4f5a6b",
+    "PriceForecastId": "0b6f4c1e-5a3d-4e9b-8f27-6c1d2e3f4a5b",
     "SeasonalStorageMode": "BufferOnly",
     "TanksModeled": 1,
     "GallonsPerTank": 120,
@@ -51,7 +51,7 @@ EXAMPLE = {
     "PriceMaxUsdMwh": 2000.0,
     "PriceMinUsdMwh": -100.0,
     "TypeName": "flo.params",
-    "Version": "001",
+    "Version": "002",
 }
 
 

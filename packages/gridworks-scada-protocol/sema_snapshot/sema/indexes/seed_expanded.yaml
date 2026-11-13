@@ -1,6 +1,6 @@
 metadata:
   generated_from: indexes/public_registry.yaml
-  generated_at: '2026-11-06T21:13:07Z'
+  generated_at: '2026-11-13T15:17:16Z'
   note: Transitive closure of initial_targets
 initial_targets:
 - ads.channel.config:000
@@ -23,7 +23,8 @@ initial_targets:
 - electric.meter.component.gt:001
 - electric.meter.device.type.gt:000
 - energy.instruction:000
-- flo.params:001
+- flo.params:002
+- gw.price.forecast:000
 - flo.params.house0:007
 - flo.recommendation:000
 - flo.refusal:000
@@ -322,8 +323,8 @@ worklist:
       '000':
         path: definitions/enums/gw.g.node.class/000.yaml
     gw.market.product.name:
-      '000':
-        path: definitions/enums/gw.market.product.name/000.yaml
+      '001':
+        path: definitions/enums/gw.market.product.name/001.yaml
     gw.primary.flow.source:
       '000':
         path: definitions/enums/gw.primary.flow.source/000.yaml
@@ -596,8 +597,8 @@ worklist:
       '000':
         path: definitions/types/flo.optimal.path/000.yaml
     flo.params:
-      '001':
-        path: definitions/types/flo.params/001.yaml
+      '002':
+        path: definitions/types/flo.params/002.yaml
     flo.params.house0:
       '007':
         path: definitions/types/flo.params.house0/007.yaml
@@ -691,6 +692,9 @@ worklist:
     gw.operational.params:
       '000':
         path: definitions/types/gw.operational.params/000.yaml
+    gw.price.forecast:
+      '000':
+        path: definitions/types/gw.price.forecast/000.yaml
     gw.recorded.setpoints:
       '000':
         path: definitions/types/gw.recorded.setpoints/000.yaml

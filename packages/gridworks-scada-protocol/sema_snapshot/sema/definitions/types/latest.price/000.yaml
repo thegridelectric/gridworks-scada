@@ -57,6 +57,18 @@ required:
 
 additionalProperties: false
 
+examples:
+  - |
+    {
+      "FromGNodeAlias": "hw1.isone.me.versant.keene",
+      "PriceTimes1000": 102360,
+      "PriceUnit": "USDPerMWh",
+      "MarketSlotName": "e.rt60gate5.hw1.isone.me.versant.keene.1794412800",
+      "MessageId": "3f74cc68-ffc7-4a18-94cb-9659972beea4",
+      "TypeName": "latest.price",
+      "Version": "000"
+    }
+
 x-gridworks:
   owner: "gridworks-energy"
   extended_description: >
