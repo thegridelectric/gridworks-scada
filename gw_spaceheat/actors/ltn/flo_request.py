@@ -177,7 +177,7 @@ def load_forecast_kwh(
             )
             load_window = [*load_window, load[-1]][-4:]
             oat_window = [*oat_window, oat][-4:]
-    return [round(l, 2) for l in load]
+    return [round(x, 2) for x in load]
 
 
 def adjust_load_for_buffer(load_kwh: list[float], buffer_available_kwh: float) -> list[float]:
@@ -193,7 +193,7 @@ def adjust_load_for_buffer(load_kwh: list[float], buffer_available_kwh: float) -
             load[i] -= taken
             remaining -= taken
             i += 1
-    return [round(l, 2) for l in load]
+    return [round(x, 2) for x in load]
 
 
 def rswt_forecast_f(curve: HeatingCurve, load_kwh: Sequence[float], t_room_f: float) -> list[float]:
