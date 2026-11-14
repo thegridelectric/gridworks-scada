@@ -2,6 +2,7 @@
 layout's water store, the operating status and a live forecast."""
 
 import json
+import logging
 from pathlib import Path
 
 import pytest
@@ -10,23 +11,25 @@ from actors.ltn.flo_request import (
     MAX_HORIZON_HOURS,
     PRICE_MAX_USD_MWH,
     PRICE_MIN_USD_MWH,
-    PreviousRun,
     PriceForecastMissesSlot,
     SeasonalFillForecast,
     StoreState,
     build_flo_params,
     load_forecast_kwh,
+    adjust_load_for_buffer,
     load_previous_run,
     next_slot_start_s,
     previous_run_for,
     save_previous_run,
     seconds_to_slot_start,
 )
-from gwsproto.enums import MarketPriceUnit, MarketProductName, SeasonalStorageMode, WeatherForecastFidelity
+from gwsproto.enums import MarketPriceUnit, MarketProductName, MarketQuantityUnit, SeasonalStorageMode, WeatherForecastFidelity
 from gwsproto.named_types import (
     FloOptimalPath,
+    FloPreviousRun,
     OperationalParams,
     PriceForecast,
+    PriceQuantityUnitless,
     WaterStore,
     WeatherForecast,
     WeatherForecastBundleGt,
@@ -40,6 +43,7 @@ HORIZON = 48
 START_S = utc_seconds("2026-10-18T22:00:00Z")
 NOW_S = START_S - 1200
 STORE = StoreState(top_f=160.0, middle_f=130.0, bottom_f=95.0, thermocline1=2, thermocline2=5, hp_on=False)
+AVERAGE_ZONE_TEMP_F = 68.0
 
 
 def price_forecast(hours: int = HORIZON, first_slot_s: int = START_S) -> PriceForecast:
@@ -82,6 +86,9 @@ def build(**overrides):
         horizon_hours=HORIZON,
         store=STORE,
         buffer_available_kwh=0.0,
+        t_room_f=AVERAGE_ZONE_TEMP_F,
+        last_four_dist_kwh=[],
+        last_four_oat_f=[],
         g_node_alias=ALIAS,
         start_unix_s=START_S,
         created_ms=NOW_S * 1000,
@@ -153,34 +160,63 @@ def test_a_seasonal_fill_is_refused() -> None:
 def test_the_buffers_energy_comes_off_the_first_hours() -> None:
     curve = ops().HeatingCurve  # 5.5 - 0.10 * oat
     weather = HourlyForecast(time=[1, 2, 3], oat_f=[30.0, 30.0, 30.0], wind_speed_mph=[0.0, 0.0, 0.0])
-    assert load_forecast_kwh(curve, weather, 0.0) == [2.5, 2.5, 2.5]
-    assert load_forecast_kwh(curve, weather, 3.0) == [0.0, 2.0, 2.5]
-    assert load_forecast_kwh(curve, weather, -1.0) == [3.5, 2.5, 2.5]
+    empty: list[tuple[int, float | None] | None] = []
+    base = load_forecast_kwh(curve, weather, AVERAGE_ZONE_TEMP_F, empty, empty)
+    assert base == [2.5, 2.5, 2.5]
+    assert adjust_load_for_buffer(base, 0.0) == [2.5, 2.5, 2.5]
+    assert adjust_load_for_buffer(base, 3.0) == [0.0, 2.0, 2.5]
+    assert adjust_load_for_buffer(base, -1.0) == [3.5, 2.5, 2.5]
 
 
-def test_a_previous_run_is_handed_on() -> None:
-    path = FloOptimalPath(StartUnixS=START_S - 3600, StepDurationMinutes=[60, 60], HpAvgWList=[3000, 0], StoreWhList=[20000, 18000])
-    params = build(previous=PreviousRun(path=path, elec_usd_mwh_now=101.5))
-    assert params.PreviousOptimalPath == path
+def previous_run() -> FloPreviousRun:
+    """A run from the slot before START_S that cleared at 3 kW."""
+    return FloPreviousRun(
+        Path=FloOptimalPath(StartUnixS=START_S - 3600, StepDurationMinutes=[60, 60], HpAvgWList=[3000, 0], StoreWhList=[20000, 18000]),
+        ClearedPairIndex=1,
+        ClearedPair=PriceQuantityUnitless(PriceX1000=150000, QuantityX1000=3000),
+        PriceUnit=MarketPriceUnit.USDPerMWh,
+        QuantityUnit=MarketQuantityUnit.AvgkW,
+        NextSlotPriceX1000=101500,
+        CreatedMs=(START_S - 3540) * 1000,
+    )
+
+
+def test_a_previous_run_is_handed_on_in_the_requests_units() -> None:
+    run = previous_run()
+    params = build(previous=run)
+    assert params.PreviousOptimalPath == run.Path
     assert params.PreviousEstimateElecUsdMwhNow == 101.5
 
 
 def test_a_previous_run_is_only_for_the_slot_its_first_step_ends_at() -> None:
-    path = FloOptimalPath(StartUnixS=START_S - 3600, StepDurationMinutes=[60, 60], HpAvgWList=[3000, 0], StoreWhList=[20000, 18000])
-    run = PreviousRun(path=path, elec_usd_mwh_now=101.5)
+    run = previous_run()
     assert previous_run_for(run, START_S) == run
     assert previous_run_for(run, START_S + 3600) is None
     assert previous_run_for(None, START_S) is None
 
 
-def test_a_previous_run_survives_the_disk(tmp_path: Path) -> None:
-    path = FloOptimalPath(StartUnixS=START_S - 3600, StepDurationMinutes=[60, 60], HpAvgWList=[3000, 0], StoreWhList=[20000, 18000])
-    run = PreviousRun(path=path, elec_usd_mwh_now=101.5)
+def test_a_previous_run_survives_the_disk_as_its_word(tmp_path: Path) -> None:
+    run = previous_run()
     file = tmp_path / "previous_run.json"
     assert load_previous_run(file) is None
     save_previous_run(file, run)
-    assert json.loads(file.read_text())["Path"]["TypeName"] == "flo.optimal.path"
+    assert FloPreviousRun.model_validate_json(file.read_text()).TypeName == "flo.previous.run"
     assert load_previous_run(file) == run
+
+
+def test_a_previous_run_the_loader_cannot_read_is_logged_and_dropped(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    """A file from before the word's current shape, or no JSON at all, is a
+    warning naming the file, and the LTN starts with no previous run."""
+    file = tmp_path / "previous_run.json"
+    stale = previous_run().model_dump(by_alias=True)
+    del stale["ClearedPair"]
+    stale["ClearedPriceX1000"] = 150000
+    file.write_text(json.dumps(stale))
+    with caplog.at_level(logging.WARNING):
+        assert load_previous_run(file) is None
+    assert str(file) in caplog.text
+    file.write_text("not json")
+    assert load_previous_run(file) is None
 
 
 def test_the_next_slot_is_the_next_whole_hour_of_the_epoch() -> None:

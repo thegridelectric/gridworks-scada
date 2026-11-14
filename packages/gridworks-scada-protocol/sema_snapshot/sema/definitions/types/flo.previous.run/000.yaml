@@ -1,0 +1,99 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/flo.previous.run/000"
+
+title: "flo.previous.run"
+type: object
+description: >
+  What a bidder keeps from one slot's recommendation once the market has
+  cleared, for the request it makes for the next slot: the pair of the bid
+  curve that cleared, the path the optimizer expected if that pair's
+  quantity cleared, and the electricity price the request forecast for
+  the slot after it. The next request takes the path and the price as its
+  previous plan and previous estimate, so the optimizer can price
+  departures from the plan.
+
+properties:
+
+  Path:
+    $ref: "https://schemas.electricity.works/types/flo.optimal.path/000"
+    description: >
+      The path at the cleared pair's index in the recommendation.
+
+  ClearedPairIndex:
+    $ref: "https://schemas.electricity.works/formats/non.negative.int"
+    description: >
+      The index in the recommendation's PqPairs of the pair the cleared
+      price fell in.
+
+  ClearedPair:
+    $ref: "https://schemas.electricity.works/types/price.quantity.unitless/001"
+    description: >
+      The pair at ClearedPairIndex, in PriceUnit and QuantityUnit.
+
+  PriceUnit:
+    $ref: "https://schemas.electricity.works/enums/market.price.unit/000"
+
+  QuantityUnit:
+    $ref: "https://schemas.electricity.works/enums/market.quantity.unit/000"
+
+  NextSlotPriceX1000:
+    type: integer
+    description: >
+      The electricity price the request forecast for the slot after the
+      one it bid, wholesale and distribution together, in PriceUnit, times
+      1000.
+
+  CreatedMs:
+    $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+    description: >
+      The bidder's clock when it learned the cleared price.
+
+  TypeName:
+    const: "flo.previous.run"
+
+  Version:
+    const: "000"
+
+required:
+  - Path
+  - ClearedPairIndex
+  - ClearedPair
+  - PriceUnit
+  - QuantityUnit
+  - NextSlotPriceX1000
+  - CreatedMs
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "Path": {
+        "StartUnixS": 1762009200,
+        "StepDurationMinutes": [60, 60, 60],
+        "HpAvgWList": [4200, 0, 3100],
+        "StoreWhList": [38500, 31200, 36800],
+        "TypeName": "flo.optimal.path",
+        "Version": "000"
+      },
+      "ClearedPairIndex": 1,
+      "ClearedPair": {"PriceX1000": 150000, "QuantityX1000": 4200, "TypeName": "price.quantity.unitless", "Version": "001"},
+      "PriceUnit": "USDPerMWh",
+      "QuantityUnit": "AvgkW",
+      "NextSlotPriceX1000": 142500,
+      "CreatedMs": 1762009260000,
+      "TypeName": "flo.previous.run",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "PathStartsAtTheBid"
+      statement: >
+        The first element of Path.HpAvgWList SHALL equal
+        ClearedPair.QuantityX1000 expressed in watts: as is when
+        QuantityUnit is AvgkW, times 1000 when it is AvgMW.

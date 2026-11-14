@@ -929,7 +929,7 @@ class DerivedGenerator(ShNodeActor):
         if delta_t <= 0:
             return 0.0
         mdot_kg_s = (flow / 100) * self.GALLON_PER_LITER / 60
-        return mdot_kg_s * self.WATER_SPECIFIC_HEAT_KJ_PER_KG_C * delta_t
+        return mdot_kg_s * self.WATER_KJ_PER_KG_K * delta_t
 
     def _rolling_dist_add_wh(self, t0_ms: int, t1_ms: int, power_kw: float) -> None:
         if t1_ms <= t0_ms:
@@ -1074,7 +1074,7 @@ class DerivedGenerator(ShNodeActor):
             # add this layer's delta energy
             usable_kwh += (
                 mass_kg_per_layer
-                * self.WATER_SPECIFIC_HEAT_KWH_PER_KG_C # kWh needed to raise 1 liter 1 deg C
+                * self.WATER_KWH_PER_KG_K # kWh needed to raise 1 liter 1 deg C
                 * delta_c
             )
             # pop the layer
@@ -1103,7 +1103,7 @@ class DerivedGenerator(ShNodeActor):
                 if round(self.rwt_f(simulated_layers[0])) == round(simulated_layers[0]):
                     break
             delta_t_celcius = (simulated_layers[0] - self.rwt_f(simulated_layers[0])) * 5/9
-            max_buffer_usable_kwh += self.LITERS_PER_LAYER * self.WATER_SPECIFIC_HEAT_KWH_PER_KG_C * delta_t_celcius
+            max_buffer_usable_kwh += self.LITERS_PER_LAYER * self.WATER_KWH_PER_KG_K * delta_t_celcius
             simulated_layers = simulated_layers[1:] + [self.rwt_f(simulated_layers[0])]          
         self.log(f"Max buffer usable energy: {round(max_buffer_usable_kwh,1)} kWh")
         required_energy_kwh = self.data.latest_channel_values.get(HCN.required_energy, 0) / 1000
@@ -1179,7 +1179,7 @@ class DerivedGenerator(ShNodeActor):
                     break
 
             delta_t_celcius = (simulated_layers[0] - self.rwt_f(simulated_layers[0])) * 5/9
-            max_storage_kwh += self.LITERS_PER_LAYER * self.WATER_SPECIFIC_HEAT_KWH_PER_KG_C * delta_t_celcius
+            max_storage_kwh += self.LITERS_PER_LAYER * self.WATER_KWH_PER_KG_K * delta_t_celcius
             simulated_layers = simulated_layers[1:] + [self.rwt_f(simulated_layers[0])]
         if (((time_now.weekday()<4 or time_now.weekday()==6) and time_now.hour>=20) or (time_now.weekday()<5 and time_now.hour<=6)):
             self.log('Preparing for a morning onpeak + afternoon onpeak')

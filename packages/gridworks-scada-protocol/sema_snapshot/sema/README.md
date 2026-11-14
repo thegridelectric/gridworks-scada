@@ -11,7 +11,6 @@ Staging words in this snapshot:
 - enum change.zone.call.source
 - enum gpio.sense.mode:000
 - enum gw.circulator.role:000
-- enum gw.market.product.name:001
 - enum gw.primary.flow.source:000
 - enum gw.primary.pump.owner:000
 - enum gw.refrigerant.cycle:000
@@ -47,7 +46,6 @@ Staging words in this snapshot:
 - type electric.meter.channel.config:000
 - type electric.meter.component.gt:001
 - type electric.meter.device.type.gt:000
-- type flo.params:002
 - type gpio.relay.component.gt:000
 - type gpio.sensor.component.gt:000
 - type gw.boiler.backup:000
@@ -63,7 +61,6 @@ Staging words in this snapshot:
 - type gw.nolan.family.params:000
 - type gw.nolan.layout:000
 - type gw.operational.params:000
-- type gw.price.forecast:000
 - type gw.recorded.setpoints:000
 - type gw.water.store:000
 - type gw1.hvac.zone:000

@@ -1,0 +1,22 @@
+{
+  "TypeName": "flo.path.penalties.bruce",
+  "Version": "000",
+  "RswtPenaltyUsdList": [
+    0.0,
+    0.0,
+    0.42
+  ],
+  "StabilityPenaltyUsdList": [
+    0.0,
+    0.15,
+    0.0
+  ],
+  "ShortCyclePenaltyUsdList": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "TerminalCostUsd": 1.87,
+  "TerminalCostEmptyStoreUsd": 5.6,
+  "PathCostUsd": 8.3
+}

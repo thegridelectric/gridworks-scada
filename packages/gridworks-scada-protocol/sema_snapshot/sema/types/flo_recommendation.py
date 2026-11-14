@@ -8,23 +8,27 @@ from sema_snapshot.sema.property_format import LeftRightDot
 from sema_snapshot.sema.property_format import NonEmptyString
 from sema_snapshot.sema.property_format import UTCMilliseconds
 from sema_snapshot.sema.types.flo_optimal_path import FloOptimalPath
+from sema_snapshot.sema.types.flo_path_penalties_bruce import FloPathPenaltiesBruce
+from sema_snapshot.sema.types.flo_tank_store_path import FloTankStorePath
 from sema_snapshot.sema.types.price_quantity_unitless import PriceQuantityUnitless
 
 
 class FloRecommendation(SemaType):
-    """Sema: https://schemas.electricity.works/types/flo.recommendation/000"""
+    """Sema: https://schemas.electricity.works/types/flo.recommendation/001"""
 
     bidder_alias: LeftRightDot
     pq_pairs: list[PriceQuantityUnitless]
     price_unit: MarketPriceUnit
     quantity_unit: MarketQuantityUnit
     optimal_path_list: list[FloOptimalPath]
+    store_state_list: list[FloTankStorePath] | None = None
+    path_penalties_list: list[FloPathPenaltiesBruce] | None = None
     flo_name: LeftRightDot
     flo_repo: NonEmptyString
     flo_git_commit: GitCommit
     created_ms: UTCMilliseconds
     type_name: Literal["flo.recommendation"] = "flo.recommendation"
-    version: Literal["000"] = "000"
+    version: Literal["001"] = "001"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
@@ -107,5 +111,59 @@ class FloRecommendation(SemaType):
                 raise ValueError(
                     f"Axiom 5 (PathsStartTogether) failed: OptimalPathList[{i}].StartUnixS "
                     f"({path.start_unix_s}) must equal OptimalPathList[0].StartUnixS ({slot_start})."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_6(self) -> Self:
+        """
+        Axiom 6: StoreStatePerPath
+        When present, StoreStateList SHALL have the same length as
+        OptimalPathList, and each element's step lists SHALL have the
+        length of the path at the same index.
+        """
+        if self.store_state_list is None:
+            return self
+        if len(self.store_state_list) != len(self.optimal_path_list):
+            raise ValueError(
+                "Axiom 6 (StoreStatePerPath) failed: StoreStateList "
+                f"({len(self.store_state_list)}) and OptimalPathList "
+                f"({len(self.optimal_path_list)}) must have the same length."
+            )
+        for i, (word, path) in enumerate(
+            zip(self.store_state_list, self.optimal_path_list)
+        ):
+            n = len(path.step_duration_minutes)
+            if len(word.top_f_list) != n:
+                raise ValueError(
+                    f"Axiom 6 (StoreStatePerPath) failed: StoreStateList[{i}] has "
+                    f"{len(word.top_f_list)} steps; OptimalPathList[{i}] has {n}."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_7(self) -> Self:
+        """
+        Axiom 7: PenaltiesPerPath
+        When present, PathPenaltiesList SHALL have the same length as
+        OptimalPathList, and each element's penalty lists SHALL have the
+        length of the path at the same index.
+        """
+        if self.path_penalties_list is None:
+            return self
+        if len(self.path_penalties_list) != len(self.optimal_path_list):
+            raise ValueError(
+                "Axiom 7 (PenaltiesPerPath) failed: PathPenaltiesList "
+                f"({len(self.path_penalties_list)}) and OptimalPathList "
+                f"({len(self.optimal_path_list)}) must have the same length."
+            )
+        for i, (word, path) in enumerate(
+            zip(self.path_penalties_list, self.optimal_path_list)
+        ):
+            n = len(path.step_duration_minutes)
+            if len(word.rswt_penalty_usd_list) != n:
+                raise ValueError(
+                    f"Axiom 7 (PenaltiesPerPath) failed: PathPenaltiesList[{i}] has "
+                    f"{len(word.rswt_penalty_usd_list)} steps; OptimalPathList[{i}] has {n}."
                 )
         return self

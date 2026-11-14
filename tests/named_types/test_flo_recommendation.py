@@ -1,4 +1,4 @@
-"""flo.recommendation 000: the twin agrees with the snapshot on the word's
+"""flo.recommendation 001: the twin agrees with the snapshot on the word's
 example and refuses each axiom's violation."""
 
 import copy
@@ -27,6 +27,34 @@ def path(hp_avg_w_list: list[int], start_unix_s: int = 1762009200) -> dict:
     }
 
 
+def store_state() -> dict:
+    return {
+        "StoreLayers": 12,
+        "TopFList": [160, 158, 160],
+        "MiddleFList": [130, 128, 131],
+        "BottomFList": [100, 100, 101],
+        "Thermocline1List": [8, 6, 8],
+        "Thermocline2List": [11, 9, 10],
+        "EmptyStoreWh": 20000,
+        "FullStoreWh": 45000,
+        "TypeName": "flo.tank.store.path",
+        "Version": "000",
+    }
+
+
+def penalties() -> dict:
+    return {
+        "RswtPenaltyUsdList": [0.0, 0.31, 0.0],
+        "StabilityPenaltyUsdList": [0.0, 0.0, 0.0],
+        "ShortCyclePenaltyUsdList": [0.0, 0.0, 0.0],
+        "TerminalCostUsd": 2.14,
+        "TerminalCostEmptyStoreUsd": 5.6,
+        "PathCostUsd": 9.1,
+        "TypeName": "flo.path.penalties.bruce",
+        "Version": "000",
+    }
+
+
 EXAMPLE = {
     "BidderAlias": "hw1.isone.me.versant.keene.oak",
     "PqPairs": [pair(2000000, 0), pair(150000, 4200)],
@@ -38,8 +66,16 @@ EXAMPLE = {
     "FloGitCommit": "2711f59a0b1c2d3e4f5061728394a5b6c7d8e9f0",
     "CreatedMs": 1762008900000,
     "TypeName": "flo.recommendation",
-    "Version": "000",
+    "Version": "001",
 }
+
+
+def annotated() -> dict:
+    """The example with a store state and a penalties word per path."""
+    d = example()
+    d["StoreStateList"] = [store_state(), store_state()]
+    d["PathPenaltiesList"] = [penalties(), penalties()]
+    return d
 
 
 def example() -> dict:
@@ -48,6 +84,10 @@ def example() -> dict:
 
 def test_example_conforms() -> None:
     assert_conforms(FloRecommendation.model_validate(example()))
+
+
+def test_annotated_example_conforms() -> None:
+    assert_conforms(FloRecommendation.model_validate(annotated()))
 
 
 def test_alice_answer_one_pair_zero_quantity_conforms() -> None:
@@ -101,3 +141,29 @@ def test_flo_recommendation_axiom_5_paths_start_together() -> None:
     d = example()
     d["OptimalPathList"][1]["StartUnixS"] = 1762012800
     assert_refused(FloRecommendation, d, match="Axiom 5 \\(PathsStartTogether\\)")
+
+
+def test_flo_recommendation_axiom_6_store_state_per_path() -> None:
+    d = annotated()
+    d["StoreStateList"] = d["StoreStateList"][:1]
+    assert_refused(FloRecommendation, d, match="Axiom 6 \\(StoreStatePerPath\\)")
+
+
+def test_flo_recommendation_axiom_6_store_state_has_the_paths_steps() -> None:
+    d = annotated()
+    for key in ("TopFList", "MiddleFList", "BottomFList", "Thermocline1List", "Thermocline2List"):
+        d["StoreStateList"][1][key] = d["StoreStateList"][1][key][:2]
+    assert_refused(FloRecommendation, d, match="Axiom 6 \\(StoreStatePerPath\\)")
+
+
+def test_flo_recommendation_axiom_7_penalties_per_path() -> None:
+    d = annotated()
+    d["PathPenaltiesList"] = d["PathPenaltiesList"][:1]
+    assert_refused(FloRecommendation, d, match="Axiom 7 \\(PenaltiesPerPath\\)")
+
+
+def test_flo_recommendation_axiom_7_penalties_have_the_paths_steps() -> None:
+    d = annotated()
+    for key in ("RswtPenaltyUsdList", "StabilityPenaltyUsdList", "ShortCyclePenaltyUsdList"):
+        d["PathPenaltiesList"][0][key] = d["PathPenaltiesList"][0][key][:2]
+    assert_refused(FloRecommendation, d, match="Axiom 7 \\(PenaltiesPerPath\\)")

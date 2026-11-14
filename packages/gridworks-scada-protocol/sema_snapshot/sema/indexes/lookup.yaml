@@ -124,16 +124,31 @@ types:
     versioning_strategy: literal
     versions:
       '007': definitions/types/flo.params.house0/007.yaml
-  flo.recommendation:
+  flo.path.penalties.bruce:
     latest_version: '000'
     versioning_strategy: literal
     versions:
-      '000': definitions/types/flo.recommendation/000.yaml
+      '000': definitions/types/flo.path.penalties.bruce/000.yaml
+  flo.previous.run:
+    latest_version: '000'
+    versioning_strategy: literal
+    versions:
+      '000': definitions/types/flo.previous.run/000.yaml
+  flo.recommendation:
+    latest_version: '001'
+    versioning_strategy: literal
+    versions:
+      '001': definitions/types/flo.recommendation/001.yaml
   flo.refusal:
     latest_version: '000'
     versioning_strategy: literal
     versions:
       '000': definitions/types/flo.refusal/000.yaml
+  flo.tank.store.path:
+    latest_version: '000'
+    versioning_strategy: literal
+    versions:
+      '000': definitions/types/flo.tank.store.path/000.yaml
   flo.tuning.alice:
     latest_version: '000'
     versioning_strategy: literal

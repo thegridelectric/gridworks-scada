@@ -78,7 +78,16 @@ types:
     '000':
       used_by:
       - flo.params:002
-      - flo.recommendation:000
+      - flo.previous.run:000
+      - flo.recommendation:001
+  flo.path.penalties.bruce:
+    '000':
+      used_by:
+      - flo.recommendation:001
+  flo.tank.store.path:
+    '000':
+      used_by:
+      - flo.recommendation:001
   flo.tuning.alice:
     '000':
       used_by:
@@ -356,7 +365,8 @@ types:
     '001':
       used_by:
       - bid:000
-      - flo.recommendation:000
+      - flo.previous.run:000
+      - flo.recommendation:001
   relay.control.config:
     '000':
       used_by:
@@ -631,14 +641,16 @@ enums:
       used_by:
       - bid:000
       - flo.params.house0:007
-      - flo.recommendation:000
+      - flo.previous.run:000
+      - flo.recommendation:001
       - gw.price.forecast:000
       - latest.price:000
   market.quantity.unit:
     '000':
       used_by:
       - bid:000
-      - flo.recommendation:000
+      - flo.previous.run:000
+      - flo.recommendation:001
   pico.board.variant:
     '000':
       used_by:
@@ -736,7 +748,7 @@ formats:
     - slow.contract.heartbeat:002
   git.commit:
     used_by:
-    - flo.recommendation:000
+    - flo.recommendation:001
     - gw.scada.commit:000
   handle.name:
     used_by:
@@ -764,7 +776,7 @@ formats:
     - energy.instruction:000
     - flo.params.house0:007
     - flo.params:002
-    - flo.recommendation:000
+    - flo.recommendation:001
     - flo.refusal:000
     - fsm.atomic.report:001
     - fsm.event:000
@@ -814,7 +826,7 @@ formats:
     - latest.price:000
   non.empty.string:
     used_by:
-    - flo.recommendation:000
+    - flo.recommendation:001
     - flo.refusal:000
     - gw.command.transition:000
     - gw.weather.channel.gt:002
@@ -824,6 +836,7 @@ formats:
     - relay.control.config:000
   non.negative.int:
     used_by:
+    - flo.previous.run:000
     - flo.tuning.bruce:001
     - gw.native.gpio.pin:000
     - gw.operational.params:000
@@ -906,6 +919,7 @@ formats:
     - flo.optimal.path:000
     - flo.params.house0:007
     - flo.params:002
+    - flo.tank.store.path:000
     - flo.tuning.bruce:001
     - flow.hall.params:101
     - gw.nolan.family.params:000
@@ -1009,7 +1023,8 @@ formats:
     - channel.readings:002
     - energy.instruction:000
     - flo.params:002
-    - flo.recommendation:000
+    - flo.previous.run:000
+    - flo.recommendation:001
     - flo.refusal:000
     - fsm.atomic.report:001
     - fsm.event:000

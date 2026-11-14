@@ -123,6 +123,7 @@ class HydronicSpaceheatChannelNames:
 
     required_energy = "required-energy"
     usable_energy = "usable-energy"
+    last_hour_dist_energy = "last-hour-dist-energy"
 
     dist_010v = "dist-010v"
     primary_010v = "primary-010v"
