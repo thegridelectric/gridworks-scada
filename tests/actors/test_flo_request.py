@@ -10,7 +10,6 @@ from actors.ltn.flo_request import (
     MAX_HORIZON_HOURS,
     PRICE_MAX_USD_MWH,
     PRICE_MIN_USD_MWH,
-    PreviousRun,
     SeasonalFillForecast,
     StoreState,
     build_flo_params,
@@ -22,10 +21,12 @@ from actors.ltn.flo_request import (
     save_previous_run,
     seconds_to_slot_start,
 )
-from gwsproto.enums import SeasonalStorageMode, WeatherForecastFidelity
+from gwsproto.enums import MarketPriceUnit, MarketQuantityUnit, SeasonalStorageMode, WeatherForecastFidelity
 from gwsproto.named_types import (
     FloOptimalPath,
+    FloPreviousRun,
     OperationalParams,
+    PriceQuantityUnitless,
     WaterStore,
     WeatherForecast,
     WeatherForecastBundleGt,
@@ -139,28 +140,39 @@ def test_the_buffers_energy_comes_off_the_first_hours() -> None:
     assert adjust_load_for_buffer(base, -1.0) == [3.5, 2.5, 2.5]
 
 
-def test_a_previous_run_is_handed_on() -> None:
-    path = FloOptimalPath(StartUnixS=START_S - 3600, StepDurationMinutes=[60, 60], HpAvgWList=[3000, 0], StoreWhList=[20000, 18000])
-    params = build(previous=PreviousRun(path=path, elec_usd_mwh_now=101.5))
-    assert params.PreviousOptimalPath == path
+def previous_run() -> FloPreviousRun:
+    """A run from the slot before START_S that cleared at 3 kW."""
+    return FloPreviousRun(
+        Path=FloOptimalPath(StartUnixS=START_S - 3600, StepDurationMinutes=[60, 60], HpAvgWList=[3000, 0], StoreWhList=[20000, 18000]),
+        ClearedPairIndex=1,
+        ClearedPair=PriceQuantityUnitless(PriceX1000=150000, QuantityX1000=3000),
+        PriceUnit=MarketPriceUnit.USDPerMWh,
+        QuantityUnit=MarketQuantityUnit.AvgkW,
+        NextSlotPriceX1000=101500,
+        CreatedMs=(START_S - 3540) * 1000,
+    )
+
+
+def test_a_previous_run_is_handed_on_in_the_requests_units() -> None:
+    run = previous_run()
+    params = build(previous=run)
+    assert params.PreviousOptimalPath == run.Path
     assert params.PreviousEstimateElecUsdMwhNow == 101.5
 
 
 def test_a_previous_run_is_only_for_the_slot_its_first_step_ends_at() -> None:
-    path = FloOptimalPath(StartUnixS=START_S - 3600, StepDurationMinutes=[60, 60], HpAvgWList=[3000, 0], StoreWhList=[20000, 18000])
-    run = PreviousRun(path=path, elec_usd_mwh_now=101.5)
+    run = previous_run()
     assert previous_run_for(run, START_S) == run
     assert previous_run_for(run, START_S + 3600) is None
     assert previous_run_for(None, START_S) is None
 
 
-def test_a_previous_run_survives_the_disk(tmp_path: Path) -> None:
-    path = FloOptimalPath(StartUnixS=START_S - 3600, StepDurationMinutes=[60, 60], HpAvgWList=[3000, 0], StoreWhList=[20000, 18000])
-    run = PreviousRun(path=path, elec_usd_mwh_now=101.5)
+def test_a_previous_run_survives_the_disk_as_its_word(tmp_path: Path) -> None:
+    run = previous_run()
     file = tmp_path / "previous_run.json"
     assert load_previous_run(file) is None
     save_previous_run(file, run)
-    assert json.loads(file.read_text())["Path"]["TypeName"] == "flo.optimal.path"
+    assert FloPreviousRun.model_validate_json(file.read_text()).TypeName == "flo.previous.run"
     assert load_previous_run(file) == run
 
 

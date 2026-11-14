@@ -1,6 +1,6 @@
 metadata:
   generated_from: indexes/public_registry.yaml
-  generated_at: '2026-11-14T17:49:47Z'
+  generated_at: '2026-11-14T19:37:14Z'
   note: Transitive closure of initial_targets
 initial_targets:
 - ads.channel.config:000
@@ -25,7 +25,8 @@ initial_targets:
 - energy.instruction:000
 - flo.params:001
 - flo.params.house0:007
-- flo.recommendation:000
+- flo.previous.run:000
+- flo.recommendation:001
 - flo.refusal:000
 - flow.hall.params:101
 - fsm.atomic.report:001
@@ -601,12 +602,21 @@ worklist:
     flo.params.house0:
       '007':
         path: definitions/types/flo.params.house0/007.yaml
-    flo.recommendation:
+    flo.path.penalties.bruce:
       '000':
-        path: definitions/types/flo.recommendation/000.yaml
+        path: definitions/types/flo.path.penalties.bruce/000.yaml
+    flo.previous.run:
+      '000':
+        path: definitions/types/flo.previous.run/000.yaml
+    flo.recommendation:
+      '001':
+        path: definitions/types/flo.recommendation/001.yaml
     flo.refusal:
       '000':
         path: definitions/types/flo.refusal/000.yaml
+    flo.tank.store.path:
+      '000':
+        path: definitions/types/flo.tank.store.path/000.yaml
     flo.tuning.alice:
       '000':
         path: definitions/types/flo.tuning.alice/000.yaml

@@ -59,7 +59,7 @@ from actors.hydronic.store_temps import scrub_and_fill_store_temps
 from actors.ltn.contract_handler import LtnContractHandler
 
 from gwsproto.named_types import (
-    Bid, FloOptimalPath, FloParams, FloRecommendation, FloRefusal, Glitch, HouseOperatingStatus, LatestPrice,
+    Bid, FloOptimalPath, FloParams, FloPreviousRun, FloRecommendation, FloRefusal, Glitch, HouseOperatingStatus, LatestPrice,
     LayoutLite, NoNewContractWarning, OperationalParams, SendLayout,
     SlowContractHeartbeat, SlowContractRejection,
     SnapshotSpaceheat, WaterStore,
@@ -79,7 +79,6 @@ from actors.ltn.data import LtnData
 from actors.ltn.market import RJB, cleared_pair_index, market_slot_name, slot_is_current
 from actors.ltn.flo_service import FLO_DST, flo_alias
 from actors.ltn.flo_request import (
-    PreviousRun,
     SeasonalFillForecast,
     StoreState,
     build_flo_params,
@@ -234,7 +233,7 @@ class Ltn(PrimeActor):
         self.report_output_dir.mkdir(parents=True, exist_ok=True)
         self.recommendation: FloRecommendation | None = None
         self._previous_run_file = Path(f"{self.settings.paths.data_dir}/previous_run.json")
-        self.previous_run: PreviousRun | None = load_previous_run(self._previous_run_file)
+        self.previous_run: FloPreviousRun | None = load_previous_run(self._previous_run_file)
         self.last_four_dist_kwh: list[tuple[int, float | None] | None] = []
         self.last_four_oat_f: list[tuple[int, float | None] | None] = []
 
@@ -883,9 +882,9 @@ class Ltn(PrimeActor):
             self.log("Why am I here")
 
     def keep_cleared_path(self, cleared: int) -> None:
-        """The path the cleared pair leads to, with the price the request
-        forecast for the slot after it: saved as the next run's previous
-        run, and copied to the scada for the record."""
+        """The cleared pair, the path it leads to and the price the request
+        forecast for the slot after it, as one flo.previous.run: saved as
+        the next run's previous run, and sent to the scada for the record."""
         if self.recommendation is None or self.flo_params is None:
             self.log("No recommendation held for this slot; no previous run for the next")
             return
@@ -896,12 +895,19 @@ class Ltn(PrimeActor):
                 f"{self.flo_params.StartUnixS}; no previous run for the next"
             )
             return
-        self.previous_run = PreviousRun(
-            path=path,
-            elec_usd_mwh_now=float(self.flo_params.LmpUsdMwhList[1] + self.flo_params.DistUsdMwhList[1]),
+        self.previous_run = FloPreviousRun(
+            Path=path,
+            ClearedPairIndex=cleared,
+            ClearedPair=self.recommendation.PqPairs[cleared],
+            PriceUnit=self.recommendation.PriceUnit,
+            QuantityUnit=self.recommendation.QuantityUnit,
+            NextSlotPriceX1000=round(
+                (self.flo_params.LmpUsdMwhList[1] + self.flo_params.DistUsdMwhList[1]) * 1000
+            ),
+            CreatedMs=self.plant_clock.now_ms(),
         )
         save_previous_run(self._previous_run_file, self.previous_run)
-        self._message_for_scada_publish(path)
+        self._message_for_scada_publish(self.previous_run)
         self.log(f"Kept the cleared path: {path.HpAvgWList[:6]} W, store {path.StoreWhList[:6]} Wh")
 
     def fill_missing_store_temps(self) -> None:

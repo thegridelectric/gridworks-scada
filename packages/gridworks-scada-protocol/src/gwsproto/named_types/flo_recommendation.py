@@ -1,29 +1,33 @@
-from typing import List, Literal
+from typing import List, Literal, Optional
 
 from pydantic import model_validator
 from typing_extensions import Self
 
 from gwsproto.enums import MarketPriceUnit, MarketQuantityUnit
 from gwsproto.named_types.flo_optimal_path import FloOptimalPath
+from gwsproto.named_types.flo_path_penalties_bruce import FloPathPenaltiesBruce
+from gwsproto.named_types.flo_tank_store_path import FloTankStorePath
 from gwsproto.named_types.price_quantity_unitless import PriceQuantityUnitless
 from gwsproto.property_format import GitCommit, LeftRightDotStr, NonEmptyString, UTCMilliseconds
 from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
 class FloRecommendation(GwsprotoSemaType):
-    """Sema: https://schemas.electricity.works/types/flo.recommendation/000"""
+    """Sema: https://schemas.electricity.works/types/flo.recommendation/001"""
 
     BidderAlias: LeftRightDotStr
     PqPairs: List[PriceQuantityUnitless]
     PriceUnit: MarketPriceUnit
     QuantityUnit: MarketQuantityUnit
     OptimalPathList: List[FloOptimalPath]
+    StoreStateList: Optional[List[FloTankStorePath]] = None
+    PathPenaltiesList: Optional[List[FloPathPenaltiesBruce]] = None
     FloName: LeftRightDotStr
     FloRepo: NonEmptyString
     FloGitCommit: GitCommit
     CreatedMs: UTCMilliseconds
     TypeName: Literal["flo.recommendation"] = "flo.recommendation"
-    Version: Literal["000"] = "000"
+    Version: Literal["001"] = "001"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
@@ -104,5 +108,55 @@ class FloRecommendation(GwsprotoSemaType):
                 raise ValueError(
                     f"Axiom 5 (PathsStartTogether) failed: OptimalPathList[{i}].StartUnixS "
                     f"({path.StartUnixS}) must equal OptimalPathList[0].StartUnixS ({slot_start})."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_6(self) -> Self:
+        """
+        Axiom 6: StoreStatePerPath.
+        When present, StoreStateList SHALL have the same length as
+        OptimalPathList, and each element's step lists SHALL have the
+        length of the path at the same index.
+        """
+        if self.StoreStateList is None:
+            return self
+        if len(self.StoreStateList) != len(self.OptimalPathList):
+            raise ValueError(
+                "Axiom 6 (StoreStatePerPath) failed: StoreStateList "
+                f"({len(self.StoreStateList)}) and OptimalPathList "
+                f"({len(self.OptimalPathList)}) must have the same length."
+            )
+        for i, (word, path) in enumerate(zip(self.StoreStateList, self.OptimalPathList)):
+            n = len(path.StepDurationMinutes)
+            if len(word.TopFList) != n:
+                raise ValueError(
+                    f"Axiom 6 (StoreStatePerPath) failed: StoreStateList[{i}] has "
+                    f"{len(word.TopFList)} steps; OptimalPathList[{i}] has {n}."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_7(self) -> Self:
+        """
+        Axiom 7: PenaltiesPerPath.
+        When present, PathPenaltiesList SHALL have the same length as
+        OptimalPathList, and each element's penalty lists SHALL have the
+        length of the path at the same index.
+        """
+        if self.PathPenaltiesList is None:
+            return self
+        if len(self.PathPenaltiesList) != len(self.OptimalPathList):
+            raise ValueError(
+                "Axiom 7 (PenaltiesPerPath) failed: PathPenaltiesList "
+                f"({len(self.PathPenaltiesList)}) and OptimalPathList "
+                f"({len(self.OptimalPathList)}) must have the same length."
+            )
+        for i, (word, path) in enumerate(zip(self.PathPenaltiesList, self.OptimalPathList)):
+            n = len(path.StepDurationMinutes)
+            if len(word.RswtPenaltyUsdList) != n:
+                raise ValueError(
+                    f"Axiom 7 (PenaltiesPerPath) failed: PathPenaltiesList[{i}] has "
+                    f"{len(word.RswtPenaltyUsdList)} steps; OptimalPathList[{i}] has {n}."
                 )
         return self

@@ -2,14 +2,13 @@
 facts (the ops word, the layout's water store, the operating status, the
 forecast and the store's measured state)."""
 
-import json
 from pathlib import Path
 from typing import NamedTuple, Optional, Sequence
 
 from gwsproto.enums import SeasonalStorageMode, WeatherForecastFidelity
 from gwsproto.named_types import (
-    FloOptimalPath,
     FloParams,
+    FloPreviousRun,
     HeatingCurve,
     OperationalParams,
     WaterStore,
@@ -55,43 +54,35 @@ class StoreState(NamedTuple):
     hp_on: bool
 
 
-class PreviousRun(NamedTuple):
-    """The path the previous run's cleared price led to, with the price
-    that run forecast for the slot after it. No word states the pair yet;
-    a `flo.previous.run` word retires the file form below."""
-
-    path: FloOptimalPath
-    elec_usd_mwh_now: float
-
-    def ends_at(self) -> int:
-        """When the path's first step ends: the start of the slot the run
-        is the previous run for."""
-        return self.path.StartUnixS + self.path.StepDurationMinutes[0] * 60
+def previous_run_ends_at(run: FloPreviousRun) -> int:
+    """When the run's path's first step ends: the start of the slot the run
+    is the previous run for."""
+    return run.Path.StartUnixS + run.Path.StepDurationMinutes[0] * 60
 
 
-def previous_run_for(run: Optional[PreviousRun], start_unix_s: int) -> Optional[PreviousRun]:
+def previous_run_for(run: Optional[FloPreviousRun], start_unix_s: int) -> Optional[FloPreviousRun]:
     """The run when its first step ends at `start_unix_s`, else nothing: a
     run from any other slot is no previous run for this one."""
-    if run is None or run.ends_at() != start_unix_s:
+    if run is None or previous_run_ends_at(run) != start_unix_s:
         return None
     return run
 
 
-def save_previous_run(file: Path, run: PreviousRun) -> None:
-    """The run on disk, the path as its word."""
-    file.write_text(
-        json.dumps({"Path": run.path.model_dump(by_alias=True), "ElecUsdMwhNow": run.elec_usd_mwh_now})
-    )
+def previous_price_usd_mwh(run: FloPreviousRun) -> float:
+    """The run's next-slot price as the request states it: USD per MWh."""
+    return run.NextSlotPriceX1000 / 1000
 
 
-def load_previous_run(file: Path) -> Optional[PreviousRun]:
+def save_previous_run(file: Path, run: FloPreviousRun) -> None:
+    """The run on disk as its word."""
+    file.write_text(run.model_dump_json(by_alias=True))
+
+
+def load_previous_run(file: Path) -> Optional[FloPreviousRun]:
     """The run saved by `save_previous_run`, or nothing when there is none."""
     if not file.exists():
         return None
-    data = json.loads(file.read_text())
-    return PreviousRun(
-        path=FloOptimalPath.model_validate(data["Path"]), elec_usd_mwh_now=float(data["ElecUsdMwhNow"])
-    )
+    return FloPreviousRun.model_validate_json(file.read_text())
 
 
 def next_slot_start_s(now_s: float) -> int:
@@ -242,7 +233,7 @@ def build_flo_params(
     g_node_alias: str,
     start_unix_s: int,
     created_ms: int,
-    previous: Optional[PreviousRun] = None,
+    previous: Optional[FloPreviousRun] = None,
 ) -> FloParams:
     """The request for one run: the horizon is the shortest of what was
     asked, the cap, the forecast and the prices; the store modeled is the
@@ -289,7 +280,7 @@ def build_flo_params(
         CopMinOatF=ops.CopCurve.MinOatF,
         PriceMaxUsdMwh=PRICE_MAX_USD_MWH,
         PriceMinUsdMwh=PRICE_MIN_USD_MWH,
-        PreviousOptimalPath=previous.path if previous else None,
-        PreviousEstimateElecUsdMwhNow=previous.elec_usd_mwh_now if previous else None,
+        PreviousOptimalPath=previous.Path if previous else None,
+        PreviousEstimateElecUsdMwhNow=previous_price_usd_mwh(previous) if previous else None,
         Tuning=ops.FloTuning,
     )

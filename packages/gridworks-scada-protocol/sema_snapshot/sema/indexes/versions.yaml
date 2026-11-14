@@ -173,12 +173,28 @@ types:
       "007":
         summary: "- FloGitCommit: add"
 
-  flo.recommendation:
+  flo.path.penalties.bruce:
     latest_version: "000"
     versioning_strategy: "literal"
     versions:
       "000":
-        summary: "Bid fields (BidderAlias, PqPairs, PriceUnit, QuantityUnit), OptimalPathList index-linked to PqPairs, FloName, FloRepo, FloGitCommit, CreatedMs; axioms AtLeastOnePair, PathPerPair, FirstStepIsTheBid, PairsDescend, PathsStartTogether."
+        summary: "RswtPenaltyUsdList, StabilityPenaltyUsdList, ShortCyclePenaltyUsdList (USD per step), TerminalCostUsd, TerminalCostEmptyStoreUsd, PathCostUsd; axioms PenaltyListLengths, TerminalCostBound."
+
+  flo.previous.run:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Path (flo.optimal.path), ClearedPairIndex, ClearedPair with PriceUnit and QuantityUnit, NextSlotPriceX1000, CreatedMs; axiom PathStartsAtTheBid."
+
+  flo.recommendation:
+    latest_version: "001"
+    versioning_strategy: "literal"
+    versions:
+      "001":
+        summary: >
+          - StoreStateList: add (optional, oneOf flo.tank.store.path)
+          - PathPenaltiesList: add (optional, oneOf flo.path.penalties.bruce)
 
   flo.refusal:
     latest_version: "000"
@@ -186,6 +202,13 @@ types:
     versions:
       "000":
         summary: "BidderAlias and StartUnixS pair the refusal with its request as the recommendation does; Reason (flo.refusal.reason), optional Detail, CreatedMs."
+
+  flo.tank.store.path:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "StoreLayers, TopFList, MiddleFList, BottomFList (F), Thermocline1List, Thermocline2List (layer index from the top), EmptyStoreWh, FullStoreWh; axioms StepListLengths, ThermoclinesWithinTheStore, EmptyBelowFull."
 
   flo.tuning.alice:
     latest_version: "000"

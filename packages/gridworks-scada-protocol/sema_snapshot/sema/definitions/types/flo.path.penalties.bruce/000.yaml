@@ -1,0 +1,99 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/flo.path.penalties.bruce/000"
+
+title: "flo.path.penalties.bruce"
+type: object
+description: >
+  The penalties the bruce optimizer charged along one flo.optimal.path,
+  step by step, and the cost it assigned to the path's final state. A
+  penalty is an amount the optimizer adds to a step's electricity cost
+  for an operating condition its tuning tells it to avoid, so the path it
+  chooses is the cheapest with the penalties counted.
+
+properties:
+
+  RswtPenaltyUsdList:
+    type: array
+    items:
+      type: number
+    description: >
+      The penalty charged in each step for the store being unable to meet
+      the required source water temperature, in USD.
+
+  StabilityPenaltyUsdList:
+    type: array
+    items:
+      type: number
+    description: >
+      The penalty charged in each step for departing from the previous
+      slot's plan, in USD.
+
+  ShortCyclePenaltyUsdList:
+    type: array
+    items:
+      type: number
+    description: >
+      The penalty charged in each step for turning the heat pump on or off
+      too soon after its last change, in USD.
+
+  TerminalCostUsd:
+    type: number
+    description: >
+      The cost the optimizer assigned to the store's state at the end of
+      the horizon, in USD.
+
+  TerminalCostEmptyStoreUsd:
+    type: number
+    description: >
+      The cost the optimizer would assign at the end of the horizon to a
+      store with no usable energy, in USD.
+
+  PathCostUsd:
+    type: number
+    description: >
+      The optimizer's total cost of the path, in USD: the electricity cost
+      of every step, the penalties and the terminal cost.
+
+  TypeName:
+    const: "flo.path.penalties.bruce"
+
+  Version:
+    const: "000"
+
+required:
+  - RswtPenaltyUsdList
+  - StabilityPenaltyUsdList
+  - ShortCyclePenaltyUsdList
+  - TerminalCostUsd
+  - TerminalCostEmptyStoreUsd
+  - PathCostUsd
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "RswtPenaltyUsdList": [0.0, 0.0, 0.42],
+      "StabilityPenaltyUsdList": [0.0, 0.15, 0.0],
+      "ShortCyclePenaltyUsdList": [0.0, 0.0, 0.0],
+      "TerminalCostUsd": 1.87,
+      "TerminalCostEmptyStoreUsd": 5.6,
+      "PathCostUsd": 8.3,
+      "TypeName": "flo.path.penalties.bruce",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "PenaltyListLengths"
+      statement: >
+        RswtPenaltyUsdList, StabilityPenaltyUsdList and
+        ShortCyclePenaltyUsdList SHALL have the same length.
+    - number: 2
+      name: "TerminalCostBound"
+      statement: >
+        TerminalCostUsd SHALL be at most TerminalCostEmptyStoreUsd.

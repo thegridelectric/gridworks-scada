@@ -39,8 +39,11 @@ from gwsproto.named_types.events import RemainingElecEvent, ReportEvent
 from gwsproto.named_types.flo_optimal_path import FloOptimalPath
 from gwsproto.named_types.flo_params import FloParams
 from gwsproto.named_types.flo_params_house0 import FloParamsHouse0
+from gwsproto.named_types.flo_path_penalties_bruce import FloPathPenaltiesBruce
+from gwsproto.named_types.flo_previous_run import FloPreviousRun
 from gwsproto.named_types.flo_recommendation import FloRecommendation
 from gwsproto.named_types.flo_refusal import FloRefusal
+from gwsproto.named_types.flo_tank_store_path import FloTankStorePath
 from gwsproto.named_types.flow_hall_params import FlowHallParams
 from gwsproto.named_types.fsm_atomic_report import FsmAtomicReport
 from gwsproto.named_types.fsm_event import FsmEvent
@@ -233,8 +236,11 @@ __all__ = [
     "FloOptimalPath",
     "FloParams",
     "FloParamsHouse0",
+    "FloPathPenaltiesBruce",
+    "FloPreviousRun",
     "FloRecommendation",
     "FloRefusal",
+    "FloTankStorePath",
     "FlowHallParams",
     "FsmAtomicReport",
     "FsmEvent",
