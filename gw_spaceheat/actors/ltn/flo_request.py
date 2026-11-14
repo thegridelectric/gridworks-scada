@@ -157,7 +157,9 @@ def load_forecast_kwh(
         load = []
         for oat, ws in zip(weather.oat_f, weather.wind_speed_mph, strict=True):
             deltaT = max(0, t_room_f - oat)
-            solar_w_m2 = 0 # TODO: put solar in weather forecast
+            # Solar irradiance is not in the weather forecast word yet; the
+            # delta term is zero until weather.forecast gets a solar field.
+            solar_w_m2 = 0
             known_load = [value for value in load_window if value is not None]
             prev_load = known_load[-1]
             prev_load_average_4_hours = sum(known_load) / len(known_load)
@@ -197,8 +199,9 @@ def adjust_load_for_buffer(load_kwh: list[float], buffer_available_kwh: float) -
 
 
 def rswt_forecast_f(curve: HeatingCurve, load_kwh: Sequence[float], t_room_f: float) -> list[float]:
-    n = RSWT_RADIATOR_EXPONENT # TODO: make this a parameter?
-    min_rswt_f = MIN_RSWT_F # TODO: make this a parameter?
+    # Module constants; candidate heating.curve fields if houses prove to differ.
+    n = RSWT_RADIATOR_EXPONENT
+    min_rswt_f = MIN_RSWT_F
     cp = WATER_KWH_PER_KG_K
 
     mdot = float(curve.MassFlowKgH)

@@ -115,8 +115,7 @@ properties:
     type: boolean
     description: >
       Whether the local control goes to the layout's backup heat when the
-      house is cold. When false it runs the heat pump with the tariff set
-      aside.
+      house is cold. When false it runs the heat pump.
 
   HorizonHours:
     $ref: "https://schemas.electricity.works/formats/positive.int"
@@ -130,7 +129,7 @@ properties:
       With MarketProductName and a slot start it forms the market slot name.
 
   MarketProductName:
-    $ref: "https://schemas.electricity.works/enums/gw.market.product.name/000"
+    $ref: "https://schemas.electricity.works/enums/gw.market.product.name/001"
     description: >
       The market product this house bids into: the second segment of its
       market slot names.
@@ -153,8 +152,7 @@ properties:
   Tariff:
     $ref: "https://schemas.electricity.works/types/gw.tou.tariff/000"
     description: >
-      The time-of-use tariff the home is billed on: its clock and the on-peak
-      windows during which the heat pump is held off.
+      The time-of-use tariff the home is billed on.
 
   TypeName:
     const: "gw.operational.params"

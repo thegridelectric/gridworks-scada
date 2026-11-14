@@ -4,10 +4,11 @@ $id: "https://schemas.electricity.works/types/heating.curve/000"
 title: "heating.curve"
 type: object
 description: >
-  A house's thermal / required-source-water-temperature model: baseline
-  quadratic heat-loss coefficients (scaled integers), hydronic mass flow for
-  the constant-heat-call radiator model, the intermediate and design-day anchor
-  points, and the maximum entering water temperature the emitters tolerate.
+  A house's thermal / required-source-water-temperature model: the baseline
+  heat-load coefficients, the regression load-forecast coefficients (both as
+  scaled integers), the intermediate and design-day anchor points, the hydronic
+  mass flow for the constant-flow radiator model, and the maximum entering
+  water temperature the emitters tolerate.
 
 properties:
 
@@ -26,8 +27,8 @@ properties:
     type: integer
     description: >
       One million times the baseline coefficient on wind speed times the
-      indoor-outdoor temperature difference in the heat-load model, in kW per
-      mph per degree F.
+      difference between a fixed 65 F indoor temperature and the outdoor air
+      temperature in the heat-load model, in kW per mph per degree F.
 
   AlphaEx6:
     type: integer
@@ -72,7 +73,7 @@ properties:
       house load forecast model, in kWh/h per kWh/h.
 
   RhoTimes100:
-    type: integer
+    $ref: "https://schemas.electricity.works/formats/positive.int"
     description: >
       One hundred times rho: the factor that converts measured distribution
       energy to load when forming load-history terms of the main house load
@@ -103,8 +104,7 @@ properties:
     $ref: "https://schemas.electricity.works/formats/positive.int"
     description: >
       Average indoor air temperature, in degrees F, assumed when the design-day
-      anchor (DdPowerKw, DdRswtF) was chosen; used to fix the radiator excess
-      temperature in the constant-flow RSWT model.
+      anchor (DdPowerKw, DdRswtF) was chosen.
 
   DdDeltaTF:
     $ref: "https://schemas.electricity.works/formats/positive.int"
@@ -182,3 +182,10 @@ examples:
 
 x-gridworks:
   owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "DesignDayRswtIsHottest"
+      statement: "DdRswtF SHALL be greater than or equal to IntermediateRswtF."
+    - number: 2
+      name: "DesignDayPowerIsLargest"
+      statement: "DdPowerKw SHALL be greater than or equal to IntermediatePowerKw."

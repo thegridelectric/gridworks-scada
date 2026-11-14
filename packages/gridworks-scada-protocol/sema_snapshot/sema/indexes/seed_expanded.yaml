@@ -1,6 +1,6 @@
 metadata:
   generated_from: indexes/public_registry.yaml
-  generated_at: '2026-11-06T21:13:07Z'
+  generated_at: '2026-11-14T17:49:47Z'
   note: Transitive closure of initial_targets
 initial_targets:
 - ads.channel.config:000
@@ -322,8 +322,8 @@ worklist:
       '000':
         path: definitions/enums/gw.g.node.class/000.yaml
     gw.market.product.name:
-      '000':
-        path: definitions/enums/gw.market.product.name/000.yaml
+      '001':
+        path: definitions/enums/gw.market.product.name/001.yaml
     gw.primary.flow.source:
       '000':
         path: definitions/enums/gw.primary.flow.source/000.yaml

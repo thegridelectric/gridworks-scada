@@ -579,7 +579,7 @@ types:
     versioning_strategy: "literal"
     versions:
       "000":
-        summary: "Initial version: the baseline quadratic heat-load model (BaselineAlphaTimes10, BaselineBetaTimes100, BaselineGammaEx6), the regression load-forecast model (AlphaEx6, BetaEx6, GammaEx6, DeltaEx6, EpsilonEx6, ZetaEx6, EtaEx6, RhoTimes100), the intermediate and design-day anchor points (IntermediatePowerKw, IntermediateRswtF, DdPowerKw, DdRswtF, DdRoomTempF, DdDeltaTF), MaxEwtF and MassFlowKgH for the constant-flow radiator model — the house thermal model migrated out of scada deployment config into operational params."
+        summary: "Initial version: the baseline heat-load model (BaselineAlphaTimes10, BaselineBetaTimes100, BaselineGammaEx6), the regression load-forecast model (AlphaEx6, BetaEx6, GammaEx6, DeltaEx6, EpsilonEx6, ZetaEx6, EtaEx6, RhoTimes100), the intermediate and design-day anchor points (IntermediatePowerKw, IntermediateRswtF, DdPowerKw, DdRswtF, DdRoomTempF, DdDeltaTF), MaxEwtF and MassFlowKgH for the constant-flow radiator model — the house thermal model migrated out of scada deployment config into operational params. Axiom 1: DdRswtF >= IntermediateRswtF. Axiom 2: DdPowerKw >= IntermediatePowerKw."
 
   heating.forecast:
     latest_version: "000"
@@ -1179,7 +1179,9 @@ enums:
     enum_type: "versioned"
     note: "This enum is versioned; new versions are additive only."
     versions:
-      "000": {}
+      "001":
+        added_values:
+          - "rt60gate1"
 
   gw.primary.flow.source:
     enum_type: "versioned"
