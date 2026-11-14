@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-11-06T20:20:00Z"
+  last_updated: "2026-11-14T16:55:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -210,7 +210,7 @@ enums:
     description: "Day of the civil week, for schedules that bind behavior to particular days (e.g. time-of-use windows)."
     schema_url: "https://schemas.electricity.works/enums/day.of.week/000"
     created: "2026-08-12T22:15:00Z"
-    status: "staging"
+    status: "published"
 
   five.v.boss.state:
     latest_version: "000"
@@ -317,16 +317,18 @@ enums:
         status: "published"
 
   gw.market.product.name:
-    latest_version: "000"
+    latest_version: "001"
     owner: gridworks-energy
     enum_type: "versioned"
     description: "GridWorks's market-product vocabulary; each token names a product whose slot timing is encoded in the token"
 
     versions:
-      "000":
-        schema_url: "https://schemas.electricity.works/enums/gw.market.product.name/000"
-        created: "2026-06-08T00:00:00Z"
-        status: "published"
+      "001":
+        schema_url: "https://schemas.electricity.works/enums/gw.market.product.name/001"
+        created: "2026-11-13T14:30:00Z"
+        status: "staging"
+        added_values:
+          - "rt60gate1"
 
   gw.primary.flow.source:
     latest_version: "000"
@@ -2205,7 +2207,7 @@ types:
     versions:
       "000":
         schema_url: "https://schemas.electricity.works/types/gw.operational.params/000"
-        created: "2026-11-02T17:45:00Z"
+        created: "2026-11-14T16:55:00Z"
         status: "staging"
         summary: "Initial version. ScadaAlias (the applying Scada's identity — stored/emitted instances self-identify; the layout holds the full GNodes) + FamilyParams (oneOf gw.house0.family.params / gw.house0.no.sieg.family.params / gw.nolan.family.params, discriminated by TypeName; the family TypeName pairs the instance with its layout family, so a mismatched pair fails at decode) + CaptureTuningList + ZeroTenPowerOnList + Standby x StandbyPosture x EnergizedStandbyRelays (the standby machine energizes the listed relays and nothing else; the posture names what the list achieves) + ServiceMode + DispatchHold (gw.dispatch.hold: the operator's hold and the cold latch; one of three authorities over dispatch) + CopCurve + HeatingCurve + HpTurnOnMinutes + HpMaxKwEl + LoadOverestimationPercent + UsesBackupWhenCold + HorizonHours + WeatherBundleName (the gw.weather.forecast.bundle.gt the LTN relays and the scada pulls) + Tariff (gw.tou.tariff). All required — no assumed defaults. Axioms 1-2: ChannelName unique across CaptureTuningList, NodeName unique across ZeroTenPowerOnList. Axiom 3: Standby implies DispatchHold.OperatorHold. Axiom 4: the posture fixes the relay list (MonitorOnly empty; House0 and House0NoSieg NoHeatingOrCooling = hp-failsafe-relay + aquastat-ctrl-relay; Nolan NoHeatingOrCooling empty). Axiom 5: Standby holds a House0 loop at full send (SiegLoopStrategy HoldFullSend). FloTuning (oneOf flo.tuning.alice 000 / flo.tuning.bruce 001, discriminated by TypeName): the optimizer this house runs and its knobs; the LTN copies it into each flo.params request. Axiom 6: alice holds dispatch (DispatchHold.OperatorHold true), since alice is the empty tuning of a house with no optimizer. Axiom 7: the tuning admits the family (a FLO models the plant as operated): bruce on a House0 family excludes SiegLoopStrategy LwtControl, since bruce models one heat pump charging one stratified store and a loop that targets its own leaving temperature is not that plant."
         direct_dependencies:
@@ -2217,7 +2219,7 @@ types:
             - "gw.dispatch.hold:000"
             - "gw.house0.family.params:000"
             - "gw.house0.no.sieg.family.params:000"
-            - "gw.market.product.name:000"
+            - "gw.market.product.name:001"
             - "gw.nolan.family.params:000"
             - "gw.standby.posture:000"
             - "gw.tou.tariff:000"
@@ -2295,7 +2297,7 @@ types:
       "000":
         schema_url: "https://schemas.electricity.works/types/gw.tou.tariff/000"
         created: "2026-09-17T20:10:00Z"
-        status: "staging"
+        status: "published"
         summary: "Initial version: Alias (left.right.dot), DisplayName, TimezoneStr (iana.timezone.str, the new format word replacing a bare string), OnPeakWindows (gw.tou.window list). Axiom 1: per-day window non-overlap (moved here from the two operational-params words)."
         direct_dependencies:
           structural:
@@ -2313,7 +2315,7 @@ types:
       "000":
         schema_url: "https://schemas.electricity.works/types/gw.tou.window/000"
         created: "2026-08-12T22:15:00Z"
-        status: "staging"
+        status: "published"
         summary: "Initial version: Start (inclusive) and End (exclusive) hh.mm plus Days (day.of.week list). Axioms: Start strictly before End (no midnight wrap); Days non-empty and duplicate-free."
         direct_dependencies:
           structural:
@@ -2673,14 +2675,14 @@ types:
     latest_version: "000"
     owner: gridworks-energy
     versioning_strategy: "literal"
-    description: "A house's thermal / required-source-water-temperature model: quadratic heat-loss coefficients (scaled integers) + the intermediate and design-day anchor points + the max entering water temperature."
+    description: "A house's thermal / required-source-water-temperature model: the baseline heat-load coefficients and the regression load-forecast coefficients (scaled integers), the intermediate and design-day anchor points, the hydronic mass flow and the max entering water temperature."
 
     versions:
       "000":
         schema_url: "https://schemas.electricity.works/types/heating.curve/000"
-        created: "2026-07-09T21:30:00Z"
+        created: "2026-11-14T16:55:00Z"
         status: "staging"
-        summary: "Initial version (AlphaTimes10, BetaTimes100, GammaEx6, IntermediatePowerKw, IntermediateRswtF, DdPowerKw, DdRswtF, DdDeltaTF, MaxEwtF) — the house thermal model migrated out of scada deployment config into operational params."
+        summary: "Initial version: the baseline heat-load model (BaselineAlphaTimes10, BaselineBetaTimes100, BaselineGammaEx6), the regression load-forecast model (AlphaEx6, BetaEx6, GammaEx6, DeltaEx6, EpsilonEx6, ZetaEx6, EtaEx6, RhoTimes100), the intermediate and design-day anchor points (IntermediatePowerKw, IntermediateRswtF, DdPowerKw, DdRswtF, DdRoomTempF, DdDeltaTF), MaxEwtF and MassFlowKgH for the constant-flow radiator model — the house thermal model migrated out of scada deployment config into operational params. Axiom 1: DdRswtF >= IntermediateRswtF. Axiom 2: DdPowerKw >= IntermediatePowerKw."
         direct_dependencies:
           structural:
             - "positive.float"
@@ -3186,7 +3188,7 @@ types:
     latest_version: "000"
     owner: gridworks-energy
     versioning_strategy: "literal"
-    description: "Latest cleared market price for a market slot, published by the MarketMaker (currently by the LeafTransactiveNode, pre-MarketMaker)."
+    description: "The price of one market slot, published by the MarketMaker that runs the slot's market."
 
     versions:
       "000":

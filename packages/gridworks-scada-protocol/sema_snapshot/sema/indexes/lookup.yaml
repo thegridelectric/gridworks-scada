@@ -808,9 +808,9 @@ enums:
       '000': definitions/enums/gw.g.node.class/000.yaml
   gw.market.product.name:
     enum_type: versioned
-    latest_version: '000'
+    latest_version: '001'
     versions:
-      '000': definitions/enums/gw.market.product.name/000.yaml
+      '001': definitions/enums/gw.market.product.name/001.yaml
   gw.primary.flow.source:
     enum_type: versioned
     latest_version: '000'

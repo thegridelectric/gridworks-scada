@@ -6,8 +6,6 @@ import json
 from pathlib import Path
 from typing import NamedTuple, Optional, Sequence
 
-import numpy as np
-
 from gwsproto.enums import SeasonalStorageMode, WeatherForecastFidelity
 from gwsproto.named_types import (
     FloOptimalPath,
@@ -26,6 +24,18 @@ STEP_MINUTES = 60
 # product word retires these two constants.
 PRICE_MAX_USD_MWH = 2000.0
 PRICE_MIN_USD_MWH = -100.0
+
+WATER_KWH_PER_KG_K = 4.184 / 3600
+RSWT_RADIATOR_EXPONENT = 1.3
+MIN_RSWT_F = 100
+
+
+def celsius_to_fahrenheit(celsius: float) -> float:
+    return celsius * (9.0 / 5.0) + 32.0
+
+
+def fahrenheit_to_celsius(fahrenheit: float) -> float:
+    return (fahrenheit - 32.0) * (5.0 / 9.0)
 
 
 class SeasonalFillForecast(ValueError):
@@ -108,19 +118,73 @@ def live_forecast(forecast: ForecastPair) -> ForecastPair:
     return forecast
 
 
-def load_forecast_kwh(
-    curve: HeatingCurve, weather: HourlyForecast, buffer_available_kwh: float
-) -> list[float]:
-    """The house's hourly heat load from the heating curve, with the
-    buffer's available energy taken off the first hours (or, when the
-    buffer is short, added to the first)."""
-    alpha = curve.AlphaTimes10 / 10
-    beta = curve.BetaTimes100 / 100
-    gamma = curve.GammaEx6 / 1e6
-    load = [
-        max(0.0, alpha + beta * oat + gamma * ws * (65 - oat))
+def baseline_load_kwh(curve: HeatingCurve, weather: HourlyForecast) -> list[float]:
+    alpha = curve.BaselineAlphaTimes10 / 10
+    beta = curve.BaselineBetaTimes100 / 100
+    gamma = curve.BaselineGammaEx6 / 1e6
+    return [
+        max(0.0, alpha + beta*oat + gamma*ws*(65-oat))
         for oat, ws in zip(weather.oat_f, weather.wind_speed_mph, strict=True)
     ]
+
+
+def load_forecast_kwh(
+    curve: HeatingCurve,
+    weather: HourlyForecast,
+    t_room_f: float,
+    last_four_dist_kwh: list[tuple[int, float | None] | None],
+    last_four_oat_f: list[tuple[int, float | None] | None],
+) -> list[float]:
+    """Forecast of the house's hourly heat load from the regression model."""
+    dist_kwh: list[float | None] = [None if item is None else item[1] for item in last_four_dist_kwh][-4:]
+    oat_f: list[float | None] = [None if item is None else item[1] for item in last_four_oat_f][-4:]
+    
+    if not any(value is not None for value in dist_kwh) or not any(value is not None for value in oat_f):
+        load = baseline_load_kwh(curve, weather)
+    else:
+        alpha = curve.AlphaEx6 / 1e6
+        beta = curve.BetaEx6 / 1e6
+        gamma = curve.GammaEx6 / 1e6
+        delta = curve.DeltaEx6 / 1e6
+        epsilon = curve.EpsilonEx6 / 1e6
+        zeta = curve.ZetaEx6 / 1e6
+        eta = curve.EtaEx6 / 1e6
+        energy_ratio = curve.RhoTimes100 / 100
+        
+        load_window: list[float | None] = [None if value is None else energy_ratio * value for value in dist_kwh]
+        oat_window: list[float | None] = oat_f
+        
+        load = []
+        for oat, ws in zip(weather.oat_f, weather.wind_speed_mph, strict=True):
+            deltaT = max(0, t_room_f - oat)
+            # Solar irradiance is not in the weather forecast word yet; the
+            # delta term is zero until weather.forecast gets a solar field.
+            solar_w_m2 = 0
+            known_load = [value for value in load_window if value is not None]
+            prev_load = known_load[-1]
+            prev_load_average_4_hours = sum(known_load) / len(known_load)
+            known_oat = [value for value in oat_window if value is not None]
+            prev_oat_average_4_hours = sum(known_oat) / len(known_oat) if known_oat else 0.0
+            load.append(
+                max(
+                    0,
+                    alpha
+                    + beta * deltaT
+                    + gamma * ws * deltaT
+                    + delta * solar_w_m2
+                    + epsilon * prev_oat_average_4_hours
+                    + zeta * prev_load
+                    + eta * prev_load_average_4_hours
+                )
+            )
+            load_window = [*load_window, load[-1]][-4:]
+            oat_window = [*oat_window, oat][-4:]
+    return [round(x, 2) for x in load]
+
+
+def adjust_load_for_buffer(load_kwh: list[float], buffer_available_kwh: float) -> list[float]:
+    """Add/remove load from the first hours to account for the buffer's current energy."""
+    load = list(load_kwh)
     remaining = buffer_available_kwh
     if remaining < 0:
         load[0] += -remaining
@@ -131,18 +195,33 @@ def load_forecast_kwh(
             load[i] -= taken
             remaining -= taken
             i += 1
-    return load
+    return [round(x, 2) for x in load]
 
 
-def rswt_forecast_f(curve: HeatingCurve, load_kwh: Sequence[float]) -> list[float]:
-    """The required source water temperature per hour, from the heating
-    curve's quadratic through its three power points."""
-    no_power_rswt = -(curve.AlphaTimes10 / 10) / (curve.BetaTimes100 / 100)
-    x_rswt = np.array([no_power_rswt, curve.IntermediateRswtF, curve.DdRswtF])
-    y_power = np.array([0, curve.IntermediatePowerKw, curve.DdPowerKw])
-    A = np.vstack([x_rswt**2, x_rswt, np.ones_like(x_rswt)]).T
-    a, b, c = np.linalg.lstsq(A, y_power, rcond=None)[0]
-    return [round((-b + (b**2 - 4 * a * (c - load)) ** 0.5) / (2 * a), 2) for load in load_kwh]
+def rswt_forecast_f(curve: HeatingCurve, load_kwh: Sequence[float], t_room_f: float) -> list[float]:
+    # Module constants; candidate heating.curve fields if houses prove to differ.
+    n = RSWT_RADIATOR_EXPONENT
+    min_rswt_f = MIN_RSWT_F
+    cp = WATER_KWH_PER_KG_K
+
+    mdot = float(curve.MassFlowKgH)
+    q_dd = float(curve.DdPowerKw)
+    t_supply_dd = float(curve.DdRswtF)
+    t_room_dd_f = float(curve.DdRoomTempF)
+
+    t_supply_dd_c = fahrenheit_to_celsius(t_supply_dd)
+    t_room_c = fahrenheit_to_celsius(t_room_f)
+    t_room_dd_c = fahrenheit_to_celsius(t_room_dd_f)
+    
+    rad_scale = t_supply_dd_c - t_room_dd_c - q_dd/(2*mdot*cp)
+
+    rswt_list_f: list[float] = []
+    for q in load_kwh:
+        t_supply_c = t_room_c + rad_scale * (q/q_dd)**(1/n) + q/(2*mdot*cp)
+        rswt_list_f.append(round(celsius_to_fahrenheit(t_supply_c), 2))
+    
+    rswt_list_f = [max(min_rswt_f, rswt) for rswt in rswt_list_f]
+    return rswt_list_f
 
 
 def build_flo_params(
@@ -157,6 +236,9 @@ def build_flo_params(
     dist_usd_mwh: Sequence[float],
     store: StoreState,
     buffer_available_kwh: float,
+    t_room_f: float,
+    last_four_dist_kwh: list[tuple[int, float | None] | None],
+    last_four_oat_f: list[tuple[int, float | None] | None],
     g_node_alias: str,
     start_unix_s: int,
     created_ms: int,
@@ -172,7 +254,9 @@ def build_flo_params(
         oat_f=weather.oat_f[:horizon],
         wind_speed_mph=weather.wind_speed_mph[:horizon],
     )
-    load = load_forecast_kwh(ops.HeatingCurve, weather, buffer_available_kwh)
+    load = load_forecast_kwh(ops.HeatingCurve, weather, t_room_f, last_four_dist_kwh, last_four_oat_f)
+    load_adjusted = adjust_load_for_buffer(load, buffer_available_kwh)
+    rswt = rswt_forecast_f(ops.HeatingCurve, load, t_room_f)
     tanks_modeled = water_store.TotalStoreTanks if storage_mode is SeasonalStorageMode.AllTanks else 1
     return FloParams(
         GNodeAlias=g_node_alias,
@@ -182,8 +266,8 @@ def build_flo_params(
         LmpUsdMwhList=[float(p) for p in lmp_usd_mwh[:horizon]],
         DistUsdMwhList=[float(p) for p in dist_usd_mwh[:horizon]],
         OatFList=[float(t) for t in weather.oat_f],
-        LoadKwhList=load,
-        RswtFList=rswt_forecast_f(ops.HeatingCurve, load),
+        LoadKwhList=load_adjusted,
+        RswtFList=rswt,
         WeatherForecastId=forecast.message.ForecastUid,
         SeasonalStorageMode=storage_mode,
         TanksModeled=tanks_modeled,

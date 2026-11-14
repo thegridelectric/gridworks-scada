@@ -796,7 +796,7 @@ types:
     '000':
       enums:
       - day.of.week:000
-      - gw.market.product.name:000
+      - gw.market.product.name:001
       - gw.standby.posture:000
       - gw1.seasonal.storage.mode:000
       - gw1.service.mode:000
