@@ -159,9 +159,9 @@ class ScadaData:
 
     def make_ha1_params(self, ops: OperationalParams) -> Ha1Params:
         return Ha1Params(
-            AlphaTimes10=ops.HeatingCurve.AlphaTimes10,
-            BetaTimes100=ops.HeatingCurve.BetaTimes100,
-            GammaEx6=ops.HeatingCurve.GammaEx6,
+            AlphaTimes10=ops.HeatingCurve.BaselineAlphaTimes10,
+            BetaTimes100=ops.HeatingCurve.BaselineBetaTimes100,
+            GammaEx6=ops.HeatingCurve.BaselineGammaEx6,
             IntermediatePowerKw=ops.HeatingCurve.IntermediatePowerKw,
             IntermediateRswtF=ops.HeatingCurve.IntermediateRswtF,
             DdPowerKw=ops.HeatingCurve.DdPowerKw,

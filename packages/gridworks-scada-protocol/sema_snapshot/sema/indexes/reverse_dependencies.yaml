@@ -498,7 +498,7 @@ enums:
       - slow.contract.heartbeat:002
       - slow.contract.rejection:000
   gw.market.product.name:
-    '000':
+    '001':
       used_by:
       - gw.operational.params:000
   gw.primary.flow.source:

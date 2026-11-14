@@ -260,15 +260,6 @@ wheels = [
 ]
 
 [[package]]
-name = "board"
-version = "1.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/de/7d/4de4e7b0eb780854e2c1258225a831ef29c447f0e934347ce58128939b69/board-1.0.tar.gz", hash = "sha256:cd718c3322a126d86455e24ae0cebb59a567cbdbaf03696391dccf88c8f456d6", size = 16717, upload-time = "2019-11-01T14:17:31.456Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/bd/b8/461dae0fae64be12d818efab745d520bcf4a96195ccbd5028d58d042e68b/board-1.0-py2.py3-none-any.whl", hash = "sha256:b97c986d0190a2a5181a7fe28959cd8515520b87f672796e21e1b0d32cc63e2f", size = 12869, upload-time = "2019-11-01T14:17:29.838Z" },
-]
-
-[[package]]
 name = "certifi"
 version = "2025.8.3"
 source = { registry = "https://pypi.org/simple" }
@@ -575,9 +566,9 @@ dev = [
     { name = "ruff" },
 ]
 drivers = [
+    { name = "adafruit-blinka" },
     { name = "adafruit-circuitpython-ads1x15" },
     { name = "adafruit-circuitpython-pcf8575" },
-    { name = "board" },
     { name = "rpi-gpio", marker = "platform_machine == 'aarch64' and sys_platform == 'linux'" },
 ]
 
@@ -626,9 +617,9 @@ dev = [
     { name = "ruff", specifier = ">=0.9.6" },
 ]
 drivers = [
+    { name = "adafruit-blinka" },
     { name = "adafruit-circuitpython-ads1x15" },
     { name = "adafruit-circuitpython-pcf8575" },
-    { name = "board" },
     { name = "rpi-gpio", marker = "platform_machine == 'aarch64' and sys_platform == 'linux'" },
 ]
 

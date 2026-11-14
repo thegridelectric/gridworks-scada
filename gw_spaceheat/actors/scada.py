@@ -1010,6 +1010,22 @@ class Scada(PrimeActor, ScadaInterface):
             )
             self._data.latest_channel_values[ch.Name] = payload.ValueList[idx]
             self._data.latest_channel_unix_ms[ch.Name] = payload.ScadaReadTimeUnixMs
+            # Posts to the derived generator
+            capturer = self._layout.parent_node(ch.captured_by_node) if channel_name in self._layout.data_channels else self.node
+            if (
+                channel_name in self._layout.data_channels
+                and self._layout.feeds_derived([channel_name])
+                and (capturer is None or capturer.Name != self.node.Name)
+            ):
+                self._send_to(
+                    self.derived_generator,
+                    SingleReading(
+                        ChannelName=ch.Name,
+                        Value=payload.ValueList[idx],
+                        ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs,
+                    ),
+                    from_node,
+                )
             if ch.Name in self.channel_subscribers:
                 self.forward_to_channel_subscribers(
                     from_node,

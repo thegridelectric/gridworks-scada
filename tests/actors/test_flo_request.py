@@ -14,6 +14,7 @@ from actors.ltn.flo_request import (
     StoreState,
     build_flo_params,
     load_forecast_kwh,
+    adjust_load_for_buffer,
     load_previous_run,
     next_slot_start_s,
     previous_run_for,
@@ -39,6 +40,7 @@ HORIZON = 48
 START_S = utc_seconds("2026-10-18T22:00:00Z")
 NOW_S = START_S - 1200
 STORE = StoreState(top_f=160.0, middle_f=130.0, bottom_f=95.0, thermocline1=2, thermocline2=5, hp_on=False)
+AVERAGE_ZONE_TEMP_F = 68.0
 
 
 def ops() -> OperationalParams:
@@ -70,6 +72,9 @@ def build(**overrides):
         dist_usd_mwh=[60.0] * HORIZON,
         store=STORE,
         buffer_available_kwh=0.0,
+        t_room_f=AVERAGE_ZONE_TEMP_F,
+        last_four_dist_kwh=[],
+        last_four_oat_f=[],
         g_node_alias=ALIAS,
         start_unix_s=START_S,
         created_ms=NOW_S * 1000,
@@ -127,9 +132,12 @@ def test_a_seasonal_fill_is_refused() -> None:
 def test_the_buffers_energy_comes_off_the_first_hours() -> None:
     curve = ops().HeatingCurve  # 5.5 - 0.10 * oat
     weather = HourlyForecast(time=[1, 2, 3], oat_f=[30.0, 30.0, 30.0], wind_speed_mph=[0.0, 0.0, 0.0])
-    assert load_forecast_kwh(curve, weather, 0.0) == [2.5, 2.5, 2.5]
-    assert load_forecast_kwh(curve, weather, 3.0) == [0.0, 2.0, 2.5]
-    assert load_forecast_kwh(curve, weather, -1.0) == [3.5, 2.5, 2.5]
+    empty: list[tuple[int, float | None] | None] = []
+    base = load_forecast_kwh(curve, weather, AVERAGE_ZONE_TEMP_F, empty, empty)
+    assert base == [2.5, 2.5, 2.5]
+    assert adjust_load_for_buffer(base, 0.0) == [2.5, 2.5, 2.5]
+    assert adjust_load_for_buffer(base, 3.0) == [0.0, 2.0, 2.5]
+    assert adjust_load_for_buffer(base, -1.0) == [3.5, 2.5, 2.5]
 
 
 def previous_run() -> FloPreviousRun:
