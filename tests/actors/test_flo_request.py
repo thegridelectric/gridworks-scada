@@ -2,6 +2,7 @@
 layout's water store, the operating status and a live forecast."""
 
 import json
+import logging
 from pathlib import Path
 
 import pytest
@@ -174,6 +175,21 @@ def test_a_previous_run_survives_the_disk_as_its_word(tmp_path: Path) -> None:
     save_previous_run(file, run)
     assert FloPreviousRun.model_validate_json(file.read_text()).TypeName == "flo.previous.run"
     assert load_previous_run(file) == run
+
+
+def test_a_previous_run_the_loader_cannot_read_is_logged_and_dropped(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    """A file from before the word's current shape, or no JSON at all, is a
+    warning naming the file, and the LTN starts with no previous run."""
+    file = tmp_path / "previous_run.json"
+    stale = previous_run().model_dump(by_alias=True)
+    del stale["ClearedPair"]
+    stale["ClearedPriceX1000"] = 150000
+    file.write_text(json.dumps(stale))
+    with caplog.at_level(logging.WARNING):
+        assert load_previous_run(file) is None
+    assert str(file) in caplog.text
+    file.write_text("not json")
+    assert load_previous_run(file) is None
 
 
 def test_the_next_slot_is_the_next_whole_hour_of_the_epoch() -> None:

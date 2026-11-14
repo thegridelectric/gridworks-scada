@@ -2,6 +2,7 @@
 facts (the ops word, the layout's water store, the operating status, the
 forecast and the store's measured state)."""
 
+import logging
 from pathlib import Path
 from typing import NamedTuple, Optional, Sequence
 
@@ -15,6 +16,8 @@ from gwsproto.named_types import (
 )
 from actors.ltn.market import MARKET_SLOT_S
 from weather_source import FORECAST_HOURS, ForecastPair, HourlyForecast
+
+MODULE_LOGGER = logging.getLogger(__name__)
 
 MAX_HORIZON_HOURS = 48
 STEP_MINUTES = 60
@@ -79,10 +82,16 @@ def save_previous_run(file: Path, run: FloPreviousRun) -> None:
 
 
 def load_previous_run(file: Path) -> Optional[FloPreviousRun]:
-    """The run saved by `save_previous_run`, or nothing when there is none."""
+    """The run saved by `save_previous_run`, or nothing when there is none
+    or the file is not a `flo.previous.run` the LTN can read, which is a
+    warning naming the file: the LTN then starts without a previous run."""
     if not file.exists():
         return None
-    return FloPreviousRun.model_validate_json(file.read_text())
+    try:
+        return FloPreviousRun.model_validate_json(file.read_text())
+    except ValueError as e:
+        MODULE_LOGGER.warning("Ignoring %s, not a flo.previous.run this LTN reads: %s", file, e)
+        return None
 
 
 def next_slot_start_s(now_s: float) -> int:
