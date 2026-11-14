@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-11-14T16:55:00Z"
+  last_updated: "2026-11-14T22:30:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -326,7 +326,7 @@ enums:
       "001":
         schema_url: "https://schemas.electricity.works/enums/gw.market.product.name/001"
         created: "2026-11-13T14:30:00Z"
-        status: "staging"
+        status: "published"
         added_values:
           - "rt60gate1"
 
@@ -1515,17 +1515,17 @@ types:
             - "utc.seconds"
 
   flo.params:
-    latest_version: "001"
+    latest_version: "002"
     owner: gridworks-energy
     versioning_strategy: "literal"
     description: "One request to a FLO for one market slot: bidder, step grid, price and weather forecasts, the modeled store and its state, heat pump facts, market price bounds, and the tuning whose TypeName names the optimizer."
 
     versions:
-      "001":
-        schema_url: "https://schemas.electricity.works/types/flo.params/001"
-        created: "2026-11-02T17:45:00Z"
+      "002":
+        schema_url: "https://schemas.electricity.works/types/flo.params/002"
+        created: "2026-11-13T00:25:00Z"
         status: "published"
-        summary: "- Tuning: flo.tuning.bruce 000 -> 001, NumLayers assigned as TanksModeled times TempSensorsPerTank"
+        summary: "- PriceUsdMwhList: add, in place of LmpUsdMwhList and DistUsdMwhList - PriceForecastId: add"
         direct_dependencies:
           structural:
             - "flo.optimal.path:000"
@@ -2287,6 +2287,27 @@ types:
             - "zero.ten.power.on:000"
           axiom:
             - "sieg.loop.strategy:000"
+
+  gw.price.forecast:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "A forecast of one MarketMaker's price for one market over a run of slots: for each slot, the price the MarketMaker is expected to publish in its latest.price."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/gw.price.forecast/000"
+        created: "2026-11-13T14:30:00Z"
+        status: "published"
+        summary: "Initial version."
+        direct_dependencies:
+          structural:
+            - "gw.market.product.name:001"
+            - "left.right.dot"
+            - "market.price.unit:000"
+            - "utc.milliseconds"
+            - "utc.seconds"
+            - "uuid4.str"
 
   gw.recorded.setpoints:
     latest_version: "000"

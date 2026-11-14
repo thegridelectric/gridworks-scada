@@ -1,4 +1,3 @@
-import csv
 import asyncio
 from pathlib import Path
 from datetime import datetime
@@ -60,6 +59,7 @@ from actors.ltn.contract_handler import LtnContractHandler
 
 from gwsproto.named_types import (
     Bid, FloOptimalPath, FloParams, FloPreviousRun, FloRecommendation, FloRefusal, Glitch, HouseOperatingStatus, LatestPrice,
+    PriceForecast,
     LayoutLite, NoNewContractWarning, OperationalParams, SendLayout,
     SlowContractHeartbeat, SlowContractRejection,
     SnapshotSpaceheat, WaterStore,
@@ -79,6 +79,7 @@ from actors.ltn.data import LtnData
 from actors.ltn.market import RJB, cleared_pair_index, market_slot_name, slot_is_current
 from actors.ltn.flo_service import FLO_DST, flo_alias
 from actors.ltn.flo_request import (
+    PriceForecastMissesSlot,
     SeasonalFillForecast,
     StoreState,
     build_flo_params,
@@ -93,38 +94,11 @@ from actors.ltn.flo_request import (
 )
 
 
-class PriceForecast(BaseModel):
-    dp_usd_per_mwh: List[float]
-    lmp_usd_per_mwh: List[float]
-
-    @property
-    def total_energy(self) -> List[float]:
-        """Calculate the total price forecast by summing dp and lmp components."""
-        return [dp + lmp for dp, lmp in zip(self.dp_usd_per_mwh, self.lmp_usd_per_mwh)]
-
-
-FORECAST_HOURS = 48
-
-
-def price_forecast_from(
-    timestamps: Sequence[float],
-    dp_usd_per_mwh: Sequence[float],
-    lmp_usd_per_mwh: Sequence[float],
-    now_s: float,
-) -> PriceForecast:
-    """The next FORECAST_HOURS hours of a saved forecast as seen at `now_s`:
-    hours already begun are dropped, and a forecast that ends early is
-    extended by repeating its last hour."""
-    keep = [i for i, t in enumerate(timestamps) if t > now_s]
-    if not keep:
-        raise ValueError("No forecasts available for the next hours!")
-    dp = [dp_usd_per_mwh[i] for i in keep]
-    lmp = [lmp_usd_per_mwh[i] for i in keep]
-    short = FORECAST_HOURS - len(keep)
-    if short > 0:
-        dp = dp + [dp[-1]] * short
-        lmp = lmp + [lmp[-1]] * short
-    return PriceForecast(dp_usd_per_mwh=dp, lmp_usd_per_mwh=lmp)
+# The price service's route for the LTN; the MarketMaker's own forecast
+# route retires it. The kept copy is the word's bytes, read when the
+# service cannot be reached.
+PRICE_FORECAST_URL = "https://price-service.electricity.works/hw1-isone-me-versant-keene-ps/gw0-price-forecast"
+PRICE_FORECAST_FILE = "latest-gw.price.forecast-000.json"
 
 
 class LtnMQTTCodec(MQTTCodec):
@@ -699,8 +673,7 @@ class Ltn(PrimeActor):
                 forecast=self.weather_forecast,
                 now_s=self.plant_clock.now(),
                 horizon_hours=self.flo_horizon_hours,
-                lmp_usd_mwh=self.price_forecast.lmp_usd_per_mwh,
-                dist_usd_mwh=self.price_forecast.dp_usd_per_mwh,
+                prices=self.price_forecast,
                 store=StoreState(t, m, b, th1, th2, hp_on=not self.hp_is_off),
                 buffer_available_kwh=buffer_available_kwh,
                 t_room_f=self.average_zone_temp_f,
@@ -711,7 +684,7 @@ class Ltn(PrimeActor):
                 created_ms=int(self.plant_clock.now() * 1000),
                 previous=previous_run_for(self.previous_run, slot_start_s),
             )
-        except SeasonalFillForecast as e:
+        except (SeasonalFillForecast, PriceForecastMissesSlot) as e:
             self.log(f"Not running flo - {e}")
             return
         self.log(f"FloParams:\n {self.flo_params.model_dump_json(by_alias=True)}\n")
@@ -901,9 +874,7 @@ class Ltn(PrimeActor):
             ClearedPair=self.recommendation.PqPairs[cleared],
             PriceUnit=self.recommendation.PriceUnit,
             QuantityUnit=self.recommendation.QuantityUnit,
-            NextSlotPriceX1000=round(
-                (self.flo_params.LmpUsdMwhList[1] + self.flo_params.DistUsdMwhList[1]) * 1000
-            ),
+            NextSlotPriceX1000=round(self.flo_params.PriceUsdMwhList[1] * 1000),
             CreatedMs=self.plant_clock.now_ms(),
         )
         save_previous_run(self._previous_run_file, self.previous_run)
@@ -1227,71 +1198,26 @@ class Ltn(PrimeActor):
         self.weather_forecast = await self.app.weather_source.forecast(session)
 
     async def get_price_forecast(self) -> None:
-        '''Updates self.price_forecast for the start of next hour. All in USD/MWh'''
+        """The price service's forecast, decoded as the word it serves and
+        kept in the data dir; the kept copy when the service cannot be
+        reached."""
+        kept = Path(f"{self.settings.paths.data_dir}/{PRICE_FORECAST_FILE}")
         try:
-            # Get price forecast from the price service API
-            url = "https://price-service.electricity.works/hw1-isone-me-versant-keene-ps/gw0-price-forecast"
             async with httpx.AsyncClient() as client:
-                response = await client.get(url)
-                if response.status_code == 200:
-                    self.log("Successfully received price forecast from the price service API")
-                    data = response.json()
-                    self.price_forecast = PriceForecast(
-                        dp_usd_per_mwh=data['DistList'],
-                        lmp_usd_per_mwh=data['LmpList'],  
-                    )
-                    # self.log(f"- LMP USD/MWh {self.price_forecast.lmp_usd_per_mwh}")
-                    # self.log(f"- Total energy USD/MWh {[round(x,2) for x in self.price_forecast.total_energy]}")
-                    
-                    # Save price forecast to a local CSV file
-                    prices_file = Path(f"{self.settings.paths.data_dir}/price_forecast.csv")
-                    # Check if current hour's data exists in the existing file
-                    current_hour_row = None
-                    if prices_file.exists():
-                        current_hour_timestamp = data['HourStartS'][0] - 3600
-                        with open(prices_file, 'r', newline='') as f:
-                            reader = csv.reader(f)
-                            next(reader)  # skip the header row
-                            for row in reader:
-                                if float(row[0]) == current_hour_timestamp:
-                                    current_hour_row = row
-                                    break
-                    # Write the new file
-                    with open(prices_file, 'w', newline='') as f:
-                        writer = csv.writer(f)
-                        writer.writerow(['HourStartS', 'DistList', 'LmpList'])
-                        if current_hour_row:
-                            writer.writerow(current_hour_row)
-                        for i in range(len(data['DistList'])):
-                            writer.writerow([data['HourStartS'][i], data['DistList'][i], data['LmpList'][i]])                   
-                    self.log(f"Saved price forecast to {prices_file}")
-                else:
-                    raise Exception(f"Failed to receive price forecast from API, status code: {response.status_code}")
-        
+                response = await client.get(PRICE_FORECAST_URL)
+            if response.status_code != 200:
+                raise ValueError(f"status code {response.status_code}")
+            self.price_forecast = PriceForecast.model_validate_json(response.content)
+            kept.write_bytes(response.content)
+            self.log(f"Received price forecast {self.price_forecast.ForecastUid} from the price service; kept at {kept}")
         except Exception as e:
-            self.log(f"FAILED to receive price forecast from the price service API and/or to save it to a local CSV: {e}")
-            self.log("Trying to read price forecast from the local CSV file")
+            self.log(f"FAILED to receive a price forecast from the price service: {e}. Reading the kept copy.")
             try:
-                # Read the local CSV file with the latest received price forecast
-                file_path = Path(f"{self.settings.paths.data_dir}/price_forecast.csv")
-                with open(file_path, mode='r', newline='') as file:
-                    reader = csv.reader(file)
-                    next(reader)
-                    rows = list(reader)
-                timestamps = [float(row[0]) for row in rows]
-                dist_usd_mwh = [float(row[1]) for row in rows]
-                lmp_usd_mwh = [float(row[2]) for row in rows]
-
-                self.price_forecast = price_forecast_from(
-                    timestamps, dist_usd_mwh, lmp_usd_mwh, self.plant_clock.now()
-                )
-                self.log("Successfully read price forecast from local CSV.")
-                # self.log(f"- LMP USD/MWh {self.price_forecast.lmp_usd_per_mwh}")
-                # self.log(f"- Total energy USD/MWh {[round(x,2) for x in self.price_forecast.total_energy]}")
-
-            except Exception as e:
-                self.log(f"Could not get a price forecast from the local CSV file: {e}.")
-                await self.send_glitch(f"Failed to read price forecast from local CSV file: {e}", log_level=LogLevel.Error)
+                self.price_forecast = PriceForecast.model_validate_json(kept.read_bytes())
+                self.log(f"Read the kept price forecast {self.price_forecast.ForecastUid}")
+            except Exception as kept_e:
+                self.log(f"Could not read the kept price forecast: {kept_e}")
+                await self.send_glitch(f"Failed to read the kept price forecast: {kept_e}", log_level=LogLevel.Error)
 
     async def send_glitch(self, summary, details="", log_level=LogLevel.Info):
         glitch = Glitch(

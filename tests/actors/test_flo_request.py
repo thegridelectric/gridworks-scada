@@ -11,6 +11,7 @@ from actors.ltn.flo_request import (
     MAX_HORIZON_HOURS,
     PRICE_MAX_USD_MWH,
     PRICE_MIN_USD_MWH,
+    PriceForecastMissesSlot,
     SeasonalFillForecast,
     StoreState,
     build_flo_params,
@@ -22,11 +23,12 @@ from actors.ltn.flo_request import (
     save_previous_run,
     seconds_to_slot_start,
 )
-from gwsproto.enums import MarketPriceUnit, MarketQuantityUnit, SeasonalStorageMode, WeatherForecastFidelity
+from gwsproto.enums import MarketPriceUnit, MarketProductName, MarketQuantityUnit, SeasonalStorageMode, WeatherForecastFidelity
 from gwsproto.named_types import (
     FloOptimalPath,
     FloPreviousRun,
     OperationalParams,
+    PriceForecast,
     PriceQuantityUnitless,
     WaterStore,
     WeatherForecast,
@@ -42,6 +44,19 @@ START_S = utc_seconds("2026-10-18T22:00:00Z")
 NOW_S = START_S - 1200
 STORE = StoreState(top_f=160.0, middle_f=130.0, bottom_f=95.0, thermocline1=2, thermocline2=5, hp_on=False)
 AVERAGE_ZONE_TEMP_F = 68.0
+
+
+def price_forecast(hours: int = HORIZON, first_slot_s: int = START_S) -> PriceForecast:
+    return PriceForecast(
+        FromGNodeAlias="d1.price",
+        MarketMakerAlias="d1.isone.ct.newhaven",
+        ProductName=MarketProductName.rt60gate5,
+        ForecastUid="0b6f4c1e-5a3d-4e9b-8f27-6c1d2e3f4a5b",
+        CreatedMs=NOW_S * 1000,
+        SlotStartS=[first_slot_s + i * 3600 for i in range(hours)],
+        PriceUnit=MarketPriceUnit.USDPerMWh,
+        PriceX1000List=[100_000 + 1000 * i for i in range(hours)],
+    )
 
 
 def ops() -> OperationalParams:
@@ -69,8 +84,6 @@ def build(**overrides):
         forecast=live_pair(),
         now_s=NOW_S,
         horizon_hours=HORIZON,
-        lmp_usd_mwh=[40.0 + i for i in range(HORIZON)],
-        dist_usd_mwh=[60.0] * HORIZON,
         store=STORE,
         buffer_available_kwh=0.0,
         t_room_f=AVERAGE_ZONE_TEMP_F,
@@ -81,6 +94,8 @@ def build(**overrides):
         created_ms=NOW_S * 1000,
     )
     kwargs.update(overrides)
+    if "prices" not in kwargs:
+        kwargs["prices"] = price_forecast(first_slot_s=kwargs["start_unix_s"])
     return build_flo_params(**kwargs)
 
 
@@ -104,7 +119,8 @@ def test_the_request_is_the_houses_facts() -> None:
     assert (params.PriceMaxUsdMwh, params.PriceMinUsdMwh) == (PRICE_MAX_USD_MWH, PRICE_MIN_USD_MWH)
     assert params.StepDurationMinutes == [60] * HORIZON
     assert params.OatFList == pair.next_hours(HORIZON, NOW_S).oat_f
-    assert params.LmpUsdMwhList[0] == 40.0 and params.DistUsdMwhList[-1] == 60.0
+    assert params.PriceUsdMwhList[0] == 100.0 and params.PriceUsdMwhList[-1] == 100.0 + HORIZON - 1
+    assert params.PriceForecastId == price_forecast().ForecastUid
     assert len(params.LoadKwhList) == len(params.RswtFList) == HORIZON
     assert (params.InitialTopTempF, params.InitialThermocline2, params.HpCurrentlyOn) == (160.0, 5, False)
     assert params.PreviousOptimalPath is None and params.PreviousEstimateElecUsdMwhNow is None
@@ -119,8 +135,19 @@ def test_buffer_only_models_one_tank() -> None:
 
 def test_the_horizon_is_the_shortest_of_asked_cap_forecast_and_prices() -> None:
     assert len(build(horizon_hours=96).StepDurationMinutes) == MAX_HORIZON_HOURS
-    assert len(build(lmp_usd_mwh=[40.0] * 10).StepDurationMinutes) == 10
+    assert len(build(prices=price_forecast(hours=10)).StepDurationMinutes) == 10
     assert len(build(horizon_hours=6).OatFList) == 6
+
+
+def test_the_prices_start_at_the_requests_slot() -> None:
+    params = build(prices=price_forecast(hours=HORIZON + 2, first_slot_s=START_S - 2 * 3600))
+    assert params.PriceUsdMwhList[0] == 102.0
+    assert len(params.PriceUsdMwhList) == HORIZON
+
+
+def test_a_forecast_without_the_requests_slot_is_refused() -> None:
+    with pytest.raises(PriceForecastMissesSlot, match="no slot starting at"):
+        build(prices=price_forecast(first_slot_s=START_S + 3600))
 
 
 def test_a_seasonal_fill_is_refused() -> None:

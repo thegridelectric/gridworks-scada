@@ -1,0 +1,20 @@
+{
+  "TypeName": "gw.price.forecast",
+  "Version": "000",
+  "FromGNodeAlias": "hw1.price",
+  "MarketMakerAlias": "hw1.isone.me.versant.keene",
+  "ProductName": "rt60gate5",
+  "ForecastUid": "0b6f4c1e-5a3d-4e9b-8f27-6c1d2e3f4a5b",
+  "CreatedMs": 1794420660000,
+  "SlotStartS": [
+    1794423600,
+    1794427200,
+    1794430800
+  ],
+  "PriceUnit": "USDPerMWh",
+  "PriceX1000List": [
+    628052,
+    99876,
+    98806
+  ]
+}

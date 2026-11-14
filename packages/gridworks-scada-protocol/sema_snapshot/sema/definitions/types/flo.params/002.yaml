@@ -1,5 +1,5 @@
 $schema: "https://json-schema.org/draft/2020-12/schema"
-$id: "https://schemas.electricity.works/types/flo.params/001"
+$id: "https://schemas.electricity.works/types/flo.params/002"
 
 title: "flo.params"
 type: object
@@ -30,18 +30,13 @@ properties:
       $ref: "https://schemas.electricity.works/formats/positive.int"
     description: >
       Length of each step in minutes; the horizon is this list's length.
-  LmpUsdMwhList:
+  PriceUsdMwhList:
     type: array
     items:
       type: number
     description: >
-      Forecast wholesale energy price per step, in USD per MWh.
-  DistUsdMwhList:
-    type: array
-    items:
-      type: number
-    description: >
-      Forecast distribution tariff per step, in USD per MWh.
+      Forecast price of electricity per step, in USD per MWh: the price
+      the bidder's market is expected to publish.
   OatFList:
     type: array
     items:
@@ -65,6 +60,11 @@ properties:
     $ref: "https://schemas.electricity.works/formats/uuid4.str"
     description: >
       The ForecastUid of the gw.weather.forecast the weather lists were read
+      from.
+  PriceForecastId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      The ForecastUid of the gw.price.forecast the price list was read
       from.
   SeasonalStorageMode:
     $ref: "https://schemas.electricity.works/enums/gw1.seasonal.storage.mode/000"
@@ -150,19 +150,19 @@ properties:
   TypeName:
     const: "flo.params"
   Version:
-    const: "001"
+    const: "002"
 
 required:
   - GNodeAlias
   - CreatedMs
   - StartUnixS
   - StepDurationMinutes
-  - LmpUsdMwhList
-  - DistUsdMwhList
+  - PriceUsdMwhList
   - OatFList
   - LoadKwhList
   - RswtFList
   - WeatherForecastId
+  - PriceForecastId
   - SeasonalStorageMode
   - TanksModeled
   - GallonsPerTank
@@ -196,12 +196,12 @@ examples:
       "CreatedMs": 1762008900000,
       "StartUnixS": 1762009200,
       "StepDurationMinutes": [60, 60, 60],
-      "LmpUsdMwhList": [28.14, 28.53, 46.38],
-      "DistUsdMwhList": [50.13, 50.13, 487.63],
+      "PriceUsdMwhList": [86.696, 87.086, 634.912],
       "OatFList": [30.0, 29.0, 28.5],
       "LoadKwhList": [3.5, 3.6, 3.8],
       "RswtFList": [120.0, 121.0, 122.5],
       "WeatherForecastId": "5f1c2b3a-8d4e-4f60-9a7b-1c2d3e4f5a6b",
+      "PriceForecastId": "0b6f4c1e-5a3d-4e9b-8f27-6c1d2e3f4a5b",
       "SeasonalStorageMode": "BufferOnly",
       "TanksModeled": 1,
       "GallonsPerTank": 120,
@@ -252,7 +252,7 @@ examples:
         "Version": "001"
       },
       "TypeName": "flo.params",
-      "Version": "001"
+      "Version": "002"
     }
 
 x-gridworks:
@@ -261,8 +261,8 @@ x-gridworks:
     - number: 1
       name: "StepListLengths"
       statement: >
-        StepDurationMinutes, LmpUsdMwhList, DistUsdMwhList, OatFList,
-        LoadKwhList and RswtFList SHALL be non-empty and of the same length.
+        StepDurationMinutes, PriceUsdMwhList, OatFList, LoadKwhList and
+        RswtFList SHALL be non-empty and of the same length.
     - number: 2
       name: "ThermoclinesWithinTheStore"
       statement: >

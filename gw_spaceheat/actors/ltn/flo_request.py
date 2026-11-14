@@ -12,6 +12,7 @@ from gwsproto.named_types import (
     FloPreviousRun,
     HeatingCurve,
     OperationalParams,
+    PriceForecast,
     WaterStore,
 )
 from actors.ltn.market import MARKET_SLOT_S
@@ -42,6 +43,23 @@ def fahrenheit_to_celsius(fahrenheit: float) -> float:
 
 class SeasonalFillForecast(ValueError):
     """The forecast pair is a seasonal fill, so the LTN runs no FLO on it."""
+
+
+class PriceForecastMissesSlot(ValueError):
+    """The price forecast has no slot starting when the request does, so the
+    LTN runs no FLO on it."""
+
+
+def price_usd_mwh_from(prices: PriceForecast, start_unix_s: int) -> list[float]:
+    """The forecast's prices in USD/MWh from the slot that starts at
+    `start_unix_s` to the forecast's end, one per hourly step."""
+    if start_unix_s not in prices.SlotStartS:
+        raise PriceForecastMissesSlot(
+            f"Price forecast {prices.ForecastUid} has no slot starting at {start_unix_s}; "
+            f"its slots run {prices.SlotStartS[0]} to {prices.SlotStartS[-1]}."
+        )
+    first = prices.SlotStartS.index(start_unix_s)
+    return [x / 1000 for x in prices.PriceX1000List[first:]]
 
 
 class StoreState(NamedTuple):
@@ -232,8 +250,7 @@ def build_flo_params(
     forecast: ForecastPair,
     now_s: float,
     horizon_hours: int,
-    lmp_usd_mwh: Sequence[float],
-    dist_usd_mwh: Sequence[float],
+    prices: PriceForecast,
     store: StoreState,
     buffer_available_kwh: float,
     t_room_f: float,
@@ -248,7 +265,8 @@ def build_flo_params(
     asked, the cap, the forecast and the prices; the store modeled is the
     whole store in AllTanks and one tank in BufferOnly."""
     weather = live_forecast(forecast).next_hours(FORECAST_HOURS, now_s)
-    horizon = min(horizon_hours, MAX_HORIZON_HOURS, len(weather.time), len(lmp_usd_mwh), len(dist_usd_mwh))
+    price_usd_mwh = price_usd_mwh_from(prices, start_unix_s)
+    horizon = min(horizon_hours, MAX_HORIZON_HOURS, len(weather.time), len(price_usd_mwh))
     weather = HourlyForecast(
         time=weather.time[:horizon],
         oat_f=weather.oat_f[:horizon],
@@ -263,12 +281,12 @@ def build_flo_params(
         CreatedMs=created_ms,
         StartUnixS=start_unix_s,
         StepDurationMinutes=[STEP_MINUTES] * horizon,
-        LmpUsdMwhList=[float(p) for p in lmp_usd_mwh[:horizon]],
-        DistUsdMwhList=[float(p) for p in dist_usd_mwh[:horizon]],
+        PriceUsdMwhList=price_usd_mwh[:horizon],
         OatFList=[float(t) for t in weather.oat_f],
         LoadKwhList=load_adjusted,
         RswtFList=rswt,
         WeatherForecastId=forecast.message.ForecastUid,
+        PriceForecastId=prices.ForecastUid,
         SeasonalStorageMode=storage_mode,
         TanksModeled=tanks_modeled,
         GallonsPerTank=water_store.GallonsPerTank,

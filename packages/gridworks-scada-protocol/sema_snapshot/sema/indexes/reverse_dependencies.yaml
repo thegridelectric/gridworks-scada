@@ -77,7 +77,7 @@ types:
   flo.optimal.path:
     '000':
       used_by:
-      - flo.params:001
+      - flo.params:002
       - flo.previous.run:000
       - flo.recommendation:001
   flo.path.penalties.bruce:
@@ -91,12 +91,12 @@ types:
   flo.tuning.alice:
     '000':
       used_by:
-      - flo.params:001
+      - flo.params:002
       - gw.operational.params:000
   flo.tuning.bruce:
     '001':
       used_by:
-      - flo.params:001
+      - flo.params:002
       - gw.operational.params:000
   fsm.atomic.report:
     '001':
@@ -501,6 +501,7 @@ enums:
     '001':
       used_by:
       - gw.operational.params:000
+      - gw.price.forecast:000
   gw.primary.flow.source:
     '000':
       used_by:
@@ -565,7 +566,7 @@ enums:
   gw1.seasonal.storage.mode:
     '000':
       used_by:
-      - flo.params:001
+      - flo.params:002
       - gw.house.operating.status:000
       - gw.house0.family.params:000
       - gw.house0.no.sieg.family.params:000
@@ -642,6 +643,7 @@ enums:
       - flo.params.house0:007
       - flo.previous.run:000
       - flo.recommendation:001
+      - gw.price.forecast:000
       - latest.price:000
   market.quantity.unit:
     '000':
@@ -773,7 +775,7 @@ formats:
     - derived.channel.gt:003
     - energy.instruction:000
     - flo.params.house0:007
-    - flo.params:001
+    - flo.params:002
     - flo.recommendation:001
     - flo.refusal:000
     - fsm.atomic.report:001
@@ -783,6 +785,7 @@ formats:
     - gw.command.interface:001
     - gw.house.operating.status:000
     - gw.operational.params:000
+    - gw.price.forecast:000
     - gw.recorded.setpoints:000
     - gw.scada.commit:000
     - gw.state.machine:000
@@ -915,7 +918,7 @@ formats:
     - energy.instruction:000
     - flo.optimal.path:000
     - flo.params.house0:007
-    - flo.params:001
+    - flo.params:002
     - flo.tank.store.path:000
     - flo.tuning.bruce:001
     - flow.hall.params:101
@@ -1019,7 +1022,7 @@ formats:
     - analog.dispatch:000
     - channel.readings:002
     - energy.instruction:000
-    - flo.params:001
+    - flo.params:002
     - flo.previous.run:000
     - flo.recommendation:001
     - flo.refusal:000
@@ -1029,6 +1032,7 @@ formats:
     - gw.dispatch.ack:000
     - gw.dispatch.nack:000
     - gw.house.operating.status:000
+    - gw.price.forecast:000
     - gw.scada.commit:000
     - gw.weather.forecast:002
     - i2c.result:001
@@ -1055,8 +1059,9 @@ formats:
     - energy.instruction:000
     - flo.optimal.path:000
     - flo.params.house0:007
-    - flo.params:001
+    - flo.params:002
     - flo.refusal:000
+    - gw.price.forecast:000
     - heating.forecast:000
     - report:003
     - slow.dispatch.contract:000
@@ -1070,7 +1075,7 @@ formats:
     - device.component.gt:000
     - electric.meter.component.gt:001
     - flo.params.house0:007
-    - flo.params:001
+    - flo.params:002
     - fsm.atomic.report:001
     - fsm.event:000
     - fsm.full.report:001
@@ -1079,6 +1084,7 @@ formats:
     - gpio.sensor.component.gt:000
     - gw.dispatch.ack:000
     - gw.dispatch.nack:000
+    - gw.price.forecast:000
     - gw.weather.channel.gt:002
     - gw.weather.forecast.bundle.gt:002
     - gw.weather.forecast.channel.gt:000

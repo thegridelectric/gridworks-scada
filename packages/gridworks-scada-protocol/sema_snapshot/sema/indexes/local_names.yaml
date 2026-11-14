@@ -142,6 +142,7 @@ types:
   gw.nolan.family.params: nolan.family.params
   gw.nolan.layout: nolan.layout
   gw.operational.params: operational.params
+  gw.price.forecast: price.forecast
   gw.recorded.setpoints: recorded.setpoints
   gw.scada.commit: scada.commit
   gw.state.machine: state.machine
