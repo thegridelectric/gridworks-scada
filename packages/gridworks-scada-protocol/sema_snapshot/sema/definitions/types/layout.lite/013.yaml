@@ -105,6 +105,25 @@ required:
 
 additionalProperties: false
 
+examples:
+  - |
+    {
+      "FromGNodeAlias": "d1.isone.me.versant.keene.beech.scada",
+      "CreatedMs": 1704067200000,
+      "MessageId": "9cff2689-eadc-4577-94ea-6d86d0d23e9e",
+      "HardwareLayoutTypeName": "gw.house0.layout",
+      "ZoneList": [],
+      "CriticalZoneList": [],
+      "ShNodes": [
+        {"Name": "s", "ActorClass": "PrimaryScada", "ShNodeId": "da9a0427-d6c0-44c0-b51c-492c1e580dc5", "TypeName": "spaceheat.node.gt", "Version": "303"}
+      ],
+      "DataChannels": [],
+      "DerivedChannels": [],
+      "StateMachines": [],
+      "TypeName": "layout.lite",
+      "Version": "013"
+    }
+
 x-gridworks:
   owner: "gridworks-energy"
 

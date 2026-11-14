@@ -49,7 +49,7 @@ from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
     LogLevel,
-    MarketPriceUnit, MarketQuantityUnit,
+    MarketPriceUnit, MarketQuantityUnit, Quantity,
     TelemetryName, RelayClosedOrOpen, SeasonalStorageMode,
     SlowDispatchContractStatus, ServiceMode
 )
@@ -83,11 +83,14 @@ from actors.ltn.flo_request import (
     SeasonalFillForecast,
     StoreState,
     build_flo_params,
+    load_forecast_kwh,
     load_previous_run,
     next_slot_start_s,
     previous_run_for,
+    rswt_forecast_f,
     save_previous_run,
     seconds_to_slot_start,
+    WATER_KWH_PER_KG_K,
 )
 
 
@@ -232,6 +235,8 @@ class Ltn(PrimeActor):
         self.recommendation: FloRecommendation | None = None
         self._previous_run_file = Path(f"{self.settings.paths.data_dir}/previous_run.json")
         self.previous_run: PreviousRun | None = load_previous_run(self._previous_run_file)
+        self.last_four_dist_kwh: list[tuple[int, float | None] | None] = []
+        self.last_four_oat_f: list[tuple[int, float | None] | None] = []
 
         if self.settings.dashboard.print_gui:
             self.dashboard = Dashboard(
@@ -655,6 +660,12 @@ class Ltn(PrimeActor):
         await self.get_weather(session)
         await self.get_price_forecast()
 
+        if self.price_forecast is None:
+            self.log("Not running flo - no price forecast")
+            return
+        if self.weather_forecast is None:
+            self.log("Not running flo - no weather forecast")
+            return
         if not self.layout_lite:
             self.log("Do not have layout lite from scada so not running the FLO... must not be connected!!")
             return
@@ -669,22 +680,18 @@ class Ltn(PrimeActor):
             )
             return
 
-        self.log("Finding thermocline position and top temperature")
         result = await self.get_three_layer_storage_model()
-        self.log(f"{self.seasonal_storage_mode.value} model: {result}")
-
         if result is None:
             self.log("Get thermocline and centroid failed! Not running FLO!")
             return
+        self.log(f"Tank model ({self.seasonal_storage_mode.value}): {result}")
         t, m, b, th1, th2 = result
 
+        self.average_zone_temp_f = await self.average_house_temperature_f()
+        await self.update_dist_kwh_history(slot_start_s)
+        await self.update_oat_f_history(slot_start_s)
         buffer_available_kwh = await self.get_buffer_available_kwh()
-        if self.price_forecast is None:
-            self.log("Not running flo - no price forecast")
-            return
-        if self.weather_forecast is None:
-            self.log("Not running flo - no weather forecast")
-            return
+        
         try:
             self.flo_params = build_flo_params(
                 ops=self.ops,
@@ -697,6 +704,9 @@ class Ltn(PrimeActor):
                 dist_usd_mwh=self.price_forecast.dp_usd_per_mwh,
                 store=StoreState(t, m, b, th1, th2, hp_on=not self.hp_is_off),
                 buffer_available_kwh=buffer_available_kwh,
+                t_room_f=self.average_zone_temp_f,
+                last_four_dist_kwh=self.last_four_dist_kwh,
+                last_four_oat_f=self.last_four_oat_f,
                 g_node_alias=self.g_node_alias,
                 start_unix_s=slot_start_s,
                 created_ms=int(self.plant_clock.now() * 1000),
@@ -913,22 +923,8 @@ class Ltn(PrimeActor):
             return
         temps = {}
         for ch_name in self.tank_temp_channel_names:
-            raw = self.latest_channel_values.get(ch_name)
-            if raw is None:
-                continue
-            try:
-                unit = self.layout.channel_registry.unit(ch_name)
-                if unit is None:
-                    raise Exception(
-                        f"temperature channels should have units! {ch_name}"
-                    )
-                temp_f = convert_temp_to_f(
-                    raw=raw,
-                    encoding=unit
-                )
-            except Exception as e:
-                note = f"Temperature conversion failed for {ch_name}: {e}"
-                self.log(note)
+            temp_f = self._get_latest_temp_f(ch_name)
+            if temp_f is None:
                 continue
             temps[ch_name] = temp_f
 
@@ -936,31 +932,56 @@ class Ltn(PrimeActor):
         self.fill_missing_store_temps()
         self.temperatures_available = set(self.tank_temp_channel_names) <= self.latest_temps_f.keys()
 
+    def _get_latest_temp_f(self, ch_name: str) -> float | None:
+        raw = self.latest_channel_values.get(ch_name)
+        if raw is None:
+            return None
+        try:
+            unit = self.layout.channel_registry.unit(ch_name)
+            if unit is None:
+                raise Exception(
+                    f"temperature channels should have units! {ch_name}"
+                )
+            return convert_temp_to_f(
+                raw=raw, 
+                encoding=unit
+            )
+        except Exception as e:
+            note = f"Temperature conversion failed for {ch_name}: {e}"
+            self.log(note)
+            return None
+
+    def _get_zone_info(self) -> tuple[list[str], dict[str, float], dict[str, float], dict[str, float]]:
+        circuits = {c.CircuitPosition: c for c in self.layout.hydronic.ZoneCallCircuits}
+        zone_keys: list[str] = []
+        temps: dict[str, float] = {}
+        setpoints: dict[str, float] = {}
+        thermal_mass: dict[str, float] = {}
+        for zone in self.layout.hydronic.Zones:
+            primary = circuits[zone.PrimaryCircuitPosition]
+            set_ch = primary.SetpointChannelName
+            assert set_ch is not None
+            zone_key = set_ch.removesuffix("-set")
+            zone_keys.append(zone_key)
+            thermal_mass[zone_key] = zone.KwhPerDegF
+            if primary.TempChannelName is not None:
+                temp_f = self._get_latest_temp_f(primary.TempChannelName)
+                if temp_f is not None:
+                    temps[zone_key] = round(temp_f, 1)
+            set_f = self._get_latest_temp_f(set_ch)
+            if set_f is not None:
+                setpoints[zone_key] = round(set_f, 1)
+        return zone_keys, temps, setpoints, thermal_mass
+
     async def get_RSWT(self, minus_deltaT=False):
         if self.weather_forecast is None:
             raise Exception("weather_forecast cannot be None here!")
         try:
             curve = self.ops.HeatingCurve
-            alpha = curve.AlphaTimes10 / 10
-            beta = curve.BetaTimes100 / 100
-            gamma = curve.GammaEx6 / 1e6
             weather = self.weather_forecast.next_hours(1, self.plant_clock.now())
-            oat = weather.oat_f[0]
-            ws = weather.wind_speed_mph[0]
-            r = alpha + beta*oat + gamma*ws*(65-oat)
-            rhp= r if r>0 else 0
-            intermediate_rswt = curve.IntermediateRswtF
-            dd_rswt = curve.DdRswtF
-            intermediate_power = curve.IntermediatePowerKw
-            dd_power = curve.DdPowerKw
-            no_power_rswt = -alpha/beta
-            x_rswt = np.array([no_power_rswt, intermediate_rswt, dd_rswt])
-            y_hpower = np.array([0, intermediate_power, dd_power])
-            A = np.vstack([x_rswt**2, x_rswt, np.ones_like(x_rswt)]).T
-            a, b, c = np.linalg.solve(A, y_hpower)
-            c2 = c - rhp
-            rswt = round((-b + (b**2-4*a*c2)**0.5)/(2*a),2)
-            deltaT = curve.DdDeltaTF/curve.DdPowerKw * (a*rswt**2 + b*rswt + c)
+            rhp = load_forecast_kwh(curve, weather, self.average_zone_temp_f, self.last_four_dist_kwh, self.last_four_oat_f)[0]
+            rswt = rswt_forecast_f(curve, [rhp], self.average_zone_temp_f)[0]
+            deltaT = curve.DdDeltaTF/curve.DdPowerKw * rhp
             deltaT = deltaT if deltaT>0 else 0
             if minus_deltaT:
                 return rswt - deltaT
@@ -1124,10 +1145,10 @@ class Ltn(PrimeActor):
             buffer_available_energy = 0
             for bl in buffer_temperatures:
                 if buffer_temperatures[bl] >= rswt_minus_deltaT:
-                    buffer_available_energy += m_layer_kg * 4.187/3600 * (buffer_temperatures[bl]-rswt_minus_deltaT) * 5/9
+                    buffer_available_energy += m_layer_kg * WATER_KWH_PER_KG_K * (buffer_temperatures[bl]-rswt_minus_deltaT) * 5/9
             if round(buffer_available_energy,2) == 0:
                 for bl in buffer_temperatures:
-                    buffer_available_energy += - m_layer_kg * 4.187/3600 * (rswt - buffer_temperatures[bl]) * 5/9
+                    buffer_available_energy += - m_layer_kg * WATER_KWH_PER_KG_K * (rswt - buffer_temperatures[bl]) * 5/9
             self.log(f"Buffer available kWh: {round(buffer_available_energy,2)}")
             return round(buffer_available_energy,2)
         except Exception as e:
@@ -1135,38 +1156,65 @@ class Ltn(PrimeActor):
             return 0
         
     async def get_house_available_kwh(self):
-        setpoints = {}
-        temps = {}
-        thermal_mass = {}
-        zone_names = []
-        for zone_setpoint in [x for x in self.latest_channel_values if 'zone' in x and 'set' in x]:
-            zone_name = zone_setpoint.replace('-set','')
-            zone_names.append(zone_name)
-            # Get setpoints for each zone
-            if self.latest_channel_values[zone_setpoint] is not None:
-                setpoints[zone_name] = round(self.latest_channel_values[zone_setpoint]/1000,1)
-            # Get temperatures for each zone
-            zone_temp = zone_setpoint.replace('-set','-temp')
-            if (zone_temp in self.latest_channel_values and self.latest_channel_values[zone_temp] is not None):
-                temps[zone_name] = round(self.latest_channel_values[zone_temp]/1000,1)
-            # Get thermal mass for each zone
-            zone_name_no_prefix = zone_name[6:] if zone_name[:4]=='zone' else zone_name
-            if zone_name_no_prefix in self.layout.zone_list:
-                zone_index = self.layout.zone_list.index(zone_name_no_prefix)
-                thermal_mass[zone_name] = self.layout.zone_kwh_per_deg_f_list[zone_index]
-
-        self.log(f"Found all zone setpoints: {setpoints}")
-        self.log(f"Found all zone temperatures: {temps}")
-        self.log(f"Found all zone thermal masses: {thermal_mass}")
+        zone_names, temps, setpoints, thermal_mass = self._get_zone_info()
+        self.log(f"Found information about {len(zone_names)} zones")
         house_availale_kwh = 0
         for zone in zone_names:
-            if 'zone4' in zone or 'upstairs' in zone:
-                continue
             if zone in temps and zone in setpoints and zone in thermal_mass:
                 house_availale_kwh += thermal_mass[zone] * (temps[zone] - setpoints[zone])
         house_availale_kwh = round(house_availale_kwh,2)
         self.log(f"House available kWh: {house_availale_kwh}")
         return min(0, house_availale_kwh) # TODO: TEMPORARY only consider negative values
+
+    async def update_dist_kwh_history(self, slot_start_s: int) -> None:
+        """The last four hours of distribution energy."""
+        finished_hour_s = slot_start_s - 3600
+        raw_wh = self.latest_channel_values.get(HCN.last_hour_dist_energy)
+        previous_load_kwh = None if raw_wh is None else raw_wh / 1000
+        entry = (finished_hour_s, previous_load_kwh)
+        self.last_four_dist_kwh = [
+            None if item is None or slot_start_s - item[0] > 4 * 3600 else item
+            for item in self.last_four_dist_kwh
+        ]
+        last = self.last_four_dist_kwh[-1] if self.last_four_dist_kwh else None
+        if last is not None and last[0] == finished_hour_s:
+            self.last_four_dist_kwh[-1] = entry
+        else:
+            self.last_four_dist_kwh = (self.last_four_dist_kwh + [entry])[-4:]
+        self.log(f"Dist energy, last 4 hours (slot, kWh): {self.last_four_dist_kwh}")
+
+    async def update_oat_f_history(self, slot_start_s: int) -> None:
+        """The last four hours of outdoor temperature."""
+        if self.weather_forecast is None:
+            return
+        finished_hour_s = slot_start_s - 3600
+        starts = self.weather_forecast.slice_starts()
+        oat_f = self.weather_forecast.unscaled(Quantity.Temperature)
+        this_hour_oat_f = oat_f[min(range(len(starts)), key=lambda i: abs(starts[i] - finished_hour_s))] if starts else None
+        entry = (finished_hour_s, this_hour_oat_f)
+        self.last_four_oat_f = [
+            None if item is None or slot_start_s - item[0] > 4 * 3600 else item
+            for item in self.last_four_oat_f
+        ]
+        last = self.last_four_oat_f[-1] if self.last_four_oat_f else None
+        if last is not None and last[0] == finished_hour_s:
+            self.last_four_oat_f[-1] = entry
+        else:
+            self.last_four_oat_f = (self.last_four_oat_f + [entry])[-4:]
+        self.log(f"OAT, last 4 hours (slot, °F): {self.last_four_oat_f}")
+
+    async def average_house_temperature_f(self) -> float:
+        dd_room_temp_f = float(self.ops.HeatingCurve.DdRoomTempF)
+        _, zone_temps, _, _ = self._get_zone_info()
+        if not zone_temps:
+            self.log("No zone temperatures available, setting average temperature to DdRoomTempF")
+            return dd_room_temp_f
+        average_temp = round(sum(zone_temps.values()) / len(zone_temps), 1)
+        if average_temp < 40 or average_temp > 80:
+            self.log(f"Average house temperature is out of range ({average_temp}°F), setting to DdRoomTempF")
+            return dd_room_temp_f
+        self.log(f"Average house temperature: {average_temp}°F")
+        return average_temp
 
     async def get_weather(self, session: aiohttp.ClientSession) -> None:
         """The forecast pair from the app's weather source."""
