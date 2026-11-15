@@ -846,6 +846,18 @@ enums:
         created: "2026-09-07T23:30:00Z"
         status: "published"
 
+  price.component.name:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "The named parts a market price divides into; the parts sum to the price."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/price.component.name/000"
+        created: "2026-11-11T20:25:00Z"
+        status: "published"
+
   primary.pump.control:
     owner: gridworks-energy
     enum_type: "literal"
@@ -3260,23 +3272,27 @@ types:
             - "uuid4.str"
 
   latest.price:
-    latest_version: "000"
+    latest_version: "001"
     owner: gridworks-energy
     versioning_strategy: "literal"
     description: "The price of one market slot, published by the MarketMaker that runs the slot's market."
 
     versions:
-      "000":
-        schema_url: "https://schemas.electricity.works/types/latest.price/000"
-        created: "2026-05-13T00:00:00Z"
+      "001":
+        schema_url: "https://schemas.electricity.works/types/latest.price/001"
+        created: "2026-11-13T13:40:00Z"
         status: "published"
-        summary: "Initial Sema version"
+        summary: "- PriceTimes1000: renamed PriceX1000 - Components: add, assigned as one Unknown component with the whole price - TariffAlias: add (optional) - CreatedMs: add (optional)"
         direct_dependencies:
           structural:
             - "left.right.dot"
             - "market.price.unit:000"
             - "market.slot.name"
+            - "price.component:000"
+            - "utc.milliseconds"
             - "uuid4.str"
+          axiom:
+            - "price.component.name:000"
 
   layout.lite:
     latest_version: "014"
@@ -3452,6 +3468,22 @@ types:
         summary: "Initial Sema version"
         direct_dependencies:
           structural: []
+
+  price.component:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "One named part of one market price: a price.component.name and its amount as an integer times 1000."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/price.component/000"
+        created: "2026-11-13T13:40:00Z"
+        status: "published"
+        summary: "Initial version."
+        direct_dependencies:
+          structural:
+            - "price.component.name:000"
 
   price.quantity.unitless:
     latest_version: "001"

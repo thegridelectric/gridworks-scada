@@ -803,11 +803,15 @@ types:
         summary: "Initial draft (Bus, Address, NumBytes, Value, TriggerId)."
 
   latest.price:
-    latest_version: "000"
+    latest_version: "001"
     versioning_strategy: "literal"
     versions:
-      "000":
-        summary: "Initial Sema version"
+      "001":
+        summary: >
+          - PriceTimes1000: renamed PriceX1000
+          - Components: add, assigned as one Unknown component with the whole price
+          - TariffAlias: add (optional)
+          - CreatedMs: add (optional)
 
   layout.lite:
     latest_version: "014"
@@ -875,6 +879,13 @@ types:
     versions:
       "000":
         summary: "Initial Sema version"
+
+  price.component:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial version."
 
   price.quantity.unitless:
     latest_version: "001"
@@ -1475,6 +1486,12 @@ enums:
       "000": {}
 
   pico.cycler.state:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  price.component.name:
     enum_type: "versioned"
     note: "This enum is versioned; new versions are additive only."
     versions:

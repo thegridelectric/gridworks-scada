@@ -555,10 +555,10 @@ types:
     versions:
       '000': definitions/types/i2c.write.reg/000.yaml
   latest.price:
-    latest_version: '000'
+    latest_version: '001'
     versioning_strategy: literal
     versions:
-      '000': definitions/types/latest.price/000.yaml
+      '001': definitions/types/latest.price/001.yaml
   layout.lite:
     latest_version: '014'
     versioning_strategy: literal
@@ -604,6 +604,11 @@ types:
     versioning_strategy: literal
     versions:
       '000': definitions/types/power.watts/000.yaml
+  price.component:
+    latest_version: '000'
+    versioning_strategy: literal
+    versions:
+      '000': definitions/types/price.component/000.yaml
   price.quantity.unitless:
     latest_version: '001'
     versioning_strategy: literal
@@ -1038,6 +1043,11 @@ enums:
     latest_version: '000'
     versions:
       '000': definitions/enums/pico.cycler.state/000.yaml
+  price.component.name:
+    enum_type: versioned
+    latest_version: '000'
+    versions:
+      '000': definitions/enums/price.component.name/000.yaml
   primary.pump.control:
     enum_type: literal
     schema: definitions/enums/primary.pump.control/000.yaml

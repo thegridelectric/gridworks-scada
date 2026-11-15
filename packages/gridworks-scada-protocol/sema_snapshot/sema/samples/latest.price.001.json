@@ -1,0 +1,37 @@
+{
+  "TypeName": "latest.price",
+  "Version": "001",
+  "FromGNodeAlias": "hw1.isone.me.versant.keene",
+  "PriceX1000": 628052,
+  "PriceUnit": "USDPerMWh",
+  "MarketSlotName": "e.rt60gate5.hw1.isone.me.versant.keene.1794412800",
+  "Components": [
+    {
+      "TypeName": "price.component",
+      "Version": "000",
+      "Name": "WholesaleEnergy",
+      "PriceX1000": 41250
+    },
+    {
+      "TypeName": "price.component",
+      "Version": "000",
+      "Name": "WholesaleCongestion",
+      "PriceX1000": -2040
+    },
+    {
+      "TypeName": "price.component",
+      "Version": "000",
+      "Name": "WholesaleLoss",
+      "PriceX1000": 310
+    },
+    {
+      "TypeName": "price.component",
+      "Version": "000",
+      "Name": "Delivery",
+      "PriceX1000": 588532
+    }
+  ],
+  "TariffAlias": "versant.a1.home.eco.bonus",
+  "CreatedMs": 1794412805350,
+  "MessageId": "3f74cc68-ffc7-4a18-94cb-9659972beea4"
+}
