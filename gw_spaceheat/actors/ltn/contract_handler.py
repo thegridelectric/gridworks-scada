@@ -285,7 +285,7 @@ class LtnContractHandler:
             return False
         if self.latest_price.PriceUnit != MarketPriceUnit.USDPerMWh:
             raise Exception(f"Stop being so parochial and assuming {MarketPriceUnit.USDPerMWh}")
-        price_usd_per_mwh = self.latest_price.PriceTimes1000 / 1000
+        price_usd_per_mwh = self.latest_price.PriceX1000 / 1000
         self.logger.info(f"Latest price is ${price_usd_per_mwh}/MWh. Fuel sub threshold ${self.settings.fuel_sub_usd_per_mwh}/MWh")
         if price_usd_per_mwh > self.settings.fuel_sub_usd_per_mwh and self.settings.fuel_substitution:
             return True

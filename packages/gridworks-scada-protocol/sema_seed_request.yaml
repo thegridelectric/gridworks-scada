@@ -235,7 +235,7 @@ initial_targets:
     i2c.write.reg:
       versions: ["000"]
     latest.price:
-      versions: ["000"]
+      versions: ["001"]
     layout.lite:
       versions: ["014"]
     linear.one.dimensional.calibration:

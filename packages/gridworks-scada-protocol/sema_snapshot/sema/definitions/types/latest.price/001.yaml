@@ -1,0 +1,159 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/latest.price/001"
+
+title: "latest.price"
+type: object
+description: >
+  The price of one market slot, published by the MarketMaker that runs
+  the slot's market. It is the full price a bidder faces at the maker's
+  node and the price a contract between bidder and maker settles at,
+  stated with the named parts it divides into.
+
+properties:
+
+  FromGNodeAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      GNode alias of the node publishing this price.
+
+  PriceX1000:
+    type: integer
+    description: >
+      The slot's price, expressed as an integer equal to the price in
+      PriceUnit multiplied by 1000. Integer scaling avoids floating
+      point representation at the serialization boundary.
+
+  PriceUnit:
+    $ref: "https://schemas.electricity.works/enums/market.price.unit/000"
+    description: >
+      Unit in which the unscaled price and every component amount are
+      expressed.
+
+  MarketSlotName:
+    $ref: "https://schemas.electricity.works/formats/market.slot.name"
+    description: >
+      Identifier of the market slot this price applies to. It encodes the
+      market service, MarketType, market maker, and slot start time.
+
+  Components:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/types/price.component/000"
+    description: >
+      The named parts the price divides into.
+
+  TariffAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      Alias of the delivery tariff the market declares, under which the
+      Delivery component is computed, for example
+      versant.a1.home.eco.bonus.
+
+  CreatedMs:
+    $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+    description: >
+      The publisher's clock when it resolved this price.
+
+  MessageId:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      Globally unique identifier for this price message.
+
+  TypeName:
+    const: "latest.price"
+
+  Version:
+    const: "001"
+
+required:
+  - FromGNodeAlias
+  - PriceX1000
+  - PriceUnit
+  - MarketSlotName
+  - Components
+  - MessageId
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "FromGNodeAlias": "hw1.isone.me.versant.keene",
+      "PriceX1000": 628052,
+      "PriceUnit": "USDPerMWh",
+      "MarketSlotName": "e.rt60gate5.hw1.isone.me.versant.keene.1794412800",
+      "Components": [
+        {
+          "Name": "WholesaleEnergy",
+          "PriceX1000": 41250,
+          "TypeName": "price.component",
+          "Version": "000"
+        },
+        {
+          "Name": "WholesaleCongestion",
+          "PriceX1000": -2040,
+          "TypeName": "price.component",
+          "Version": "000"
+        },
+        {
+          "Name": "WholesaleLoss",
+          "PriceX1000": 310,
+          "TypeName": "price.component",
+          "Version": "000"
+        },
+        {
+          "Name": "Delivery",
+          "PriceX1000": 588532,
+          "TypeName": "price.component",
+          "Version": "000"
+        }
+      ],
+      "TariffAlias": "versant.a1.home.eco.bonus",
+      "CreatedMs": 1794412805350,
+      "MessageId": "3f74cc68-ffc7-4a18-94cb-9659972beea4",
+      "TypeName": "latest.price",
+      "Version": "001"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "ComponentsSumToPrice"
+      statement: >
+        a. Components SHALL be non-empty.
+        b. The PriceX1000 values of Components SHALL sum to
+        PriceX1000.
+    - number: 2
+      name: "DistinctNamedComponents"
+      statement: >
+        No Name other than Unknown SHALL appear more than once in
+        Components.
+    - number: 3
+      name: "TariffWithDelivery"
+      statement: >
+        a. If Components has a component named Delivery, TariffAlias SHALL
+        be present.
+        b. If Components has no component named Delivery, TariffAlias SHALL
+        be absent.
+
+  extended_description: >
+    latest.price announces the price of one market slot. A MarketMaker
+    turns the prices and charges it faces upstream, which may be
+    structured differently from its own market, into one price at its
+    node; the stored acknowledgement of a bid at that price is the
+    contract. The components let each part of the price settle with its
+    own counterparty: the wholesale parts with the wholesale market, the
+    Delivery part with the distribution utility under the declared
+    tariff. Integer amounts make the sum exact.
+
+    Unknown is exempt from the distinctness rule because a reader on an
+    older version of the name enum sees every part it cannot name as
+    Unknown, and such a reader still sums to the right price.
+
+    latest.price is a point-in-time notification of one slot's price.
+    A forecast of the same price in the same parts is a
+    gw.price.forecast.

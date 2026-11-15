@@ -1393,14 +1393,17 @@ types:
       - i2c.reg.address:000
       versionless_types: []
   latest.price:
-    '000':
+    '001':
       enums:
       - market.price.unit:000
+      - price.component.name:000
       formats:
       - left.right.dot
       - market.slot.name
+      - utc.milliseconds
       - uuid4.str
-      types: []
+      types:
+      - price.component:000
       versionless_types: []
   layout.lite:
     '014':
@@ -1511,6 +1514,13 @@ types:
   power.watts:
     '000':
       enums: []
+      formats: []
+      types: []
+      versionless_types: []
+  price.component:
+    '000':
+      enums:
+      - price.component.name:000
       formats: []
       types: []
       versionless_types: []

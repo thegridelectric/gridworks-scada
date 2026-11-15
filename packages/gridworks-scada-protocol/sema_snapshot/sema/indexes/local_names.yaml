@@ -59,6 +59,7 @@ enums:
   pico.board.variant: pico.board.variant
   pico.cycler.event: pico.cycler.event
   pico.cycler.state: pico.cycler.state
+  price.component.name: price.component.name
   primary.pump.control: primary.pump.control
   reboot.picos: reboot.picos
   relay.closed.or.open: relay.closed.or.open
@@ -205,6 +206,7 @@ types:
   pico.flow.module.component.gt: pico.flow.module.component.gt
   pico.tank.module.component.gt: pico.tank.module.component.gt
   power.watts: power.watts
+  price.component: price.component
   price.quantity.unitless: price.quantity.unitless
   relay.control.config: relay.control.config
   report: report
