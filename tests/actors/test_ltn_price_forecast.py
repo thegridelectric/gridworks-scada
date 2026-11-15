@@ -1,45 +1,40 @@
-"""The LTN's saved price forecast is read as seen at the plant clock's now:
-hours already begun are dropped, and a short forecast repeats its last hour."""
+"""The LTN reads its request's prices off the price forecast word: the
+slots from the request's own, in USD/MWh."""
 
 import pytest
 
-from actors.ltn.ltn import FORECAST_HOURS, price_forecast_from
+from actors.ltn.flo_request import PriceForecastMissesSlot, price_usd_mwh_from
+from gwsproto.enums import MarketPriceUnit, MarketProductName
+from gwsproto.named_types import PriceForecast
 
 H = 3600
 START = 1_762_178_400  # an hour boundary
 
 
-def rows(hours: int) -> tuple[list[float], list[float], list[float]]:
-    timestamps = [float(START + i * H) for i in range(hours)]
-    dp = [10.0 + i for i in range(hours)]
-    lmp = [100.0 + i for i in range(hours)]
-    return timestamps, dp, lmp
+def forecast(hours: int) -> PriceForecast:
+    return PriceForecast(
+        FromGNodeAlias="d1.price",
+        MarketMakerAlias="d1.isone.ct.newhaven",
+        ProductName=MarketProductName.rt60gate5,
+        ForecastUid="0b6f4c1e-5a3d-4e9b-8f27-6c1d2e3f4a5b",
+        CreatedMs=START * 1000,
+        SlotStartS=[START + i * H for i in range(hours)],
+        PriceUnit=MarketPriceUnit.USDPerMWh,
+        PriceX1000List=[100_000 + 1000 * i for i in range(hours)],
+    )
 
 
-def test_hours_already_begun_are_dropped() -> None:
-    timestamps, dp, lmp = rows(FORECAST_HOURS + 3)
-    forecast = price_forecast_from(timestamps, dp, lmp, now_s=START + 2 * H + 1)
-    assert forecast.dp_usd_per_mwh[:2] == [13.0, 14.0]
-    assert forecast.lmp_usd_per_mwh[:2] == [103.0, 104.0]
-    assert len(forecast.dp_usd_per_mwh) == FORECAST_HOURS
+def test_the_prices_run_from_the_requests_slot() -> None:
+    assert price_usd_mwh_from(forecast(5), START + 2 * H) == [102.0, 103.0, 104.0]
 
 
-def test_a_row_at_now_exactly_is_already_begun() -> None:
-    timestamps, dp, lmp = rows(FORECAST_HOURS + 1)
-    forecast = price_forecast_from(timestamps, dp, lmp, now_s=START)
-    assert forecast.dp_usd_per_mwh[0] == 11.0
+def test_the_first_slot_gives_the_whole_forecast() -> None:
+    assert price_usd_mwh_from(forecast(3), START) == [100.0, 101.0, 102.0]
 
 
-def test_a_short_forecast_repeats_its_last_hour() -> None:
-    timestamps, dp, lmp = rows(5)
-    forecast = price_forecast_from(timestamps, dp, lmp, now_s=START - 1)
-    assert len(forecast.dp_usd_per_mwh) == FORECAST_HOURS
-    assert forecast.dp_usd_per_mwh[:5] == dp
-    assert forecast.dp_usd_per_mwh[5:] == [dp[-1]] * (FORECAST_HOURS - 5)
-    assert forecast.lmp_usd_per_mwh[5:] == [lmp[-1]] * (FORECAST_HOURS - 5)
+def test_a_slot_the_forecast_lacks_is_refused() -> None:
+    with pytest.raises(PriceForecastMissesSlot, match="no slot starting at"):
+        price_usd_mwh_from(forecast(3), START + 3 * H)
+    with pytest.raises(PriceForecastMissesSlot, match="no slot starting at"):
+        price_usd_mwh_from(forecast(3), START - H)
 
-
-def test_a_forecast_entirely_in_the_past_is_refused() -> None:
-    timestamps, dp, lmp = rows(5)
-    with pytest.raises(ValueError, match="No forecasts available"):
-        price_forecast_from(timestamps, dp, lmp, now_s=START + 5 * H)

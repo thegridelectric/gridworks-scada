@@ -1,0 +1,126 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/flo.tank.store.path/000"
+
+title: "flo.tank.store.path"
+type: object
+description: >
+  The state of a store of stratified water tanks at the end of each step
+  of one flo.optimal.path, as the optimizer models it: the store as a
+  stack of layers in three temperature bands, with the two thermoclines
+  that divide them. A model with two bands sets both thermoclines to the
+  same layer.
+
+properties:
+
+  StoreLayers:
+    $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      The number of layers the store is modeled as, across the modeled
+      tanks.
+
+  TopFList:
+    type: array
+    items:
+      type: integer
+    description: >
+      The temperature of the top band at the end of each step, in degrees
+      Fahrenheit.
+
+  MiddleFList:
+    type: array
+    items:
+      type: integer
+    description: >
+      The temperature of the middle band at the end of each step, in
+      degrees Fahrenheit.
+
+  BottomFList:
+    type: array
+    items:
+      type: integer
+    description: >
+      The temperature of the bottom band at the end of each step, in
+      degrees Fahrenheit.
+
+  Thermocline1List:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      The last layer of the top band at the end of each step, as a layer
+      index counted from the top.
+
+  Thermocline2List:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/formats/positive.int"
+    description: >
+      The last layer of the middle band at the end of each step, as a
+      layer index counted from the top.
+
+  EmptyStoreWh:
+    type: integer
+    description: >
+      The store's energy with every layer at 70 degrees Fahrenheit, in
+      watt-hours, measured from the same zero as the path's StoreWhList.
+
+  FullStoreWh:
+    type: integer
+    description: >
+      The store's energy with every layer at the maximum tank temperature,
+      in watt-hours, measured from the same zero as the path's
+      StoreWhList.
+
+  TypeName:
+    const: "flo.tank.store.path"
+
+  Version:
+    const: "000"
+
+required:
+  - StoreLayers
+  - TopFList
+  - MiddleFList
+  - BottomFList
+  - Thermocline1List
+  - Thermocline2List
+  - EmptyStoreWh
+  - FullStoreWh
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "StoreLayers": 12,
+      "TopFList": [160, 158, 160],
+      "MiddleFList": [130, 128, 131],
+      "BottomFList": [100, 100, 101],
+      "Thermocline1List": [8, 6, 8],
+      "Thermocline2List": [11, 9, 10],
+      "EmptyStoreWh": 20000,
+      "FullStoreWh": 45000,
+      "TypeName": "flo.tank.store.path",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "StepListLengths"
+      statement: >
+        TopFList, MiddleFList, BottomFList, Thermocline1List and
+        Thermocline2List SHALL have the same length.
+    - number: 2
+      name: "ThermoclinesWithinTheStore"
+      statement: >
+        For every step, Thermocline1List[i] SHALL be at most
+        Thermocline2List[i], and Thermocline2List[i] SHALL be at most
+        StoreLayers.
+    - number: 3
+      name: "EmptyBelowFull"
+      statement: >
+        EmptyStoreWh SHALL be less than FullStoreWh.

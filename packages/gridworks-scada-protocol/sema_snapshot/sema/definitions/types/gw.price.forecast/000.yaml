@@ -1,0 +1,114 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/gw.price.forecast/000"
+
+title: "gw.price.forecast"
+type: object
+description: >
+  A forecast of one MarketMaker's price for one market over a run of
+  slots: for each slot, the price the MarketMaker is expected to publish
+  in its latest.price.
+
+properties:
+  FromGNodeAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      GNode alias of the service that made the forecast.
+
+  MarketMakerAlias:
+    $ref: "https://schemas.electricity.works/formats/left.right.dot"
+    description: >
+      GNode alias of the MarketMaker whose price is forecast.
+
+  ProductName:
+    $ref: "https://schemas.electricity.works/enums/gw.market.product.name/001"
+    description: >
+      The MarketMaker's market product the forecast is for. With
+      MarketMakerAlias and a slot start it gives that slot's
+      MarketSlotName.
+
+  ForecastUid:
+    $ref: "https://schemas.electricity.works/formats/uuid4.str"
+    description: >
+      Identity of this forecast, minted by the forecast service. A reader
+      cites it to name the prices behind a decision.
+
+  CreatedMs:
+    $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+    description: >
+      The forecast service's clock when it built this forecast.
+
+  SlotStartS:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/formats/utc.seconds"
+    description: >
+      The start of each forecast slot.
+
+  PriceUnit:
+    $ref: "https://schemas.electricity.works/enums/market.price.unit/000"
+    description: >
+      Unit in which the unscaled prices are expressed.
+
+  PriceX1000List:
+    type: array
+    items:
+      type: integer
+    description: >
+      The forecast price of each slot, times 1000.
+
+  TypeName:
+    const: "gw.price.forecast"
+
+  Version:
+    const: "000"
+
+required:
+  - FromGNodeAlias
+  - MarketMakerAlias
+  - ProductName
+  - ForecastUid
+  - CreatedMs
+  - SlotStartS
+  - PriceUnit
+  - PriceX1000List
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "FromGNodeAlias": "hw1.price",
+      "MarketMakerAlias": "hw1.isone.me.versant.keene",
+      "ProductName": "rt60gate5",
+      "ForecastUid": "0b6f4c1e-5a3d-4e9b-8f27-6c1d2e3f4a5b",
+      "CreatedMs": 1794420660000,
+      "SlotStartS": [1794423600, 1794427200, 1794430800],
+      "PriceUnit": "USDPerMWh",
+      "PriceX1000List": [628052, 99876, 98806],
+      "TypeName": "gw.price.forecast",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  axioms:
+    - number: 1
+      name: "SlotGrid"
+      statement: >
+        a. SlotStartS SHALL be non-empty.
+        b. SlotStartS SHALL be strictly ascending.
+        c. Every value of SlotStartS SHALL be divisible by 300.
+    - number: 2
+      name: "OnePricePerSlot"
+      statement: >
+        len(PriceX1000List) SHALL equal len(SlotStartS).
+
+  extended_description: >
+    The forecast price is the whole price a bidder in the market faces,
+    the same quantity latest.price reports as PriceX1000, so a
+    forecast and the price that followed compare slot by slot. A market
+    slot starts on a 300-second grid, which is why a slot start is
+    divisible by 300; the slot's length is the product's own.

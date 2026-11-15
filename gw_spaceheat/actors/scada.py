@@ -72,7 +72,7 @@ from gwsproto.enums import (FiveVBossState, HpBossState, LeafAllyBufferOnlyState
 
 from gwsproto.named_types import ( ActuatorsReady,
     AdminDispatch, AdminAnalogDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
-    FloOptimalPath, FloParams, FloRecommendation,
+    FloOptimalPath, FloParams, FloPreviousRun, FloRecommendation,
     FsmEvent, Glitch, GoDormant, CommandInterface, CommandTransition, LayoutLite, NoNewContractWarning,
     ResetHpKeepValue, ScadaControlCapabilities,
     SendControlCapabilities, SendLayout, SetLwtControlParams, SetTargetLwt, SiegLoopEndpointValveAdjustment,
@@ -399,7 +399,7 @@ class Scada(PrimeActor, ScadaInterface):
                     self.process_fsm_full_report(from_node, payload)
                 except Exception as e:
                     self.logger.error(f"problem with process_fsm_full_report: \n {e}")
-            case FloOptimalPath() | FloParams() | FloRecommendation():
+            case FloOptimalPath() | FloParams() | FloPreviousRun() | FloRecommendation():
                 # The LTN's record of its FLO run, addressed to the scada so the
                 # broker journals it; nothing for the scada to do with it.
                 pass
