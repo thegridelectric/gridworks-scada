@@ -237,7 +237,7 @@ initial_targets:
     latest.price:
       versions: ["000"]
     layout.lite:
-      versions: ["013"]
+      versions: ["014"]
     linear.one.dimensional.calibration:
       versions: ["000"]
     machine.states:

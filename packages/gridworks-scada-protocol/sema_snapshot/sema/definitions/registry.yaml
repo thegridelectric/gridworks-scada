@@ -3279,22 +3279,23 @@ types:
             - "uuid4.str"
 
   layout.lite:
-    latest_version: "013"
+    latest_version: "014"
     owner: gridworks-energy
     versioning_strategy: "literal"
     description: "Runtime projection of the active SCADA context used to interpret reports, snapshots, and control-adjacent messages."
 
     versions:
-      "013":
-        schema_url: "https://schemas.electricity.works/types/layout.lite/013"
-        created: "2026-10-22T20:10:00Z"
+      "014":
+        schema_url: "https://schemas.electricity.works/types/layout.lite/014"
+        created: "2026-11-13T17:25:00Z"
         status: "published"
-        summary: "- ShNodes: spaceheat.node.gt:301 -> 303 - DataChannels: data.channel.gt:002 -> 004 - TankModuleComponents, FlowModuleComponents and TMap leave: no consumer reads the pico components or the calibration map off the projection; the hardware layout is their source. - I2cRelayComponent leaves: the relay component is read off the hardware layout, and the projection has no reader for it. - SystemMode and SeasonalStorageMode leave: the posture facts (Standby, StandbyPosture, SeasonalStorageMode, ServiceMode, AcceptsDispatch, DispatchRefusalReason) ride gw.house.operating.status, sent after the startup announcements and on change, so the LTN has one source for them. - Strategy (free manifold-variant string) -> HardwareLayoutTypeName (left.right.dot): the loaded layout word's TypeName is the family; a format, not an enum of layout words, so this word publishes independently of the layout words' status. - BufferShortCycling, Ha1Params and TotalStoreTanks leave: operational parameters are not layout; the LTN gets them from its own settings and its own hardware layout until it holds the ops word, and a layout with no store tanks cannot fill a positive tank count. - MessageCreatedMs -> CreatedMs: the sender-clock name every word takes by default. - StateMachines: one gw.state.machine per machine the running scada hosts (hosting node Name, state enum, enum version), so a report's MachineHandle resolves by its last dotted segment to a declared, versioned enum."
+        summary: "- Tariff: add (gw.tou.tariff 000), the time-of-use tariff the home is billed on, as the running scada's operational params state it; a reader lays its on-peak windows over any time range without a hand-kept copy."
         direct_dependencies:
           structural:
             - "data.channel.gt:004"
             - "derived.channel.gt:003"
             - "gw.state.machine:000"
+            - "gw.tou.tariff:000"
             - "left.right.dot"
             - "spaceheat.node.gt:303"
             - "utc.milliseconds"

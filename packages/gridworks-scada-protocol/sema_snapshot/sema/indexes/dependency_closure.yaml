@@ -1403,8 +1403,9 @@ types:
       types: []
       versionless_types: []
   layout.lite:
-    '013':
+    '014':
       enums:
+      - day.of.week:000
       - gw1.actor.class:014
       - gw1.emission.method:000
       - gw1.quantity:003
@@ -1412,6 +1413,8 @@ types:
       - spaceheat.telemetry.name:007
       formats:
       - handle.name
+      - hh.mm
+      - iana.timezone.str
       - left.right.dot
       - positive.int
       - sema.version
@@ -1423,6 +1426,8 @@ types:
       - data.channel.gt:004
       - derived.channel.gt:003
       - gw.state.machine:000
+      - gw.tou.tariff:000
+      - gw.tou.window:000
       - gw1.unit.quantity.projection:001
       - spaceheat.node.gt:303
       - spaceheat.telemetry.quantity.projection:001

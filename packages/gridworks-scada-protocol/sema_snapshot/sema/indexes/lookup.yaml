@@ -560,10 +560,10 @@ types:
     versions:
       '000': definitions/types/latest.price/000.yaml
   layout.lite:
-    latest_version: '013'
+    latest_version: '014'
     versioning_strategy: literal
     versions:
-      '013': definitions/types/layout.lite/013.yaml
+      '014': definitions/types/layout.lite/014.yaml
   linear.one.dimensional.calibration:
     latest_version: '000'
     versioning_strategy: literal

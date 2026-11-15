@@ -1,6 +1,6 @@
 metadata:
   generated_from: indexes/public_registry.yaml
-  generated_at: '2026-11-14T22:44:50Z'
+  generated_at: '2026-11-15T00:58:31Z'
   note: Transitive closure of initial_targets
 initial_targets:
 - ads.channel.config:000
@@ -107,7 +107,7 @@ initial_targets:
 - i2c.write.byte:000
 - i2c.write.reg:000
 - latest.price:000
-- layout.lite:013
+- layout.lite:014
 - linear.one.dimensional.calibration:000
 - machine.states:000
 - maker.api.attribute.gt:001
@@ -865,8 +865,8 @@ worklist:
       '000':
         path: definitions/types/latest.price/000.yaml
     layout.lite:
-      '013':
-        path: definitions/types/layout.lite/013.yaml
+      '014':
+        path: definitions/types/layout.lite/014.yaml
     linear.one.dimensional.calibration:
       '000':
         path: definitions/types/linear.one.dimensional.calibration/000.yaml
