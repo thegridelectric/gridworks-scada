@@ -39,7 +39,7 @@ types:
       - gw.house0.layout:000
       - gw.house0.no.sieg:000
       - gw.nolan.layout:000
-      - layout.lite:013
+      - layout.lite:014
       - scada.control.capabilities:003
   derived.channel.gt:
     '003':
@@ -47,7 +47,7 @@ types:
       - gw.house0.layout:000
       - gw.house0.no.sieg:000
       - gw.nolan.layout:000
-      - layout.lite:013
+      - layout.lite:014
   device.component.gt:
     '000':
       used_by:
@@ -179,11 +179,12 @@ types:
   gw.state.machine:
     '000':
       used_by:
-      - layout.lite:013
+      - layout.lite:014
   gw.tou.tariff:
     '000':
       used_by:
       - gw.operational.params:000
+      - layout.lite:014
   gw.tou.window:
     '000':
       used_by:
@@ -361,6 +362,10 @@ types:
       - gw.house0.layout:000
       - gw.house0.no.sieg:000
       - gw.nolan.layout:000
+  price.component:
+    '000':
+      used_by:
+      - latest.price:001
   price.quantity.unitless:
     '001':
       used_by:
@@ -425,7 +430,7 @@ types:
       - gw.house0.layout:000
       - gw.house0.no.sieg:000
       - gw.nolan.layout:000
-      - layout.lite:013
+      - layout.lite:014
       - new.command.tree:003
       - scada.control.capabilities:003
   spaceheat.telemetry.quantity.projection:
@@ -644,7 +649,7 @@ enums:
       - flo.previous.run:000
       - flo.recommendation:001
       - gw.price.forecast:000
-      - latest.price:000
+      - latest.price:001
   market.quantity.unit:
     '000':
       used_by:
@@ -663,6 +668,11 @@ enums:
     '000':
       used_by:
       - gw.command.interface:001
+  price.component.name:
+    '000':
+      used_by:
+      - latest.price:001
+      - price.component:000
   reboot.picos:
     '000':
       used_by:
@@ -797,8 +807,8 @@ formats:
     - gw.weather.forecast:002
     - gw.weather.seasonal.template.gt:000
     - heating.forecast:000
-    - latest.price:000
-    - layout.lite:013
+    - latest.price:001
+    - layout.lite:014
     - machine.states:000
     - new.command.tree:003
     - relay.control.config:000
@@ -823,7 +833,7 @@ formats:
   market.slot.name:
     used_by:
     - bid:000
-    - latest.price:000
+    - latest.price:001
   non.empty.string:
     used_by:
     - flo.recommendation:001
@@ -1036,7 +1046,8 @@ formats:
     - gw.scada.commit:000
     - gw.weather.forecast:002
     - i2c.result:001
-    - layout.lite:013
+    - latest.price:001
+    - layout.lite:014
     - machine.states:000
     - new.command.tree:003
     - report.event:004
@@ -1105,8 +1116,8 @@ formats:
     - i2c.write.bit:000
     - i2c.write.byte:000
     - i2c.write.reg:000
-    - latest.price:000
-    - layout.lite:013
+    - latest.price:001
+    - layout.lite:014
     - pico.btu.meter.component.gt:000
     - pico.flow.module.component.gt:001
     - pico.tank.module.component.gt:012

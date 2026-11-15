@@ -2229,6 +2229,7 @@ class Scada(PrimeActor, ScadaInterface):
             DataChannels=[ch.to_gt() for ch in self.layout.data_channels.values()],
             DerivedChannels=[ch.to_gt() for ch in self.layout.derived_channels.values()],
             StateMachines=declared_state_machines(self.layout, self.ops),
+            Tariff=self.ops.Tariff,
             CreatedMs=int(time.time() * 1000),
             MessageId=str(uuid.uuid4()),
         )

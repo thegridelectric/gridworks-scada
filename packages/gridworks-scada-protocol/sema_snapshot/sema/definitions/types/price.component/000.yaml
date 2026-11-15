@@ -1,0 +1,47 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/price.component/000"
+
+title: "price.component"
+type: object
+description: >
+  One named part of one market price: the amount of the price owed to one
+  cause. The word that holds it declares the unit.
+
+properties:
+  Name:
+    $ref: "https://schemas.electricity.works/enums/price.component.name/000"
+    description: >
+      Which part of the price this amount is.
+
+  PriceX1000:
+    type: integer
+    description: >
+      The amount of this part, as an integer equal to the amount in the
+      holding word's PriceUnit multiplied by 1000. It is negative when the
+      part lowers the price.
+
+  TypeName:
+    const: "price.component"
+
+  Version:
+    const: "000"
+
+required:
+  - Name
+  - PriceX1000
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "Name": "WholesaleCongestion",
+      "PriceX1000": -12340,
+      "TypeName": "price.component",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"

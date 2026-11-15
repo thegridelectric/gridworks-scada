@@ -1,6 +1,6 @@
 metadata:
   generated_from: indexes/public_registry.yaml
-  generated_at: '2026-11-14T22:44:50Z'
+  generated_at: '2026-11-15T02:19:48Z'
   note: Transitive closure of initial_targets
 initial_targets:
 - ads.channel.config:000
@@ -106,8 +106,8 @@ initial_targets:
 - i2c.write.bit:000
 - i2c.write.byte:000
 - i2c.write.reg:000
-- latest.price:000
-- layout.lite:013
+- latest.price:001
+- layout.lite:014
 - linear.one.dimensional.calibration:000
 - machine.states:000
 - maker.api.attribute.gt:001
@@ -455,6 +455,9 @@ worklist:
     pico.cycler.state:
       '000':
         path: definitions/enums/pico.cycler.state/000.yaml
+    price.component.name:
+      '000':
+        path: definitions/enums/price.component.name/000.yaml
     primary.pump.control:
       '000':
         path: definitions/enums/primary.pump.control/000.yaml
@@ -862,11 +865,11 @@ worklist:
       '000':
         path: definitions/types/i2c.write.reg/000.yaml
     latest.price:
-      '000':
-        path: definitions/types/latest.price/000.yaml
+      '001':
+        path: definitions/types/latest.price/001.yaml
     layout.lite:
-      '013':
-        path: definitions/types/layout.lite/013.yaml
+      '014':
+        path: definitions/types/layout.lite/014.yaml
     linear.one.dimensional.calibration:
       '000':
         path: definitions/types/linear.one.dimensional.calibration/000.yaml
@@ -891,6 +894,9 @@ worklist:
     power.watts:
       '000':
         path: definitions/types/power.watts/000.yaml
+    price.component:
+      '000':
+        path: definitions/types/price.component/000.yaml
     price.quantity.unitless:
       '001':
         path: definitions/types/price.quantity.unitless/001.yaml

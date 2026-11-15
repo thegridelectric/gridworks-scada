@@ -846,6 +846,18 @@ enums:
         created: "2026-09-07T23:30:00Z"
         status: "published"
 
+  price.component.name:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "The named parts a market price divides into; the parts sum to the price."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/price.component.name/000"
+        created: "2026-11-11T20:25:00Z"
+        status: "published"
+
   primary.pump.control:
     owner: gridworks-energy
     enum_type: "literal"
@@ -3260,41 +3272,46 @@ types:
             - "uuid4.str"
 
   latest.price:
-    latest_version: "000"
+    latest_version: "001"
     owner: gridworks-energy
     versioning_strategy: "literal"
     description: "The price of one market slot, published by the MarketMaker that runs the slot's market."
 
     versions:
-      "000":
-        schema_url: "https://schemas.electricity.works/types/latest.price/000"
-        created: "2026-05-13T00:00:00Z"
+      "001":
+        schema_url: "https://schemas.electricity.works/types/latest.price/001"
+        created: "2026-11-13T13:40:00Z"
         status: "published"
-        summary: "Initial Sema version"
+        summary: "- PriceTimes1000: renamed PriceX1000 - Components: add, assigned as one Unknown component with the whole price - TariffAlias: add (optional) - CreatedMs: add (optional)"
         direct_dependencies:
           structural:
             - "left.right.dot"
             - "market.price.unit:000"
             - "market.slot.name"
+            - "price.component:000"
+            - "utc.milliseconds"
             - "uuid4.str"
+          axiom:
+            - "price.component.name:000"
 
   layout.lite:
-    latest_version: "013"
+    latest_version: "014"
     owner: gridworks-energy
     versioning_strategy: "literal"
     description: "Runtime projection of the active SCADA context used to interpret reports, snapshots, and control-adjacent messages."
 
     versions:
-      "013":
-        schema_url: "https://schemas.electricity.works/types/layout.lite/013"
-        created: "2026-10-22T20:10:00Z"
+      "014":
+        schema_url: "https://schemas.electricity.works/types/layout.lite/014"
+        created: "2026-11-13T17:25:00Z"
         status: "published"
-        summary: "- ShNodes: spaceheat.node.gt:301 -> 303 - DataChannels: data.channel.gt:002 -> 004 - TankModuleComponents, FlowModuleComponents and TMap leave: no consumer reads the pico components or the calibration map off the projection; the hardware layout is their source. - I2cRelayComponent leaves: the relay component is read off the hardware layout, and the projection has no reader for it. - SystemMode and SeasonalStorageMode leave: the posture facts (Standby, StandbyPosture, SeasonalStorageMode, ServiceMode, AcceptsDispatch, DispatchRefusalReason) ride gw.house.operating.status, sent after the startup announcements and on change, so the LTN has one source for them. - Strategy (free manifold-variant string) -> HardwareLayoutTypeName (left.right.dot): the loaded layout word's TypeName is the family; a format, not an enum of layout words, so this word publishes independently of the layout words' status. - BufferShortCycling, Ha1Params and TotalStoreTanks leave: operational parameters are not layout; the LTN gets them from its own settings and its own hardware layout until it holds the ops word, and a layout with no store tanks cannot fill a positive tank count. - MessageCreatedMs -> CreatedMs: the sender-clock name every word takes by default. - StateMachines: one gw.state.machine per machine the running scada hosts (hosting node Name, state enum, enum version), so a report's MachineHandle resolves by its last dotted segment to a declared, versioned enum."
+        summary: "- Tariff: add (gw.tou.tariff 000), the time-of-use tariff the home is billed on, as the running scada's operational params state it; a reader lays its on-peak windows over any time range without a hand-kept copy."
         direct_dependencies:
           structural:
             - "data.channel.gt:004"
             - "derived.channel.gt:003"
             - "gw.state.machine:000"
+            - "gw.tou.tariff:000"
             - "left.right.dot"
             - "spaceheat.node.gt:303"
             - "utc.milliseconds"
@@ -3451,6 +3468,22 @@ types:
         summary: "Initial Sema version"
         direct_dependencies:
           structural: []
+
+  price.component:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "One named part of one market price: a price.component.name and its amount as an integer times 1000."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/price.component/000"
+        created: "2026-11-13T13:40:00Z"
+        status: "published"
+        summary: "Initial version."
+        direct_dependencies:
+          structural:
+            - "price.component.name:000"
 
   price.quantity.unitless:
     latest_version: "001"

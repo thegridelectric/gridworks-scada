@@ -1,7 +1,43 @@
-"""The LTN reads the store's tank count off the layout; layout.lite carries
-none of the operational parameters."""
+"""The LTN reads the store's tank count off the layout.lite it receives."""
 from gwsproto.data_classes.layout_lite_dc import LayoutLiteDc
-from gwsproto.named_types import LayoutLite
+from gwsproto.named_types import LayoutLite, TouTariff
+
+
+TARIFF = {
+    "TypeName": "gw.tou.tariff",
+    "Version": "000",
+    "Alias": "versant.a1.home.eco.bonus",
+    "DisplayName": "Home Eco Rate with Bonus Meter",
+    "TimezoneStr": "America/New_York",
+    "OnPeakWindows": [
+        {
+            "TypeName": "gw.tou.window",
+            "Version": "000",
+            "Start": "07:00",
+            "End": "12:00",
+            "Days": [
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday"
+            ]
+        },
+        {
+            "TypeName": "gw.tou.window",
+            "Version": "000",
+            "Start": "16:00",
+            "End": "20:00",
+            "Days": [
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday"
+            ]
+        }
+    ]
+}
 
 
 def node(name: str, actor_class: str) -> dict:
@@ -32,6 +68,7 @@ def test_layout_lite_dc_counts_store_tanks_from_sh_nodes() -> None:
         DataChannels=[],
         DerivedChannels=[],
         StateMachines=[],
+        Tariff=TouTariff.model_validate(TARIFF),
     )
     assert LayoutLiteDc(gt).total_store_tanks == 2
     assert LayoutLiteDc(gt.model_copy(update={"ShNodes": [gt.ShNodes[0]]})).total_store_tanks == 0

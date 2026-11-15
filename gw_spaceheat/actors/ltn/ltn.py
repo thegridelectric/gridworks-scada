@@ -834,10 +834,10 @@ class Ltn(PrimeActor):
 
         pq_pairs = self.contract_handler.latest_bid.PqPairs
         self.log(f"Sorted pq pairs: {sorted((x.PriceX1000, x.QuantityX1000) for x in pq_pairs)} (x1000)")
-        self.log(f"Payload price: {payload.PriceTimes1000} (x1000)")
+        self.log(f"Payload price: {payload.PriceX1000} (x1000)")
         # Quantity is AvgkW, so QuantityX1000 is avg_w
         assert self.contract_handler.latest_bid.QuantityUnit == MarketQuantityUnit.AvgkW
-        cleared = cleared_pair_index(pq_pairs, payload.PriceTimes1000)
+        cleared = cleared_pair_index(pq_pairs, payload.PriceX1000)
         avg_w = pq_pairs[cleared].QuantityX1000
         self.log(f"Decided on quantity: {avg_w} WattHours")
         self.keep_cleared_path(cleared)

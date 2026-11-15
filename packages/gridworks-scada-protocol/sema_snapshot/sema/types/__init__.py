@@ -126,6 +126,7 @@ from sema_snapshot.sema.types.pico_tank_module_component_gt import (
     PicoTankModuleComponentGt,
 )
 from sema_snapshot.sema.types.power_watts import PowerWatts
+from sema_snapshot.sema.types.price_component import PriceComponent
 from sema_snapshot.sema.types.price_forecast import PriceForecast
 from sema_snapshot.sema.types.price_quantity_unitless import PriceQuantityUnitless
 from sema_snapshot.sema.types.recorded_setpoints import RecordedSetpoints
@@ -292,6 +293,7 @@ __all__ = [
     "PicoFlowModuleComponentGt",
     "PicoTankModuleComponentGt",
     "PowerWatts",
+    "PriceComponent",
     "PriceForecast",
     "PriceQuantityUnitless",
     "RecordedSetpoints",

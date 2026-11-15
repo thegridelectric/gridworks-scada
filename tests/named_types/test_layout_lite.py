@@ -65,9 +65,44 @@ def layout_lite_dict() -> dict:
                 "Version": "004",
             }
         ],
-            "TypeName": "layout.lite",
-            "Version": "013",
-        }
+        "Tariff": {
+            "TypeName": "gw.tou.tariff",
+            "Version": "000",
+            "Alias": "versant.a1.home.eco.bonus",
+            "DisplayName": "Home Eco Rate with Bonus Meter",
+            "TimezoneStr": "America/New_York",
+            "OnPeakWindows": [
+                {
+                    "TypeName": "gw.tou.window",
+                    "Version": "000",
+                    "Start": "07:00",
+                    "End": "12:00",
+                    "Days": [
+                        "Monday",
+                        "Tuesday",
+                        "Wednesday",
+                        "Thursday",
+                        "Friday"
+                    ]
+                },
+                {
+                    "TypeName": "gw.tou.window",
+                    "Version": "000",
+                    "Start": "16:00",
+                    "End": "20:00",
+                    "Days": [
+                        "Monday",
+                        "Tuesday",
+                        "Wednesday",
+                        "Thursday",
+                        "Friday"
+                    ]
+                }
+            ]
+        },
+        "TypeName": "layout.lite",
+        "Version": "014",
+    }
 
 
 
@@ -98,3 +133,43 @@ def test_layout_lite_axiom_5_two_machines_on_one_node() -> None:
     d = layout_lite_dict()
     d["StateMachines"] = [machine("s"), machine("s")]
     assert_refused(LayoutLite, d, match="Axiom 5")
+
+
+def test_layout_lite_axiom_1_about_node_unknown() -> None:
+    d = layout_lite_dict()
+    d["DataChannels"][0]["AboutNodeName"] = "buffer"
+    assert_refused(LayoutLite, d, match="Axiom 1")
+
+
+def test_layout_lite_axiom_2_boss_missing() -> None:
+    d = layout_lite_dict()
+    d["ShNodes"][2]["Handle"] = "auto.hp-boss.hp-idu"
+    assert_refused(LayoutLite, d, match="Axiom 2")
+
+
+def test_layout_lite_axiom_3_critical_zone_not_a_zone() -> None:
+    d = layout_lite_dict()
+    d["CriticalZoneList"] = ["Attic"]
+    assert_refused(LayoutLite, d, match="Axiom 3")
+
+
+def test_layout_lite_axiom_4_created_by_node_unknown() -> None:
+    d = layout_lite_dict()
+    d["DerivedChannels"] = [
+        {
+            "Id": "9b1f1a3e-6c0e-4d9a-9f4e-2a1b3c4d5e6f",
+            "Name": "hp-idu-pwr-avg",
+            "CreatedByNodeName": "derived-maker",
+            "Strategy": "average",
+            "InputChannelNames": ["hp-idu-pwr"],
+            "OutputUnit": "Watts",
+            "OutputQuantity": "Power",
+            "EmissionMethod": "Periodic",
+            "EmitPeriodS": 60,
+            "DisplayName": "Hp IDU power, averaged",
+            "TerminalAssetAlias": "hw1.isone.me.versant.keene.beech.ta",
+            "TypeName": "derived.channel.gt",
+            "Version": "003",
+        }
+    ]
+    assert_refused(LayoutLite, d, match="Axiom 4")

@@ -1,5 +1,5 @@
 $schema: "https://json-schema.org/draft/2020-12/schema"
-$id: "https://schemas.electricity.works/types/layout.lite/013"
+$id: "https://schemas.electricity.works/types/layout.lite/014"
 
 title: "layout.lite"
 type: object
@@ -83,11 +83,17 @@ properties:
       MachineHandle resolves to the entry whose NodeName is the handle's last
       dotted segment.
 
+  Tariff:
+    $ref: "https://schemas.electricity.works/types/gw.tou.tariff/000"
+    description: >
+      The time-of-use tariff the home is billed on, as the running scada's
+      operational params state it.
+
   TypeName:
     const: "layout.lite"
 
   Version:
-    const: "013"
+    const: "014"
 
 required:
   - FromGNodeAlias
@@ -100,6 +106,7 @@ required:
   - DataChannels
   - DerivedChannels
   - StateMachines
+  - Tariff
   - TypeName
   - Version
 
@@ -120,8 +127,19 @@ examples:
       "DataChannels": [],
       "DerivedChannels": [],
       "StateMachines": [],
+      "Tariff": {
+        "Alias": "versant.a1.home.eco.bonus",
+        "DisplayName": "Home Eco Rate with Bonus Meter",
+        "TimezoneStr": "America/New_York",
+        "OnPeakWindows": [
+          {"Start": "07:00", "End": "12:00", "Days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], "TypeName": "gw.tou.window", "Version": "000"},
+          {"Start": "16:00", "End": "20:00", "Days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], "TypeName": "gw.tou.window", "Version": "000"}
+        ],
+        "TypeName": "gw.tou.tariff",
+        "Version": "000"
+      },
       "TypeName": "layout.lite",
-      "Version": "013"
+      "Version": "014"
     }
 
 x-gridworks:
