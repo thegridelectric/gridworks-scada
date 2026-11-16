@@ -14,7 +14,7 @@ import pytest
 from paho.mqtt import publish
 
 from actors.ltn.market import latest_price_topic, market_slot_name
-from gwsproto.enums import MarketPriceUnit, PriceComponentName
+from gwsproto.enums import MarketPriceUnit, PriceComponentName, PriceStage
 from gwsproto.named_types import LatestPrice, PriceComponent
 from tests.utils.scada_live_test_helper import ScadaLiveTest
 
@@ -34,6 +34,7 @@ async def test_ltn_hears_latest_price_on_rjb(request: pytest.FixtureRequest) -> 
             PriceX1000=123456,
             PriceUnit=MarketPriceUnit.USDPerMWh,
             MarketSlotName=market_slot_name(ltn.ops, slot_start_s),
+            PriceStage=PriceStage.Final,
             Components=[
                 PriceComponent(Name=PriceComponentName.WholesaleEnergy, PriceX1000=64900),
                 PriceComponent(Name=PriceComponentName.Delivery, PriceX1000=58556),

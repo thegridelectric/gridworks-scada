@@ -84,6 +84,11 @@ types:
     versioning_strategy: literal
     versions:
       '000': definitions/types/dfr.config/000.yaml
+  dispatch.terms.first.isone.hack:
+    latest_version: '000'
+    versioning_strategy: literal
+    versions:
+      '000': definitions/types/dispatch.terms.first.isone.hack/000.yaml
   egauge.register.config:
     latest_version: '000'
     versioning_strategy: literal
@@ -555,10 +560,10 @@ types:
     versions:
       '000': definitions/types/i2c.write.reg/000.yaml
   latest.price:
-    latest_version: '001'
+    latest_version: '002'
     versioning_strategy: literal
     versions:
-      '001': definitions/types/latest.price/001.yaml
+      '002': definitions/types/latest.price/002.yaml
   layout.lite:
     latest_version: '014'
     versioning_strategy: literal
@@ -685,20 +690,20 @@ types:
     versions:
       '000': definitions/types/single.reading/000.yaml
   slow.contract.heartbeat:
-    latest_version: '002'
+    latest_version: '003'
     versioning_strategy: literal
     versions:
-      '002': definitions/types/slow.contract.heartbeat/002.yaml
+      '003': definitions/types/slow.contract.heartbeat/003.yaml
   slow.contract.rejection:
     latest_version: '000'
     versioning_strategy: literal
     versions:
       '000': definitions/types/slow.contract.rejection/000.yaml
   slow.dispatch.contract:
-    latest_version: '000'
+    latest_version: '001'
     versioning_strategy: literal
     versions:
-      '000': definitions/types/slow.dispatch.contract/000.yaml
+      '001': definitions/types/slow.dispatch.contract/001.yaml
   snapshot.spaceheat:
     latest_version: '003'
     versioning_strategy: literal
@@ -948,9 +953,9 @@ enums:
       '000': definitions/enums/gw1.sim.device.type/000.yaml
   gw1.slow.dispatch.contract.status:
     enum_type: versioned
-    latest_version: '000'
+    latest_version: '001'
     versions:
-      '000': definitions/enums/gw1.slow.dispatch.contract.status/000.yaml
+      '001': definitions/enums/gw1.slow.dispatch.contract.status/001.yaml
   gw1.unit:
     enum_type: versioned
     latest_version: '003'
@@ -1048,6 +1053,11 @@ enums:
     latest_version: '000'
     versions:
       '000': definitions/enums/price.component.name/000.yaml
+  price.stage:
+    enum_type: versioned
+    latest_version: '000'
+    versions:
+      '000': definitions/enums/price.stage/000.yaml
   primary.pump.control:
     enum_type: literal
     schema: definitions/enums/primary.pump.control/000.yaml

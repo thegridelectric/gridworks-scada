@@ -13,10 +13,9 @@ from gwproto import Message
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwproactor.logger import LoggerOrAdapter
-from gwsproto.enums import MarketPriceUnit
 from gwsproto.enums import SlowDispatchContractStatus
 from gwsproto.named_types import ( 
-    Bid, LatestPrice, SlowContractHeartbeat, SlowContractRejection, SlowDispatchContract, 
+    Bid, DispatchTermsFirstIsoneHack, LatestPrice, SlowContractHeartbeat, SlowContractRejection, SlowDispatchContract, 
 )
 from gwsproto.names.core.node_names import CoreNodeNames
 
@@ -37,7 +36,8 @@ class LtnContractHandler:
         SlowDispatchContractStatus.Created,
         SlowDispatchContractStatus.Received,
         SlowDispatchContractStatus.Confirmed,
-        SlowDispatchContractStatus.Active
+        SlowDispatchContractStatus.Active,
+        SlowDispatchContractStatus.Amended,
     ]
     HEARTBEAT_INTERVAL_SECONDS = 60  # Send heartbeats once per minute
     LOGGER_NAME = "LtnContractHandler" 
@@ -67,6 +67,14 @@ class LtnContractHandler:
         self.latest_hb: Optional[SlowContractHeartbeat] = None # Current active hb, None means no active contract
         self.latest_price: Optional[LatestPrice] = None
         self.latest_bid: Optional[Bid] = None
+        # The terms every contract is offered under. The market's terms in
+        # force are the MarketMaker's to state (market.terms); until the LTN
+        # reads that word, these are the one agreement it knows.
+        self.dispatch_terms = DispatchTermsFirstIsoneHack()
+        self.hp_is_off: bool = True  # as the LTN last saw the heat pump's relay
+        self.provisional_wh: Optional[int] = None  # the bid's reading at the Provisional
+        self.final_received: bool = False
+        self.amended: bool = False
 
     def load_heartbeat(self) -> Optional[SlowContractHeartbeat]:
         """Loads existing SlowContractHeartbeat from persistent storage
@@ -104,8 +112,8 @@ class LtnContractHandler:
                 self.logger.info(f"Loaded active contract: {self.formatted_contract(hb)}")
                 self.energy_updated_s = hb.MessageCreatedMs / 1000
                 if hb.FromNode == self.node.name:
-                    if hb.Status != SlowDispatchContractStatus.Created:
-                        raise Exception("Only save ltn heartbeats with status Created!")
+                    if hb.Status not in (SlowDispatchContractStatus.Created, SlowDispatchContractStatus.Amended):
+                        raise Exception("Only save ltn heartbeats with status Created or Amended!")
                     self.energy_used_wh = 0
                     self.latest_hb = hb
                     return hb
@@ -131,7 +139,8 @@ class LtnContractHandler:
             raise Exception("Can't store hb if latest_hb is none!")
         
         if hb_to_store.FromNode == self.node.name:
-            if hb_to_store.Status not in [SlowDispatchContractStatus.Created, 
+            if hb_to_store.Status not in [SlowDispatchContractStatus.Created,
+                                   SlowDispatchContractStatus.Amended,
                                    SlowDispatchContractStatus.TerminatedByLtn,
                                    SlowDispatchContractStatus.CompletedUnknownOutcome]:
                 raise Exception(f"Does not store ltn hb with status {hb_to_store.Status}")
@@ -204,7 +213,7 @@ class LtnContractHandler:
         """
         if self.next_contract_energy_wh is None:
             raise Exception("next_contract_energy_wh should not be None!")
-        watthours = self.next_contract_energy_wh
+        reading_wh = self.next_contract_energy_wh
         self.next_contract_energy_wh = None
 
         now = time.time()
@@ -225,13 +234,20 @@ class LtnContractHandler:
         if self.latest_hb:
             raise Exception("Cannot create new contract while one is active")
             
-        # Create contract starting at the next 5-minute boundary
+        # Create contract starting at the top of this hour
         now = time.time()
         start_s = int(now - (now % 3600))
 
-        oil_boiler_on = False
-        if watthours > 0 and self.use_oil_as_fuel_substitute():
-            oil_boiler_on = True
+        # The price is Provisional: the offer may take the house toward less
+        # consumption, and a turn-on waits for the Final (or the deadline).
+        self.provisional_wh = reading_wh
+        self.final_received = False
+        self.amended = False
+        watthours = reading_wh
+        if watthours > 0 and self.hp_is_off:
+            self.logger.info(
+                f"Heat pump off at the Provisional: offering 0 W, {watthours} Wh waits for the Final"
+            )
             watthours = 0
 
         duration_minutes=60
@@ -241,8 +257,8 @@ class LtnContractHandler:
             StartS=start_s,
             DurationMinutes=duration_minutes,
             AvgPowerWatts=avg_power_watts,
-            OilBoilerOn=oil_boiler_on,
             ContractId=str(uuid.uuid4()),
+            DispatchTerms=self.dispatch_terms.TypeName,
         )
         
         # Create initial heartbeat
@@ -269,6 +285,60 @@ class LtnContractHandler:
                 )
             )
 
+    def settle_at_final(self, reading_wh: int) -> None:
+        """The Final price for the slot of the contract held: amend the
+        contract to the bid's reading at it where that differs from the
+        offer."""
+        self.final_received = True
+        self.amend_to(reading_wh, cause=f"Final price: {reading_wh} Wh")
+
+    def final_deadline_passed(self) -> None:
+        """FinalDeadlineS after the slot opened with no Final: the
+        Provisional is the Final, and the contract is amended to the bid's
+        reading at it where the offer held back."""
+        if self.final_received or self.provisional_wh is None:
+            return
+        self.amend_to(
+            self.provisional_wh,
+            cause=f"No Final within {self.dispatch_terms.FinalDeadlineS} s: the Provisional is the Final",
+        )
+
+    def amend_to(self, reading_wh: int, cause: str) -> None:
+        """The one amendment of the contract held: a heartbeat with the same
+        ContractId, the new body and Status Amended, sent to the scada."""
+        if self.latest_hb is None or self.latest_hb.Status in self.DONE_STATES:
+            self.logger.info(f"No contract to amend ({cause})")
+            return
+        held = self.latest_hb.Contract
+        avg_power_watts = int(reading_wh * (60 / held.DurationMinutes))
+        if avg_power_watts == held.AvgPowerWatts:
+            self.logger.info(f"Contract stands at {held.AvgPowerWatts} W ({cause})")
+            return
+        if self.amended:
+            self.logger.warning(
+                f"Not amending again to {avg_power_watts} W: {self.dispatch_terms.TypeName} "
+                f"allows {self.dispatch_terms.AmendmentsAllowed} ({cause})"
+            )
+            return
+        contract = held.model_copy(update={"AvgPowerWatts": avg_power_watts})
+        hb = SlowContractHeartbeat(
+            FromNode=self.node.name,
+            Contract=contract,
+            PreviousStatus=self.latest_hb.Status,
+            Status=SlowDispatchContractStatus.Amended,
+            Cause=cause,
+            MessageCreatedMs=int(time.time() * 1000),
+            MyDigit=random.choice(range(10)),
+            YourLastDigit=self.latest_hb.MyDigit,
+        )
+        self.amended = True
+        self.latest_hb = hb
+        self.store_heartbeat()
+        self.logger.info(f"Amended contract! {self.formatted_contract(hb)}")
+        self.send_threadsafe(
+            Message(Src=self.node.name, Dst=CoreNodeNames.primary_scada, Payload=hb)
+        )
+
     def is_onpeak(self) -> bool:
         time_now = datetime.now(self.timezone)
         time_in_2min = time_now + timedelta(minutes=2)
@@ -277,22 +347,6 @@ class LtnContractHandler:
             return True
         else:
             return False
-
-    def use_oil_as_fuel_substitute(self) -> bool:
-        if not self.is_onpeak():
-            return False
-        if self.latest_price is None:
-            return False
-        if self.latest_price.PriceUnit != MarketPriceUnit.USDPerMWh:
-            raise Exception(f"Stop being so parochial and assuming {MarketPriceUnit.USDPerMWh}")
-        price_usd_per_mwh = self.latest_price.PriceX1000 / 1000
-        self.logger.info(f"Latest price is ${price_usd_per_mwh}/MWh. Fuel sub threshold ${self.settings.fuel_sub_usd_per_mwh}/MWh")
-        if price_usd_per_mwh > self.settings.fuel_sub_usd_per_mwh and self.settings.fuel_substitution:
-            return True
-        elif not self.settings.fuel_substitution:
-            self.logger.info("fuel_substation variable set to False! ")
-            return False
-        return False
 
     async def contract_heartbeat_task(self):
         """Task that sends regular heartbeats while a contract is active"""
@@ -305,7 +359,7 @@ class LtnContractHandler:
         while not self._stop_requested:
             try:
                 # Only send heartbeats if we have an active contract              
-                if self.latest_hb and self.latest_hb.Status in [SlowDispatchContractStatus.Created, SlowDispatchContractStatus.Received, SlowDispatchContractStatus.Active]:
+                if self.latest_hb and self.latest_hb.Status in self.ACTIVE_STATES:
                         # Check if contract has expired
                         if time.time() > self.latest_hb.Contract.contract_end_s():
                             # Contract expired - initiate completion
@@ -402,9 +456,9 @@ class LtnContractHandler:
             raise Exception("Should not call this if latest_hb is None!")
         if time.time() > self.latest_hb.Contract.contract_end_s():
             raise Exception("Don't call this for an expired contract!")
-        if self.latest_hb.Status == SlowDispatchContractStatus.Created:
-            return self.latest_hb # haven't gotten the Received ack yet
-        elif self.latest_hb.Status in [SlowDispatchContractStatus.Received, SlowDispatchContractStatus.Active]:
+        if self.latest_hb.Status in (SlowDispatchContractStatus.Created, SlowDispatchContractStatus.Amended):
+            return self.latest_hb # haven't gotten the scada's ack yet
+        elif self.latest_hb.Status in [SlowDispatchContractStatus.Received, SlowDispatchContractStatus.Confirmed, SlowDispatchContractStatus.Active]:
                 return SlowContractHeartbeat(
                     FromNode=self.node.name,
                     Contract=self.latest_hb.Contract,

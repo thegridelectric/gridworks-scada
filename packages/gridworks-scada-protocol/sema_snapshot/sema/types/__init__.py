@@ -22,6 +22,9 @@ from sema_snapshot.sema.types.dfr_config import DfrConfig
 from sema_snapshot.sema.types.dispatch_ack import DispatchAck
 from sema_snapshot.sema.types.dispatch_hold import DispatchHold
 from sema_snapshot.sema.types.dispatch_nack import DispatchNack
+from sema_snapshot.sema.types.dispatch_terms_first_isone_hack import (
+    DispatchTermsFirstIsoneHack,
+)
 from sema_snapshot.sema.types.egauge_register_config import EgaugeRegisterConfig
 from sema_snapshot.sema.types.electric_meter_channel_config import (
     ElectricMeterChannelConfig,
@@ -217,6 +220,7 @@ __all__ = [
     "DispatchAck",
     "DispatchHold",
     "DispatchNack",
+    "DispatchTermsFirstIsoneHack",
     "EgaugeRegisterConfig",
     "ElectricMeterChannelConfig",
     "ElectricMeterComponentGt",

@@ -48,7 +48,7 @@ from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
     LogLevel,
-    MarketPriceUnit, MarketQuantityUnit, Quantity,
+    MarketPriceUnit, MarketQuantityUnit, PriceStage, Quantity,
     TelemetryName, RelayClosedOrOpen, SeasonalStorageMode,
     SlowDispatchContractStatus, ServiceMode
 )
@@ -198,6 +198,7 @@ class Ltn(PrimeActor):
         self.flo_horizon_hours = self.settings.flo_horizon_hours
         self.flo_params: FloParams | None = None
         self.hp_is_off = False
+        self.final_deadline_task: asyncio.Task | None = None
         self.weather_forecast: Optional[ForecastPair] = None
         self.price_forecast: Optional[PriceForecast] = None
         self.data_channels: List
@@ -783,6 +784,8 @@ class Ltn(PrimeActor):
 
     def stop(self) -> None:
         self._stop_requested = True
+        if self.final_deadline_task is not None:
+            self.final_deadline_task.cancel()
         super().stop()
 
     def latest_contract_is_live(self) -> bool:
@@ -801,8 +804,12 @@ class Ltn(PrimeActor):
             return False
 
     def process_latest_price(self, payload: LatestPrice) -> None:
+        """The maker's price for the slot, at either stage. The bid curve is
+        read at it; the Provisional opens the hour's contract (toward less
+        consumption only) and the Final settles it, by one amendment where
+        the reading differs from the offer."""
         self.contract_handler.latest_price = payload
-        self.log("Received latest price")
+        self.log(f"Received latest price, stage {payload.PriceStage.value}")
         if self.contract_handler.latest_bid is None:
             self.log("Ignoring - no bid exists")
             return
@@ -822,15 +829,6 @@ class Ltn(PrimeActor):
                 Message(Src=self.name, Dst=self.name, Payload=glitch))
             self.log("Sent glitch for invalid bid timeframe and set latest bid to None")
             return
-        
-        if (
-            datetime.now(self.timezone).minute != 0
-            and datetime.now(self.timezone).second <= 5
-        ):
-            self.log(
-                "The latest price was not received within the first 5 seconds of the hour. Abort."
-            )
-            return
 
         pq_pairs = self.contract_handler.latest_bid.PqPairs
         self.log(f"Sorted pq pairs: {sorted((x.PriceX1000, x.QuantityX1000) for x in pq_pairs)} (x1000)")
@@ -843,16 +841,41 @@ class Ltn(PrimeActor):
         self.keep_cleared_path(cleared)
 
         # 1 hour
-        self.contract_handler.next_contract_energy_wh = avg_w * 1
-        if self.contract_handler.next_contract_energy_wh < 1000:
-            self.contract_handler.next_contract_energy_wh = 0
+        reading_wh = avg_w * 1
+        if reading_wh < 1000:
+            reading_wh = 0
 
+        if payload.PriceStage == PriceStage.Final:
+            self.contract_handler.settle_at_final(reading_wh)
+            return
+
+        after_top_s = self.plant_clock.now() % 3600
+        if after_top_s > 10:
+            self.log(f"The Provisional came {round(after_top_s)} s after the top of the hour. Abort.")
+            return
+        self.contract_handler.hp_is_off = self.hp_is_off
+        self.contract_handler.next_contract_energy_wh = reading_wh
         if self.contract_handler.latest_hb:
             self.contract_handler.start_completing_old_contract()
         elif self.contract_handler.can_create_contract():
             self.contract_handler.create_new_contract()
         else:
             self.log("Why am I here")
+        self.schedule_final_deadline()
+
+    def schedule_final_deadline(self) -> None:
+        """At FinalDeadlineS after the slot opened, the contract handler
+        learns whether a Final came."""
+        if self.final_deadline_task is not None and not self.final_deadline_task.done():
+            self.final_deadline_task.cancel()
+        delay_s = self.contract_handler.dispatch_terms.FinalDeadlineS - self.plant_clock.now() % 3600
+        self.final_deadline_task = asyncio.create_task(
+            self.final_deadline(delay_s), name="ltn-final-deadline"
+        )
+
+    async def final_deadline(self, delay_s: float) -> None:
+        await asyncio.sleep(max(delay_s, 0))
+        self.contract_handler.final_deadline_passed()
 
     def keep_cleared_path(self, cleared: int) -> None:
         """The cleared pair, the path it leads to and the price the request

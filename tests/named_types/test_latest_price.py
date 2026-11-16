@@ -1,8 +1,8 @@
-"""Tests latest.price type, version 001"""
+"""Tests latest.price type, version 002"""
 
 import json
 
-from gwsproto.enums import MarketPriceUnit
+from gwsproto.enums import MarketPriceUnit, PriceStage
 from gwsproto.named_types import LatestPrice
 from tests.named_types.sema_oracle import assert_refused
 
@@ -22,6 +22,7 @@ def latest_price_dict() -> dict:
         "PriceX1000": 89896,
         "PriceUnit": "USDPerMWh",
         "MarketSlotName": "e.rt60gate5.d1.isone.ver.keene.1577854800",
+        "PriceStage": "Final",
         "Components": [
             component("WholesaleEnergy", 32120),
             component("WholesaleCongestion", 40),
@@ -32,7 +33,7 @@ def latest_price_dict() -> dict:
         "CreatedMs": 1577854805350,
         "MessageId": "03d27b8e-f6b3-40c5-afe8-880d12921710",
         "TypeName": "latest.price",
-        "Version": "001",
+        "Version": "002",
     }
 
 
@@ -50,6 +51,15 @@ def test_latest_price_generated() -> None:
 
     d2 = dict(d, PriceUnit="unknown_enum_thing")
     assert LatestPrice(**d2).PriceUnit == MarketPriceUnit.default()
+
+    d2 = dict(d, PriceStage="Verified")
+    assert LatestPrice(**d2).PriceStage == PriceStage.Provisional
+
+
+def test_latest_price_requires_a_stage() -> None:
+    d = latest_price_dict()
+    d.pop("PriceStage")
+    assert_refused(LatestPrice, d, match="PriceStage")
 
 
 def test_latest_price_axiom_1_empty_components() -> None:

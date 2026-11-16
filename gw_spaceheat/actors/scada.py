@@ -1260,7 +1260,12 @@ class Scada(PrimeActor, ScadaInterface):
                     AllyGivesUp(Reason=refusal, Cause="refusing dispatch under a held contract"),
                 )
                 return
-            return_hb = self.contract_handler.update_existing_contract_hb(ltn_hb)
+            if ltn_hb.Status == SlowDispatchContractStatus.Amended:
+                return_hb = self.contract_handler.amend_contract_hb(ltn_hb)
+                if return_hb is not None:
+                    self.send_contract_to_ally(ltn_hb.Contract, "refusing dispatch at the amendment")
+            else:
+                return_hb = self.contract_handler.update_existing_contract_hb(ltn_hb)
 
         if return_hb:
             self._send_to(self.ltn, return_hb) # on completion, will send back a completion

@@ -10,7 +10,7 @@ from sema_snapshot.sema.types.slow_dispatch_contract import SlowDispatchContract
 
 
 class SlowContractHeartbeat(SemaType):
-    """Sema: https://schemas.electricity.works/types/slow.contract.heartbeat/002"""
+    """Sema: https://schemas.electricity.works/types/slow.contract.heartbeat/003"""
 
     from_node: SpaceheatName
     contract: SlowDispatchContract
@@ -25,7 +25,7 @@ class SlowContractHeartbeat(SemaType):
     your_last_digit: DecimalDigit | None = None
     signed_proof: str
     type_name: Literal["slow.contract.heartbeat"] = "slow.contract.heartbeat"
-    version: Literal["002"] = "002"
+    version: Literal["003"] = "003"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> "SlowContractHeartbeat":
@@ -47,25 +47,30 @@ class SlowContractHeartbeat(SemaType):
     def check_axiom_2(self) -> "SlowContractHeartbeat":
         """
         Axiom 2: StatusAuthority
-        a. If Status is Created, Confirmed or TerminatedByLtn, FromNode SHALL be ltn and
-           IsAuthoritative SHALL be true.
+        a. If Status is Created, Confirmed, Amended or TerminatedByLtn, FromNode SHALL
+           be ltn and IsAuthoritative SHALL be true.
         b. If Status is Received or TerminatedByScada, FromNode SHALL be s and
            IsAuthoritative SHALL be true.
         c. If Status is CompletedSuccess, CompletedFailureByLtn or
            CompletedFailureByScada, IsAuthoritative SHALL be false.
         """
         status = SlowDispatchContractStatus
-        if self.status in (status.Created, status.Confirmed, status.TerminatedByLtn):
+        if self.status in (
+            status.Created,
+            status.Confirmed,
+            status.Amended,
+            status.TerminatedByLtn,
+        ):
             if self.from_node != "ltn" or not self.is_authoritative:
                 raise ValueError(
-                    f"Axiom 2 (StatusAuthority) failed: {self.status.value} is "
-                    "stated only by ltn, authoritatively."
+                    f"Axiom 2 (StatusAuthority, clause a) failed: {self.status.value} "
+                    "is stated only by ltn, authoritatively."
                 )
         if self.status in (status.Received, status.TerminatedByScada):
             if self.from_node != "s" or not self.is_authoritative:
                 raise ValueError(
-                    f"Axiom 2 (StatusAuthority) failed: {self.status.value} is "
-                    "stated only by s, authoritatively."
+                    f"Axiom 2 (StatusAuthority, clause b) failed: {self.status.value} "
+                    "is stated only by s, authoritatively."
                 )
         if self.status in (
             status.CompletedSuccess,
@@ -74,8 +79,8 @@ class SlowContractHeartbeat(SemaType):
         ):
             if self.is_authoritative:
                 raise ValueError(
-                    f"Axiom 2 (StatusAuthority) failed: {self.status.value} is a "
-                    "claim; IsAuthoritative must be false."
+                    f"Axiom 2 (StatusAuthority, clause c) failed: {self.status.value} "
+                    "is a claim; IsAuthoritative must be false."
                 )
         return self
 
@@ -83,11 +88,13 @@ class SlowContractHeartbeat(SemaType):
     def check_axiom_3(self) -> "SlowContractHeartbeat":
         """
         Axiom 3: CausePresence
-        Cause SHALL be present if and only if Status is TerminatedByLtn, TerminatedByScada,
-        CompletedUnknownOutcome, CompletedFailureByLtn or CompletedFailureByScada.
+        Cause SHALL be present if and only if Status is Amended, TerminatedByLtn,
+        TerminatedByScada, CompletedUnknownOutcome, CompletedFailureByLtn or
+        CompletedFailureByScada.
         """
         status = SlowDispatchContractStatus
         needs_cause = self.status in (
+            status.Amended,
             status.TerminatedByLtn,
             status.TerminatedByScada,
             status.CompletedUnknownOutcome,

@@ -25,6 +25,7 @@ Staging words in this snapshot:
 - enum i2c.mux.type:000
 - enum i2c.operation:001
 - enum move.sieg.valve:001
+- enum price.stage:000
 - enum setpoint.phase:000
 - enum sieg.loop.strategy:000
 - enum thermistor.data.method:000
@@ -42,6 +43,7 @@ Staging words in this snapshot:
 - type dac.output.config:000
 - type device.component.gt:000
 - type dfr.config:000
+- type dispatch.terms.first.isone.hack:000
 - type egauge.register.config:000
 - type electric.meter.channel.config:000
 - type electric.meter.component.gt:001
@@ -90,6 +92,7 @@ Staging words in this snapshot:
 - type i2c.thermistor.interface.capability:000
 - type i2c.thermistor.reader.component.gt:000
 - type i2c.write.byte:000
+- type latest.price:002
 - type linear.one.dimensional.calibration:000
 - type maker.api.attribute.gt:001
 - type pico.btu.meter.component.gt:000

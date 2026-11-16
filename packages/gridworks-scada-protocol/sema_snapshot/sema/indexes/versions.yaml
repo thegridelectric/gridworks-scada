@@ -117,6 +117,13 @@ types:
       "000":
         summary: "Initial Sema version (flattened from the scada DfrConfig runtime). Carries only the per-channel hardware binding; capture/report tuning lives in operational-params (capture.tuning), not the static layout — no Unit/Exponent (redundant; carried by channel identity) or PollPeriodMs/CapturePeriodS/AsyncCapture/AsyncCaptureDelta."
 
+  dispatch.terms.first.isone.hack:
+    latest_version: "000"
+    versioning_strategy: "literal"
+    versions:
+      "000":
+        summary: "Initial Sema version"
+
   egauge.register.config:
     latest_version: "000"
     versioning_strategy: "literal"
@@ -803,15 +810,11 @@ types:
         summary: "Initial draft (Bus, Address, NumBytes, Value, TriggerId)."
 
   latest.price:
-    latest_version: "001"
+    latest_version: "002"
     versioning_strategy: "literal"
     versions:
-      "001":
-        summary: >
-          - PriceTimes1000: renamed PriceX1000
-          - Components: add, assigned as one Unknown component with the whole price
-          - TariffAlias: add (optional)
-          - CreatedMs: add (optional)
+      "002":
+        summary: "- PriceStage: add, assigned Final"
 
   layout.lite:
     latest_version: "014"
@@ -999,11 +1002,13 @@ types:
         summary: "Initial Sema version"
 
   slow.contract.heartbeat:
-    latest_version: "002"
+    latest_version: "003"
     versioning_strategy: "literal"
     versions:
-      "002":
-        summary: "Reason (gw.dispatch.refusal.reason) beside the free Cause, present iff Status is TerminatedByScada (axiom 6), so a terminating heartbeat names why in the scada's one refusal vocabulary."
+      "003":
+        summary: >
+          - Contract: slow.dispatch.contract 000 -> 001, lifted by the nested upgrade
+          - PreviousStatus, Status: gw1.slow.dispatch.contract.status 000 -> 001, with Amended an LTN status (axiom 2a) that takes a Cause (axiom 3)
 
   slow.contract.rejection:
     latest_version: "000"
@@ -1013,11 +1018,13 @@ types:
         summary: "Initial Sema version. FromGNodeAlias + ContractId + Reason (gw.dispatch.refusal.reason) + MessageCreatedMs."
 
   slow.dispatch.contract:
-    latest_version: "000"
+    latest_version: "001"
     versioning_strategy: "literal"
     versions:
-      "000":
-        summary: "The wire form gridworks-scada has sent since f38e1e4a (2025-03-03): ScadaAlias + StartS + DurationMinutes + AvgPowerWatts + OilBoilerOn + ContractId. Axiom 1: StartS on a five-minute boundary. Axiom 2: OilBoilerOn means AvgPowerWatts 0."
+      "001":
+        summary: >
+          - DispatchTerms: add, the name of the dispatch terms constant the contract is an instance of; a 000 contract does not state it, so the upgrade requires context
+          - OilBoilerOn: remove, with axiom 2; the contract states electrical power only
 
   snapshot.spaceheat:
     latest_version: "003"
@@ -1360,7 +1367,9 @@ enums:
     enum_type: "versioned"
     note: "This enum is versioned; new versions are additive only."
     versions:
-      "000": {}
+      "001":
+        added_values:
+          - "Amended"
 
   gw1.unit:
     enum_type: "versioned"
@@ -1492,6 +1501,12 @@ enums:
       "000": {}
 
   price.component.name:
+    enum_type: "versioned"
+    note: "This enum is versioned; new versions are additive only."
+    versions:
+      "000": {}
+
+  price.stage:
     enum_type: "versioned"
     note: "This enum is versioned; new versions are additive only."
     versions:

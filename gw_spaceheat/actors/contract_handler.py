@@ -14,6 +14,7 @@ from gwsproto.names.core.node_names import CoreNodeNames
 
 
 from actors.config import ScadaSettings
+from actors.dispatch_terms import terms_named
 
 
 # The scada's contract store, one file in its data dir.
@@ -50,6 +51,7 @@ class ContractHandler:
         self.contract_file = Path(self.settings.paths.data_dir) / CONTRACT_FILE_NAME
         self.latest_scada_hb: Optional[SlowContractHeartbeat] = None
         self.prev: Optional[SlowContractHeartbeat] = None
+        self.amendments: int = 0  # of the contract latest_scada_hb holds
         self.latest_power_w: int = 0
         self.energy_used_wh: float = 0
         self.energy_updated_s: Optional[float] = None
@@ -200,6 +202,7 @@ class ContractHandler:
         self.latest_scada_hb = None
         self.energy_used_wh = 0
         self.energy_updated_s = None
+        self.amendments = 0
 
     def get_initial_watt_hours(self, ltn_hb: SlowContractHeartbeat) -> int:
         """Contracts start within 10 seconds of market so returns
@@ -233,6 +236,7 @@ class ContractHandler:
         now = time.time()
         self.energy_used_wh = self.get_initial_watt_hours(ltn_hb)
         self.energy_updated_s = now
+        self.amendments = 0
         self.latest_scada_hb = SlowContractHeartbeat(
             FromNode=self.node.Name,
             Contract=ltn_hb.Contract,
@@ -301,6 +305,51 @@ class ContractHandler:
             return self.latest_scada_hb
         else:
             raise ValueError(f"Unexpected status from ltn_hb: {ltn_hb.Status}")
+
+    def amend_contract_hb(
+        self, ltn_hb: SlowContractHeartbeat
+    ) -> Optional[SlowContractHeartbeat]:
+        """The LTN's amendment of the contract held: the body is replaced
+        under the same ContractId and the energy accounting keeps running.
+        Returns the Active heartbeat to send back, or None when the
+        amendment is not taken: past the count the contract's terms allow,
+        or under terms the scada does not know.
+
+        Raises if latest_scada_hb is None or its ContractId differs.
+        """
+        if ltn_hb.Status != SlowDispatchContractStatus.Amended:
+            raise ValueError(f"amend_contract_hb takes Amended, not {ltn_hb.Status}")
+        if self.latest_scada_hb is None:
+            raise ValueError("Do not call amend_contract_hb when latest_scada_hb is None")
+        held = self.latest_scada_hb.Contract
+        if held.ContractId != ltn_hb.Contract.ContractId:
+            raise ValueError("Do not call amend_contract_hb for another ContractId")
+        terms = terms_named(ltn_hb.Contract.DispatchTerms)
+        if terms is None:
+            self.logger.warning(
+                f"Ignoring amendment under unknown terms {ltn_hb.Contract.DispatchTerms}"
+            )
+            return None
+        if self.amendments >= terms.AmendmentsAllowed:
+            self.logger.warning(
+                f"Ignoring amendment {self.amendments + 1}: {terms.TypeName} allows "
+                f"{terms.AmendmentsAllowed}"
+            )
+            return None
+        self.update_energy_usage(self.latest_power_w)
+        self.amendments += 1
+        self.latest_scada_hb = SlowContractHeartbeat(
+            FromNode=self.node.Name,
+            Contract=ltn_hb.Contract,
+            PreviousStatus=ltn_hb.Status,
+            Status=SlowDispatchContractStatus.Active,
+            WattHoursUsed=round(self.energy_used_wh),
+            MessageCreatedMs=int(time.time() * 1000),
+            MyDigit=random.choice(range(10)),
+            YourLastDigit=ltn_hb.MyDigit,
+        )
+        self.store_heartbeat()
+        return self.latest_scada_hb
 
     def scada_terminates_contract_hb(
         self, reason: DispatchRefusalReason, cause: str

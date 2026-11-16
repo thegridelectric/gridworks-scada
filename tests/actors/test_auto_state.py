@@ -70,8 +70,8 @@ async def test_auto_state_home_alone_to_ltn(
             StartS=start_s,
             DurationMinutes=60,
             AvgPowerWatts=1000,
-            OilBoilerOn=False,
-            ContractId=str(uuid.uuid4())
+            ContractId=str(uuid.uuid4()),
+            DispatchTerms="dispatch.terms.first.isone.hack",
         )
         
         # Create a SlowContractHeartbeat with Created status

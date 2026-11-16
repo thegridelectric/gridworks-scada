@@ -44,8 +44,6 @@ class LtnSettings(ScadaPathsSettings):
     save_events: bool = False
     dashboard: DashboardSettings = DashboardSettings()
     timezone_str: str = "America/New_York"
-    fuel_substitution: bool = False
-    fuel_sub_usd_per_mwh: int = 490 # hack until we account for COP etc
     contract_rep_logging_level: int = logging.INFO
     flo_logging_level: int = logging.INFO
     flo_horizon_hours: int = 48

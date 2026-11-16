@@ -173,19 +173,12 @@ class AllTanksLeafAlly(House0Hydronic):
             self.log("Got a slow dispatch contract ... waking up")
             self.wake_up()
             
-        if contract.OilBoilerOn:
-            if self.state != LeafAllyAllTanksState.HpOffNonElectricBackup:
-                self.log("SlowDispatchContract: OilBoilerOn")
-                self.trigger_event(LeafAllyAllTanksEvent.StartNonElectricBackup)
-            else:
-                self.log(f"Received contract w OilBoilerOn. Already in {self.state} so ignoring")
-        else:
-            if self.state == LeafAllyAllTanksState.HpOffNonElectricBackup:
-                self.trigger_event(LeafAllyAllTanksEvent.StopNonElectricBackup)  # back to Initializing
-                self.spawn_initialize()
-            if self.state == LeafAllyAllTanksState.Initializing:
-                return  # initialize judges once the inputs are in
-            self.engage_brain()
+        if self.state == LeafAllyAllTanksState.HpOffNonElectricBackup:
+            self.trigger_event(LeafAllyAllTanksEvent.StopNonElectricBackup)  # back to Initializing
+            self.spawn_initialize()
+        if self.state == LeafAllyAllTanksState.Initializing:
+            return  # initialize judges once the inputs are in
+        self.engage_brain()
     
     def trigger_event(self, event: LeafAllyAllTanksEvent) -> None:
         now_ms = int(time.time() * 1000)

@@ -1,4 +1,4 @@
-"""Tests slow.dispatch.contract type, version 000"""
+"""Tests slow.dispatch.contract type, version 001"""
 
 
 from gwsproto.named_types import SlowDispatchContract
@@ -9,10 +9,10 @@ CONTRACT = {
     "StartS": 1757300400,
     "DurationMinutes": 60,
     "AvgPowerWatts": 3000,
-    "OilBoilerOn": False,
     "ContractId": "9d3b2a1c-8e7f-4a6b-b5c4-d3e2f1a0b9c8",
+    "DispatchTerms": "dispatch.terms.first.isone.hack",
     "TypeName": "slow.dispatch.contract",
-    "Version": "000",
+    "Version": "001",
 }
 
 
@@ -25,8 +25,7 @@ def test_slow_dispatch_contract_axiom_1_start_off_five_minutes() -> None:
     assert_refused(SlowDispatchContract, dict(CONTRACT, StartS=CONTRACT["StartS"] + 60), match="Axiom 1 \\(StartOnFiveMinutes\\)")
 
 
-def test_slow_dispatch_contract_axiom_2_oil_boiler_with_power() -> None:
-    assert_refused(SlowDispatchContract, dict(CONTRACT, OilBoilerOn=True), match="Axiom 2 \\(OilBoilerDrawsNoPower\\)")
-    SlowDispatchContract.model_validate(
-        dict(CONTRACT, OilBoilerOn=True, AvgPowerWatts=0)
-    )
+def test_a_contract_without_dispatch_terms_is_refused() -> None:
+    d = dict(CONTRACT)
+    del d["DispatchTerms"]
+    assert_refused(SlowDispatchContract, d, match="DispatchTerms")
