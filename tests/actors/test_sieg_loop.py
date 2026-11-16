@@ -639,9 +639,10 @@ async def test_the_heat_pump_turned_off_while_parked_returns_the_valve_to_the_ke
 async def test_an_off_the_heat_pump_runs_through_leaves_the_loop_open_until_the_draw_stops(tmp_path: Path) -> None:
     """hp-boss turning off while the outdoor unit still draws running power:
     the heat pump is honouring the off on its own clock (the Ecodan runs
-    about six minutes from a compressor start), so the valve stays at full
-    send, with no run toward keep, until the draw falls under the idle
-    line; then the loop rests at keep."""
+    about six minutes from a compressor start), so the valve stays at the
+    send stop, with no run toward keep, until the draw falls under the
+    idle line; then the loop rests at keep. Re-asserting full send at the
+    stop runs the motor against it for the overshoot and nothing more."""
     actor, clock, sent = await homed_at_keep_with_the_heat_pump_off(tmp_path)
     valve = actor.valve
     strategy = actor.strategy
@@ -660,18 +661,56 @@ async def test_an_off_the_heat_pump_runs_through_leaves_the_loop_open_until_the_
 
     deliver(actor, actor.hp_boss.name, hp_boss_state(actor, HpBossState.HpOff))
     await settle()
-    await advance_by_seconds(clock, 6 * 60, actor)
-    assert valve.valve_state == SiegValveState.FullySend
-    assert relay_events(sent) == before
-    assert strategy.control_state != SiegControlState.HpOff
+    for _ in range(12):
+        await advance_by_seconds(clock, 30, actor)
+        assert valve.valve_state in (SiegValveState.FullySend, SiegValveState.KeepingLess)
+        assert valve.keep_seconds == 0
+    assert strategy.control_state == SiegControlState.Blind
+    assert House0NodeNames.hp_loop_keep_send not in [
+        dst for dst, ev in relay_events(sent)[len(before):] if ev == ChangeKeepSend.ChangeToKeepMore
+    ]
 
     read(actor, HCN.hp_odu_pwr, 0)
     actor.tick()
     await settle()
     assert strategy.control_state == SiegControlState.HpOff
-    assert relay_events(sent) == before + TO_KEEP
+    assert relay_events(sent)[-2:] == TO_KEEP
     await advance_by_seconds(clock, valve.FULL_RANGE_S + valve.OVERSHOOT_S, actor)
     assert valve.valve_state == SiegValveState.FullyKeep
+
+
+@pytest.mark.asyncio
+async def test_a_turn_on_while_the_heat_pump_runs_out_an_off_leaves_the_valve_at_send(tmp_path: Path) -> None:
+    """The valve at full send with the outdoor unit still drawing after an
+    off (Blind), and hp-boss prepares to turn on: the loop passes through
+    HpStartingUp to HpHasLift in one step, and the park move the first
+    state queued is cancelled by the second before its motor clock starts,
+    so the valve stays at the send stop."""
+    actor, clock, sent = await homed_at_keep_with_the_heat_pump_off(tmp_path)
+    valve = actor.valve
+    strategy = actor.strategy
+    assert isinstance(strategy, StratProtect)
+    deliver(actor, actor.hp_boss.name, hp_boss_state(actor, HpBossState.PreparingToTurnOn))
+    deliver(actor, actor.hp_boss.name, hp_boss_state(actor, HpBossState.HpOn))
+    await settle()
+    await advance_by_seconds(clock, valve.FULL_RANGE_S + valve.OVERSHOOT_S - valve.t2, actor)
+    read(actor, HCN.hp_odu_pwr, 3000)
+    actor.tick()
+    await settle()
+    await advance_by_seconds(clock, valve.t2 + valve.OVERSHOOT_S, actor)
+    assert valve.valve_state == SiegValveState.FullySend
+    deliver(actor, actor.hp_boss.name, hp_boss_state(actor, HpBossState.HpOff))
+    await settle()
+    assert strategy.control_state == SiegControlState.Blind
+
+    deliver(actor, actor.hp_boss.name, hp_boss_state(actor, HpBossState.PreparingToTurnOn))
+    deliver(actor, actor.hp_boss.name, hp_boss_state(actor, HpBossState.HpOn))
+    await settle()
+    assert strategy.control_state == SiegControlState.HpHasLift
+    for _ in range(4):
+        await advance_by_seconds(clock, 30, actor)
+        assert valve.keep_seconds == 0, "the park move the first state queued never ran the motor"
+    assert valve.valve_state == SiegValveState.FullySend
 
 
 @pytest.mark.asyncio
