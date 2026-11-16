@@ -220,7 +220,8 @@ class Scada(PrimeActor, ScadaInterface):
             logger=self.logger.add_category_logger(
                 ContractHandler.LOGGER_NAME,
                 level=self.settings.contract_rep_logging_level,
-            )
+            ),
+            clock=self.services.clock,
         )
         self.initialize_hierarchical_state_data()
 
@@ -1209,7 +1210,7 @@ class Scada(PrimeActor, ScadaInterface):
                         FromGNodeAlias=self.g_node_alias,
                         ContractId=ltn_hb.Contract.ContractId,
                         Reason=refusal,
-                        MessageCreatedMs=int(time.time() * 1000),
+                        MessageCreatedMs=self.services.clock.now_ms(),
                     ),
                 )
                 return
@@ -1320,7 +1321,7 @@ class Scada(PrimeActor, ScadaInterface):
         if not self.contract_handler.prev:
             return False
 
-        elif time.time() > self.contract_handler.prev.grace_period_end_s():
+        elif self.services.clock.now() > self.contract_handler.prev.grace_period_end_s():
             return False
         else:
             return True
@@ -1339,8 +1340,8 @@ class Scada(PrimeActor, ScadaInterface):
         if hb.Status == SlowDispatchContractStatus.TerminatedByScada:
             actual_end_s = hb.MessageCreatedMs / 1000
         delay_s = (actual_end_s +
-                        self.contract_handler.WARNING_MINUTES_AFTER_END * 60 - time.time())
-        await asyncio.sleep(delay_s)
+                        self.contract_handler.WARNING_MINUTES_AFTER_END * 60 - self.services.clock.now())
+        await self.services.clock.sleep(delay_s)
 
         grace_end_s = int(actual_end_s+ self.contract_handler.GRACE_PERIOD_MINUTES* 60)
         # Case 1: latest_scada_hb is None - old contract was properly expired
@@ -1372,7 +1373,7 @@ class Scada(PrimeActor, ScadaInterface):
         # Set backup timer for grace period
         grace_remaining = (self.contract_handler.GRACE_PERIOD_MINUTES -
                         self.contract_handler.WARNING_MINUTES_AFTER_END) * 60
-        await asyncio.sleep(grace_remaining)
+        await self.services.clock.sleep(grace_remaining)
 
         # If still same contract after grace period, force transition to home alone
         if not self.in_grace_period():

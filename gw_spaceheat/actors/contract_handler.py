@@ -1,7 +1,6 @@
+import datetime
 import json
 import random
-import time
-import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -15,6 +14,7 @@ from gwsproto.names.core.node_names import CoreNodeNames
 
 from actors.config import ScadaSettings
 from actors.dispatch_terms import terms_named
+from clock import Clock
 
 
 # The scada's contract store, one file in its data dir.
@@ -42,12 +42,14 @@ class ContractHandler:
         node: ShNode,  # intended to be CoreNodeNames.primary_scada
         timezone: datetime.tzinfo,
         logger: LoggerOrAdapter,
+        clock: Clock,
     ):
         self.settings = settings
         self.layout = layout
         self.node = node
         self.timezone = timezone
         self.logger = logger
+        self.clock = clock  # the plant clock: every contract time is read from it
         self.contract_file = Path(self.settings.paths.data_dir) / CONTRACT_FILE_NAME
         self.latest_scada_hb: Optional[SlowContractHeartbeat] = None
         self.prev: Optional[SlowContractHeartbeat] = None
@@ -59,7 +61,7 @@ class ContractHandler:
     def update_energy_usage(self, latest_power_w: int) -> None:
         """Updates the live dispatch contract (self.latest_scada_hb.contract)
         """
-        now = time.time()
+        now = self.clock.now()
         if not self.latest_scada_hb:
             return
         if self.energy_updated_s is None:
@@ -90,7 +92,7 @@ class ContractHandler:
     def active_contract_has_expired(self) -> bool:
         if not self.latest_scada_hb:
             return False
-        if time.time() > self.latest_scada_hb.Contract.contract_end_s():
+        if self.clock.now() > self.latest_scada_hb.Contract.contract_end_s():
             return True
         return False
 
@@ -124,7 +126,7 @@ class ContractHandler:
                 self.logger.info("Stored contract has ended; nothing to load")
                 return None
             else:
-                if time.time() > hb.Contract.contract_end_s():
+                if self.clock.now() > hb.Contract.contract_end_s():
                     if hb.Status not in self.DONE_STATES:
                         self.prev = SlowContractHeartbeat(
                             FromNode=self.node.name,
@@ -132,7 +134,7 @@ class ContractHandler:
                             PreviousStatus=hb.Status,
                             Status=SlowDispatchContractStatus.CompletedUnknownOutcome,
                             WattHoursUsed=hb.WattHoursUsed,
-                            MessageCreatedMs=int(time.time() * 1000),
+                            MessageCreatedMs=self.clock.now_ms(),
                             Cause="Set by Scada on rebooting",
                             YourLastDigit=hb.MyDigit,
                             MyDigit=random.choice(range(10)),
@@ -149,7 +151,7 @@ class ContractHandler:
                         raise ValueError("Cannot happen: from scada -> WattHoursUsed not None")
                     self.latest_scada_hb = hb
                     self.energy_used_wh = hb.WattHoursUsed
-                    self.energy_updated_s = time.time()
+                    self.energy_updated_s = self.clock.now()
                     self.logger.info("Loaded ContractHb into hb")
                     return hb
         except Exception as e:
@@ -233,7 +235,7 @@ class ContractHandler:
             self.logger.warning(f"Existing: {self.latest_scada_hb}")
             raise Exception(f"Inbound: {ltn_hb}")
         
-        now = time.time()
+        now = self.clock.now()
         self.energy_used_wh = self.get_initial_watt_hours(ltn_hb)
         self.energy_updated_s = now
         self.amendments = 0
@@ -297,7 +299,7 @@ class ContractHandler:
                 PreviousStatus=ltn_hb.Status,
                 Status=SlowDispatchContractStatus.Active,
                 WattHoursUsed=round(self.energy_used_wh),
-                MessageCreatedMs=int(time.time() * 1000),
+                MessageCreatedMs=self.clock.now_ms(),
                 MyDigit=random.choice(range(10)),
                 YourLastDigit=ltn_hb.MyDigit,
             )
@@ -345,7 +347,7 @@ class ContractHandler:
             PreviousStatus=ltn_hb.Status,
             Status=SlowDispatchContractStatus.Active,
             WattHoursUsed=round(self.energy_used_wh),
-            MessageCreatedMs=int(time.time() * 1000),
+            MessageCreatedMs=self.clock.now_ms(),
             MyDigit=random.choice(range(10)),
             YourLastDigit=ltn_hb.MyDigit,
         )
@@ -370,7 +372,7 @@ class ContractHandler:
             PreviousStatus=ltn_hb.Status,
             Status=self.latest_scada_hb.Status,
             WattHoursUsed=round(self.energy_used_wh),
-            MessageCreatedMs=int(time.time() * 1000),
+            MessageCreatedMs=self.clock.now_ms(),
             MyDigit=random.choice(range(10)),
             YourLastDigit=ltn_hb.MyDigit,
         )
@@ -397,7 +399,7 @@ class ContractHandler:
             Cause=cause,
             Reason=reason,
             WattHoursUsed=round(self.energy_used_wh),
-            MessageCreatedMs=int(time.time() * 1000),
+            MessageCreatedMs=self.clock.now_ms(),
             MyDigit=random.choice(range(10)),
             YourLastDigit=self.latest_scada_hb.MyDigit,
         )
@@ -410,7 +412,7 @@ class ContractHandler:
         - Returns completion heartbeat
         - Caller is responsible for persisting and flushing if desired
         """
-        now = time.time()
+        now = self.clock.now()
     
         if not self.latest_scada_hb:
             raise Exception("Cannot call scada terminates contract if no latest_ltn_hb")
@@ -427,7 +429,7 @@ class ContractHandler:
             Status=SlowDispatchContractStatus.CompletedUnknownOutcome,
             Cause=cause,
             WattHoursUsed=round(self.energy_used_wh),
-            MessageCreatedMs=int(time.time() * 1000),
+            MessageCreatedMs=self.clock.now_ms(),
             MyDigit=random.choice(range(10)),
             YourLastDigit=self.latest_scada_hb.MyDigit,
             IsAuthoritative=False # not claiming authority on outcome

@@ -11,6 +11,7 @@ from pathlib import Path
 import pytest
 
 from actors.contract_handler import ContractHandler
+from clock import WallClock
 from gwsproto.enums import SlowDispatchContractStatus
 from gwsproto.named_types import SlowContractHeartbeat, SlowDispatchContract
 
@@ -34,6 +35,7 @@ def handler(tmp_path: Path) -> ContractHandler:
     h = ContractHandler.__new__(ContractHandler)
     h.node = Node()
     h.logger = Logger()
+    h.clock = WallClock()
     h.contract_file = tmp_path / "slow_dispatch_contract.json"
     h.latest_scada_hb = None
     h.prev = None
