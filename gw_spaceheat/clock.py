@@ -162,6 +162,15 @@ class TimestepClock(Clock):
         now = self.now()
         await self.sleepers.wait_until(now + seconds, now)
 
+    async def first_step(self) -> None:
+        """Return once the coordinator's first step has arrived; plant time
+        does not exist before it."""
+        while True:
+            with self.lock:
+                if self.latest_time_unix_s is not None:
+                    return
+            await asyncio.sleep(0.05)
+
     def start(self) -> None:
         self.client.connect_async(self.config.host, self.config.port, keepalive=self.config.keepalive)
         self.client.loop_start()

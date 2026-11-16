@@ -311,12 +311,18 @@ class Scada(PrimeActor, ScadaInterface):
         # in-process tests) has no use for it and would leak the thread.
         if isinstance(self.services.clock, TimestepClock):
             self.services.clock.start()
-        # The stored contract is loaded before any message is processed, so
-        # an offer never meets a contract still waiting in the store.
-        loaded_contract_hb = self.contract_handler.initialize()
-        self.resume_task = asyncio.create_task(
-            self.resume_at_first_forecast(loaded_contract_hb), name="contract_resumer"
-        )
+            # Plant time exists from the coordinator's first step, so the
+            # stored contract is judged, and loaded, on that step.
+            self.resume_task = asyncio.create_task(
+                self.load_at_first_step(self.services.clock), name="contract_resumer"
+            )
+        else:
+            # The stored contract is loaded before any message is processed, so
+            # an offer never meets a contract still waiting in the store.
+            loaded_contract_hb = self.contract_handler.initialize()
+            self.resume_task = asyncio.create_task(
+                self.resume_at_first_forecast(loaded_contract_hb), name="contract_resumer"
+            )
         return [
             asyncio.create_task(self.report_sending_task(), name="report_sender"),
             asyncio.create_task(self.snap_sending_task(), name="snap_sender"),
@@ -1561,6 +1567,12 @@ class Scada(PrimeActor, ScadaInterface):
             await asyncio.sleep(self.STARTUP_ANNOUNCE_POLL_S)
         await self._data.first_forecast.wait()
         self.send_startup_announcements()
+
+    async def load_at_first_step(self, clock: TimestepClock) -> None:
+        """The stored-contract load of a scada on the coordinator's clock:
+        at the first step, then the resume as on a box."""
+        await clock.first_step()
+        await self.resume_at_first_forecast(self.contract_handler.initialize())
 
     async def resume_at_first_forecast(self, loaded: Optional[SlowContractHeartbeat]) -> None:
         """The stored-contract resume, its own task: a few seconds in (an

@@ -113,6 +113,7 @@ class ContractHandler:
             return None
         with open(self.contract_file, "r") as f:
             contract_data = json.load(f)
+        now = self.clock.now()  # outside the try: a clock fault is not a load error
 
         try:
             hb = SlowContractHeartbeat.model_validate(contract_data)
@@ -126,7 +127,7 @@ class ContractHandler:
                 self.logger.info("Stored contract has ended; nothing to load")
                 return None
             else:
-                if self.clock.now() > hb.Contract.contract_end_s():
+                if now > hb.Contract.contract_end_s():
                     if hb.Status not in self.DONE_STATES:
                         self.prev = SlowContractHeartbeat(
                             FromNode=self.node.name,
@@ -134,7 +135,7 @@ class ContractHandler:
                             PreviousStatus=hb.Status,
                             Status=SlowDispatchContractStatus.CompletedUnknownOutcome,
                             WattHoursUsed=hb.WattHoursUsed,
-                            MessageCreatedMs=self.clock.now_ms(),
+                            MessageCreatedMs=int(now * 1000),
                             Cause="Set by Scada on rebooting",
                             YourLastDigit=hb.MyDigit,
                             MyDigit=random.choice(range(10)),
@@ -151,7 +152,7 @@ class ContractHandler:
                         raise ValueError("Cannot happen: from scada -> WattHoursUsed not None")
                     self.latest_scada_hb = hb
                     self.energy_used_wh = hb.WattHoursUsed
-                    self.energy_updated_s = self.clock.now()
+                    self.energy_updated_s = now
                     self.logger.info("Loaded ContractHb into hb")
                     return hb
         except Exception as e:
