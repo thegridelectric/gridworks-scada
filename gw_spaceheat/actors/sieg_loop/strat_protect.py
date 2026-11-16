@@ -2,9 +2,12 @@
 off and the primary pump runs: the Siegenthaler valve stays at keep while
 the heat pump is off or starting cold, opens toward send once the loop is
 hot, and goes to full send when the loop cannot tell what a running heat
-pump is doing. Its inputs are hp-boss's reported state and the loop's own
-leaving and entering water temperatures and heat pump power. The valve's
-position is unknown at boot, so the first move is a full run to a stop."""
+pump is doing or when the outdoor unit draws running power after an off
+(a heat pump honours an off on its own clock: the Ecodan runs about six
+minutes from a compressor start). Its inputs are hp-boss's reported state
+and the loop's own leaving and entering water temperatures and heat pump
+power. The valve's position is unknown at boot, so the first move is a
+full run to a stop."""
 
 from enum import auto
 from typing import Optional
@@ -47,13 +50,11 @@ class SiegControlEvent(GwStrEnum):
 
 
 class StratProtect(SiegStrategy):
-    # Seconds after hp-boss reports off before power above the draw of an
-    # idle heat pump means the loop is blind to what the heat pump is doing.
-    # Interim: these two are heat-pump facts spelled again here (the
-    # hp-boss sensing surface, actors/hp_boss/sensing.py, holds the same
-    # draw and lag by device type) and not keyed by device type; they
-    # belong there, read as the unit's sensed state once it reports one.
-    OFF_SETTLE_S = 120
+    # The outdoor unit's draw above which the compressor is running.
+    # Interim: a heat-pump fact spelled again here (the hp-boss sensing
+    # surface, actors/hp_boss/sensing.py, holds the same draw by device
+    # type) and not keyed by device type; it belongs there, read as the
+    # unit's sensed state once it reports one.
     IDLE_POWER_W = 500
 
     transitions = [
@@ -94,7 +95,6 @@ class StratProtect(SiegStrategy):
         # hp-boss's last reported state; None until it reports, and the
         # loop leaves Initializing only on a report.
         self.hp_boss_state: Optional[HpBossState] = None
-        self.hp_turned_off_time: float | None = None
 
     # --------------------------------------
     # Events from the facade
@@ -104,10 +104,6 @@ class StratProtect(SiegStrategy):
         self.engage_brain()
 
     def on_hp_boss_state(self, state: HpBossState) -> None:
-        if state == HpBossState.HpOff and self.hp_boss_state != HpBossState.HpOff:
-            self.hp_turned_off_time = self.loop.services.clock.now()
-        elif state != HpBossState.HpOff:
-            self.hp_turned_off_time = None
         if (
             state == HpBossState.PreparingToTurnOn
             and self.hp_boss_state != HpBossState.PreparingToTurnOn
@@ -138,17 +134,17 @@ class StratProtect(SiegStrategy):
         return self.blind_reason() is not None
 
     def blind_reason(self) -> Optional[str]:
+        """With the heat pump off, the one thing to see is the outdoor unit
+        still running; a missing reading changes nothing at keep. With it
+        on, the loop is blind without its temperatures and power."""
+        if self.hp_boss_state == HpBossState.HpOff:
+            if self.heat_pump_is_running():
+                return f"outdoor unit at {self.loop.hp_odu_pwr_w():.0f}W over {self.IDLE_POWER_W}W after off"
+            return None
         if self.loop.lift_f() is None:
             return "no lift"
-        pwr = self.loop.total_hp_pwr_w()
-        if pwr is None:
+        if self.loop.total_hp_pwr_w() is None:
             return "no power"
-        if (
-            self.hp_turned_off_time is not None
-            and self.loop.services.clock.now() - self.hp_turned_off_time > self.OFF_SETTLE_S
-            and pwr > self.IDLE_POWER_W
-        ):
-            return f"{pwr:.0f}W over {self.IDLE_POWER_W}W {self.OFF_SETTLE_S}s after off"
         return None
 
     # --------------------------------------
@@ -179,17 +175,16 @@ class StratProtect(SiegStrategy):
                 else:
                     self.trigger_control_event(SiegControlEvent.DoneInitializingHpStartingUp)
 
-        # Get in/out of Blind state. Blind protects a running heat pump the
-        # loop cannot see; with the heat pump off there is nothing to
-        # protect and the valve stays at keep for the buffer.
-        if self.hp_boss_state == HpBossState.HpOff:
-            if self.control_state == SiegControlState.Blind:
-                self.trigger_control_event(SiegControlEvent.NoLongerBlindHpOff)
-        elif self.control_state != SiegControlState.Blind and self.is_blind():
+        # Get in/out of Blind state. Blind is full send: for a running heat
+        # pump the loop cannot see, and for one still drawing running power
+        # after an off, which rests at keep only once the draw stops.
+        if self.control_state != SiegControlState.Blind and self.is_blind():
             self.loop.log(f"Blind: {self.blind_reason()}")
             self.trigger_control_event(SiegControlEvent.BecameBlind)
         elif self.control_state == SiegControlState.Blind and not self.is_blind():
-            if self.hp_boss_state == HpBossState.PreparingToTurnOn:
+            if self.hp_boss_state == HpBossState.HpOff:
+                self.trigger_control_event(SiegControlEvent.NoLongerBlindHpOff)
+            elif self.hp_boss_state == HpBossState.PreparingToTurnOn:
                 self.trigger_control_event(SiegControlEvent.NoLongerBlindHpStartingUp)
             elif self.hp_boss_state == HpBossState.HpOn:
                 if self.heat_pump_is_running():

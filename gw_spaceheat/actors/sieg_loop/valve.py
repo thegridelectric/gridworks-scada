@@ -128,10 +128,16 @@ class SiegValve:
     # --------------------------------------
 
     def move_to_full_send(self) -> None:
+        if self.valve_state == SiegValveState.FullySend:
+            self.loop.log("Already at full send")
+            return
         self.loop.log("Moving to full send")
         self.travel_to(-self.OVERSHOOT_S)
 
     def move_to_full_keep(self) -> None:
+        if self.valve_state == SiegValveState.FullyKeep:
+            self.loop.log("Already at full keep")
+            return
         self.loop.log("Moving to full keep")
         self.travel_to(self.FULL_RANGE_S + self.OVERSHOOT_S)
 
