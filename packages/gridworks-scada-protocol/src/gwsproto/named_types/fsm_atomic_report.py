@@ -48,17 +48,29 @@ class FsmAtomicReport(GwsprotoSemaType):
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
         """
-        Axiom 1: Action exists iff  ReportType is Action.
-
+        Axiom 1: Action SHALL be present if and only if ReportType equals Action.
         """
-        # Implement check for axiom 1"
+        if (self.Action is not None) != (self.ReportType == FsmReportType.Action):
+            raise ValueError(
+                "Axiom 1 (ActionPresenceConsistency) failed: Action SHALL be present "
+                f"if and only if ReportType equals Action; ReportType is {self.ReportType}"
+            )
         return self
 
     @model_validator(mode="after")
     def check_axiom_2(self) -> Self:
         """
-        Axiom 3: EventType, Event, FromState, ToState exist iff ReportType is Event.
-
+        Axiom 2: EventEnum, Event, FromState, and ToState SHALL be present if and
+        only if ReportType equals Event.
         """
-        # Implement check for axiom 3"
+        event_fields_present = all(
+            field is not None for field in (self.EventEnum, self.Event, self.FromState, self.ToState)
+        )
+        if (self.ReportType == FsmReportType.Event) != event_fields_present:
+            raise ValueError(
+                "Axiom 2 (EventPresenceConsistency) failed: EventEnum, Event, FromState "
+                "and ToState SHALL be present if and only if ReportType equals Event; "
+                f"ReportType is {self.ReportType}, EventEnum={self.EventEnum}, "
+                f"Event={self.Event}, FromState={self.FromState}, ToState={self.ToState}"
+            )
         return self
