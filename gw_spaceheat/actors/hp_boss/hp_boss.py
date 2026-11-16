@@ -235,10 +235,9 @@ class HpBoss(ShNodeActor):
         self.trigger_id = trigger_id
         self.fsm_reports = []
 
-    def transition(self, to_state: HpBossState, event: Optional[TurnHpOnOff]) -> None:
-        """Move to to_state, keep the transition under the command in
-        flight (event None when hp-boss acts on its own), and report the
-        state."""
+    def transition(self, to_state: HpBossState, event: TurnHpOnOff) -> None:
+        """Move to to_state under event, keep the transition under the
+        command in flight, and report the state."""
         from_state = self.state
         self.state = to_state
         if self.trigger_id is not None:
@@ -247,7 +246,7 @@ class HpBoss(ShNodeActor):
                     MachineHandle=self.node.handle,
                     StateEnum=HpBossState.enum_name(),
                     ReportType=FsmReportType.Event,
-                    EventEnum=TurnHpOnOff.enum_name() if event is not None else None,
+                    EventEnum=TurnHpOnOff.enum_name(),
                     Event=event,
                     FromState=from_state,
                     ToState=to_state,
@@ -306,7 +305,7 @@ class HpBoss(ShNodeActor):
         if self.state == HpBossState.PreparingToTurnOn:
             self.begin(str(uuid.uuid4()))
             self.open_hp_scada_ops_relay()
-            self.transition(HpBossState.HpOff, None)
+            self.transition(HpBossState.HpOff, TurnHpOnOff.TurnOff)
             self.log("Did not hear from Sieg loop for 2 minutes. Turning off!")
             self.alert(
                 "Sieg loop did not report ready within 2 minutes",
