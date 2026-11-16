@@ -1,7 +1,8 @@
 """The scada takes the LTN's one amendment of the contract it holds: the
 body is replaced under the same ContractId, the energy accounting keeps
-running, and a second amendment is ignored, as the contract's terms allow
-one."""
+running, and a second amendment is answered with the body held, as the
+contract's terms allow one. A resent offer is acked again with a fresh
+heartbeat."""
 
 import time
 import uuid
@@ -101,23 +102,40 @@ def test_the_amendment_replaces_the_body_and_keeps_the_energy_running(tmp_path: 
     assert stored.Contract.AvgPowerWatts == 4200
 
 
-def test_a_second_amendment_is_ignored(tmp_path: Path) -> None:
+def test_a_second_amendment_is_answered_with_the_body_held(tmp_path: Path) -> None:
     h = handler(tmp_path)
     c = contract()
     received = h.start_new_contract_hb(offer(c))
     first = h.amend_contract_hb(amendment(c, 4200, received.MyDigit))
     assert first is not None
     second = h.amend_contract_hb(amendment(c, 1000, first.MyDigit))
-    assert second is None
+    assert second is not None
+    assert second.Contract.AvgPowerWatts == 4200
+    assert second.Status is SlowDispatchContractStatus.Active
+    assert second.YourLastDigit == 5
     assert h.latest_scada_hb.Contract.AvgPowerWatts == 4200
     assert any("allows 1" in w for w in h.logger.warnings)
 
 
-def test_an_amendment_under_unknown_terms_is_ignored(tmp_path: Path) -> None:
+def test_a_resent_offer_is_acked_again_with_a_fresh_heartbeat(tmp_path: Path) -> None:
+    """Difference 14: the ack of a Created the scada holds is re-obtainable."""
+    h = handler(tmp_path)
+    c = contract()
+    received = h.start_new_contract_hb(offer(c))
+    again = h.reack_hb(offer(c))
+    assert again.Status is SlowDispatchContractStatus.Received
+    assert again.Contract == c
+    assert again.MessageCreatedMs >= received.MessageCreatedMs
+    assert again.YourLastDigit == 3
+    assert h.latest_scada_hb is again
+
+
+def test_an_amendment_under_unknown_terms_is_answered_with_the_body_held(tmp_path: Path) -> None:
     h = handler(tmp_path)
     c = contract(DispatchTerms="dispatch.terms.nobody.knows")
     received = h.start_new_contract_hb(offer(c))
-    assert h.amend_contract_hb(amendment(c, 4200, received.MyDigit)) is None
+    answer = h.amend_contract_hb(amendment(c, 4200, received.MyDigit))
+    assert answer is not None and answer.Contract.AvgPowerWatts == 0
     assert h.latest_scada_hb.Contract.AvgPowerWatts == 0
 
 

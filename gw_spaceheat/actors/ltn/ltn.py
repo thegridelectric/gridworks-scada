@@ -197,8 +197,7 @@ class Ltn(PrimeActor):
         self.timezone = pytz.timezone(self.settings.timezone_str)
         self.flo_horizon_hours = self.settings.flo_horizon_hours
         self.flo_params: FloParams | None = None
-        self.hp_is_off = False
-        self.final_deadline_task: asyncio.Task | None = None
+        self.hp_is_off = True  # off until a Report says otherwise
         self.weather_forecast: Optional[ForecastPair] = None
         self.price_forecast: Optional[PriceForecast] = None
         self.data_channels: List
@@ -224,7 +223,6 @@ class Ltn(PrimeActor):
             )
         else:
             self.dashboard = None
-        self.next_contract_energy_wh: Optional[int] = None
         self.contract_handler: LtnContractHandler = LtnContractHandler(
             node=self.node,
             settings=self.settings,
@@ -234,6 +232,7 @@ class Ltn(PrimeActor):
                 level=self.settings.contract_rep_logging_level
             ),
             send_threadsafe=self.services.send_threadsafe,
+            now=self.plant_clock.now,
         )
         # The loop wakes every MAIN_LOOP_SLEEP_SECONDS; a lead shorter than
         # that can pass between two wakes and the slot gets no bid.
@@ -784,8 +783,6 @@ class Ltn(PrimeActor):
 
     def stop(self) -> None:
         self._stop_requested = True
-        if self.final_deadline_task is not None:
-            self.final_deadline_task.cancel()
         super().stop()
 
     def latest_contract_is_live(self) -> bool:
@@ -805,9 +802,9 @@ class Ltn(PrimeActor):
 
     def process_latest_price(self, payload: LatestPrice) -> None:
         """The maker's price for the slot, at either stage. The bid curve is
-        read at it; the Provisional opens the hour's contract (toward less
-        consumption only) and the Final settles it, by one amendment where
-        the reading differs from the offer."""
+        read at it and the reading becomes the contract handler's desired
+        offer: the Provisional's toward less consumption only, the Final's
+        as read. The handler reconciles the scada's contract to it."""
         self.contract_handler.latest_price = payload
         self.log(f"Received latest price, stage {payload.PriceStage.value}")
         if self.contract_handler.latest_bid is None:
@@ -845,37 +842,26 @@ class Ltn(PrimeActor):
         if reading_wh < 1000:
             reading_wh = 0
 
+        now_s = self.plant_clock.now()
         if payload.PriceStage == PriceStage.Final:
-            self.contract_handler.settle_at_final(reading_wh)
+            self.contract_handler.set_final(reading_wh, now_s)
             return
 
-        after_top_s = self.plant_clock.now() % 3600
+        after_top_s = now_s % 3600
         if after_top_s > 10:
-            self.log(f"The Provisional came {round(after_top_s)} s after the top of the hour. Abort.")
+            glitch = Glitch(
+                FromGNodeAlias=self.g_node_alias,
+                Node=self.node.name,
+                Type=LogLevel.Warning,
+                Summary="Provisional late, no contract this slot",
+                Details=f"The Provisional for {payload.MarketSlotName} came {round(after_top_s)} s after the top of the hour; a Created is stamped within 10 s of the slot start.",
+                CreatedMs=self.plant_clock.now_ms(),
+            )
+            self.services.send_threadsafe(Message(Src=self.name, Dst=self.name, Payload=glitch))
+            self.log(f"The Provisional came {round(after_top_s)} s after the top of the hour. No contract this slot.")
             return
         self.contract_handler.hp_is_off = self.hp_is_off
-        self.contract_handler.next_contract_energy_wh = reading_wh
-        if self.contract_handler.latest_hb:
-            self.contract_handler.start_completing_old_contract()
-        elif self.contract_handler.can_create_contract():
-            self.contract_handler.create_new_contract()
-        else:
-            self.log("Why am I here")
-        self.schedule_final_deadline()
-
-    def schedule_final_deadline(self) -> None:
-        """At FinalDeadlineS after the slot opened, the contract handler
-        learns whether a Final came."""
-        if self.final_deadline_task is not None and not self.final_deadline_task.done():
-            self.final_deadline_task.cancel()
-        delay_s = self.contract_handler.dispatch_terms.FinalDeadlineS - self.plant_clock.now() % 3600
-        self.final_deadline_task = asyncio.create_task(
-            self.final_deadline(delay_s), name="ltn-final-deadline"
-        )
-
-    async def final_deadline(self, delay_s: float) -> None:
-        await asyncio.sleep(max(delay_s, 0))
-        self.contract_handler.final_deadline_passed()
+        self.contract_handler.set_provisional(reading_wh, now_s)
 
     def keep_cleared_path(self, cleared: int) -> None:
         """The cleared pair, the path it leads to and the price the request

@@ -1219,9 +1219,16 @@ class Scada(PrimeActor, ScadaInterface):
                 if self.auto_state == MainAutoState.LocalControl:
                     self.dispatch_contract_live() # sets up the trees, changes state, let's aa and h know
                 elif self.auto_state == MainAutoState.LeafTransactiveNode:
-                    self.send_contract_to_ally(
+                    # the ally is awake and suited up: it suits up once per wake,
+                    # so the ack goes now rather than at a SuitUp that will not come
+                    if self.send_contract_to_ally(
                         self.contract_handler.latest_scada_hb.Contract, "refusing dispatch at the offer"
-                    )
+                    ):
+                        return_hb = self.contract_handler.latest_scada_hb
+            elif self.contract_handler.latest_scada_hb.Contract.ContractId == ltn_hb.Contract.ContractId:
+                # a resend of the offer the scada holds: its ack was lost
+                if self.auto_state == MainAutoState.LeafTransactiveNode:
+                    return_hb = self.contract_handler.reack_hb(ltn_hb)
             elif self.contract_handler.active_contract_has_expired(): # wrap up existing
                 completion_hb = self.contract_handler.scada_contract_completion_hb(
                     "Wrapping up existing contract"
@@ -1235,10 +1242,11 @@ class Scada(PrimeActor, ScadaInterface):
                 self.contract_handler.start_new_contract_hb(ltn_hb)
                 self.process_new_contract()
 
-                self.send_contract_to_ally(
+                # the ally ran the contract just wrapped, so it is awake: ack now
+                if self.send_contract_to_ally(
                     self.contract_handler.latest_scada_hb.Contract, "refusing dispatch at the offer"
-                )
-                # will send hb in process_suit_up, after leaf ally acknowledges
+                ):
+                    return_hb = self.contract_handler.latest_scada_hb
         elif ltn_hb.Status == SlowDispatchContractStatus.TerminatedByLtn:
             raise Exception("Ack! Haven't thought through termination by Ltn ...")
         else:

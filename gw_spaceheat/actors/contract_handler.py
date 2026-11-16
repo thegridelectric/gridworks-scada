@@ -311,9 +311,10 @@ class ContractHandler:
     ) -> Optional[SlowContractHeartbeat]:
         """The LTN's amendment of the contract held: the body is replaced
         under the same ContractId and the energy accounting keeps running.
-        Returns the Active heartbeat to send back, or None when the
-        amendment is not taken: past the count the contract's terms allow,
-        or under terms the scada does not know.
+        Returns the Active heartbeat to send back; when the amendment is
+        not taken (past the count the contract's terms allow, or under terms
+        the scada does not know) the answer is a fresh heartbeat with the
+        body held, so the LTN converges on it.
 
         Raises if latest_scada_hb is None or its ContractId differs.
         """
@@ -327,15 +328,15 @@ class ContractHandler:
         terms = terms_named(ltn_hb.Contract.DispatchTerms)
         if terms is None:
             self.logger.warning(
-                f"Ignoring amendment under unknown terms {ltn_hb.Contract.DispatchTerms}"
+                f"Not taking amendment under unknown terms {ltn_hb.Contract.DispatchTerms}"
             )
-            return None
+            return self.reack_hb(ltn_hb)
         if self.amendments >= terms.AmendmentsAllowed:
             self.logger.warning(
-                f"Ignoring amendment {self.amendments + 1}: {terms.TypeName} allows "
+                f"Not taking amendment {self.amendments + 1}: {terms.TypeName} allows "
                 f"{terms.AmendmentsAllowed}"
             )
-            return None
+            return self.reack_hb(ltn_hb)
         self.update_energy_usage(self.latest_power_w)
         self.amendments += 1
         self.latest_scada_hb = SlowContractHeartbeat(
@@ -343,6 +344,31 @@ class ContractHandler:
             Contract=ltn_hb.Contract,
             PreviousStatus=ltn_hb.Status,
             Status=SlowDispatchContractStatus.Active,
+            WattHoursUsed=round(self.energy_used_wh),
+            MessageCreatedMs=int(time.time() * 1000),
+            MyDigit=random.choice(range(10)),
+            YourLastDigit=ltn_hb.MyDigit,
+        )
+        self.store_heartbeat()
+        return self.latest_scada_hb
+
+    def reack_hb(self, ltn_hb: SlowContractHeartbeat) -> SlowContractHeartbeat:
+        """A fresh heartbeat for the contract held, at its current status
+        and body, answering an LTN heartbeat whose earlier answer may have
+        been lost or whose amendment is not taken. Stored as the latest.
+
+        Raises if latest_scada_hb is None or its ContractId differs.
+        """
+        if self.latest_scada_hb is None:
+            raise ValueError("Do not call reack_hb when latest_scada_hb is None")
+        if self.latest_scada_hb.Contract.ContractId != ltn_hb.Contract.ContractId:
+            raise ValueError("Do not call reack_hb for another ContractId")
+        self.update_energy_usage(self.latest_power_w)
+        self.latest_scada_hb = SlowContractHeartbeat(
+            FromNode=self.node.Name,
+            Contract=self.latest_scada_hb.Contract,
+            PreviousStatus=ltn_hb.Status,
+            Status=self.latest_scada_hb.Status,
             WattHoursUsed=round(self.energy_used_wh),
             MessageCreatedMs=int(time.time() * 1000),
             MyDigit=random.choice(range(10)),
