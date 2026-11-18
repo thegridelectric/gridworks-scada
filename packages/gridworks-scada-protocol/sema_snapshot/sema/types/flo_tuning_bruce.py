@@ -6,7 +6,7 @@ from sema_snapshot.sema.property_format import PositiveInt
 
 
 class FloTuningBruce(SemaType):
-    """Sema: https://schemas.electricity.works/types/flo.tuning.bruce/001"""
+    """Sema: https://schemas.electricity.works/types/flo.tuning.bruce/002"""
 
     num_layers: PositiveInt
     storage_losses_percent: StrictFloat
@@ -23,6 +23,8 @@ class FloTuningBruce(SemaType):
     rswt_penalty_decay: StrictFloat
     rswt_penalty_exponent_rate: StrictFloat
     rswt_penalty_decay_max_hour: NonNegativeInt
+    unmet_load_penalty_enabled: bool
+    unmet_load_penalty_weight: StrictFloat
     short_cycle_penalty_enabled: bool
     short_cycle_penalty_weight: StrictFloat
     stability_penalty_enabled: bool
@@ -34,7 +36,7 @@ class FloTuningBruce(SemaType):
     terminal_cost_enabled: bool
     terminal_cost_end_window_hours: NonNegativeInt
     type_name: Literal["flo.tuning.bruce"] = "flo.tuning.bruce"
-    version: Literal["001"] = "001"
+    version: Literal["002"] = "002"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
