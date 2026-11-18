@@ -94,9 +94,19 @@ def build_plant_link(
 
 
 def route_devices(
-    plant: Plant, layout: HydronicLayout, link: Optional[PlantLink], settings: ScadaSettings
+    plant: Plant,
+    layout: HydronicLayout,
+    link: Optional[PlantLink],
+    settings: ScadaSettings,
+    *,
+    run_by: ShNode,
 ) -> None:
+    """A device for each node the process whose scada node is run_by
+    builds an actor for: the nodes under that scada node. Another
+    process's nodes are left to it, board data and all."""
     for node in layout.nodes.values():
+        if not node.has_actor or layout.parent_node(node) != run_by:
+            continue
         device = device_behind(layout, node, link, settings)
         if device is not None:
             plant.route(node.name, device)

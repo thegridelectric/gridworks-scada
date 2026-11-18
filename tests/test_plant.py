@@ -1,8 +1,9 @@
 """The plant: where a device actor asks for its own device by node name.
 It routes to whatever was put behind the node and does nothing else."""
 
+import json
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Any, Callable, Iterable, Optional
 
 import pytest
 from gwsproto.enums import ChangeRelayPin
@@ -15,7 +16,9 @@ from plant_link import (
     PlantLinkKind,
 )
 from relay_drives import GpioRelayDrive, I2cRelayDrive
+from scada2_app import Scada2App
 from scada_app import ScadaApp
+from thermistor_inputs import Ads1115ThermistorInput
 from tests.utils.scada_live_test_helper import ScadaLiveTest
 
 CONFIG = Path(__file__).parent / "config"
@@ -182,6 +185,14 @@ def app_on(pair: str, layout: Optional[Path] = None) -> ScadaApp:
     return ScadaApp(app_settings=settings)
 
 
+def app2_on(pair: str, layout: Optional[Path] = None) -> Scada2App:
+    settings = Scada2App.get_settings()
+    settings.paths.hardware_layout = layout or CONFIG / f"{pair}.layout.json"
+    settings.paths.operational_params = CONFIG / f"{pair}.operational.params.json"
+    settings.paths.mkdirs()
+    return Scada2App(app_settings=settings)
+
+
 @pytest.mark.parametrize(
     ("pair", "sim_sensors", "sim_picos", "relays", "reading_back"),
     [("gw.house0.no.sieg.hazel", 11, 3, 11, 0), ("gw.nolan", 0, 9, 20, 19)],
@@ -228,6 +239,92 @@ def test_the_app_puts_the_board_behind_the_relays_of_a_board_that_is_not_simulat
     assert len(drives) == on_expanders + on_gpio
 
 
+def nolan_with(
+    tmp_path: Path, *edits: Callable[[dict[str, Any]], None], board_simulated: bool = True
+) -> Path:
+    """The Nolan layout with the given changes made to its JSON, on the
+    SimGw108 board or, with board_simulated False, the Gw108RevB."""
+    text = (CONFIG / "gw.nolan.layout.json").read_text()
+    if not board_simulated:
+        text = text.replace('"SimGw108"', '"Gw108RevB"')
+    layout = json.loads(text)
+    for edit in edits:
+        edit(layout)
+    path = tmp_path / "layout.json"
+    path.write_text(json.dumps(layout))
+    return path
+
+
+def component_of(layout: dict[str, Any], node_name: str) -> dict[str, Any]:
+    [node] = [n for n in layout["ShNodes"] if n["Name"] == node_name]
+    [component] = [c for c in layout["Components"] if c["ComponentId"] == node["ComponentId"]]
+    return component
+
+
+def thermistor_without_its_microvolts_channel(layout: dict[str, Any]) -> None:
+    """The reader's config keeps zone 1's temperature channel and drops its
+    electrical twin. The layout word accepts this; resolving the reader's
+    ADC does not."""
+    reader = component_of(layout, "gw108-thermistor-reader")
+    reader["ConfigList"] = [
+        cfg for cfg in reader["ConfigList"] if cfg["ChannelName"] != "zone1-bedrooms-gw-microvolts"
+    ]
+
+
+def thermistor_reader_under_the_secondary_scada(layout: dict[str, Any]) -> None:
+    [node] = [n for n in layout["ShNodes"] if n["Name"] == "gw108-thermistor-reader"]
+    node["ActorHierarchyName"] = "s2.gw108-thermistor-reader"
+
+
+def test_bad_board_data_on_a_node_the_primary_runs_fails_its_boot(tmp_path: Path) -> None:
+    """The device contract: a device node this process runs, whose board
+    data cannot be resolved, fails the boot."""
+    layout = nolan_with(tmp_path, thermistor_without_its_microvolts_channel)
+
+    with pytest.raises(
+        ValueError,
+        match="gw108-thermistor-reader: no electrical channel for AboutNodeName zone1-bedrooms",
+    ):
+        app_on("gw.nolan", layout)
+
+
+def test_a_node_the_primary_does_not_run_is_not_routed_and_cannot_fail_its_boot(
+    tmp_path: Path,
+) -> None:
+    """The primary scada builds actors for the nodes under its own scada
+    node and no others. A device node under the secondary scada is that
+    process's to build, so the primary neither routes a device for it nor
+    resolves its board data, and bad board data there does not fail the
+    primary's boot."""
+    layout = nolan_with(
+        tmp_path,
+        thermistor_reader_under_the_secondary_scada,
+        thermistor_without_its_microvolts_channel,
+    )
+
+    app = app_on("gw.nolan", layout)
+
+    assert "gw108-thermistor-reader" not in app.plant.device_by_node
+
+
+def test_each_scada_routes_the_device_nodes_under_its_own_node(tmp_path: Path) -> None:
+    """A device node is routed by the scada that runs it: the thermistor
+    reader under the secondary scada is in the secondary's plant and
+    absent from the primary's, and the relays under the primary the
+    other way round."""
+    layout = nolan_with(
+        tmp_path, thermistor_reader_under_the_secondary_scada, board_simulated=False
+    )
+
+    primary = app_on("gw.nolan", layout).plant.device_by_node
+    secondary = app2_on("gw.nolan", layout).plant.device_by_node
+
+    assert "gw108-thermistor-reader" not in primary
+    assert isinstance(secondary["gw108-thermistor-reader"], Ads1115ThermistorInput)
+    assert "store-pump-relay" in primary
+    assert set(secondary) == {"gw108-thermistor-reader"}
+
+
 @pytest.mark.asyncio
 async def test_a_simulated_house_relay_is_driven_through_the_plant_by_its_node_name() -> None:
     app = app_on("gw.house0.no.sieg.hazel")
@@ -246,6 +343,8 @@ async def test_a_simulated_house_relay_is_driven_through_the_plant_by_its_node_n
 async def test_the_secondary_scada_has_a_plant_with_nothing_behind_it(
     request: pytest.FixtureRequest,
 ) -> None:
+    """The secondary routes for the nodes under s2, and none of them in
+    this layout asks the plant for a device."""
     async with ScadaLiveTest(request=request) as h:
         plant = h.child2_app.plant
         assert plant.device_by_node == {}
