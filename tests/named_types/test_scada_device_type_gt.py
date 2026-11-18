@@ -39,11 +39,34 @@ def test_gw1_scada_device_type_gt_axiom_5_energized_level_range() -> None:
     assert_refused(ScadaDeviceTypeGt, d, "Axiom 5")
 
 
-def test_gw1_scada_device_type_gt_axiom_6_rejects_two_buses() -> None:
+def with_second_bus(name: str, number: int) -> dict:
     d = krida_double_relay_board_16_device_type.model_dump(
         by_alias=True, exclude_none=True
     )
-    d["BusList"] = d["BusList"] + [
-        {"Name": "SecondBus", "BusNumber": 3, "TypeName": "i2c.bus", "Version": "000"}
+    [first] = d["BusList"]
+    d["BusList"] = [
+        first,
+        {"Name": name, "BusNumber": number, "TypeName": "i2c.bus", "Version": "000"},
     ]
-    assert_refused(ScadaDeviceTypeGt, d, "Axiom 6 \\(SingleBus\\)")
+    return d
+
+
+def test_gw1_scada_device_type_gt_axiom_6_a_rejects_a_repeated_bus_name() -> None:
+    [first] = krida_double_relay_board_16_device_type.BusList
+    d = with_second_bus(first.Name, first.BusNumber + 1)
+
+    assert_refused(ScadaDeviceTypeGt, d, "Axiom 6 \\(BusUniqueness\\) clause a")
+
+
+def test_gw1_scada_device_type_gt_axiom_6_b_rejects_a_repeated_bus_number() -> None:
+    [first] = krida_double_relay_board_16_device_type.BusList
+    d = with_second_bus("SecondBus", first.BusNumber)
+
+    assert_refused(ScadaDeviceTypeGt, d, "Axiom 6 \\(BusUniqueness\\) clause b")
+
+
+def test_gw1_scada_device_type_gt_axiom_6_accepts_two_distinct_buses() -> None:
+    [first] = krida_double_relay_board_16_device_type.BusList
+    d = with_second_bus("SecondBus", first.BusNumber + 1)
+
+    assert len(ScadaDeviceTypeGt.model_validate(d).BusList) == 2

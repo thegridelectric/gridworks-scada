@@ -152,6 +152,24 @@ def test_adapter_number_comes_from_the_record(
     assert opened == [3]
 
 
+def test_a_record_with_two_buses_fails_the_boot_with_the_reason(
+    bus_app: ScadaApp, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The record may declare two buses; this actor drives one and has no
+    rule for which, so it refuses rather than opening the first."""
+    board = real_board(
+        bus_app,
+        [
+            {"Name": "DefaultBus", "BusNumber": 1, "TypeName": "i2c.bus", "Version": "000"},
+            {"Name": "SecondBus", "BusNumber": 3, "TypeName": "i2c.bus", "Version": "000"},
+        ],
+    )
+    monkeypatch.setattr(bus_app.hardware_layout, "scada_board", lambda: board)
+
+    with pytest.raises(ValueError, match="declares 2 buses in BusList"):
+        I2cBus(BUS_NAME, bus_app)
+
+
 def test_registered_actor_instantiates(bus_app: ScadaApp) -> None:
     node = bus_app.hardware_layout.node(BUS_NAME)
     assert node is not None
