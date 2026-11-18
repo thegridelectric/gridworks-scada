@@ -1,5 +1,5 @@
 $schema: "https://json-schema.org/draft/2020-12/schema"
-$id: "https://schemas.electricity.works/types/layout.lite/013"
+$id: "https://schemas.electricity.works/types/layout.lite/014"
 
 title: "layout.lite"
 type: object
@@ -83,11 +83,17 @@ properties:
       MachineHandle resolves to the entry whose NodeName is the handle's last
       dotted segment.
 
+  Tariff:
+    $ref: "https://schemas.electricity.works/types/gw.tou.tariff/000"
+    description: >
+      The time-of-use tariff the home is billed on, as the running scada's
+      operational params state it.
+
   TypeName:
     const: "layout.lite"
 
   Version:
-    const: "013"
+    const: "014"
 
 required:
   - FromGNodeAlias
@@ -100,10 +106,41 @@ required:
   - DataChannels
   - DerivedChannels
   - StateMachines
+  - Tariff
   - TypeName
   - Version
 
 additionalProperties: false
+
+examples:
+  - |
+    {
+      "FromGNodeAlias": "d1.isone.me.versant.keene.beech.scada",
+      "CreatedMs": 1704067200000,
+      "MessageId": "9cff2689-eadc-4577-94ea-6d86d0d23e9e",
+      "HardwareLayoutTypeName": "gw.house0.layout",
+      "ZoneList": [],
+      "CriticalZoneList": [],
+      "ShNodes": [
+        {"Name": "s", "ActorClass": "PrimaryScada", "ShNodeId": "da9a0427-d6c0-44c0-b51c-492c1e580dc5", "TypeName": "spaceheat.node.gt", "Version": "303"}
+      ],
+      "DataChannels": [],
+      "DerivedChannels": [],
+      "StateMachines": [],
+      "Tariff": {
+        "Alias": "versant.a1.home.eco.bonus",
+        "DisplayName": "Home Eco Rate with Bonus Meter",
+        "TimezoneStr": "America/New_York",
+        "OnPeakWindows": [
+          {"Start": "07:00", "End": "12:00", "Days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], "TypeName": "gw.tou.window", "Version": "000"},
+          {"Start": "16:00", "End": "20:00", "Days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], "TypeName": "gw.tou.window", "Version": "000"}
+        ],
+        "TypeName": "gw.tou.tariff",
+        "Version": "000"
+      },
+      "TypeName": "layout.lite",
+      "Version": "014"
+    }
 
 x-gridworks:
   owner: "gridworks-energy"

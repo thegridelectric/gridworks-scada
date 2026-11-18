@@ -8,10 +8,11 @@ from sema_snapshot.sema.types.data_channel_gt import DataChannelGt
 from sema_snapshot.sema.types.derived_channel_gt import DerivedChannelGt
 from sema_snapshot.sema.types.spaceheat_node_gt import SpaceheatNodeGt
 from sema_snapshot.sema.types.state_machine import StateMachine
+from sema_snapshot.sema.types.tou_tariff import TouTariff
 
 
 class LayoutLite(SemaType):
-    """Sema: https://schemas.electricity.works/types/layout.lite/013"""
+    """Sema: https://schemas.electricity.works/types/layout.lite/014"""
 
     from_g_node_alias: LeftRightDot
     created_ms: UTCMilliseconds
@@ -23,8 +24,9 @@ class LayoutLite(SemaType):
     data_channels: list[DataChannelGt]
     derived_channels: list[DerivedChannelGt]
     state_machines: list[StateMachine]
+    tariff: TouTariff
     type_name: Literal["layout.lite"] = "layout.lite"
-    version: Literal["013"] = "013"
+    version: Literal["014"] = "014"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> "LayoutLite":

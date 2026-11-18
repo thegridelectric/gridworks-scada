@@ -1,6 +1,6 @@
 {
   "TypeName": "flo.params",
-  "Version": "001",
+  "Version": "002",
   "GNodeAlias": "hw1.isone.me.versant.keene.oak",
   "CreatedMs": 1762008900000,
   "StartUnixS": 1762009200,
@@ -9,15 +9,10 @@
     60,
     60
   ],
-  "LmpUsdMwhList": [
-    28.14,
-    28.53,
-    46.38
-  ],
-  "DistUsdMwhList": [
-    50.13,
-    50.13,
-    487.63
+  "PriceUsdMwhList": [
+    86.696,
+    87.086,
+    634.912
   ],
   "OatFList": [
     30.0,
@@ -35,6 +30,7 @@
     122.5
   ],
   "WeatherForecastId": "5f1c2b3a-8d4e-4f60-9a7b-1c2d3e4f5a6b",
+  "PriceForecastId": "0b6f4c1e-5a3d-4e9b-8f27-6c1d2e3f4a5b",
   "SeasonalStorageMode": "BufferOnly",
   "TanksModeled": 1,
   "GallonsPerTank": 120,

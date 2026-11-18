@@ -1,0 +1,32 @@
+{
+  "TypeName": "flo.tank.store.path",
+  "Version": "000",
+  "StoreLayers": 12,
+  "TopFList": [
+    160,
+    158,
+    160
+  ],
+  "MiddleFList": [
+    130,
+    128,
+    131
+  ],
+  "BottomFList": [
+    100,
+    100,
+    101
+  ],
+  "Thermocline1List": [
+    8,
+    6,
+    8
+  ],
+  "Thermocline2List": [
+    11,
+    9,
+    10
+  ],
+  "EmptyStoreWh": 20000,
+  "FullStoreWh": 45000
+}

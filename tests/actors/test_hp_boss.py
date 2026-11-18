@@ -658,3 +658,39 @@ async def test_release_returns_the_pump_and_hp_boss_re_enforces_it(app: ScadaApp
     deliver(actor, boss.name, turn(boss.handle, actor.node.handle, TurnHpOnOff.TurnOn))
     assert nacks_to_admin(sent) == []
     assert actor.state in (HpBossState.HpOn, HpBossState.PreparingToTurnOn)
+
+
+@pytest.mark.asyncio
+async def test_the_sieg_ready_timeout_reports_turn_off(app: ScadaApp, monkeypatch: pytest.MonkeyPatch) -> None:
+    """StratProtect: two minutes without SiegLoopReady, hp-boss opens the
+    call relay and goes HpOff under a command of its own, reported as a
+    TurnOff event so the atomic passes the report axiom."""
+    import actors.hp_boss.hp_boss as hp_boss_module
+
+    scada = app.scada
+    capture(scada)
+    scada.set_command_tree(scada.local_control)
+    actor = hp_boss_actor(app)
+    if not (scada.layout.has_sieg_loop and selected_strategy(actor.ops) is SiegLoopStrategy.StratProtect):
+        pytest.skip("the timeout exists only under StratProtect")
+    actor.state = HpBossState.HpOff
+    sent = capture(actor)
+    boss = scada.local_control
+    deliver(actor, boss.name, turn(boss.handle, actor.node.handle, TurnHpOnOff.TurnOn))
+    assert actor.state == HpBossState.PreparingToTurnOn
+
+    async def no_wait(seconds: float) -> None:
+        return None
+
+    monkeypatch.setattr(hp_boss_module.asyncio, "sleep", no_wait)
+    await actor._waiting_to_turn_on()
+    assert actor.state == HpBossState.HpOff
+    assert reported_states(sent)[-1] == HpBossState.HpOff
+    own = actor.fsm_reports[-1]
+    assert (own.ReportType, own.EventEnum, own.Event, own.FromState, own.ToState) == (
+        FsmReportType.Event,
+        TurnHpOnOff.enum_name(),
+        TurnHpOnOff.TurnOff,
+        HpBossState.PreparingToTurnOn,
+        HpBossState.HpOff,
+    )

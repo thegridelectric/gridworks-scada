@@ -6,7 +6,8 @@ import pytest
 from gwproto import Message
 from pydantic import BaseModel, ValidationError
 
-from gwsproto.named_types import FloOptimalPath
+from gwsproto.enums import MarketPriceUnit, MarketQuantityUnit
+from gwsproto.named_types import FloOptimalPath, FloPreviousRun, PriceQuantityUnitless
 
 
 class NotAWord(BaseModel):
@@ -22,3 +23,17 @@ def test_a_word_wraps_under_its_own_type_name() -> None:
     plans = FloOptimalPath(StartUnixS=1762009200, StepDurationMinutes=[60, 60], HpAvgWList=[3000, 0], StoreWhList=[38500, 31200])
     message = Message(Src="ltn", Dst="s", Payload=plans)
     assert message.Header.MessageType == "flo.optimal.path"
+
+
+def test_the_cleared_run_wraps_as_flo_previous_run() -> None:
+    run = FloPreviousRun(
+        Path=FloOptimalPath(StartUnixS=1762009200, StepDurationMinutes=[60, 60], HpAvgWList=[3000, 0], StoreWhList=[38500, 31200]),
+        ClearedPairIndex=1,
+        ClearedPair=PriceQuantityUnitless(PriceX1000=150000, QuantityX1000=3000),
+        PriceUnit=MarketPriceUnit.USDPerMWh,
+        QuantityUnit=MarketQuantityUnit.AvgkW,
+        NextSlotPriceX1000=142500,
+        CreatedMs=1762009260000,
+    )
+    message = Message(Src="ltn", Dst="s", Payload=run)
+    assert message.Header.MessageType == "flo.previous.run"

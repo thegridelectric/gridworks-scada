@@ -69,11 +69,15 @@ initial_targets:
     energy.instruction:
       versions: ["000"]
     flo.params:
-      versions: ["001"]
+      versions: ["002"]
+    gw.price.forecast:
+      versions: ["000"]
     flo.params.house0:
       versions: ["007"]
-    flo.recommendation:
+    flo.previous.run:
       versions: ["000"]
+    flo.recommendation:
+      versions: ["001"]
     flo.refusal:
       versions: ["000"]
     flow.hall.params:
@@ -231,9 +235,9 @@ initial_targets:
     i2c.write.reg:
       versions: ["000"]
     latest.price:
-      versions: ["000"]
+      versions: ["001"]
     layout.lite:
-      versions: ["013"]
+      versions: ["014"]
     linear.one.dimensional.calibration:
       versions: ["000"]
     machine.states:

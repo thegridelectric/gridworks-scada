@@ -1,0 +1,57 @@
+{
+  "TypeName": "layout.lite",
+  "Version": "014",
+  "FromGNodeAlias": "d1.isone.me.versant.keene.beech.scada",
+  "CreatedMs": 1704067200000,
+  "MessageId": "9cff2689-eadc-4577-94ea-6d86d0d23e9e",
+  "HardwareLayoutTypeName": "gw.house0.layout",
+  "ZoneList": [],
+  "CriticalZoneList": [],
+  "ShNodes": [
+    {
+      "TypeName": "spaceheat.node.gt",
+      "Version": "303",
+      "Name": "s",
+      "ActorClass": "PrimaryScada",
+      "ShNodeId": "da9a0427-d6c0-44c0-b51c-492c1e580dc5"
+    }
+  ],
+  "DataChannels": [],
+  "DerivedChannels": [],
+  "StateMachines": [],
+  "Tariff": {
+    "TypeName": "gw.tou.tariff",
+    "Version": "000",
+    "Alias": "versant.a1.home.eco.bonus",
+    "DisplayName": "Home Eco Rate with Bonus Meter",
+    "TimezoneStr": "America/New_York",
+    "OnPeakWindows": [
+      {
+        "TypeName": "gw.tou.window",
+        "Version": "000",
+        "Start": "07:00",
+        "End": "12:00",
+        "Days": [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday"
+        ]
+      },
+      {
+        "TypeName": "gw.tou.window",
+        "Version": "000",
+        "Start": "16:00",
+        "End": "20:00",
+        "Days": [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday"
+        ]
+      }
+    ]
+  }
+}

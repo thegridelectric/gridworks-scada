@@ -72,7 +72,7 @@ from gwsproto.enums import (FiveVBossState, HpBossState, LeafAllyBufferOnlyState
 
 from gwsproto.named_types import ( ActuatorsReady,
     AdminDispatch, AdminAnalogDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
-    FloOptimalPath, FloParams, FloRecommendation,
+    FloOptimalPath, FloParams, FloPreviousRun, FloRecommendation,
     FsmEvent, Glitch, GoDormant, CommandInterface, CommandTransition, LayoutLite, NoNewContractWarning,
     ResetHpKeepValue, ScadaControlCapabilities,
     SendControlCapabilities, SendLayout, SetLwtControlParams, SetTargetLwt, SiegLoopEndpointValveAdjustment,
@@ -406,7 +406,7 @@ class Scada(PrimeActor, ScadaInterface):
                     self.process_fsm_full_report(from_node, payload)
                 except Exception as e:
                     self.logger.error(f"problem with process_fsm_full_report: \n {e}")
-            case FloOptimalPath() | FloParams() | FloRecommendation():
+            case FloOptimalPath() | FloParams() | FloPreviousRun() | FloRecommendation():
                 # The LTN's record of its FLO run, addressed to the scada so the
                 # broker journals it; nothing for the scada to do with it.
                 pass
@@ -1017,6 +1017,22 @@ class Scada(PrimeActor, ScadaInterface):
             )
             self._data.latest_channel_values[ch.Name] = payload.ValueList[idx]
             self._data.latest_channel_unix_ms[ch.Name] = payload.ScadaReadTimeUnixMs
+            # Posts to the derived generator
+            capturer = self._layout.parent_node(ch.captured_by_node) if channel_name in self._layout.data_channels else self.node
+            if (
+                channel_name in self._layout.data_channels
+                and self._layout.feeds_derived([channel_name])
+                and (capturer is None or capturer.Name != self.node.Name)
+            ):
+                self._send_to(
+                    self.derived_generator,
+                    SingleReading(
+                        ChannelName=ch.Name,
+                        Value=payload.ValueList[idx],
+                        ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs,
+                    ),
+                    from_node,
+                )
             if ch.Name in self.channel_subscribers:
                 self.forward_to_channel_subscribers(
                     from_node,
@@ -2220,6 +2236,7 @@ class Scada(PrimeActor, ScadaInterface):
             DataChannels=[ch.to_gt() for ch in self.layout.data_channels.values()],
             DerivedChannels=[ch.to_gt() for ch in self.layout.derived_channels.values()],
             StateMachines=declared_state_machines(self.layout, self.ops),
+            Tariff=self.ops.Tariff,
             CreatedMs=int(time.time() * 1000),
             MessageId=str(uuid.uuid4()),
         )

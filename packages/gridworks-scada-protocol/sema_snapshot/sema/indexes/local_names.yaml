@@ -59,6 +59,7 @@ enums:
   pico.board.variant: pico.board.variant
   pico.cycler.event: pico.cycler.event
   pico.cycler.state: pico.cycler.state
+  price.component.name: price.component.name
   primary.pump.control: primary.pump.control
   reboot.picos: reboot.picos
   relay.closed.or.open: relay.closed.or.open
@@ -109,8 +110,11 @@ types:
   flo.optimal.path: flo.optimal.path
   flo.params: flo.params
   flo.params.house0: flo.params.house0
+  flo.path.penalties.bruce: flo.path.penalties.bruce
+  flo.previous.run: flo.previous.run
   flo.recommendation: flo.recommendation
   flo.refusal: flo.refusal
+  flo.tank.store.path: flo.tank.store.path
   flo.tuning.alice: flo.tuning.alice
   flo.tuning.bruce: flo.tuning.bruce
   flow.hall.params: flow.hall.params
@@ -139,6 +143,7 @@ types:
   gw.nolan.family.params: nolan.family.params
   gw.nolan.layout: nolan.layout
   gw.operational.params: operational.params
+  gw.price.forecast: price.forecast
   gw.recorded.setpoints: recorded.setpoints
   gw.scada.commit: scada.commit
   gw.state.machine: state.machine
@@ -201,6 +206,7 @@ types:
   pico.flow.module.component.gt: pico.flow.module.component.gt
   pico.tank.module.component.gt: pico.tank.module.component.gt
   power.watts: power.watts
+  price.component: price.component
   price.quantity.unitless: price.quantity.unitless
   relay.control.config: relay.control.config
   report: report

@@ -1,4 +1,3 @@
-import csv
 import asyncio
 from pathlib import Path
 from datetime import datetime
@@ -49,7 +48,7 @@ from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.data_classes.sh_node import ShNode
 from gwsproto.enums import (
     LogLevel,
-    MarketPriceUnit, MarketQuantityUnit,
+    MarketPriceUnit, MarketQuantityUnit, Quantity,
     TelemetryName, RelayClosedOrOpen, SeasonalStorageMode,
     SlowDispatchContractStatus, ServiceMode
 )
@@ -59,7 +58,8 @@ from actors.hydronic.store_temps import scrub_and_fill_store_temps
 from actors.ltn.contract_handler import LtnContractHandler
 
 from gwsproto.named_types import (
-    Bid, FloOptimalPath, FloParams, FloRecommendation, FloRefusal, Glitch, HouseOperatingStatus, LatestPrice,
+    Bid, FloOptimalPath, FloParams, FloPreviousRun, FloRecommendation, FloRefusal, Glitch, HouseOperatingStatus, LatestPrice,
+    PriceForecast,
     LayoutLite, NoNewContractWarning, OperationalParams, SendLayout,
     SlowContractHeartbeat, SlowContractRejection,
     SnapshotSpaceheat, WaterStore,
@@ -79,50 +79,26 @@ from actors.ltn.data import LtnData
 from actors.ltn.market import RJB, cleared_pair_index, market_slot_name, slot_is_current
 from actors.ltn.flo_service import FLO_DST, flo_alias
 from actors.ltn.flo_request import (
-    PreviousRun,
+    PriceForecastMissesSlot,
     SeasonalFillForecast,
     StoreState,
     build_flo_params,
+    load_forecast_kwh,
     load_previous_run,
     next_slot_start_s,
     previous_run_for,
+    rswt_forecast_f,
     save_previous_run,
     seconds_to_slot_start,
+    WATER_KWH_PER_KG_K,
 )
 
 
-class PriceForecast(BaseModel):
-    dp_usd_per_mwh: List[float]
-    lmp_usd_per_mwh: List[float]
-
-    @property
-    def total_energy(self) -> List[float]:
-        """Calculate the total price forecast by summing dp and lmp components."""
-        return [dp + lmp for dp, lmp in zip(self.dp_usd_per_mwh, self.lmp_usd_per_mwh)]
-
-
-FORECAST_HOURS = 48
-
-
-def price_forecast_from(
-    timestamps: Sequence[float],
-    dp_usd_per_mwh: Sequence[float],
-    lmp_usd_per_mwh: Sequence[float],
-    now_s: float,
-) -> PriceForecast:
-    """The next FORECAST_HOURS hours of a saved forecast as seen at `now_s`:
-    hours already begun are dropped, and a forecast that ends early is
-    extended by repeating its last hour."""
-    keep = [i for i, t in enumerate(timestamps) if t > now_s]
-    if not keep:
-        raise ValueError("No forecasts available for the next hours!")
-    dp = [dp_usd_per_mwh[i] for i in keep]
-    lmp = [lmp_usd_per_mwh[i] for i in keep]
-    short = FORECAST_HOURS - len(keep)
-    if short > 0:
-        dp = dp + [dp[-1]] * short
-        lmp = lmp + [lmp[-1]] * short
-    return PriceForecast(dp_usd_per_mwh=dp, lmp_usd_per_mwh=lmp)
+# The price service's route for the LTN; the MarketMaker's own forecast
+# route retires it. The kept copy is the word's bytes, read when the
+# service cannot be reached.
+PRICE_FORECAST_URL = "https://price-service.electricity.works/hw1-isone-me-versant-keene-ps/gw0-price-forecast"
+PRICE_FORECAST_FILE = "latest-gw.price.forecast-000.json"
 
 
 class LtnMQTTCodec(MQTTCodec):
@@ -231,7 +207,9 @@ class Ltn(PrimeActor):
         self.report_output_dir.mkdir(parents=True, exist_ok=True)
         self.recommendation: FloRecommendation | None = None
         self._previous_run_file = Path(f"{self.settings.paths.data_dir}/previous_run.json")
-        self.previous_run: PreviousRun | None = load_previous_run(self._previous_run_file)
+        self.previous_run: FloPreviousRun | None = load_previous_run(self._previous_run_file)
+        self.last_four_dist_kwh: list[tuple[int, float | None] | None] = []
+        self.last_four_oat_f: list[tuple[int, float | None] | None] = []
 
         if self.settings.dashboard.print_gui:
             self.dashboard = Dashboard(
@@ -655,6 +633,12 @@ class Ltn(PrimeActor):
         await self.get_weather(session)
         await self.get_price_forecast()
 
+        if self.price_forecast is None:
+            self.log("Not running flo - no price forecast")
+            return
+        if self.weather_forecast is None:
+            self.log("Not running flo - no weather forecast")
+            return
         if not self.layout_lite:
             self.log("Do not have layout lite from scada so not running the FLO... must not be connected!!")
             return
@@ -669,22 +653,18 @@ class Ltn(PrimeActor):
             )
             return
 
-        self.log("Finding thermocline position and top temperature")
         result = await self.get_three_layer_storage_model()
-        self.log(f"{self.seasonal_storage_mode.value} model: {result}")
-
         if result is None:
             self.log("Get thermocline and centroid failed! Not running FLO!")
             return
+        self.log(f"Tank model ({self.seasonal_storage_mode.value}): {result}")
         t, m, b, th1, th2 = result
 
+        self.average_zone_temp_f = await self.average_house_temperature_f()
+        await self.update_dist_kwh_history(slot_start_s)
+        await self.update_oat_f_history(slot_start_s)
         buffer_available_kwh = await self.get_buffer_available_kwh()
-        if self.price_forecast is None:
-            self.log("Not running flo - no price forecast")
-            return
-        if self.weather_forecast is None:
-            self.log("Not running flo - no weather forecast")
-            return
+        
         try:
             self.flo_params = build_flo_params(
                 ops=self.ops,
@@ -693,16 +673,18 @@ class Ltn(PrimeActor):
                 forecast=self.weather_forecast,
                 now_s=self.plant_clock.now(),
                 horizon_hours=self.flo_horizon_hours,
-                lmp_usd_mwh=self.price_forecast.lmp_usd_per_mwh,
-                dist_usd_mwh=self.price_forecast.dp_usd_per_mwh,
+                prices=self.price_forecast,
                 store=StoreState(t, m, b, th1, th2, hp_on=not self.hp_is_off),
                 buffer_available_kwh=buffer_available_kwh,
+                t_room_f=self.average_zone_temp_f,
+                last_four_dist_kwh=self.last_four_dist_kwh,
+                last_four_oat_f=self.last_four_oat_f,
                 g_node_alias=self.g_node_alias,
                 start_unix_s=slot_start_s,
                 created_ms=int(self.plant_clock.now() * 1000),
                 previous=previous_run_for(self.previous_run, slot_start_s),
             )
-        except SeasonalFillForecast as e:
+        except (SeasonalFillForecast, PriceForecastMissesSlot) as e:
             self.log(f"Not running flo - {e}")
             return
         self.log(f"FloParams:\n {self.flo_params.model_dump_json(by_alias=True)}\n")
@@ -852,10 +834,10 @@ class Ltn(PrimeActor):
 
         pq_pairs = self.contract_handler.latest_bid.PqPairs
         self.log(f"Sorted pq pairs: {sorted((x.PriceX1000, x.QuantityX1000) for x in pq_pairs)} (x1000)")
-        self.log(f"Payload price: {payload.PriceTimes1000} (x1000)")
+        self.log(f"Payload price: {payload.PriceX1000} (x1000)")
         # Quantity is AvgkW, so QuantityX1000 is avg_w
         assert self.contract_handler.latest_bid.QuantityUnit == MarketQuantityUnit.AvgkW
-        cleared = cleared_pair_index(pq_pairs, payload.PriceTimes1000)
+        cleared = cleared_pair_index(pq_pairs, payload.PriceX1000)
         avg_w = pq_pairs[cleared].QuantityX1000
         self.log(f"Decided on quantity: {avg_w} WattHours")
         self.keep_cleared_path(cleared)
@@ -873,9 +855,9 @@ class Ltn(PrimeActor):
             self.log("Why am I here")
 
     def keep_cleared_path(self, cleared: int) -> None:
-        """The path the cleared pair leads to, with the price the request
-        forecast for the slot after it: saved as the next run's previous
-        run, and copied to the scada for the record."""
+        """The cleared pair, the path it leads to and the price the request
+        forecast for the slot after it, as one flo.previous.run: saved as
+        the next run's previous run, and sent to the scada for the record."""
         if self.recommendation is None or self.flo_params is None:
             self.log("No recommendation held for this slot; no previous run for the next")
             return
@@ -886,12 +868,17 @@ class Ltn(PrimeActor):
                 f"{self.flo_params.StartUnixS}; no previous run for the next"
             )
             return
-        self.previous_run = PreviousRun(
-            path=path,
-            elec_usd_mwh_now=float(self.flo_params.LmpUsdMwhList[1] + self.flo_params.DistUsdMwhList[1]),
+        self.previous_run = FloPreviousRun(
+            Path=path,
+            ClearedPairIndex=cleared,
+            ClearedPair=self.recommendation.PqPairs[cleared],
+            PriceUnit=self.recommendation.PriceUnit,
+            QuantityUnit=self.recommendation.QuantityUnit,
+            NextSlotPriceX1000=round(self.flo_params.PriceUsdMwhList[1] * 1000),
+            CreatedMs=self.plant_clock.now_ms(),
         )
         save_previous_run(self._previous_run_file, self.previous_run)
-        self._message_for_scada_publish(path)
+        self._message_for_scada_publish(self.previous_run)
         self.log(f"Kept the cleared path: {path.HpAvgWList[:6]} W, store {path.StoreWhList[:6]} Wh")
 
     def fill_missing_store_temps(self) -> None:
@@ -913,22 +900,8 @@ class Ltn(PrimeActor):
             return
         temps = {}
         for ch_name in self.tank_temp_channel_names:
-            raw = self.latest_channel_values.get(ch_name)
-            if raw is None:
-                continue
-            try:
-                unit = self.layout.channel_registry.unit(ch_name)
-                if unit is None:
-                    raise Exception(
-                        f"temperature channels should have units! {ch_name}"
-                    )
-                temp_f = convert_temp_to_f(
-                    raw=raw,
-                    encoding=unit
-                )
-            except Exception as e:
-                note = f"Temperature conversion failed for {ch_name}: {e}"
-                self.log(note)
+            temp_f = self._get_latest_temp_f(ch_name)
+            if temp_f is None:
                 continue
             temps[ch_name] = temp_f
 
@@ -936,31 +909,56 @@ class Ltn(PrimeActor):
         self.fill_missing_store_temps()
         self.temperatures_available = set(self.tank_temp_channel_names) <= self.latest_temps_f.keys()
 
+    def _get_latest_temp_f(self, ch_name: str) -> float | None:
+        raw = self.latest_channel_values.get(ch_name)
+        if raw is None:
+            return None
+        try:
+            unit = self.layout.channel_registry.unit(ch_name)
+            if unit is None:
+                raise Exception(
+                    f"temperature channels should have units! {ch_name}"
+                )
+            return convert_temp_to_f(
+                raw=raw, 
+                encoding=unit
+            )
+        except Exception as e:
+            note = f"Temperature conversion failed for {ch_name}: {e}"
+            self.log(note)
+            return None
+
+    def _get_zone_info(self) -> tuple[list[str], dict[str, float], dict[str, float], dict[str, float]]:
+        circuits = {c.CircuitPosition: c for c in self.layout.hydronic.ZoneCallCircuits}
+        zone_keys: list[str] = []
+        temps: dict[str, float] = {}
+        setpoints: dict[str, float] = {}
+        thermal_mass: dict[str, float] = {}
+        for zone in self.layout.hydronic.Zones:
+            primary = circuits[zone.PrimaryCircuitPosition]
+            set_ch = primary.SetpointChannelName
+            assert set_ch is not None
+            zone_key = set_ch.removesuffix("-set")
+            zone_keys.append(zone_key)
+            thermal_mass[zone_key] = zone.KwhPerDegF
+            if primary.TempChannelName is not None:
+                temp_f = self._get_latest_temp_f(primary.TempChannelName)
+                if temp_f is not None:
+                    temps[zone_key] = round(temp_f, 1)
+            set_f = self._get_latest_temp_f(set_ch)
+            if set_f is not None:
+                setpoints[zone_key] = round(set_f, 1)
+        return zone_keys, temps, setpoints, thermal_mass
+
     async def get_RSWT(self, minus_deltaT=False):
         if self.weather_forecast is None:
             raise Exception("weather_forecast cannot be None here!")
         try:
             curve = self.ops.HeatingCurve
-            alpha = curve.AlphaTimes10 / 10
-            beta = curve.BetaTimes100 / 100
-            gamma = curve.GammaEx6 / 1e6
             weather = self.weather_forecast.next_hours(1, self.plant_clock.now())
-            oat = weather.oat_f[0]
-            ws = weather.wind_speed_mph[0]
-            r = alpha + beta*oat + gamma*ws*(65-oat)
-            rhp= r if r>0 else 0
-            intermediate_rswt = curve.IntermediateRswtF
-            dd_rswt = curve.DdRswtF
-            intermediate_power = curve.IntermediatePowerKw
-            dd_power = curve.DdPowerKw
-            no_power_rswt = -alpha/beta
-            x_rswt = np.array([no_power_rswt, intermediate_rswt, dd_rswt])
-            y_hpower = np.array([0, intermediate_power, dd_power])
-            A = np.vstack([x_rswt**2, x_rswt, np.ones_like(x_rswt)]).T
-            a, b, c = np.linalg.solve(A, y_hpower)
-            c2 = c - rhp
-            rswt = round((-b + (b**2-4*a*c2)**0.5)/(2*a),2)
-            deltaT = curve.DdDeltaTF/curve.DdPowerKw * (a*rswt**2 + b*rswt + c)
+            rhp = load_forecast_kwh(curve, weather, self.average_zone_temp_f, self.last_four_dist_kwh, self.last_four_oat_f)[0]
+            rswt = rswt_forecast_f(curve, [rhp], self.average_zone_temp_f)[0]
+            deltaT = curve.DdDeltaTF/curve.DdPowerKw * rhp
             deltaT = deltaT if deltaT>0 else 0
             if minus_deltaT:
                 return rswt - deltaT
@@ -1124,10 +1122,10 @@ class Ltn(PrimeActor):
             buffer_available_energy = 0
             for bl in buffer_temperatures:
                 if buffer_temperatures[bl] >= rswt_minus_deltaT:
-                    buffer_available_energy += m_layer_kg * 4.187/3600 * (buffer_temperatures[bl]-rswt_minus_deltaT) * 5/9
+                    buffer_available_energy += m_layer_kg * WATER_KWH_PER_KG_K * (buffer_temperatures[bl]-rswt_minus_deltaT) * 5/9
             if round(buffer_available_energy,2) == 0:
                 for bl in buffer_temperatures:
-                    buffer_available_energy += - m_layer_kg * 4.187/3600 * (rswt - buffer_temperatures[bl]) * 5/9
+                    buffer_available_energy += - m_layer_kg * WATER_KWH_PER_KG_K * (rswt - buffer_temperatures[bl]) * 5/9
             self.log(f"Buffer available kWh: {round(buffer_available_energy,2)}")
             return round(buffer_available_energy,2)
         except Exception as e:
@@ -1135,109 +1133,91 @@ class Ltn(PrimeActor):
             return 0
         
     async def get_house_available_kwh(self):
-        setpoints = {}
-        temps = {}
-        thermal_mass = {}
-        zone_names = []
-        for zone_setpoint in [x for x in self.latest_channel_values if 'zone' in x and 'set' in x]:
-            zone_name = zone_setpoint.replace('-set','')
-            zone_names.append(zone_name)
-            # Get setpoints for each zone
-            if self.latest_channel_values[zone_setpoint] is not None:
-                setpoints[zone_name] = round(self.latest_channel_values[zone_setpoint]/1000,1)
-            # Get temperatures for each zone
-            zone_temp = zone_setpoint.replace('-set','-temp')
-            if (zone_temp in self.latest_channel_values and self.latest_channel_values[zone_temp] is not None):
-                temps[zone_name] = round(self.latest_channel_values[zone_temp]/1000,1)
-            # Get thermal mass for each zone
-            zone_name_no_prefix = zone_name[6:] if zone_name[:4]=='zone' else zone_name
-            if zone_name_no_prefix in self.layout.zone_list:
-                zone_index = self.layout.zone_list.index(zone_name_no_prefix)
-                thermal_mass[zone_name] = self.layout.zone_kwh_per_deg_f_list[zone_index]
-
-        self.log(f"Found all zone setpoints: {setpoints}")
-        self.log(f"Found all zone temperatures: {temps}")
-        self.log(f"Found all zone thermal masses: {thermal_mass}")
+        zone_names, temps, setpoints, thermal_mass = self._get_zone_info()
+        self.log(f"Found information about {len(zone_names)} zones")
         house_availale_kwh = 0
         for zone in zone_names:
-            if 'zone4' in zone or 'upstairs' in zone:
-                continue
             if zone in temps and zone in setpoints and zone in thermal_mass:
                 house_availale_kwh += thermal_mass[zone] * (temps[zone] - setpoints[zone])
         house_availale_kwh = round(house_availale_kwh,2)
         self.log(f"House available kWh: {house_availale_kwh}")
         return min(0, house_availale_kwh) # TODO: TEMPORARY only consider negative values
 
+    async def update_dist_kwh_history(self, slot_start_s: int) -> None:
+        """The last four hours of distribution energy."""
+        finished_hour_s = slot_start_s - 3600
+        raw_wh = self.latest_channel_values.get(HCN.last_hour_dist_energy)
+        previous_load_kwh = None if raw_wh is None else raw_wh / 1000
+        entry = (finished_hour_s, previous_load_kwh)
+        self.last_four_dist_kwh = [
+            None if item is None or slot_start_s - item[0] > 4 * 3600 else item
+            for item in self.last_four_dist_kwh
+        ]
+        last = self.last_four_dist_kwh[-1] if self.last_four_dist_kwh else None
+        if last is not None and last[0] == finished_hour_s:
+            self.last_four_dist_kwh[-1] = entry
+        else:
+            self.last_four_dist_kwh = (self.last_four_dist_kwh + [entry])[-4:]
+        self.log(f"Dist energy, last 4 hours (slot, kWh): {self.last_four_dist_kwh}")
+
+    async def update_oat_f_history(self, slot_start_s: int) -> None:
+        """The last four hours of outdoor temperature."""
+        if self.weather_forecast is None:
+            return
+        finished_hour_s = slot_start_s - 3600
+        starts = self.weather_forecast.slice_starts()
+        oat_f = self.weather_forecast.unscaled(Quantity.Temperature)
+        this_hour_oat_f = oat_f[min(range(len(starts)), key=lambda i: abs(starts[i] - finished_hour_s))] if starts else None
+        entry = (finished_hour_s, this_hour_oat_f)
+        self.last_four_oat_f = [
+            None if item is None or slot_start_s - item[0] > 4 * 3600 else item
+            for item in self.last_four_oat_f
+        ]
+        last = self.last_four_oat_f[-1] if self.last_four_oat_f else None
+        if last is not None and last[0] == finished_hour_s:
+            self.last_four_oat_f[-1] = entry
+        else:
+            self.last_four_oat_f = (self.last_four_oat_f + [entry])[-4:]
+        self.log(f"OAT, last 4 hours (slot, °F): {self.last_four_oat_f}")
+
+    async def average_house_temperature_f(self) -> float:
+        dd_room_temp_f = float(self.ops.HeatingCurve.DdRoomTempF)
+        _, zone_temps, _, _ = self._get_zone_info()
+        if not zone_temps:
+            self.log("No zone temperatures available, setting average temperature to DdRoomTempF")
+            return dd_room_temp_f
+        average_temp = round(sum(zone_temps.values()) / len(zone_temps), 1)
+        if average_temp < 40 or average_temp > 80:
+            self.log(f"Average house temperature is out of range ({average_temp}°F), setting to DdRoomTempF")
+            return dd_room_temp_f
+        self.log(f"Average house temperature: {average_temp}°F")
+        return average_temp
+
     async def get_weather(self, session: aiohttp.ClientSession) -> None:
         """The forecast pair from the app's weather source."""
         self.weather_forecast = await self.app.weather_source.forecast(session)
 
     async def get_price_forecast(self) -> None:
-        '''Updates self.price_forecast for the start of next hour. All in USD/MWh'''
+        """The price service's forecast, decoded as the word it serves and
+        kept in the data dir; the kept copy when the service cannot be
+        reached."""
+        kept = Path(f"{self.settings.paths.data_dir}/{PRICE_FORECAST_FILE}")
         try:
-            # Get price forecast from the price service API
-            url = "https://price-service.electricity.works/hw1-isone-me-versant-keene-ps/gw0-price-forecast"
             async with httpx.AsyncClient() as client:
-                response = await client.get(url)
-                if response.status_code == 200:
-                    self.log("Successfully received price forecast from the price service API")
-                    data = response.json()
-                    self.price_forecast = PriceForecast(
-                        dp_usd_per_mwh=data['DistList'],
-                        lmp_usd_per_mwh=data['LmpList'],  
-                    )
-                    # self.log(f"- LMP USD/MWh {self.price_forecast.lmp_usd_per_mwh}")
-                    # self.log(f"- Total energy USD/MWh {[round(x,2) for x in self.price_forecast.total_energy]}")
-                    
-                    # Save price forecast to a local CSV file
-                    prices_file = Path(f"{self.settings.paths.data_dir}/price_forecast.csv")
-                    # Check if current hour's data exists in the existing file
-                    current_hour_row = None
-                    if prices_file.exists():
-                        current_hour_timestamp = data['HourStartS'][0] - 3600
-                        with open(prices_file, 'r', newline='') as f:
-                            reader = csv.reader(f)
-                            next(reader)  # skip the header row
-                            for row in reader:
-                                if float(row[0]) == current_hour_timestamp:
-                                    current_hour_row = row
-                                    break
-                    # Write the new file
-                    with open(prices_file, 'w', newline='') as f:
-                        writer = csv.writer(f)
-                        writer.writerow(['HourStartS', 'DistList', 'LmpList'])
-                        if current_hour_row:
-                            writer.writerow(current_hour_row)
-                        for i in range(len(data['DistList'])):
-                            writer.writerow([data['HourStartS'][i], data['DistList'][i], data['LmpList'][i]])                   
-                    self.log(f"Saved price forecast to {prices_file}")
-                else:
-                    raise Exception(f"Failed to receive price forecast from API, status code: {response.status_code}")
-        
+                response = await client.get(PRICE_FORECAST_URL)
+            if response.status_code != 200:
+                raise ValueError(f"status code {response.status_code}")
+            self.price_forecast = PriceForecast.model_validate_json(response.content)
+            kept.write_bytes(response.content)
+            self.log(f"Received price forecast {self.price_forecast.ForecastUid} from the price service; kept at {kept}")
         except Exception as e:
-            self.log(f"FAILED to receive price forecast from the price service API and/or to save it to a local CSV: {e}")
-            self.log("Trying to read price forecast from the local CSV file")
+            self.log(f"FAILED to receive a price forecast from the price service: {e}. Reading the kept copy.")
             try:
-                # Read the local CSV file with the latest received price forecast
-                file_path = Path(f"{self.settings.paths.data_dir}/price_forecast.csv")
-                with open(file_path, mode='r', newline='') as file:
-                    reader = csv.reader(file)
-                    next(reader)
-                    rows = list(reader)
-                timestamps = [float(row[0]) for row in rows]
-                dist_usd_mwh = [float(row[1]) for row in rows]
-                lmp_usd_mwh = [float(row[2]) for row in rows]
-
-                self.price_forecast = price_forecast_from(
-                    timestamps, dist_usd_mwh, lmp_usd_mwh, self.plant_clock.now()
-                )
-                self.log("Successfully read price forecast from local CSV.")
-                # self.log(f"- LMP USD/MWh {self.price_forecast.lmp_usd_per_mwh}")
-                # self.log(f"- Total energy USD/MWh {[round(x,2) for x in self.price_forecast.total_energy]}")
-
-            except Exception as e:
-                self.log(f"Could not get a price forecast from the local CSV file: {e}.")
-                await self.send_glitch(f"Failed to read price forecast from local CSV file: {e}", log_level=LogLevel.Error)
+                self.price_forecast = PriceForecast.model_validate_json(kept.read_bytes())
+                self.log(f"Read the kept price forecast {self.price_forecast.ForecastUid}")
+            except Exception as kept_e:
+                self.log(f"Could not read the kept price forecast: {kept_e}")
+                await self.send_glitch(f"Failed to read the kept price forecast: {kept_e}", log_level=LogLevel.Error)
 
     async def send_glitch(self, summary, details="", log_level=LogLevel.Info):
         glitch = Glitch(

@@ -5,6 +5,7 @@ from gwsproto.named_types.data_channel_gt import DataChannelGt
 from gwsproto.named_types.spaceheat_node_gt import SpaceheatNodeGt
 from gwsproto.named_types.derived_channel_gt import DerivedChannelGt
 from gwsproto.named_types.gw_state_machine import GwStateMachine
+from gwsproto.named_types.tou_tariff import TouTariff
 from gwsproto.property_format import LeftRightDotStr, UTCMilliseconds, UUID4Str
 from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 from pydantic import model_validator
@@ -13,7 +14,7 @@ from typing_extensions import Self
 
 class LayoutLite(GwsprotoSemaType):
     """
-    Sema: https://schemas.electricity.works/types/layout.lite/013
+    Sema: https://schemas.electricity.works/types/layout.lite/014
     """
 
     FromGNodeAlias: LeftRightDotStr
@@ -26,8 +27,9 @@ class LayoutLite(GwsprotoSemaType):
     DataChannels: List[DataChannelGt]
     DerivedChannels: List[DerivedChannelGt]
     StateMachines: List[GwStateMachine]
+    Tariff: TouTariff
     TypeName: Literal["layout.lite"] = "layout.lite"
-    Version: Literal["013"] = "013"
+    Version: Literal["014"] = "014"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

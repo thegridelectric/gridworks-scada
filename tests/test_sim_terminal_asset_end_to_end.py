@@ -58,7 +58,7 @@
 #   event replay on reconnect.
 #
 # The DAC output experiment we are running RIGHT NOW, seen through this test
-# (experiments/2026-09-05-dac-output-bench/): the bench asks "does a dispatched
+# (experiments/archive/2026-09-05-dac-output-bench/): the bench asks "does a dispatched
 # level reach the chip and does the heartbeat hold it". With rungs 1 and 3 in
 # place it would run locally like this: boot the simple sim layout; assert
 # the outputer's boot verify reads the seeded EEPROM back clean; send an

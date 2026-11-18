@@ -388,13 +388,18 @@ class SiegLoop(House0Hydronic):
 
     def move_ended(self, move: Move, to_state: SiegValveState) -> None:
         """The motor stopped: the move's full report goes to the scada, the
-        relays' atomics as they came and the loop's own last."""
+        relays' atomics as they came and the loop's own last. The event is
+        the boss's command, or for a move the strategy chose the run's
+        direction as the boss would have commanded it."""
+        event = move.event if move.event is not None else move.toward
+        if event is None:
+            raise ValueError(f"move {move.trigger_id} ended with neither a command nor a direction")
         own = FsmAtomicReport(
             MachineHandle=self.node.handle,
             StateEnum=SiegValveState.enum_name(),
             ReportType=FsmReportType.Event,
-            EventEnum=MoveSiegValve.enum_name() if move.event is not None else None,
-            Event=move.event,
+            EventEnum=MoveSiegValve.enum_name(),
+            Event=event,
             FromState=move.from_state,
             ToState=to_state,
             UnixTimeMs=self.services.clock.now_ms(),

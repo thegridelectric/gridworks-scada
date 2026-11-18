@@ -5,7 +5,7 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 class MarketProductName(SemaEnum):
     """
-    Sema: https://schemas.electricity.works/enums/gw.market.product.name/000
+    Sema: https://schemas.electricity.works/enums/gw.market.product.name/001
     """
 
     unknown = auto()
@@ -16,6 +16,7 @@ class MarketProductName(SemaEnum):
     rt30gate5 = auto()
     rt15gate5 = auto()
     rt5gate5 = auto()
+    rt60gate1 = auto()
 
     @classmethod
     def default(cls) -> "MarketProductName":
@@ -31,4 +32,4 @@ class MarketProductName(SemaEnum):
 
     @classmethod
     def enum_version(cls) -> str:
-        return "000"
+        return "001"

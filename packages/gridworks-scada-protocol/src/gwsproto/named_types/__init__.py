@@ -39,8 +39,11 @@ from gwsproto.named_types.events import RemainingElecEvent, ReportEvent
 from gwsproto.named_types.flo_optimal_path import FloOptimalPath
 from gwsproto.named_types.flo_params import FloParams
 from gwsproto.named_types.flo_params_house0 import FloParamsHouse0
+from gwsproto.named_types.flo_path_penalties_bruce import FloPathPenaltiesBruce
+from gwsproto.named_types.flo_previous_run import FloPreviousRun
 from gwsproto.named_types.flo_recommendation import FloRecommendation
 from gwsproto.named_types.flo_refusal import FloRefusal
+from gwsproto.named_types.flo_tank_store_path import FloTankStorePath
 from gwsproto.named_types.flow_hall_params import FlowHallParams
 from gwsproto.named_types.fsm_atomic_report import FsmAtomicReport
 from gwsproto.named_types.fsm_event import FsmEvent
@@ -122,6 +125,8 @@ from gwsproto.named_types.pico_flow_module_component_gt import PicoFlowModuleCom
 from gwsproto.named_types.pico_missing import PicoMissing
 from gwsproto.named_types.pico_tank_module_component_gt import PicoTankModuleComponentGt
 from gwsproto.named_types.power_watts import PowerWatts
+from gwsproto.named_types.price_component import PriceComponent
+from gwsproto.named_types.price_forecast import PriceForecast
 from gwsproto.named_types.price_quantity_unitless import PriceQuantityUnitless
 from gwsproto.named_types.recorded_setpoints import RecordedSetpoints
 from gwsproto.named_types.relay_control_config import RelayControlConfig
@@ -235,8 +240,11 @@ __all__ = [
     "FloOptimalPath",
     "FloParams",
     "FloParamsHouse0",
+    "FloPathPenaltiesBruce",
+    "FloPreviousRun",
     "FloRecommendation",
     "FloRefusal",
+    "FloTankStorePath",
     "FlowHallParams",
     "FsmAtomicReport",
     "FsmEvent",
@@ -309,6 +317,8 @@ __all__ = [
     "PicoMissing",
     "PicoTankModuleComponentGt",
     "PowerWatts",
+    "PriceComponent",
+    "PriceForecast",
     "PriceQuantityUnitless",
     "RecordedSetpoints",
     "RelayControlConfig",
