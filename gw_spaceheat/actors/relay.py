@@ -362,29 +362,41 @@ class Relay(ShNodeActor):
             return
         self.log(f"{relay_pin_event} set")
 
-        self.reports_by_trigger[message.TriggerId].append(
-            FsmAtomicReport(
-                MachineHandle=self.node.handle,
-                StateEnum="relay.pin",
-                ReportType=FsmReportType.Event,
-                EventEnum=ChangeRelayPin.enum_name(),
-                Event=relay_pin_event,
-                FromState=old_pin_state.value,
-                ToState=new_pin_state.value,
-                UnixTimeMs=now_ms,
-                TriggerId=message.TriggerId,
-            )
-        )
-        boss = self.boss_by_trigger.get(message.TriggerId)
-        if boss is not None:
-            self.send_state(now_ms=now_ms)
-            self._send_to(
-                command_reply.report_destination(boss, self.primary_scada),
-                FsmFullReport(
-                    FromName=self.name,
+        # This runs as a task with nobody above it to catch an exception,
+        # so a failure in the relay's word about the write is reported
+        # here; otherwise it dies unseen when the task is collected.
+        try:
+            self.reports_by_trigger[message.TriggerId].append(
+                FsmAtomicReport(
+                    MachineHandle=self.node.handle,
+                    StateEnum="relay.pin",
+                    ReportType=FsmReportType.Event,
+                    EventEnum=ChangeRelayPin.enum_name(),
+                    Event=relay_pin_event,
+                    FromState=old_pin_state.value,
+                    ToState=new_pin_state.value,
+                    UnixTimeMs=now_ms,
                     TriggerId=message.TriggerId,
-                    AtomicList=self.reports_by_trigger[message.TriggerId]
                 )
+            )
+            boss = self.boss_by_trigger.get(message.TriggerId)
+            if boss is not None:
+                self.send_state(now_ms=now_ms)
+                self._send_to(
+                    command_reply.report_destination(boss, self.primary_scada),
+                    FsmFullReport(
+                        FromName=self.name,
+                        TriggerId=message.TriggerId,
+                        AtomicList=self.reports_by_trigger[message.TriggerId]
+                    )
+                )
+        except Exception as e:  # noqa: BLE001
+            self._send_glitch(
+                "relay-report-failed",
+                f"{message.EventName}: pin set, reporting raised {e!r}; no "
+                f"report sent for trigger {message.TriggerId}, machine holds "
+                f"{self.state}",
+                LogLevel.Critical,
             )
 
     async def _read_pin_confirmed(
