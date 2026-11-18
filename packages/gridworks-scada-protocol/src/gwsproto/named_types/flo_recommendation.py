@@ -13,7 +13,7 @@ from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
 class FloRecommendation(GwsprotoSemaType):
-    """Sema: https://schemas.electricity.works/types/flo.recommendation/001"""
+    """Sema: https://schemas.electricity.works/types/flo.recommendation/002"""
 
     BidderAlias: LeftRightDotStr
     PqPairs: List[PriceQuantityUnitless]
@@ -27,7 +27,7 @@ class FloRecommendation(GwsprotoSemaType):
     FloGitCommit: GitCommit
     CreatedMs: UTCMilliseconds
     TypeName: Literal["flo.recommendation"] = "flo.recommendation"
-    Version: Literal["001"] = "001"
+    Version: Literal["002"] = "002"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

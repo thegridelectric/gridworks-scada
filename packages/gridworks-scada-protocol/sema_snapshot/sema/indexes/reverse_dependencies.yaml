@@ -79,15 +79,15 @@ types:
       used_by:
       - flo.params:003
       - flo.previous.run:000
-      - flo.recommendation:001
+      - flo.recommendation:002
   flo.path.penalties.bruce:
-    '000':
+    '001':
       used_by:
-      - flo.recommendation:001
+      - flo.recommendation:002
   flo.tank.store.path:
     '000':
       used_by:
-      - flo.recommendation:001
+      - flo.recommendation:002
   flo.tuning.alice:
     '000':
       used_by:
@@ -371,7 +371,7 @@ types:
       used_by:
       - bid:000
       - flo.previous.run:000
-      - flo.recommendation:001
+      - flo.recommendation:002
   relay.control.config:
     '000':
       used_by:
@@ -647,7 +647,7 @@ enums:
       - bid:000
       - flo.params.house0:007
       - flo.previous.run:000
-      - flo.recommendation:001
+      - flo.recommendation:002
       - gw.price.forecast:000
       - latest.price:001
   market.quantity.unit:
@@ -655,7 +655,7 @@ enums:
       used_by:
       - bid:000
       - flo.previous.run:000
-      - flo.recommendation:001
+      - flo.recommendation:002
   pico.board.variant:
     '000':
       used_by:
@@ -758,7 +758,7 @@ formats:
     - slow.contract.heartbeat:002
   git.commit:
     used_by:
-    - flo.recommendation:001
+    - flo.recommendation:002
     - gw.scada.commit:000
   handle.name:
     used_by:
@@ -786,7 +786,7 @@ formats:
     - energy.instruction:000
     - flo.params.house0:007
     - flo.params:003
-    - flo.recommendation:001
+    - flo.recommendation:002
     - flo.refusal:000
     - fsm.atomic.report:001
     - fsm.event:000
@@ -836,7 +836,7 @@ formats:
     - latest.price:001
   non.empty.string:
     used_by:
-    - flo.recommendation:001
+    - flo.recommendation:002
     - flo.refusal:000
     - gw.command.transition:000
     - gw.weather.channel.gt:002
@@ -1034,7 +1034,7 @@ formats:
     - energy.instruction:000
     - flo.params:003
     - flo.previous.run:000
-    - flo.recommendation:001
+    - flo.recommendation:002
     - flo.refusal:000
     - fsm.atomic.report:001
     - fsm.event:000

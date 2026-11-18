@@ -1,4 +1,4 @@
-"""flo.path.penalties.bruce 000: the twin agrees with the snapshot on the
+"""flo.path.penalties.bruce 001: the twin agrees with the snapshot on the
 word's example and refuses each axiom's violation."""
 
 import copy
@@ -8,13 +8,14 @@ from tests.named_types.sema_oracle import assert_conforms, assert_refused
 
 EXAMPLE = {
     "RswtPenaltyUsdList": [0.0, 0.0, 0.42],
+    "UnmetLoadPenaltyUsdList": [0.0, 0.0, 1.2],
     "StabilityPenaltyUsdList": [0.0, 0.15, 0.0],
     "ShortCyclePenaltyUsdList": [0.0, 0.0, 0.0],
     "TerminalCostUsd": 1.87,
     "TerminalCostEmptyStoreUsd": 5.6,
     "PathCostUsd": 8.3,
     "TypeName": "flo.path.penalties.bruce",
-    "Version": "000",
+    "Version": "001",
 }
 
 

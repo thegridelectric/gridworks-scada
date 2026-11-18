@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-11-18T10:15:00Z"
+  last_updated: "2026-11-18T11:10:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -1571,17 +1571,17 @@ types:
             - "uuid4.str"
 
   flo.path.penalties.bruce:
-    latest_version: "000"
+    latest_version: "001"
     owner: gridworks-energy
     versioning_strategy: "literal"
     description: "The penalties the bruce optimizer charged along one flo.optimal.path, per step, and the cost it assigned to the path's final state."
 
     versions:
-      "000":
-        schema_url: "https://schemas.electricity.works/types/flo.path.penalties.bruce/000"
-        created: "2026-11-09T20:20:00Z"
+      "001":
+        schema_url: "https://schemas.electricity.works/types/flo.path.penalties.bruce/001"
+        created: "2026-11-18T11:05:00Z"
         status: "published"
-        summary: "RswtPenaltyUsdList, StabilityPenaltyUsdList, ShortCyclePenaltyUsdList (USD per step), TerminalCostUsd, TerminalCostEmptyStoreUsd, PathCostUsd; axioms PenaltyListLengths, TerminalCostBound."
+        summary: "- UnmetLoadPenaltyUsdList: add, assigned zeros"
         direct_dependencies:
           structural: []
 
@@ -1607,21 +1607,21 @@ types:
             - "utc.milliseconds"
 
   flo.recommendation:
-    latest_version: "001"
+    latest_version: "002"
     owner: gridworks-energy
     versioning_strategy: "literal"
     description: "A FLO's answer to one flo.params request: the bid curve to submit for the slot and, per price-quantity pair, the optimal path that quantity leads to, with the FLO's provenance."
 
     versions:
-      "001":
-        schema_url: "https://schemas.electricity.works/types/flo.recommendation/001"
-        created: "2026-11-09T20:20:00Z"
+      "002":
+        schema_url: "https://schemas.electricity.works/types/flo.recommendation/002"
+        created: "2026-11-18T11:10:00Z"
         status: "published"
-        summary: "- StoreStateList: add (optional, oneOf flo.tank.store.path) - PathPenaltiesList: add (optional, oneOf flo.path.penalties.bruce)"
+        summary: "- PathPenaltiesList: flo.path.penalties.bruce 000 -> 001"
         direct_dependencies:
           structural:
             - "flo.optimal.path:000"
-            - "flo.path.penalties.bruce:000"
+            - "flo.path.penalties.bruce:001"
             - "flo.tank.store.path:000"
             - "git.commit"
             - "left.right.dot"
@@ -1693,7 +1693,7 @@ types:
         schema_url: "https://schemas.electricity.works/types/flo.tuning.bruce/002"
         created: "2026-11-18T10:00:00Z"
         status: "published"
-        summary: "- UnmetLoadPenaltyEnabled: add, assigned true - UnmetLoadPenaltyWeight: add, assigned 10"
+        summary: "- UnmetLoadPenaltyEnabled: add, assigned false - UnmetLoadPenaltyWeight: add, assigned 10"
         direct_dependencies:
           structural:
             - "non.negative.int"

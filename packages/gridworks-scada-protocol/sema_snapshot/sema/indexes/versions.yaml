@@ -174,11 +174,11 @@ types:
         summary: "- FloGitCommit: add"
 
   flo.path.penalties.bruce:
-    latest_version: "000"
+    latest_version: "001"
     versioning_strategy: "literal"
     versions:
-      "000":
-        summary: "RswtPenaltyUsdList, StabilityPenaltyUsdList, ShortCyclePenaltyUsdList (USD per step), TerminalCostUsd, TerminalCostEmptyStoreUsd, PathCostUsd; axioms PenaltyListLengths, TerminalCostBound."
+      "001":
+        summary: "- UnmetLoadPenaltyUsdList: add, assigned zeros"
 
   flo.previous.run:
     latest_version: "000"
@@ -188,13 +188,11 @@ types:
         summary: "Path (flo.optimal.path), ClearedPairIndex, ClearedPair with PriceUnit and QuantityUnit, NextSlotPriceX1000, CreatedMs; axiom PathStartsAtTheBid."
 
   flo.recommendation:
-    latest_version: "001"
+    latest_version: "002"
     versioning_strategy: "literal"
     versions:
-      "001":
-        summary: >
-          - StoreStateList: add (optional, oneOf flo.tank.store.path)
-          - PathPenaltiesList: add (optional, oneOf flo.path.penalties.bruce)
+      "002":
+        summary: "- PathPenaltiesList: flo.path.penalties.bruce 000 -> 001"
 
   flo.refusal:
     latest_version: "000"
@@ -223,7 +221,7 @@ types:
     versions:
       "002":
         summary: >
-          - UnmetLoadPenaltyEnabled: add, assigned true
+          - UnmetLoadPenaltyEnabled: add, assigned false
           - UnmetLoadPenaltyWeight: add, assigned 10
 
   flow.hall.params:

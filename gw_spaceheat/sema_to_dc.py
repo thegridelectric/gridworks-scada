@@ -245,15 +245,36 @@ def check_tank_capture_deltas(word: SemaLayout, ops_word: OperationalParams) -> 
             )
 
 
+def _lift_flo_tuning_bruce(ops: dict[str, Any]) -> dict[str, Any]:
+    """A flo.tuning.bruce 001 inside gw.operational.params 000, lifted to 002.
+
+    The parent word did not gain a version, so the codec will not upgrade the
+    nested tuning. Sema's 001-to-002 upgrade adds the unmet-load penalty off,
+    at weight 10. The caller's dict is left as authored."""
+    tuning = ops.get("FloTuning")
+    if (
+        not isinstance(tuning, dict)
+        or tuning.get("TypeName") != "flo.tuning.bruce"
+        or tuning.get("Version") != "001"
+    ):
+        return ops
+    lifted = dict(tuning)
+    lifted["UnmetLoadPenaltyEnabled"] = False
+    lifted["UnmetLoadPenaltyWeight"] = 10.0
+    lifted["Version"] = "002"
+    return {**ops, "FloTuning": lifted}
+
+
 def decode_operational_params(ops: dict[str, Any]) -> OperationalParams:
-    """Decode the operational-params artifact."""
+    """Decode the operational-params artifact. A flo.tuning.bruce 001 is
+    lifted to 002 with the unmet-load penalty off."""
     type_name = ops.get("TypeName")
     if type_name != OperationalParams.type_name_value():
         raise ValueError(
             f"Operational params TypeName {type_name!r} is not "
             f"{OperationalParams.type_name_value()!r}."
         )
-    return OperationalParams.model_validate(ops)
+    return OperationalParams.model_validate(_lift_flo_tuning_bruce(ops))
 
 
 def assemble_runtime_layout(
