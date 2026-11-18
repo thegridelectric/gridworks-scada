@@ -3,25 +3,26 @@ from typing import List, Literal, Optional
 from pydantic import StrictInt, model_validator
 from typing_extensions import Self
 
-from gwsproto.enums import MarketPriceUnit, PriceComponentName
+from gwsproto.enums import MarketPriceUnit, PriceComponentName, PriceStage
 from gwsproto.named_types.price_component import PriceComponent
 from gwsproto.property_format import LeftRightDotStr, MarketSlotName, UTCMilliseconds, UUID4Str
 from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
 class LatestPrice(GwsprotoSemaType):
-    """Sema: https://schemas.electricity.works/types/latest.price/001"""
+    """Sema: https://schemas.electricity.works/types/latest.price/002"""
 
     FromGNodeAlias: LeftRightDotStr
     PriceX1000: StrictInt
     PriceUnit: MarketPriceUnit
     MarketSlotName: MarketSlotName
+    PriceStage: PriceStage
     Components: List[PriceComponent]
     TariffAlias: Optional[LeftRightDotStr] = None
     CreatedMs: Optional[UTCMilliseconds] = None
     MessageId: UUID4Str
     TypeName: Literal["latest.price"] = "latest.price"
-    Version: Literal["001"] = "001"
+    Version: Literal["002"] = "002"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

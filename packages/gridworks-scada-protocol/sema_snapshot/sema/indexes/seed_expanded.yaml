@@ -1,6 +1,6 @@
 metadata:
   generated_from: indexes/public_registry.yaml
-  generated_at: '2026-11-15T02:19:48Z'
+  generated_at: '2026-11-16T07:35:51Z'
   note: Transitive closure of initial_targets
 initial_targets:
 - ads.channel.config:000
@@ -106,7 +106,8 @@ initial_targets:
 - i2c.write.bit:000
 - i2c.write.byte:000
 - i2c.write.reg:000
-- latest.price:001
+- dispatch.terms.first.isone.hack:000
+- latest.price:002
 - layout.lite:014
 - linear.one.dimensional.calibration:000
 - machine.states:000
@@ -131,9 +132,9 @@ initial_targets:
 - sim.sensor.component.gt:000
 - single.machine.state:000
 - single.reading:000
-- slow.contract.heartbeat:002
+- slow.contract.heartbeat:003
 - slow.contract.rejection:000
-- slow.dispatch.contract:000
+- slow.dispatch.contract:001
 - snapshot.spaceheat:003
 - spaceheat.node.gt:303
 - spaceheat.telemetry.quantity.projection:001
@@ -184,7 +185,7 @@ initial_targets:
 - gw1.seasonal.storage.mode:000
 - gw1.service.mode:000
 - gw1.sim.device.type:000
-- gw1.slow.dispatch.contract.status:000
+- gw1.slow.dispatch.contract.status:001
 - gw1.unit:003
 - gw2.lc.top.state:000
 - heat.pump.control:000
@@ -203,6 +204,7 @@ initial_targets:
 - market.quantity.unit:000
 - move.sieg.valve:001
 - pico.board.variant:000
+- price.stage:000
 - pico.cycler.event:000
 - pico.cycler.state:000
 - primary.pump.control:000
@@ -393,8 +395,8 @@ worklist:
       '000':
         path: definitions/enums/gw1.sim.device.type/000.yaml
     gw1.slow.dispatch.contract.status:
-      '000':
-        path: definitions/enums/gw1.slow.dispatch.contract.status/000.yaml
+      '001':
+        path: definitions/enums/gw1.slow.dispatch.contract.status/001.yaml
     gw1.unit:
       '003':
         path: definitions/enums/gw1.unit/003.yaml
@@ -458,6 +460,9 @@ worklist:
     price.component.name:
       '000':
         path: definitions/enums/price.component.name/000.yaml
+    price.stage:
+      '000':
+        path: definitions/enums/price.stage/000.yaml
     primary.pump.control:
       '000':
         path: definitions/enums/primary.pump.control/000.yaml
@@ -582,6 +587,9 @@ worklist:
     dfr.config:
       '000':
         path: definitions/types/dfr.config/000.yaml
+    dispatch.terms.first.isone.hack:
+      '000':
+        path: definitions/types/dispatch.terms.first.isone.hack/000.yaml
     egauge.register.config:
       '000':
         path: definitions/types/egauge.register.config/000.yaml
@@ -865,8 +873,8 @@ worklist:
       '000':
         path: definitions/types/i2c.write.reg/000.yaml
     latest.price:
-      '001':
-        path: definitions/types/latest.price/001.yaml
+      '002':
+        path: definitions/types/latest.price/002.yaml
     layout.lite:
       '014':
         path: definitions/types/layout.lite/014.yaml
@@ -943,14 +951,14 @@ worklist:
       '000':
         path: definitions/types/single.reading/000.yaml
     slow.contract.heartbeat:
-      '002':
-        path: definitions/types/slow.contract.heartbeat/002.yaml
+      '003':
+        path: definitions/types/slow.contract.heartbeat/003.yaml
     slow.contract.rejection:
       '000':
         path: definitions/types/slow.contract.rejection/000.yaml
     slow.dispatch.contract:
-      '000':
-        path: definitions/types/slow.dispatch.contract/000.yaml
+      '001':
+        path: definitions/types/slow.dispatch.contract/001.yaml
     snapshot.spaceheat:
       '003':
         path: definitions/types/snapshot.spaceheat/003.yaml

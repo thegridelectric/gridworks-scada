@@ -1,10 +1,11 @@
 {
   "TypeName": "latest.price",
-  "Version": "001",
+  "Version": "002",
   "FromGNodeAlias": "hw1.isone.me.versant.keene",
   "PriceX1000": 628052,
   "PriceUnit": "USDPerMWh",
   "MarketSlotName": "e.rt60gate5.hw1.isone.me.versant.keene.1794412800",
+  "PriceStage": "Provisional",
   "Components": [
     {
       "TypeName": "price.component",

@@ -95,8 +95,8 @@ def offer(ltn) -> SlowContractHeartbeat:
             StartS=start_s,
             DurationMinutes=60,
             AvgPowerWatts=1000,
-            OilBoilerOn=False,
             ContractId=str(uuid.uuid4()),
+            DispatchTerms="dispatch.terms.first.isone.hack",
         ),
         Status=SlowDispatchContractStatus.Created,
         MessageCreatedMs=int(time.time() * 1000),
@@ -220,6 +220,85 @@ async def test_an_accepted_offer_reaches_the_ally(
             "ERROR waiting for the scada to take the offer",
         )
         assert scada.auto_state == MainAutoState.LeafTransactiveNode
+
+
+@pytest.mark.asyncio
+async def test_an_amendment_under_a_scada_that_gives_the_contract_up_gets_the_refusal(
+    request: pytest.FixtureRequest, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The amendment goes through the same refusal gate as every heartbeat
+    under a held contract: a scada that has gone blind answers the LTN's
+    Amended with TerminatedByScada and its reason, not an ack, and the
+    amended body is never held."""
+    layout_file, ops_file = PAIRS["house0-orange"]
+    ops_path = heating_ops(tmp_path, (layout_file, ops_file))
+    layout = load_layout(CONFIG / layout_file, ops_path)
+    async with ScadaLiveTest(request=request, layout=layout, ops_path=ops_path) as tst:
+        tst.start_child1()
+        scada = tst.child1_app.scada
+        tst.start_parent()
+        await tst.await_for(
+            lambda: tst.child_to_parent_link.active(),
+            "ERROR waiting for scada to ltn link",
+        )
+        ltn = tst.parent_app.ltn
+        await tst.await_for(
+            lambda: ltn.operating_status is not None and ltn.accepts_dispatch,
+            "ERROR waiting for the LTN to see the scada accepting dispatch",
+        )
+        heartbeats: list[SlowContractHeartbeat] = []
+        ltn_hb = ltn.contract_handler.process_slow_contract_heartbeat
+
+        def record_hb(hb: SlowContractHeartbeat) -> None:
+            heartbeats.append(hb)
+            ltn_hb(hb)
+
+        monkeypatch.setattr(ltn.contract_handler, "process_slow_contract_heartbeat", record_hb)
+
+        offered = send_offer(ltn)
+        await tst.await_for(
+            lambda: any(
+                hb.Contract.ContractId == offered.Contract.ContractId
+                and hb.Status == SlowDispatchContractStatus.Received
+                for hb in heartbeats
+            ),
+            "ERROR waiting for the LTN to receive the ack of the offer",
+        )
+        assert scada.auto_state == MainAutoState.LeafTransactiveNode
+
+        # The scada goes blind; the next heartbeat it handles is the amendment.
+        monkeypatch.setattr(Scada, "buffer_fresh", lambda self: False)
+        received = [hb for hb in heartbeats if hb.Status == SlowDispatchContractStatus.Received][-1]
+        amended = SlowContractHeartbeat(
+            FromNode=ltn.node.name,
+            Contract=offered.Contract.model_copy(update={"AvgPowerWatts": 3000}),
+            PreviousStatus=SlowDispatchContractStatus.Received,
+            Status=SlowDispatchContractStatus.Amended,
+            Cause="Final price: 3000 Wh",
+            MessageCreatedMs=int(time.time() * 1000),
+            MyDigit=7,
+            YourLastDigit=received.MyDigit,
+        )
+        ltn.contract_handler.latest_hb = amended
+        ltn.services.send_threadsafe(
+            Message(Src=ltn.node.name, Dst=CoreNodeNames.primary_scada, Payload=amended)
+        )
+        await tst.await_for(
+            lambda: any(
+                hb.Contract.ContractId == offered.Contract.ContractId
+                and hb.Status == SlowDispatchContractStatus.TerminatedByScada
+                for hb in heartbeats
+            ),
+            "ERROR waiting for the LTN to receive the termination",
+        )
+        [ended] = [hb for hb in heartbeats if hb.Status == SlowDispatchContractStatus.TerminatedByScada]
+        assert ended.Reason == DispatchRefusalReason.ScadaBlind
+        assert not any(
+            hb.Status == SlowDispatchContractStatus.Active and hb.Contract.AvgPowerWatts == 3000
+            for hb in heartbeats
+        )
+        assert scada.contract_handler.latest_scada_hb is None
+        assert ltn.contract_handler.latest_hb is None
 
 
 # --- admin mid-contract ---------------------------------------------------------

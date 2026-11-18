@@ -145,6 +145,12 @@ types:
       - spaceheat.name
       types: []
       versionless_types: []
+  dispatch.terms.first.isone.hack:
+    '000':
+      enums: []
+      formats: []
+      types: []
+      versionless_types: []
   egauge.register.config:
     '000':
       enums: []
@@ -1393,10 +1399,11 @@ types:
       - i2c.reg.address:000
       versionless_types: []
   latest.price:
-    '001':
+    '002':
       enums:
       - market.price.unit:000
       - price.component.name:000
+      - price.stage:000
       formats:
       - left.right.dot
       - market.slot.name
@@ -1706,10 +1713,10 @@ types:
       types: []
       versionless_types: []
   slow.contract.heartbeat:
-    '002':
+    '003':
       enums:
       - gw.dispatch.refusal.reason:000
-      - gw1.slow.dispatch.contract.status:000
+      - gw1.slow.dispatch.contract.status:001
       formats:
       - decimal.digit
       - left.right.dot
@@ -1719,7 +1726,7 @@ types:
       - utc.seconds
       - uuid4.str
       types:
-      - slow.dispatch.contract:000
+      - slow.dispatch.contract:001
       versionless_types: []
   slow.contract.rejection:
     '000':
@@ -1732,7 +1739,7 @@ types:
       types: []
       versionless_types: []
   slow.dispatch.contract:
-    '000':
+    '001':
       enums: []
       formats:
       - left.right.dot

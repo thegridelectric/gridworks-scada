@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-11-14T22:30:00Z"
+  last_updated: "2026-11-16T07:20:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -602,16 +602,18 @@ enums:
         status: "staging"
 
   gw1.slow.dispatch.contract.status:
-    latest_version: "000"
+    latest_version: "001"
     owner: gridworks-energy
     enum_type: "versioned"
-    description: "Lifecycle status of a slow dispatch contract as stated on a heartbeat: Created, Received, Confirmed, Active, the two terminations, and the completion outcomes. Default Unknown so an unknown status is not acted on."
+    description: "Lifecycle status of a slow dispatch contract as stated on a heartbeat: Created, Received, Confirmed, Active, Amended, the two terminations, and the completion outcomes. Default Unknown so an unknown status is not acted on."
 
     versions:
-      "000":
-        schema_url: "https://schemas.electricity.works/enums/gw1.slow.dispatch.contract.status/000"
-        created: "2026-01-14T16:15:00Z"
+      "001":
+        schema_url: "https://schemas.electricity.works/enums/gw1.slow.dispatch.contract.status/001"
+        created: "2026-11-16T06:20:00Z"
         status: "published"
+        added_values:
+          - "Amended"
 
   gw1.unit:
     latest_version: "003"
@@ -857,6 +859,18 @@ enums:
         schema_url: "https://schemas.electricity.works/enums/price.component.name/000"
         created: "2026-11-11T20:25:00Z"
         status: "published"
+
+  price.stage:
+    latest_version: "000"
+    owner: gridworks-energy
+    enum_type: "versioned"
+    description: "The stage of a MarketMaker's commitment to a market slot's price."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/enums/price.stage/000"
+        created: "2026-11-15T16:50:00Z"
+        status: "staging"
 
   primary.pump.control:
     owner: gridworks-energy
@@ -1420,6 +1434,21 @@ types:
           structural:
             - "positive.int"
             - "spaceheat.name"
+
+  dispatch.terms.first.isone.hack:
+    latest_version: "000"
+    owner: gridworks-energy
+    versioning_strategy: "literal"
+    description: "The first slow dispatch terms, a constant: the standing agreement every hourly slow.dispatch.contract in the Keene market is an instance of."
+
+    versions:
+      "000":
+        schema_url: "https://schemas.electricity.works/types/dispatch.terms.first.isone.hack/000"
+        created: "2026-11-16T06:20:00Z"
+        status: "staging"
+        summary: "Initial Sema version"
+        direct_dependencies:
+          structural: []
 
   egauge.register.config:
     latest_version: "000"
@@ -3272,23 +3301,24 @@ types:
             - "uuid4.str"
 
   latest.price:
-    latest_version: "001"
+    latest_version: "002"
     owner: gridworks-energy
     versioning_strategy: "literal"
-    description: "The price of one market slot, published by the MarketMaker that runs the slot's market."
+    description: "The price of one market slot at one stage, published by the MarketMaker that runs the slot's market."
 
     versions:
-      "001":
-        schema_url: "https://schemas.electricity.works/types/latest.price/001"
-        created: "2026-11-13T13:40:00Z"
-        status: "published"
-        summary: "- PriceTimes1000: renamed PriceX1000 - Components: add, assigned as one Unknown component with the whole price - TariffAlias: add (optional) - CreatedMs: add (optional)"
+      "002":
+        schema_url: "https://schemas.electricity.works/types/latest.price/002"
+        created: "2026-11-15T16:50:00Z"
+        status: "staging"
+        summary: "- PriceStage: add, assigned Final"
         direct_dependencies:
           structural:
             - "left.right.dot"
             - "market.price.unit:000"
             - "market.slot.name"
             - "price.component:000"
+            - "price.stage:000"
             - "utc.milliseconds"
             - "uuid4.str"
           axiom:
@@ -3773,23 +3803,23 @@ types:
             - "utc.milliseconds"
 
   slow.contract.heartbeat:
-    latest_version: "002"
+    latest_version: "003"
     owner: gridworks-energy
     versioning_strategy: "literal"
     description: "One party's statement about a slow dispatch contract: the contract, its status as that party sees it, and the chained digits and proof tying it to the counterparty's last heartbeat."
 
     versions:
-      "002":
-        schema_url: "https://schemas.electricity.works/types/slow.contract.heartbeat/002"
-        created: "2026-10-13T11:00:00Z"
+      "003":
+        schema_url: "https://schemas.electricity.works/types/slow.contract.heartbeat/003"
+        created: "2026-11-16T07:20:00Z"
         status: "published"
-        summary: "Reason (gw.dispatch.refusal.reason) beside the free Cause, present iff Status is TerminatedByScada (axiom 6), so a terminating heartbeat names why in the scada's one refusal vocabulary."
+        summary: "- Contract: slow.dispatch.contract 000 -> 001, lifted by the nested upgrade - PreviousStatus, Status: gw1.slow.dispatch.contract.status 000 -> 001, with Amended an LTN status (axiom 2a) that takes a Cause (axiom 3)"
         direct_dependencies:
           structural:
             - "decimal.digit"
             - "gw.dispatch.refusal.reason:000"
-            - "gw1.slow.dispatch.contract.status:000"
-            - "slow.dispatch.contract:000"
+            - "gw1.slow.dispatch.contract.status:001"
+            - "slow.dispatch.contract:001"
             - "spaceheat.name"
             - "utc.milliseconds"
 
@@ -3813,17 +3843,17 @@ types:
             - "uuid4.str"
 
   slow.dispatch.contract:
-    latest_version: "000"
+    latest_version: "001"
     owner: gridworks-energy
     versioning_strategy: "literal"
-    description: "A slow dispatch contract between an LTN and a scada: one window from a five-minute boundary over which the scada holds average electrical power to AvgPowerWatts, or runs the oil boiler instead."
+    description: "A slow dispatch contract between an LTN and a scada: one window from a five-minute boundary over which the scada holds average electrical power to AvgPowerWatts; an instance of the dispatch terms it names."
 
     versions:
-      "000":
-        schema_url: "https://schemas.electricity.works/types/slow.dispatch.contract/000"
-        created: "2025-03-03T20:40:00Z"
+      "001":
+        schema_url: "https://schemas.electricity.works/types/slow.dispatch.contract/001"
+        created: "2026-11-16T07:20:00Z"
         status: "published"
-        summary: "The wire form gridworks-scada has sent since f38e1e4a (2025-03-03): ScadaAlias + StartS + DurationMinutes + AvgPowerWatts + OilBoilerOn + ContractId. Axiom 1: StartS on a five-minute boundary. Axiom 2: OilBoilerOn means AvgPowerWatts 0."
+        summary: "- DispatchTerms: add, the name of the dispatch terms constant the contract is an instance of; a 000 contract does not state it, so the upgrade requires context - OilBoilerOn: remove, with axiom 2; the contract states electrical power only"
         direct_dependencies:
           structural:
             - "left.right.dot"

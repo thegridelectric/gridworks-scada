@@ -22,6 +22,7 @@ from gwsproto.named_types.data_channel_gt import DataChannelGt
 from gwsproto.named_types.derived_channel_gt import DerivedChannelGt
 from gwsproto.named_types.device_component_gt import DeviceComponentGt
 from gwsproto.named_types.dfr_config import DfrConfig
+from gwsproto.named_types.dispatch_terms_first_isone_hack import DispatchTermsFirstIsoneHack
 from gwsproto.named_types.dispatch_ack import DispatchAck
 from gwsproto.named_types.dispatch_contract_go_dormant import DispatchContractGoDormant
 from gwsproto.named_types.dispatch_contract_go_live import DispatchContractGoLive
@@ -224,6 +225,7 @@ __all__ = [
 
     "DeviceComponentGt",
     "DfrConfig",
+    "DispatchTermsFirstIsoneHack",
     "DispatchAck",
     "DispatchContractGoDormant",
     "DispatchContractGoLive",

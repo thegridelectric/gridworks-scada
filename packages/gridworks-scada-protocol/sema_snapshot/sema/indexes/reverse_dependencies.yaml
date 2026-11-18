@@ -365,7 +365,7 @@ types:
   price.component:
     '000':
       used_by:
-      - latest.price:001
+      - latest.price:002
   price.quantity.unitless:
     '001':
       used_by:
@@ -421,9 +421,9 @@ types:
       - gw.recorded.setpoints:000
       - snapshot.spaceheat:003
   slow.dispatch.contract:
-    '000':
+    '001':
       used_by:
-      - slow.contract.heartbeat:002
+      - slow.contract.heartbeat:003
   spaceheat.node.gt:
     '303':
       used_by:
@@ -500,7 +500,7 @@ enums:
     '000':
       used_by:
       - gw.house.operating.status:000
-      - slow.contract.heartbeat:002
+      - slow.contract.heartbeat:003
       - slow.contract.rejection:000
   gw.market.product.name:
     '001':
@@ -582,9 +582,9 @@ enums:
       - gw.house.operating.status:000
       - gw.operational.params:000
   gw1.slow.dispatch.contract.status:
-    '000':
+    '001':
       used_by:
-      - slow.contract.heartbeat:002
+      - slow.contract.heartbeat:003
   gw1.unit:
     '003':
       used_by:
@@ -649,7 +649,7 @@ enums:
       - flo.previous.run:000
       - flo.recommendation:001
       - gw.price.forecast:000
-      - latest.price:001
+      - latest.price:002
   market.quantity.unit:
     '000':
       used_by:
@@ -671,8 +671,12 @@ enums:
   price.component.name:
     '000':
       used_by:
-      - latest.price:001
+      - latest.price:002
       - price.component:000
+  price.stage:
+    '000':
+      used_by:
+      - latest.price:002
   reboot.picos:
     '000':
       used_by:
@@ -755,7 +759,7 @@ enums:
 formats:
   decimal.digit:
     used_by:
-    - slow.contract.heartbeat:002
+    - slow.contract.heartbeat:003
   git.commit:
     used_by:
     - flo.recommendation:001
@@ -807,7 +811,7 @@ formats:
     - gw.weather.forecast:002
     - gw.weather.seasonal.template.gt:000
     - heating.forecast:000
-    - latest.price:001
+    - latest.price:002
     - layout.lite:014
     - machine.states:000
     - new.command.tree:003
@@ -819,7 +823,7 @@ formats:
     - send.layout:001
     - single.machine.state:000
     - slow.contract.rejection:000
-    - slow.dispatch.contract:000
+    - slow.dispatch.contract:001
     - snapshot.spaceheat:003
     - ta.deed:000
     - ticklist.hall.report:000
@@ -833,7 +837,7 @@ formats:
   market.slot.name:
     used_by:
     - bid:000
-    - latest.price:001
+    - latest.price:002
   non.empty.string:
     used_by:
     - flo.recommendation:001
@@ -960,7 +964,7 @@ formats:
     - sim.pico.btu.meter.component.gt:000
     - sim.pico.flow.module.component.gt:000
     - sim.pico.tank.module.component.gt:001
-    - slow.dispatch.contract:000
+    - slow.dispatch.contract:001
     - spaceheat.node.gt:303
     - tank.module.params:200
   positive.int.as.str:
@@ -1012,7 +1016,7 @@ formats:
     - sim.pico.btu.meter.component.gt:000
     - sim.pico.flow.module.component.gt:000
     - single.reading:000
-    - slow.contract.heartbeat:002
+    - slow.contract.heartbeat:003
     - spaceheat.node.gt:303
     - synced.readings:000
     - tank.module.params:200
@@ -1046,7 +1050,7 @@ formats:
     - gw.scada.commit:000
     - gw.weather.forecast:002
     - i2c.result:001
-    - latest.price:001
+    - latest.price:002
     - layout.lite:014
     - machine.states:000
     - new.command.tree:003
@@ -1057,7 +1061,7 @@ formats:
     - send.layout:001
     - single.machine.state:000
     - single.reading:000
-    - slow.contract.heartbeat:002
+    - slow.contract.heartbeat:003
     - slow.contract.rejection:000
     - snapshot.spaceheat:003
     - synced.readings:000
@@ -1075,7 +1079,7 @@ formats:
     - gw.price.forecast:000
     - heating.forecast:000
     - report:003
-    - slow.dispatch.contract:000
+    - slow.dispatch.contract:001
     - ta.deed:000
   uuid4.str:
     used_by:
@@ -1116,7 +1120,7 @@ formats:
     - i2c.write.bit:000
     - i2c.write.byte:000
     - i2c.write.reg:000
-    - latest.price:001
+    - latest.price:002
     - layout.lite:014
     - pico.btu.meter.component.gt:000
     - pico.flow.module.component.gt:001
@@ -1129,7 +1133,7 @@ formats:
     - sim.pico.tank.module.component.gt:001
     - sim.sensor.component.gt:000
     - slow.contract.rejection:000
-    - slow.dispatch.contract:000
+    - slow.dispatch.contract:001
     - snapshot.spaceheat:003
     - spaceheat.node.gt:303
     - ta.deed:000

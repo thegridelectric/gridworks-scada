@@ -1,5 +1,5 @@
 $schema: "https://json-schema.org/draft/2020-12/schema"
-$id: "https://schemas.electricity.works/types/slow.contract.heartbeat/002"
+$id: "https://schemas.electricity.works/types/slow.contract.heartbeat/003"
 
 title: "slow.contract.heartbeat"
 type: object
@@ -7,7 +7,8 @@ description: >
   One party's statement about a slow dispatch contract: the contract, its
   status as that party sees it, and the chained digits and proof that tie
   the statement to the counterparty's last one. The LTN and the scada
-  exchange these from offer to completion.
+  exchange these from offer to completion; an amendment is a heartbeat
+  with the same ContractId, a new Contract body and Status Amended.
 
 properties:
   FromNode:
@@ -16,17 +17,17 @@ properties:
       The party speaking: ltn for the LTN, s for the scada.
 
   Contract:
-    $ref: "https://schemas.electricity.works/types/slow.dispatch.contract/000"
+    $ref: "https://schemas.electricity.works/types/slow.dispatch.contract/001"
     description: >
       The contract this heartbeat is about.
 
   PreviousStatus:
-    $ref: "https://schemas.electricity.works/enums/gw1.slow.dispatch.contract.status/000"
+    $ref: "https://schemas.electricity.works/enums/gw1.slow.dispatch.contract.status/001"
     description: >
       The status the sender last stated, when this heartbeat changes it.
 
   Status:
-    $ref: "https://schemas.electricity.works/enums/gw1.slow.dispatch.contract.status/000"
+    $ref: "https://schemas.electricity.works/enums/gw1.slow.dispatch.contract.status/001"
     description: >
       The contract's status as the sender states it.
 
@@ -38,7 +39,7 @@ properties:
   Cause:
     type: string
     description: >
-      Free text on why the contract ended or failed.
+      Free text on why the contract ended, failed or was amended.
 
   Reason:
     $ref: "https://schemas.electricity.works/enums/gw.dispatch.refusal.reason/000"
@@ -79,7 +80,7 @@ properties:
     const: "slow.contract.heartbeat"
 
   Version:
-    const: "002"
+    const: "003"
 
 required:
   - FromNode
@@ -103,10 +104,10 @@ examples:
         "StartS": 1757300400,
         "DurationMinutes": 60,
         "AvgPowerWatts": 3500,
-        "OilBoilerOn": false,
         "ContractId": "9d3b2a1c-8e7f-4a6b-b5c4-d3e2f1a0b9c8",
+        "DispatchTerms": "dispatch.terms.first.isone.hack",
         "TypeName": "slow.dispatch.contract",
-        "Version": "000"
+        "Version": "001"
       },
       "Status": "Created",
       "MessageCreatedMs": 1757300402150,
@@ -114,7 +115,7 @@ examples:
       "MyDigit": 3,
       "SignedProof": "signed_proof_stub",
       "TypeName": "slow.contract.heartbeat",
-      "Version": "002"
+      "Version": "003"
     }
   - |
     {
@@ -124,10 +125,10 @@ examples:
         "StartS": 1757300400,
         "DurationMinutes": 60,
         "AvgPowerWatts": 3500,
-        "OilBoilerOn": false,
         "ContractId": "9d3b2a1c-8e7f-4a6b-b5c4-d3e2f1a0b9c8",
+        "DispatchTerms": "dispatch.terms.first.isone.hack",
         "TypeName": "slow.dispatch.contract",
-        "Version": "000"
+        "Version": "001"
       },
       "PreviousStatus": "Created",
       "Status": "Received",
@@ -138,7 +139,7 @@ examples:
       "YourLastDigit": 3,
       "SignedProof": "signed_proof_stub",
       "TypeName": "slow.contract.heartbeat",
-      "Version": "002"
+      "Version": "003"
     }
 
   - |
@@ -149,10 +150,10 @@ examples:
         "StartS": 1757300400,
         "DurationMinutes": 60,
         "AvgPowerWatts": 3500,
-        "OilBoilerOn": false,
         "ContractId": "9d3b2a1c-8e7f-4a6b-b5c4-d3e2f1a0b9c8",
+        "DispatchTerms": "dispatch.terms.first.isone.hack",
         "TypeName": "slow.dispatch.contract",
-        "Version": "000"
+        "Version": "001"
       },
       "PreviousStatus": "Active",
       "Status": "TerminatedByScada",
@@ -165,7 +166,7 @@ examples:
       "YourLastDigit": 7,
       "SignedProof": "signed_proof_stub",
       "TypeName": "slow.contract.heartbeat",
-      "Version": "002"
+      "Version": "003"
     }
 
 x-gridworks:
@@ -181,8 +182,8 @@ x-gridworks:
     - number: 2
       name: "StatusAuthority"
       statement: >
-        a. If Status is Created, Confirmed or TerminatedByLtn, FromNode
-           SHALL be ltn and IsAuthoritative SHALL be true.
+        a. If Status is Created, Confirmed, Amended or TerminatedByLtn,
+           FromNode SHALL be ltn and IsAuthoritative SHALL be true.
         b. If Status is Received or TerminatedByScada, FromNode SHALL be
            s and IsAuthoritative SHALL be true.
         c. If Status is CompletedSuccess, CompletedFailureByLtn or
@@ -191,9 +192,9 @@ x-gridworks:
     - number: 3
       name: "CausePresence"
       statement: >
-        Cause SHALL be present if and only if Status is TerminatedByLtn,
-        TerminatedByScada, CompletedUnknownOutcome, CompletedFailureByLtn
-        or CompletedFailureByScada.
+        Cause SHALL be present if and only if Status is Amended,
+        TerminatedByLtn, TerminatedByScada, CompletedUnknownOutcome,
+        CompletedFailureByLtn or CompletedFailureByScada.
 
     - number: 4
       name: "FromNodeIsParty"

@@ -220,7 +220,8 @@ class Scada(PrimeActor, ScadaInterface):
             logger=self.logger.add_category_logger(
                 ContractHandler.LOGGER_NAME,
                 level=self.settings.contract_rep_logging_level,
-            )
+            ),
+            clock=self.services.clock,
         )
         self.initialize_hierarchical_state_data()
 
@@ -310,12 +311,18 @@ class Scada(PrimeActor, ScadaInterface):
         # in-process tests) has no use for it and would leak the thread.
         if isinstance(self.services.clock, TimestepClock):
             self.services.clock.start()
-        # The stored contract is loaded before any message is processed, so
-        # an offer never meets a contract still waiting in the store.
-        loaded_contract_hb = self.contract_handler.initialize()
-        self.resume_task = asyncio.create_task(
-            self.resume_at_first_forecast(loaded_contract_hb), name="contract_resumer"
-        )
+            # Plant time exists from the coordinator's first step, so the
+            # stored contract is judged, and loaded, on that step.
+            self.resume_task = asyncio.create_task(
+                self.load_at_first_step(self.services.clock), name="contract_resumer"
+            )
+        else:
+            # The stored contract is loaded before any message is processed, so
+            # an offer never meets a contract still waiting in the store.
+            loaded_contract_hb = self.contract_handler.initialize()
+            self.resume_task = asyncio.create_task(
+                self.resume_at_first_forecast(loaded_contract_hb), name="contract_resumer"
+            )
         return [
             asyncio.create_task(self.report_sending_task(), name="report_sender"),
             asyncio.create_task(self.snap_sending_task(), name="snap_sender"),
@@ -1209,7 +1216,7 @@ class Scada(PrimeActor, ScadaInterface):
                         FromGNodeAlias=self.g_node_alias,
                         ContractId=ltn_hb.Contract.ContractId,
                         Reason=refusal,
-                        MessageCreatedMs=int(time.time() * 1000),
+                        MessageCreatedMs=self.services.clock.now_ms(),
                     ),
                 )
                 return
@@ -1219,9 +1226,16 @@ class Scada(PrimeActor, ScadaInterface):
                 if self.auto_state == MainAutoState.LocalControl:
                     self.dispatch_contract_live() # sets up the trees, changes state, let's aa and h know
                 elif self.auto_state == MainAutoState.LeafTransactiveNode:
-                    self.send_contract_to_ally(
+                    # the ally is awake and suited up: it suits up once per wake,
+                    # so the ack goes now rather than at a SuitUp that will not come
+                    if self.send_contract_to_ally(
                         self.contract_handler.latest_scada_hb.Contract, "refusing dispatch at the offer"
-                    )
+                    ):
+                        return_hb = self.contract_handler.latest_scada_hb
+            elif self.contract_handler.latest_scada_hb.Contract.ContractId == ltn_hb.Contract.ContractId:
+                # a resend of the offer the scada holds: its ack was lost
+                if self.auto_state == MainAutoState.LeafTransactiveNode:
+                    return_hb = self.contract_handler.reack_hb(ltn_hb)
             elif self.contract_handler.active_contract_has_expired(): # wrap up existing
                 completion_hb = self.contract_handler.scada_contract_completion_hb(
                     "Wrapping up existing contract"
@@ -1235,10 +1249,11 @@ class Scada(PrimeActor, ScadaInterface):
                 self.contract_handler.start_new_contract_hb(ltn_hb)
                 self.process_new_contract()
 
-                self.send_contract_to_ally(
+                # the ally ran the contract just wrapped, so it is awake: ack now
+                if self.send_contract_to_ally(
                     self.contract_handler.latest_scada_hb.Contract, "refusing dispatch at the offer"
-                )
-                # will send hb in process_suit_up, after leaf ally acknowledges
+                ):
+                    return_hb = self.contract_handler.latest_scada_hb
         elif ltn_hb.Status == SlowDispatchContractStatus.TerminatedByLtn:
             raise Exception("Ack! Haven't thought through termination by Ltn ...")
         else:
@@ -1260,7 +1275,12 @@ class Scada(PrimeActor, ScadaInterface):
                     AllyGivesUp(Reason=refusal, Cause="refusing dispatch under a held contract"),
                 )
                 return
-            return_hb = self.contract_handler.update_existing_contract_hb(ltn_hb)
+            if ltn_hb.Status == SlowDispatchContractStatus.Amended:
+                return_hb = self.contract_handler.amend_contract_hb(ltn_hb)
+                if return_hb is not None:
+                    self.send_contract_to_ally(ltn_hb.Contract, "refusing dispatch at the amendment")
+            else:
+                return_hb = self.contract_handler.update_existing_contract_hb(ltn_hb)
 
         if return_hb:
             self._send_to(self.ltn, return_hb) # on completion, will send back a completion
@@ -1307,7 +1327,7 @@ class Scada(PrimeActor, ScadaInterface):
         if not self.contract_handler.prev:
             return False
 
-        elif time.time() > self.contract_handler.prev.grace_period_end_s():
+        elif self.services.clock.now() > self.contract_handler.prev.grace_period_end_s():
             return False
         else:
             return True
@@ -1326,8 +1346,8 @@ class Scada(PrimeActor, ScadaInterface):
         if hb.Status == SlowDispatchContractStatus.TerminatedByScada:
             actual_end_s = hb.MessageCreatedMs / 1000
         delay_s = (actual_end_s +
-                        self.contract_handler.WARNING_MINUTES_AFTER_END * 60 - time.time())
-        await asyncio.sleep(delay_s)
+                        self.contract_handler.WARNING_MINUTES_AFTER_END * 60 - self.services.clock.now())
+        await self.services.clock.sleep(delay_s)
 
         grace_end_s = int(actual_end_s+ self.contract_handler.GRACE_PERIOD_MINUTES* 60)
         # Case 1: latest_scada_hb is None - old contract was properly expired
@@ -1359,7 +1379,7 @@ class Scada(PrimeActor, ScadaInterface):
         # Set backup timer for grace period
         grace_remaining = (self.contract_handler.GRACE_PERIOD_MINUTES -
                         self.contract_handler.WARNING_MINUTES_AFTER_END) * 60
-        await asyncio.sleep(grace_remaining)
+        await self.services.clock.sleep(grace_remaining)
 
         # If still same contract after grace period, force transition to home alone
         if not self.in_grace_period():
@@ -1547,6 +1567,12 @@ class Scada(PrimeActor, ScadaInterface):
             await asyncio.sleep(self.STARTUP_ANNOUNCE_POLL_S)
         await self._data.first_forecast.wait()
         self.send_startup_announcements()
+
+    async def load_at_first_step(self, clock: TimestepClock) -> None:
+        """The stored-contract load of a scada on the coordinator's clock:
+        at the first step, then the resume as on a box."""
+        await clock.first_step()
+        await self.resume_at_first_forecast(self.contract_handler.initialize())
 
     async def resume_at_first_forecast(self, loaded: Optional[SlowContractHeartbeat]) -> None:
         """The stored-contract resume, its own task: a few seconds in (an

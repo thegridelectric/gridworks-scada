@@ -198,8 +198,8 @@ async def test_a_house0_house_cold_with_its_stores_empty_under_a_dispatch_contra
             StartS=(int(time.time()) // 300) * 300 + 300,
             DurationMinutes=60,
             AvgPowerWatts=1000,
-            OilBoilerOn=False,
             ContractId=str(uuid.uuid4()),
+            DispatchTerms="dispatch.terms.first.isone.hack",
         )
         fresh_buffer(scada)
         scada.process_scada_message(scada.ltn, ltn_hb(scada, contract, SlowDispatchContractStatus.Created))

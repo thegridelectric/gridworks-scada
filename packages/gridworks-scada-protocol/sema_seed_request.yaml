@@ -234,8 +234,10 @@ initial_targets:
       versions: ["000"]
     i2c.write.reg:
       versions: ["000"]
+    dispatch.terms.first.isone.hack:
+      versions: ["000"]
     latest.price:
-      versions: ["001"]
+      versions: ["002"]
     layout.lite:
       versions: ["014"]
     linear.one.dimensional.calibration:
@@ -285,11 +287,11 @@ initial_targets:
     single.reading:
       versions: ["000"]
     slow.contract.heartbeat:
-      versions: ["002"]
+      versions: ["003"]
     slow.contract.rejection:
       versions: ["000"]
     slow.dispatch.contract:
-      versions: ["000"]
+      versions: ["001"]
     snapshot.spaceheat:
       versions: ["003"]
     spaceheat.node.gt:
@@ -385,7 +387,7 @@ initial_targets:
     gw1.sim.device.type:
       versions: ["000"]
     gw1.slow.dispatch.contract.status:
-      versions: ["000"]
+      versions: ["001"]
     gw1.unit:
       versions: ["003"]
     gw2.lc.top.state:
@@ -417,6 +419,8 @@ initial_targets:
     move.sieg.valve:
       versions: ["001"]
     pico.board.variant:
+      versions: ["000"]
+    price.stage:
       versions: ["000"]
     pico.cycler.event:
       versions: ["000"]

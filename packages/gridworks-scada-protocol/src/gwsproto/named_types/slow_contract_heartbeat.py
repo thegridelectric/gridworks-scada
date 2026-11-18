@@ -14,7 +14,7 @@ SIGNED_PROOF_STUB = "signed_proof_stub"
 
 
 class SlowContractHeartbeat(GwsprotoSemaType):
-    """Sema: https://schemas.electricity.works/types/slow.contract.heartbeat/002"""
+    """Sema: https://schemas.electricity.works/types/slow.contract.heartbeat/003"""
 
     FromNode: SpaceheatName
     Contract: SlowDispatchContract
@@ -29,7 +29,7 @@ class SlowContractHeartbeat(GwsprotoSemaType):
     YourLastDigit: Optional[DecimalDigit] = None
     SignedProof: str
     TypeName: Literal["slow.contract.heartbeat"] = "slow.contract.heartbeat"
-    Version: Literal["002"] = "002"
+    Version: Literal["003"] = "003"
 
     def __init__(self, **data: Any) -> None:
         # Construction claims authority and signs with the stub until signing
@@ -78,8 +78,8 @@ class SlowContractHeartbeat(GwsprotoSemaType):
     def check_axiom_2(self) -> Self:
         """
         Axiom 2: StatusAuthority.
-        a. If Status is Created, Confirmed or TerminatedByLtn, FromNode SHALL
-           be ltn and IsAuthoritative SHALL be true.
+        a. If Status is Created, Confirmed, Amended or TerminatedByLtn,
+           FromNode SHALL be ltn and IsAuthoritative SHALL be true.
         b. If Status is Received or TerminatedByScada, FromNode SHALL be s
            and IsAuthoritative SHALL be true.
         c. If Status is CompletedSuccess, CompletedFailureByLtn or
@@ -88,11 +88,12 @@ class SlowContractHeartbeat(GwsprotoSemaType):
         if self.Status in [
             SlowDispatchContractStatus.Created,
             SlowDispatchContractStatus.Confirmed,
+            SlowDispatchContractStatus.Amended,
             SlowDispatchContractStatus.TerminatedByLtn,
         ]:
             if self.FromNode != LTN_SH_NODE_NAME or not self.IsAuthoritative:
                 raise ValueError(
-                    f"Axiom 2 (StatusAuthority) failed: {self.Status} requires "
+                    f"Axiom 2 (StatusAuthority, clause a) failed: {self.Status} requires "
                     "FromNode ltn and IsAuthoritative true; got FromNode "
                     f"{self.FromNode}, IsAuthoritative {self.IsAuthoritative}"
                 )
@@ -102,7 +103,7 @@ class SlowContractHeartbeat(GwsprotoSemaType):
         ]:
             if self.FromNode != SCADA_SH_NODE_NAME or not self.IsAuthoritative:
                 raise ValueError(
-                    f"Axiom 2 (StatusAuthority) failed: {self.Status} requires "
+                    f"Axiom 2 (StatusAuthority, clause b) failed: {self.Status} requires "
                     "FromNode s and IsAuthoritative true; got FromNode "
                     f"{self.FromNode}, IsAuthoritative {self.IsAuthoritative}"
                 )
@@ -113,7 +114,7 @@ class SlowContractHeartbeat(GwsprotoSemaType):
         ]:
             if self.IsAuthoritative:
                 raise ValueError(
-                    f"Axiom 2 (StatusAuthority) failed: {self.Status} requires "
+                    f"Axiom 2 (StatusAuthority, clause c) failed: {self.Status} requires "
                     "IsAuthoritative false"
                 )
         return self
@@ -122,11 +123,12 @@ class SlowContractHeartbeat(GwsprotoSemaType):
     def check_axiom_3(self) -> Self:
         """
         Axiom 3: CausePresence.
-        Cause SHALL be present if and only if Status is TerminatedByLtn,
-        TerminatedByScada, CompletedUnknownOutcome, CompletedFailureByLtn or
-        CompletedFailureByScada.
+        Cause SHALL be present if and only if Status is Amended,
+        TerminatedByLtn, TerminatedByScada, CompletedUnknownOutcome,
+        CompletedFailureByLtn or CompletedFailureByScada.
         """
         needs_cause = self.Status in [
+            SlowDispatchContractStatus.Amended,
             SlowDispatchContractStatus.TerminatedByLtn,
             SlowDispatchContractStatus.TerminatedByScada,
             SlowDispatchContractStatus.CompletedUnknownOutcome,
@@ -136,7 +138,7 @@ class SlowContractHeartbeat(GwsprotoSemaType):
         if needs_cause != (self.Cause is not None):
             raise ValueError(
                 "Axiom 3 (CausePresence) failed: Cause is present iff Status is "
-                "a termination, failure or unknown outcome; got Status "
+                "an amendment, termination, failure or unknown outcome; got Status "
                 f"{self.Status}, Cause {self.Cause!r}"
             )
         return self

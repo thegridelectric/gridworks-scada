@@ -94,8 +94,8 @@ def new_contract(scada: Scada) -> SlowDispatchContract:
         StartS=(int(time.time()) // 300) * 300 + 300,
         DurationMinutes=60,
         AvgPowerWatts=1000,
-        OilBoilerOn=False,
         ContractId=str(uuid.uuid4()),
+        DispatchTerms="dispatch.terms.first.isone.hack",
     )
     ENDS[contract.ContractId] = int(time.time()) + SECONDS_TO_END
     return contract

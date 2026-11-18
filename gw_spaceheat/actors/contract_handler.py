@@ -1,7 +1,6 @@
+import datetime
 import json
 import random
-import time
-import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -14,6 +13,8 @@ from gwsproto.names.core.node_names import CoreNodeNames
 
 
 from actors.config import ScadaSettings
+from actors.dispatch_terms import terms_named
+from clock import Clock
 
 
 # The scada's contract store, one file in its data dir.
@@ -41,15 +42,18 @@ class ContractHandler:
         node: ShNode,  # intended to be CoreNodeNames.primary_scada
         timezone: datetime.tzinfo,
         logger: LoggerOrAdapter,
+        clock: Clock,
     ):
         self.settings = settings
         self.layout = layout
         self.node = node
         self.timezone = timezone
         self.logger = logger
+        self.clock = clock  # the plant clock: every contract time is read from it
         self.contract_file = Path(self.settings.paths.data_dir) / CONTRACT_FILE_NAME
         self.latest_scada_hb: Optional[SlowContractHeartbeat] = None
         self.prev: Optional[SlowContractHeartbeat] = None
+        self.amendments: int = 0  # of the contract latest_scada_hb holds
         self.latest_power_w: int = 0
         self.energy_used_wh: float = 0
         self.energy_updated_s: Optional[float] = None
@@ -57,7 +61,7 @@ class ContractHandler:
     def update_energy_usage(self, latest_power_w: int) -> None:
         """Updates the live dispatch contract (self.latest_scada_hb.contract)
         """
-        now = time.time()
+        now = self.clock.now()
         if not self.latest_scada_hb:
             return
         if self.energy_updated_s is None:
@@ -88,7 +92,7 @@ class ContractHandler:
     def active_contract_has_expired(self) -> bool:
         if not self.latest_scada_hb:
             return False
-        if time.time() > self.latest_scada_hb.Contract.contract_end_s():
+        if self.clock.now() > self.latest_scada_hb.Contract.contract_end_s():
             return True
         return False
 
@@ -109,6 +113,7 @@ class ContractHandler:
             return None
         with open(self.contract_file, "r") as f:
             contract_data = json.load(f)
+        now = self.clock.now()  # outside the try: a clock fault is not a load error
 
         try:
             hb = SlowContractHeartbeat.model_validate(contract_data)
@@ -122,7 +127,7 @@ class ContractHandler:
                 self.logger.info("Stored contract has ended; nothing to load")
                 return None
             else:
-                if time.time() > hb.Contract.contract_end_s():
+                if now > hb.Contract.contract_end_s():
                     if hb.Status not in self.DONE_STATES:
                         self.prev = SlowContractHeartbeat(
                             FromNode=self.node.name,
@@ -130,7 +135,7 @@ class ContractHandler:
                             PreviousStatus=hb.Status,
                             Status=SlowDispatchContractStatus.CompletedUnknownOutcome,
                             WattHoursUsed=hb.WattHoursUsed,
-                            MessageCreatedMs=int(time.time() * 1000),
+                            MessageCreatedMs=int(now * 1000),
                             Cause="Set by Scada on rebooting",
                             YourLastDigit=hb.MyDigit,
                             MyDigit=random.choice(range(10)),
@@ -147,7 +152,7 @@ class ContractHandler:
                         raise ValueError("Cannot happen: from scada -> WattHoursUsed not None")
                     self.latest_scada_hb = hb
                     self.energy_used_wh = hb.WattHoursUsed
-                    self.energy_updated_s = time.time()
+                    self.energy_updated_s = now
                     self.logger.info("Loaded ContractHb into hb")
                     return hb
         except Exception as e:
@@ -200,6 +205,7 @@ class ContractHandler:
         self.latest_scada_hb = None
         self.energy_used_wh = 0
         self.energy_updated_s = None
+        self.amendments = 0
 
     def get_initial_watt_hours(self, ltn_hb: SlowContractHeartbeat) -> int:
         """Contracts start within 10 seconds of market so returns
@@ -230,9 +236,10 @@ class ContractHandler:
             self.logger.warning(f"Existing: {self.latest_scada_hb}")
             raise Exception(f"Inbound: {ltn_hb}")
         
-        now = time.time()
+        now = self.clock.now()
         self.energy_used_wh = self.get_initial_watt_hours(ltn_hb)
         self.energy_updated_s = now
+        self.amendments = 0
         self.latest_scada_hb = SlowContractHeartbeat(
             FromNode=self.node.Name,
             Contract=ltn_hb.Contract,
@@ -293,7 +300,7 @@ class ContractHandler:
                 PreviousStatus=ltn_hb.Status,
                 Status=SlowDispatchContractStatus.Active,
                 WattHoursUsed=round(self.energy_used_wh),
-                MessageCreatedMs=int(time.time() * 1000),
+                MessageCreatedMs=self.clock.now_ms(),
                 MyDigit=random.choice(range(10)),
                 YourLastDigit=ltn_hb.MyDigit,
             )
@@ -301,6 +308,77 @@ class ContractHandler:
             return self.latest_scada_hb
         else:
             raise ValueError(f"Unexpected status from ltn_hb: {ltn_hb.Status}")
+
+    def amend_contract_hb(
+        self, ltn_hb: SlowContractHeartbeat
+    ) -> Optional[SlowContractHeartbeat]:
+        """The LTN's amendment of the contract held: the body is replaced
+        under the same ContractId and the energy accounting keeps running.
+        Returns the Active heartbeat to send back; when the amendment is
+        not taken (past the count the contract's terms allow, or under terms
+        the scada does not know) the answer is a fresh heartbeat with the
+        body held, so the LTN converges on it.
+
+        Raises if latest_scada_hb is None or its ContractId differs.
+        """
+        if ltn_hb.Status != SlowDispatchContractStatus.Amended:
+            raise ValueError(f"amend_contract_hb takes Amended, not {ltn_hb.Status}")
+        if self.latest_scada_hb is None:
+            raise ValueError("Do not call amend_contract_hb when latest_scada_hb is None")
+        held = self.latest_scada_hb.Contract
+        if held.ContractId != ltn_hb.Contract.ContractId:
+            raise ValueError("Do not call amend_contract_hb for another ContractId")
+        terms = terms_named(ltn_hb.Contract.DispatchTerms)
+        if terms is None:
+            self.logger.warning(
+                f"Not taking amendment under unknown terms {ltn_hb.Contract.DispatchTerms}"
+            )
+            return self.reack_hb(ltn_hb)
+        if self.amendments >= terms.AmendmentsAllowed:
+            self.logger.warning(
+                f"Not taking amendment {self.amendments + 1}: {terms.TypeName} allows "
+                f"{terms.AmendmentsAllowed}"
+            )
+            return self.reack_hb(ltn_hb)
+        self.update_energy_usage(self.latest_power_w)
+        self.amendments += 1
+        self.latest_scada_hb = SlowContractHeartbeat(
+            FromNode=self.node.Name,
+            Contract=ltn_hb.Contract,
+            PreviousStatus=ltn_hb.Status,
+            Status=SlowDispatchContractStatus.Active,
+            WattHoursUsed=round(self.energy_used_wh),
+            MessageCreatedMs=self.clock.now_ms(),
+            MyDigit=random.choice(range(10)),
+            YourLastDigit=ltn_hb.MyDigit,
+        )
+        self.store_heartbeat()
+        return self.latest_scada_hb
+
+    def reack_hb(self, ltn_hb: SlowContractHeartbeat) -> SlowContractHeartbeat:
+        """A fresh heartbeat for the contract held, at its current status
+        and body, answering an LTN heartbeat whose earlier answer may have
+        been lost or whose amendment is not taken. Stored as the latest.
+
+        Raises if latest_scada_hb is None or its ContractId differs.
+        """
+        if self.latest_scada_hb is None:
+            raise ValueError("Do not call reack_hb when latest_scada_hb is None")
+        if self.latest_scada_hb.Contract.ContractId != ltn_hb.Contract.ContractId:
+            raise ValueError("Do not call reack_hb for another ContractId")
+        self.update_energy_usage(self.latest_power_w)
+        self.latest_scada_hb = SlowContractHeartbeat(
+            FromNode=self.node.Name,
+            Contract=self.latest_scada_hb.Contract,
+            PreviousStatus=ltn_hb.Status,
+            Status=self.latest_scada_hb.Status,
+            WattHoursUsed=round(self.energy_used_wh),
+            MessageCreatedMs=self.clock.now_ms(),
+            MyDigit=random.choice(range(10)),
+            YourLastDigit=ltn_hb.MyDigit,
+        )
+        self.store_heartbeat()
+        return self.latest_scada_hb
 
     def scada_terminates_contract_hb(
         self, reason: DispatchRefusalReason, cause: str
@@ -322,7 +400,7 @@ class ContractHandler:
             Cause=cause,
             Reason=reason,
             WattHoursUsed=round(self.energy_used_wh),
-            MessageCreatedMs=int(time.time() * 1000),
+            MessageCreatedMs=self.clock.now_ms(),
             MyDigit=random.choice(range(10)),
             YourLastDigit=self.latest_scada_hb.MyDigit,
         )
@@ -335,7 +413,7 @@ class ContractHandler:
         - Returns completion heartbeat
         - Caller is responsible for persisting and flushing if desired
         """
-        now = time.time()
+        now = self.clock.now()
     
         if not self.latest_scada_hb:
             raise Exception("Cannot call scada terminates contract if no latest_ltn_hb")
@@ -352,7 +430,7 @@ class ContractHandler:
             Status=SlowDispatchContractStatus.CompletedUnknownOutcome,
             Cause=cause,
             WattHoursUsed=round(self.energy_used_wh),
-            MessageCreatedMs=int(time.time() * 1000),
+            MessageCreatedMs=self.clock.now_ms(),
             MyDigit=random.choice(range(10)),
             YourLastDigit=self.latest_scada_hb.MyDigit,
             IsAuthoritative=False # not claiming authority on outcome

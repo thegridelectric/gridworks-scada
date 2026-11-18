@@ -1,0 +1,27 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/price.stage/000"
+
+title: "price.stage"
+type: "string"
+description: >
+  The stage of a MarketMaker's commitment to a market slot's price. A
+  MarketMaker states a slot's price before the price it settles against
+  upstream exists, and again when it binds.
+
+enum:
+  - "Provisional"
+  - "Final"
+
+default: "Provisional"
+
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "Provisional": >
+      The MarketMaker's statement of the slot's price at the slot's open,
+      before its upstream price for the slot exists. A bidder acts on it
+      only toward less consumption.
+    "Final": >
+      The MarketMaker's binding price for the slot. The contract between
+      bidder and MarketMaker binds at this price.

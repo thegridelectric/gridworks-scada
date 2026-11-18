@@ -5,7 +5,7 @@ from gwsproto.enums.gw_str_enum import SemaEnum
 
 
 class SlowDispatchContractStatus(SemaEnum):
-    """Sema: https://schemas.electricity.works/enums/gw1.slow.dispatch.contract.status/000"""
+    """Sema: https://schemas.electricity.works/enums/gw1.slow.dispatch.contract.status/001"""
 
     Unknown = auto()
     Created = auto()
@@ -18,6 +18,7 @@ class SlowDispatchContractStatus(SemaEnum):
     CompletedSuccess = auto()
     CompletedFailureByScada = auto()
     CompletedFailureByLtn = auto()
+    Amended = auto()
 
     @classmethod
     def default(cls) -> "SlowDispatchContractStatus":
@@ -33,4 +34,4 @@ class SlowDispatchContractStatus(SemaEnum):
 
     @classmethod
     def enum_version(cls) -> str:
-        return "000"
+        return "001"

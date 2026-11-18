@@ -57,8 +57,8 @@ async def test_unvalidated_scada_rejects_contract_offer(
             StartS=start_s,
             DurationMinutes=60,
             AvgPowerWatts=1000,
-            OilBoilerOn=False,
             ContractId=str(uuid.uuid4()),
+            DispatchTerms="dispatch.terms.first.isone.hack",
         )
         ltn_hb = SlowContractHeartbeat(
             FromNode=ltn.node.name,

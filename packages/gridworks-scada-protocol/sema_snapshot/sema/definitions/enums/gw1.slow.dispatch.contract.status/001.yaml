@@ -1,5 +1,5 @@
 $schema: "https://json-schema.org/draft/2020-12/schema"
-$id: "https://schemas.electricity.works/enums/gw1.slow.dispatch.contract.status/000"
+$id: "https://schemas.electricity.works/enums/gw1.slow.dispatch.contract.status/001"
 
 title: "gw1.slow.dispatch.contract.status"
 type: "string"
@@ -22,12 +22,13 @@ enum:
   - "CompletedSuccess"
   - "CompletedFailureByScada"
   - "CompletedFailureByLtn"
+  - "Amended"
 
 default: "Unknown"
 
 x-gridworks:
   owner: "gridworks-energy"
-  version: "000"
+  version: "001"
 
   value_descriptions:
     "Unknown": >
@@ -65,3 +66,7 @@ x-gridworks:
 
     "CompletedFailureByLtn": >
       The contract ran to its end and the LTN failed to meet it.
+
+    "Amended": >
+      The LTN has replaced the contract's power with a new value under
+      the same ContractId; the scada holds the new value from here.
