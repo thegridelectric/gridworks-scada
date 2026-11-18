@@ -1,5 +1,5 @@
 $schema: "https://json-schema.org/draft/2020-12/schema"
-$id: "https://schemas.electricity.works/types/flo.tuning.bruce/001"
+$id: "https://schemas.electricity.works/types/flo.tuning.bruce/002"
 
 title: "flo.tuning.bruce"
 type: object
@@ -71,6 +71,16 @@ properties:
     type: number
   RswtPenaltyDecayMaxHour:
     $ref: "https://schemas.electricity.works/formats/non.negative.int"
+  UnmetLoadPenaltyEnabled:
+    type: boolean
+    description: >
+      Whether a discharge that would take the store below the coldest
+      state in the model is charged for the load it cannot supply.
+  UnmetLoadPenaltyWeight:
+    type: number
+    description: >
+      Weight on that unmet load, as a multiple of the most expensive heat
+      pump heat over the horizon.
   ShortCyclePenaltyEnabled:
     type: boolean
   ShortCyclePenaltyWeight:
@@ -94,7 +104,7 @@ properties:
   TypeName:
     const: "flo.tuning.bruce"
   Version:
-    const: "001"
+    const: "002"
 
 required:
   - NumLayers
@@ -112,6 +122,8 @@ required:
   - RswtPenaltyDecay
   - RswtPenaltyExponentRate
   - RswtPenaltyDecayMaxHour
+  - UnmetLoadPenaltyEnabled
+  - UnmetLoadPenaltyWeight
   - ShortCyclePenaltyEnabled
   - ShortCyclePenaltyWeight
   - StabilityPenaltyEnabled
@@ -145,6 +157,8 @@ examples:
       "RswtPenaltyDecay": 0.9,
       "RswtPenaltyExponentRate": 0.15,
       "RswtPenaltyDecayMaxHour": 12,
+      "UnmetLoadPenaltyEnabled": true,
+      "UnmetLoadPenaltyWeight": 10.0,
       "ShortCyclePenaltyEnabled": true,
       "ShortCyclePenaltyWeight": 6.0,
       "StabilityPenaltyEnabled": true,
@@ -156,7 +170,7 @@ examples:
       "TerminalCostEnabled": true,
       "TerminalCostEndWindowHours": 24,
       "TypeName": "flo.tuning.bruce",
-      "Version": "001"
+      "Version": "002"
     }
 
 x-gridworks:

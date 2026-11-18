@@ -1132,17 +1132,6 @@ class Ltn(PrimeActor):
             self.log(f"Something failed in get_buffer_available_kwh ({e}), returning 0 kWh")
             return 0
         
-    async def get_house_available_kwh(self):
-        zone_names, temps, setpoints, thermal_mass = self._get_zone_info()
-        self.log(f"Found information about {len(zone_names)} zones")
-        house_availale_kwh = 0
-        for zone in zone_names:
-            if zone in temps and zone in setpoints and zone in thermal_mass:
-                house_availale_kwh += thermal_mass[zone] * (temps[zone] - setpoints[zone])
-        house_availale_kwh = round(house_availale_kwh,2)
-        self.log(f"House available kWh: {house_availale_kwh}")
-        return min(0, house_availale_kwh) # TODO: TEMPORARY only consider negative values
-
     async def update_dist_kwh_history(self, slot_start_s: int) -> None:
         """The last four hours of distribution energy."""
         finished_hour_s = slot_start_s - 3600

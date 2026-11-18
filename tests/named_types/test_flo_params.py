@@ -1,4 +1,4 @@
-"""flo.params 002: the twin agrees with the snapshot on the word's example
+"""flo.params 003: the twin agrees with the snapshot on the word's example
 and refuses each axiom's violation."""
 
 import copy
@@ -51,7 +51,7 @@ EXAMPLE = {
     "PriceMaxUsdMwh": 2000.0,
     "PriceMinUsdMwh": -100.0,
     "TypeName": "flo.params",
-    "Version": "002",
+    "Version": "003",
 }
 
 

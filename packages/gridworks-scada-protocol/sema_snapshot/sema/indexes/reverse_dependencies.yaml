@@ -77,26 +77,26 @@ types:
   flo.optimal.path:
     '000':
       used_by:
-      - flo.params:002
+      - flo.params:003
       - flo.previous.run:000
-      - flo.recommendation:001
+      - flo.recommendation:002
   flo.path.penalties.bruce:
-    '000':
+    '001':
       used_by:
-      - flo.recommendation:001
+      - flo.recommendation:002
   flo.tank.store.path:
     '000':
       used_by:
-      - flo.recommendation:001
+      - flo.recommendation:002
   flo.tuning.alice:
     '000':
       used_by:
-      - flo.params:002
+      - flo.params:003
       - gw.operational.params:000
   flo.tuning.bruce:
-    '001':
+    '002':
       used_by:
-      - flo.params:002
+      - flo.params:003
       - gw.operational.params:000
   fsm.atomic.report:
     '001':
@@ -371,7 +371,7 @@ types:
       used_by:
       - bid:000
       - flo.previous.run:000
-      - flo.recommendation:001
+      - flo.recommendation:002
   relay.control.config:
     '000':
       used_by:
@@ -575,7 +575,7 @@ enums:
   gw1.seasonal.storage.mode:
     '000':
       used_by:
-      - flo.params:002
+      - flo.params:003
       - gw.house.operating.status:000
       - gw.house0.family.params:000
       - gw.house0.no.sieg.family.params:000
@@ -651,7 +651,7 @@ enums:
       - bid:000
       - flo.params.house0:007
       - flo.previous.run:000
-      - flo.recommendation:001
+      - flo.recommendation:002
       - gw.price.forecast:000
       - latest.price:001
   market.quantity.unit:
@@ -659,7 +659,7 @@ enums:
       used_by:
       - bid:000
       - flo.previous.run:000
-      - flo.recommendation:001
+      - flo.recommendation:002
   pico.board.variant:
     '000':
       used_by:
@@ -762,7 +762,7 @@ formats:
     - slow.contract.heartbeat:002
   git.commit:
     used_by:
-    - flo.recommendation:001
+    - flo.recommendation:002
     - gw.scada.commit:000
   handle.name:
     used_by:
@@ -789,8 +789,8 @@ formats:
     - derived.channel.gt:003
     - energy.instruction:000
     - flo.params.house0:007
-    - flo.params:002
-    - flo.recommendation:001
+    - flo.params:003
+    - flo.recommendation:002
     - flo.refusal:000
     - fsm.atomic.report:001
     - fsm.event:000
@@ -840,7 +840,7 @@ formats:
     - latest.price:001
   non.empty.string:
     used_by:
-    - flo.recommendation:001
+    - flo.recommendation:002
     - flo.refusal:000
     - gw.command.transition:000
     - gw.weather.channel.gt:002
@@ -851,7 +851,7 @@ formats:
   non.negative.int:
     used_by:
     - flo.previous.run:000
-    - flo.tuning.bruce:001
+    - flo.tuning.bruce:002
     - gw.native.gpio.pin:000
     - gw.operational.params:000
     - gw.weather.channel.gt:002
@@ -932,9 +932,9 @@ formats:
     - energy.instruction:000
     - flo.optimal.path:000
     - flo.params.house0:007
-    - flo.params:002
+    - flo.params:003
     - flo.tank.store.path:000
-    - flo.tuning.bruce:001
+    - flo.tuning.bruce:002
     - flow.hall.params:101
     - gw.nolan.family.params:000
     - gw.operational.params:000
@@ -1042,9 +1042,9 @@ formats:
     - analog.dispatch:000
     - channel.readings:002
     - energy.instruction:000
-    - flo.params:002
+    - flo.params:003
     - flo.previous.run:000
-    - flo.recommendation:001
+    - flo.recommendation:002
     - flo.refusal:000
     - fsm.atomic.report:001
     - fsm.event:000
@@ -1082,7 +1082,7 @@ formats:
     - energy.instruction:000
     - flo.optimal.path:000
     - flo.params.house0:007
-    - flo.params:002
+    - flo.params:003
     - flo.refusal:000
     - gw.price.forecast:000
     - heating.forecast:000
@@ -1098,7 +1098,7 @@ formats:
     - device.component.gt:000
     - electric.meter.component.gt:001
     - flo.params.house0:007
-    - flo.params:002
+    - flo.params:003
     - fsm.atomic.report:001
     - fsm.event:000
     - fsm.full.report:001

@@ -7,29 +7,36 @@ from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
 class FloPathPenaltiesBruce(GwsprotoSemaType):
-    """Sema: https://schemas.electricity.works/types/flo.path.penalties.bruce/000"""
+    """Sema: https://schemas.electricity.works/types/flo.path.penalties.bruce/001"""
 
     RswtPenaltyUsdList: List[StrictFloat]
+    UnmetLoadPenaltyUsdList: List[StrictFloat]
     StabilityPenaltyUsdList: List[StrictFloat]
     ShortCyclePenaltyUsdList: List[StrictFloat]
     TerminalCostUsd: StrictFloat
     TerminalCostEmptyStoreUsd: StrictFloat
     PathCostUsd: StrictFloat
     TypeName: Literal["flo.path.penalties.bruce"] = "flo.path.penalties.bruce"
-    Version: Literal["000"] = "000"
+    Version: Literal["001"] = "001"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
         """
         Axiom 1: PenaltyListLengths.
-        RswtPenaltyUsdList, StabilityPenaltyUsdList and
-        ShortCyclePenaltyUsdList SHALL have the same length.
+        RswtPenaltyUsdList, UnmetLoadPenaltyUsdList,
+        StabilityPenaltyUsdList and ShortCyclePenaltyUsdList SHALL
+        have the same length.
         """
         n = len(self.RswtPenaltyUsdList)
-        if len(self.StabilityPenaltyUsdList) != n or len(self.ShortCyclePenaltyUsdList) != n:
+        if (
+            len(self.UnmetLoadPenaltyUsdList) != n
+            or len(self.StabilityPenaltyUsdList) != n
+            or len(self.ShortCyclePenaltyUsdList) != n
+        ):
             raise ValueError(
                 "Axiom 1 (PenaltyListLengths) failed: RswtPenaltyUsdList "
-                f"({n}), StabilityPenaltyUsdList ({len(self.StabilityPenaltyUsdList)}) "
+                f"({n}), UnmetLoadPenaltyUsdList ({len(self.UnmetLoadPenaltyUsdList)}), "
+                f"StabilityPenaltyUsdList ({len(self.StabilityPenaltyUsdList)}) "
                 f"and ShortCyclePenaltyUsdList ({len(self.ShortCyclePenaltyUsdList)}) "
                 "must have the same length."
             )

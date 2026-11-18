@@ -491,6 +491,8 @@
     "RswtPenaltyDecay": 0.9,
     "RswtPenaltyExponentRate": 0.15,
     "RswtPenaltyDecayMaxHour": 12,
+    "UnmetLoadPenaltyEnabled": true,
+    "UnmetLoadPenaltyWeight": 10.0,
     "ShortCyclePenaltyEnabled": true,
     "ShortCyclePenaltyWeight": 6.0,
     "StabilityPenaltyEnabled": true,
@@ -502,7 +504,7 @@
     "TerminalCostEnabled": true,
     "TerminalCostEndWindowHours": 24,
     "TypeName": "flo.tuning.bruce",
-    "Version": "001"
+    "Version": "002"
   },
   "WeatherBundleName": "us.me.millinocket.moose",
   "Tariff": {

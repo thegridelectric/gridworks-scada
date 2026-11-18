@@ -1,10 +1,15 @@
 {
   "TypeName": "flo.path.penalties.bruce",
-  "Version": "000",
+  "Version": "001",
   "RswtPenaltyUsdList": [
     0.0,
     0.0,
     0.42
+  ],
+  "UnmetLoadPenaltyUsdList": [
+    0.0,
+    0.0,
+    1.2
   ],
   "StabilityPenaltyUsdList": [
     0.0,

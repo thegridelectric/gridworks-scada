@@ -1,6 +1,6 @@
 {
   "TypeName": "flo.params",
-  "Version": "002",
+  "Version": "003",
   "GNodeAlias": "hw1.isone.me.versant.keene.oak",
   "CreatedMs": 1762008900000,
   "StartUnixS": 1762009200,
@@ -53,7 +53,7 @@
   "PriceMinUsdMwh": -100.0,
   "Tuning": {
     "TypeName": "flo.tuning.bruce",
-    "Version": "001",
+    "Version": "002",
     "NumLayers": 3,
     "StorageLossesPercent": 0.5,
     "HpMinKwEl": 0.0,
@@ -73,6 +73,8 @@
     "RswtPenaltyDecay": 0.9,
     "RswtPenaltyExponentRate": 0.15,
     "RswtPenaltyDecayMaxHour": 12,
+    "UnmetLoadPenaltyEnabled": true,
+    "UnmetLoadPenaltyWeight": 10.0,
     "ShortCyclePenaltyEnabled": true,
     "ShortCyclePenaltyWeight": 6.0,
     "StabilityPenaltyEnabled": true,
