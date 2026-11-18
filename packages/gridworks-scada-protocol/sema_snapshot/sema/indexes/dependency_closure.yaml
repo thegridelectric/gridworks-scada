@@ -199,7 +199,7 @@ types:
       types: []
       versionless_types: []
   flo.params:
-    '002':
+    '003':
       enums:
       - gw1.seasonal.storage.mode:000
       formats:
@@ -212,7 +212,7 @@ types:
       types:
       - flo.optimal.path:000
       - flo.tuning.alice:000
-      - flo.tuning.bruce:001
+      - flo.tuning.bruce:002
       versionless_types: []
   flo.params.house0:
     '007':
@@ -288,7 +288,7 @@ types:
       types: []
       versionless_types: []
   flo.tuning.bruce:
-    '001':
+    '002':
       enums: []
       formats:
       - non.negative.int
@@ -842,7 +842,7 @@ types:
       - capture.tuning:000
       - cop.curve:000
       - flo.tuning.alice:000
-      - flo.tuning.bruce:001
+      - flo.tuning.bruce:002
       - gw.dispatch.hold:000
       - gw.house0.family.params:000
       - gw.house0.no.sieg.family.params:000

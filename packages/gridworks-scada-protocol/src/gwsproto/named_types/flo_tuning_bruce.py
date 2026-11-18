@@ -7,7 +7,7 @@ from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
 class FloTuningBruce(GwsprotoSemaType):
-    """Sema: https://schemas.electricity.works/types/flo.tuning.bruce/001"""
+    """Sema: https://schemas.electricity.works/types/flo.tuning.bruce/002"""
 
     NumLayers: PositiveInt
     StorageLossesPercent: float
@@ -24,6 +24,8 @@ class FloTuningBruce(GwsprotoSemaType):
     RswtPenaltyDecay: float
     RswtPenaltyExponentRate: float
     RswtPenaltyDecayMaxHour: NonNegativeInt
+    UnmetLoadPenaltyEnabled: bool
+    UnmetLoadPenaltyWeight: float
     ShortCyclePenaltyEnabled: bool
     ShortCyclePenaltyWeight: float
     StabilityPenaltyEnabled: bool
@@ -35,7 +37,7 @@ class FloTuningBruce(GwsprotoSemaType):
     TerminalCostEnabled: bool
     TerminalCostEndWindowHours: NonNegativeInt
     TypeName: Literal["flo.tuning.bruce"] = "flo.tuning.bruce"
-    Version: Literal["001"] = "001"
+    Version: Literal["002"] = "002"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

@@ -1,6 +1,6 @@
 metadata:
   generated_from: indexes/public_registry.yaml
-  generated_at: '2026-11-15T02:19:48Z'
+  generated_at: '2026-11-18T10:15:09Z'
   note: Transitive closure of initial_targets
 initial_targets:
 - ads.channel.config:000
@@ -23,7 +23,7 @@ initial_targets:
 - electric.meter.component.gt:001
 - electric.meter.device.type.gt:000
 - energy.instruction:000
-- flo.params:002
+- flo.params:003
 - gw.price.forecast:000
 - flo.params.house0:007
 - flo.previous.run:000
@@ -601,8 +601,8 @@ worklist:
       '000':
         path: definitions/types/flo.optimal.path/000.yaml
     flo.params:
-      '002':
-        path: definitions/types/flo.params/002.yaml
+      '003':
+        path: definitions/types/flo.params/003.yaml
     flo.params.house0:
       '007':
         path: definitions/types/flo.params.house0/007.yaml
@@ -625,8 +625,8 @@ worklist:
       '000':
         path: definitions/types/flo.tuning.alice/000.yaml
     flo.tuning.bruce:
-      '001':
-        path: definitions/types/flo.tuning.bruce/001.yaml
+      '002':
+        path: definitions/types/flo.tuning.bruce/002.yaml
     flow.hall.params:
       '101':
         path: definitions/types/flow.hall.params/101.yaml

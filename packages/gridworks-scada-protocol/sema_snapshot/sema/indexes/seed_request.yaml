@@ -69,7 +69,7 @@ initial_targets:
     energy.instruction:
       versions: ["000"]
     flo.params:
-      versions: ["002"]
+      versions: ["003"]
     gw.price.forecast:
       versions: ["000"]
     flo.params.house0:
