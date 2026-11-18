@@ -241,6 +241,9 @@ class GpioRelayDrive(RelayDrive):
         self.bcm_pin = bcm_pin
         self.gpio: Any = None
 
+    def __str__(self) -> str:
+        return f"GPIO {self.bcm_pin}"
+
     @property
     def reads_back(self) -> bool:
         return False

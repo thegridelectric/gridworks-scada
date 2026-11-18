@@ -360,7 +360,7 @@ class Relay(ShNodeActor):
                 LogLevel.Critical,
             )
             return
-        self.log(f"{relay_pin_event} set")
+        self.log(f"{relay_pin_event} set on {self.drive}")
 
         # This runs as a task with nobody above it to catch an exception,
         # so a failure in the relay's word about the write is reported

@@ -2,20 +2,24 @@
 It routes to whatever was put behind the node and does nothing else."""
 
 import json
+import uuid
 from pathlib import Path
 from typing import Any, Callable, Iterable, Optional
 
 import pytest
-from gwsproto.enums import ChangeRelayPin
+from gwsproto.enums import ChangeRelayPin, I2cOperation
+from gwsproto.named_types import I2cResult
 
 from plant import Deliver, Plant, PlantReadings, RelayDrive, RelayRead, SensorSource
 from plant_link import (
-    PLANT_SILENT_AFTER_S,
     InProcessPlantLink,
+    LinkPinInput,
     LinkRelayDrive,
+    PLANT_SILENT_AFTER_S,
     PlantLinkKind,
 )
-from relay_drives import GpioRelayDrive, I2cRelayDrive
+from pin_inputs import GpioPinInput
+from relay_drives import GpioRelayDrive, I2cRelayDrive, resolve_i2c_actuation
 from scada2_app import Scada2App
 from scada_app import ScadaApp
 from thermistor_inputs import Ads1115ThermistorInput
@@ -348,3 +352,49 @@ async def test_the_secondary_scada_has_a_plant_with_nothing_behind_it(
     async with ScadaLiveTest(request=request) as h:
         plant = h.child2_app.plant
         assert plant.device_by_node == {}
+
+
+def test_a_device_says_where_it_is_for_the_log() -> None:
+    """The actor's log names the pin a GPIO device sits on, or the plant
+    node a simulated one stands for."""
+    link = in_process()
+
+    assert str(GpioRelayDrive(22)) == "GPIO 22"
+    assert str(GpioPinInput(5)) == "GPIO 5"
+    assert str(LinkRelayDrive(link, "vdc-relay", reads_back=False)) == "plant relay vdc-relay"
+    assert str(LinkPinInput(link, "opto-input")) == "plant pin opto-input"
+
+
+@pytest.mark.asyncio
+async def test_a_bus_result_with_no_value_is_a_failed_read(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A bus reply that says success but gives no level is a read that
+    failed, with the bus's words or a plain one; it is never a position.
+    The same for a refused op and for no reply at all."""
+    app = app_on("gw.nolan")
+    node = app.hardware_layout.node("store-pump-relay")
+    assert node is not None
+    drive = I2cRelayDrive(resolve_i2c_actuation(app.hardware_layout, node))
+    replies: list = []
+
+    def result(**fields) -> I2cResult:
+        return I2cResult(
+            Bus=drive.at.bus_node.name,
+            Operation=I2cOperation.ReadBit,
+            UnixTimeMs=READ_MS,
+            TriggerId=str(uuid.uuid4()),
+            **fields,
+        )
+
+    async def reply(_op):
+        return replies.pop(0)
+
+    monkeypatch.setattr(drive.bus, "op", reply)
+
+    replies[:] = [result(Success=True, Value=None)]
+    assert await drive.read() == RelayRead(None, "bus op failed")
+
+    replies[:] = [result(Success=False, Error="nack at 0x20")]
+    assert await drive.read() == RelayRead(None, "nack at 0x20")
+
+    replies[:] = [None]
+    assert await drive.read() == RelayRead(None, "bus op timeout")

@@ -31,6 +31,9 @@ class GpioPinInput(PinInput):
         self.bcm_pin = bcm_pin
         self.gpio: Any = None
 
+    def __str__(self) -> str:
+        return f"GPIO {self.bcm_pin}"
+
     def attach(self, send: Send) -> None:
         import RPi.GPIO as GPIO
 

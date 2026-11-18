@@ -70,7 +70,7 @@ class GpioSensor(ShNodeActor):
         self.services.add_task(
             asyncio.create_task(self.main(), name=f"{self.name}-main")
         )
-        self.log("GpioSensor started")
+        self.log(f"GpioSensor started on {self.pin}")
 
     def next_capture_time(self) -> float:
         now = time.time()

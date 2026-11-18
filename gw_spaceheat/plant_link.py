@@ -190,6 +190,9 @@ class LinkRelayDrive(RelayDrive):
         self.relay_name = relay_name
         self._reads_back = reads_back
 
+    def __str__(self) -> str:
+        return f"plant relay {self.relay_name}"
+
     @property
     def reads_back(self) -> bool:
         return self._reads_back
@@ -213,6 +216,9 @@ class LinkPinInput(PinInput):
         self.link = link
         self.channel_name = channel_name
         link.poll([channel_name])
+
+    def __str__(self) -> str:
+        return f"plant pin {self.channel_name}"
 
     def read(self) -> PinRead:
         value, error = self.link.latest_value(self.channel_name)
