@@ -4,6 +4,9 @@ tuning in an ops fixture into one violation."""
 import json
 from pathlib import Path
 
+import pytest
+from pydantic import ValidationError
+
 from gwsproto.named_types import FloTuningBruce
 from tests.named_types.sema_oracle import assert_refused
 
@@ -33,7 +36,9 @@ def test_flo_tuning_bruce_accepts_the_fleet_tuning() -> None:
     FloTuningBruce.model_validate(bruce())
 
 
-def test_a_001_tuning_in_operational_params_loads_with_the_penalty_off() -> None:
+def test_a_001_tuning_in_operational_params_is_refused() -> None:
+    """The scada speaks one version of each word: a stale ops file fails the
+    decode (and so the boot) rather than being lifted to the current version."""
     from sema_to_dc import decode_operational_params
 
     d = json.loads((CONFIG / "gw.house0.orange.operational.params.json").read_text())
@@ -42,12 +47,8 @@ def test_a_001_tuning_in_operational_params_loads_with_the_penalty_off() -> None
     del tuning["UnmetLoadPenaltyWeight"]
     tuning["Version"] = "001"
     d["FloTuning"] = tuning
-    word = decode_operational_params(d)
-    assert d["FloTuning"]["Version"] == "001"
-    assert "UnmetLoadPenaltyEnabled" not in d["FloTuning"]
-    assert word.FloTuning.Version == "002"
-    assert word.FloTuning.UnmetLoadPenaltyEnabled is False
-    assert word.FloTuning.UnmetLoadPenaltyWeight == 10.0
+    with pytest.raises(ValidationError):
+        decode_operational_params(d)
 
 
 def test_a_002_tuning_in_operational_params_keeps_its_penalty() -> None:
