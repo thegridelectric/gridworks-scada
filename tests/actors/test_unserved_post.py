@@ -2,8 +2,9 @@
 the layout does not say, a pico identifying as a node the layout does not
 name) is a field condition the box can only learn once the pico posts:
 one Warning glitch per path per day, with the posted identity in the
-details, and a log line on every post. The catch-all route is registered
-last, after every actor's routes."""
+details, and a log line on every post. A pico's `code-update` post on boot
+is answered 404 and neither logged nor reported. The catch-all route is
+registered last, after every actor's routes."""
 import asyncio
 import json
 import time
@@ -77,6 +78,24 @@ def test_a_reed_post_to_a_hall_node_is_one_warning_glitch_a_day(
     monkeypatch.setattr(time, "time", lambda: a_day_on)
     asyncio.run(app.unserved_posts.handle(post))
     assert len(glitches(queued)) == 2
+
+
+def test_a_pico_code_update_post_is_answered_404_and_not_reported(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    app = hall_flow_app(tmp_path, "willow")
+    queued: list[Message] = []
+    app.raw_proactor.send_threadsafe = queued.append
+    post = UnservedPost(
+        "/dist-flow/code-update",
+        {"HwUid": "pico_1a2b3c", "TypeName": "new.code", "Version": "100"},
+    )
+
+    with caplog.at_level("WARNING"):
+        response = asyncio.run(app.unserved_posts.handle(post))
+    assert response.status == 404
+    assert queued == []
+    assert "code-update" not in caplog.text
 
 
 def test_a_post_the_layout_names_no_node_for_is_reported_by_path(tmp_path: Path) -> None:
