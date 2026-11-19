@@ -1,0 +1,89 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/sim.plant.flux/000"
+
+title: "sim.plant.flux"
+type: object
+description: >
+  A simulated plant's native source emission of its physical state: parallel
+  channel and value lists captured at a single simulated read time, plus the
+  wall-clock time the emission crossed the wire. Each value in ValueList is
+  aligned by index with ChannelNameList, such that ValueList[i] is the value for
+  ChannelNameList[i] at ScadaReadTimeUnixMs (which is simulation time). The
+  scada-side simulated sensor reads this flux and interprets it — into
+  synced.readings, and in time into electrical and other derived signals.
+
+properties:
+  ChannelNameList:
+    type: array
+    items:
+      $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      Ordered list of channel names whose values are included in this emission.
+
+  ValueList:
+    type: array
+    items:
+      type: integer
+    description: >
+      Ordered list of integer values aligned by index with ChannelNameList.
+
+  ScadaReadTimeUnixMs:
+    $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+    description: >
+      Simulation-time UTC millisecond timestamp these values represent. This is
+      the value that becomes synced.readings.ScadaReadTimeUnixMs downstream.
+
+  ActualTimeUtc:
+    $ref: "https://schemas.electricity.works/formats/utc.iso8601.millis"
+    description: >
+      Human-readable wall-clock timestamp (ISO 8601, millisecond precision, Z
+      suffix) at which the emission crossed the wire. Distinct from
+      ScadaReadTimeUnixMs whenever simulation time is decoupled from real time
+      (e.g. sped-up runs) — provenance for humans, not consumed downstream.
+
+  TypeName:
+    const: "sim.plant.flux"
+
+  Version:
+    const: "000"
+
+required:
+  - ChannelNameList
+  - ValueList
+  - ScadaReadTimeUnixMs
+  - ActualTimeUtc
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "ChannelNameList": ["hp-odu-pwr", "buffer-depth1"],
+      "ValueList": [3215, 48500],
+      "ScadaReadTimeUnixMs": 1735689600123,
+      "ActualTimeUtc": "2026-06-12T13:20:00.000Z",
+      "TypeName": "sim.plant.flux",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  extended_description: >
+    The plant emits; the sensor reads. A simulated terminal asset is the
+    physical world, and this type is what it radiates — its own state — for a
+    simulated sensor to read into synced.readings. 
+
+    Named "flux" for whatever is crossing the boundary between the plant and the
+    sensor's aperture (the channels it captures, its async-capture policy).
+    Change the aperture and the flux that is read changes, with no lie on
+    either side — perceiver and emitter in exchange, not a one-way truth handed
+    down. And of course, a nod to Tesla.
+
+  axioms:
+    - number: 1
+      name: "ListLengthConsistency"
+      statement: >
+        len(ChannelNameList) SHALL equal len(ValueList).

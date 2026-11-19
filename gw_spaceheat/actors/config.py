@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from gwsproto.names.core.node_names import CoreNodeNames
 from clock import ClockSource
+from plant_link import PlantLinkKind
 from weather_source import WeatherSourceKind
 from gwproactor.config import MQTTClient, Paths
 from pydantic_settings import SettingsConfigDict
@@ -130,6 +131,7 @@ class ScadaSettings(ScadaPathsSettings):
     local_mqtt: MQTTClient = MQTTClient(tls=TLSInfo(use_tls=False))
     gridworks_mqtt: MQTTClient = MQTTClient(tls=TLSInfo(use_tls=False))
     clock_source: ClockSource = ClockSource.Wall
+    plant_link: PlantLinkKind = PlantLinkKind.Broker
     weather_source: WeatherSourceKind = WeatherSourceKind.Gwwf
     # The weather service read facade, party segment included; the bundle
     # pulled from it is named by the operational params.

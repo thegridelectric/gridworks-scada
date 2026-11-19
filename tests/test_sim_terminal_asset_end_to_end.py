@@ -21,8 +21,8 @@
 #    channels, one relay, one 0-10V output, one room, one store. Nothing
 #    the four fall layouts would contradict (no assumed buffer, iso valve,
 #    or water tanks in the shared shape).
-# 2. Sensors from physics, not standing values. Today SimSensorActor emits
-#    constants (50 C water, 70 F air) and SimAds1115 returns one voltage.
+# 2. Sensors from physics, not standing values. Today SimSensorActor reports
+#    whatever the plant link hands it and SimAds1115 returns one voltage.
 #    The plant holds a temperature per thermistor; the sim chip applies the
 #    inverse of the reader's transform (temperature -> beta -> resistance
 #    -> divider voltage -> ADS1115 raw code, per mux channel) so the reader's

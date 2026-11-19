@@ -5,7 +5,6 @@ and the secondary pump relay follows under hp-boss (the call open
 throughout: the sim buffer reads full)."""
 
 import time
-import typing
 import uuid
 from pathlib import Path
 
@@ -14,9 +13,8 @@ import pytest
 from actors.config import ScadaSettings
 from actors.hp_boss import HpBoss
 from actors.hp_watch import HpWatch
-from actors.power_meter import PowerMeter, PowerMeterDriverThread
+from actors.power_meter import PowerMeter
 from actors.relay import Relay
-from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import GridworksSimPm1_PowerMeterDriver
 from gwsproto.enums import (
     ChangeRelayState,
     HpBossState,
@@ -72,10 +70,6 @@ async def test_the_pump_follows_the_heat_pump_through_the_subscriptions(
         pump = app.get_communicator_as_type(HSNN.secondary_pump_relay, Relay)
         meter = app.get_communicator_as_type(CoreNodeNames.asset_power_meter, PowerMeter)
         assert hp_watch is not None and pump is not None and meter is not None
-        driver = typing.cast(
-            GridworksSimPm1_PowerMeterDriver,
-            typing.cast(PowerMeterDriverThread, meter._sync_thread).driver,
-        )
 
         def chain_at(state: SpruceHackHpState, pump_state: RelayClosedOrOpen) -> bool:
             latest = scada.data.latest_machine_state.get(HSNN.hp_watch)
@@ -105,7 +99,7 @@ async def test_the_pump_follows_the_heat_pump_through_the_subscriptions(
         assert scada.machine_state_subscribers[HSNN.hp_watch] == [HSNN.hp_boss]
         assert pump.node.handle == f"{scada.layout.hp_boss.handle}.{HSNN.secondary_pump_relay}"
 
-        driver.fake_power_w = 700
+        h.plant.meter_reads(700)
         await h.await_for(
             lambda: chain_at(SpruceHackHpState.HpDetectedOn, RelayClosedOrOpen.RelayClosed),
             "700 W: HpDetectedOn and the pump on",
@@ -113,7 +107,7 @@ async def test_the_pump_follows_the_heat_pump_through_the_subscriptions(
             err_str_f=where,
         )
 
-        driver.fake_power_w = 0
+        h.plant.meter_reads(0)
         await h.await_for(
             lambda: chain_at(SpruceHackHpState.HpDetectedOff, RelayClosedOrOpen.RelayOpen),
             "0 W again: HpDetectedOff and the pump off",
@@ -122,7 +116,7 @@ async def test_the_pump_follows_the_heat_pump_through_the_subscriptions(
         )
 
         # The channel returns no value: lost after a second, Unknown, pump on.
-        driver.no_value_channel_names = {HCN.hp_odu_pwr}
+        h.plant.hide({HCN.hp_odu_pwr})
         await h.await_for(
             lambda: chain_at(SpruceHackHpState.Unknown, RelayClosedOrOpen.RelayClosed),
             "hp-odu-pwr lost: Unknown and the pump on",
@@ -171,10 +165,6 @@ async def test_under_admin_the_pump_follows_the_heat_pumps_power_not_the_call(
         meter = app.get_communicator_as_type(CoreNodeNames.asset_power_meter, PowerMeter)
         assert hp_boss is not None and hp_watch is not None
         assert pump is not None and call is not None and meter is not None
-        driver = typing.cast(
-            GridworksSimPm1_PowerMeterDriver,
-            typing.cast(PowerMeterDriverThread, meter._sync_thread).driver,
-        )
 
         def at(hp: SpruceHackHpState, pump_state: RelayClosedOrOpen, call_state: RelayClosedOrOpen) -> bool:
             return hp_watch.state == hp and pump.state == pump_state and call.state == call_state
@@ -206,7 +196,7 @@ async def test_under_admin_the_pump_follows_the_heat_pumps_power_not_the_call(
         assert pump.state == RelayClosedOrOpen.RelayOpen
 
         # The unit answers the call: power up, the watch senses on, hp-boss starts the pump.
-        driver.fake_power_w = 700
+        h.plant.meter_reads(700)
         await h.await_for(
             lambda: at(SpruceHackHpState.HpDetectedOn, RelayClosedOrOpen.RelayClosed, RelayClosedOrOpen.RelayClosed),
             "700 W under admin: HpDetectedOn and the pump on",
@@ -225,7 +215,7 @@ async def test_under_admin_the_pump_follows_the_heat_pumps_power_not_the_call(
         assert pump.state == RelayClosedOrOpen.RelayClosed
 
         # The unit winds down: the watch senses off and the pump stops.
-        driver.fake_power_w = 0
+        h.plant.meter_reads(0)
         await h.await_for(
             lambda: at(SpruceHackHpState.HpDetectedOff, RelayClosedOrOpen.RelayOpen, RelayClosedOrOpen.RelayOpen),
             "0 W under admin: HpDetectedOff and the pump off",

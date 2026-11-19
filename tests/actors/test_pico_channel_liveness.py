@@ -2,8 +2,9 @@
 scada that channel has flatlined after 2.5 of its capture periods, and
 does not call the pico missing. The BTU meter is the Nolan sim's
 primary-btu; the tank module is the willow sim's tank1. Each actor's clock
-is driven by the test, its sim source ticked once a second and its
-liveness checked every ten, as `sim_pico_main` and `main` do."""
+is driven by the test, which plays the plant: it shows the actor's
+channels once a capture period, and the actor's liveness is checked every
+ten seconds, as its `main` does."""
 
 import time
 from pathlib import Path
@@ -18,6 +19,7 @@ from actors.api_tank_module import ApiTankModule
 from actors.pico_liveness import PicoLiveness
 from gwsproto.named_types import ChannelFlatlined, PicoMissing
 from gwsproto.names.core.node_names import CoreNodeNames
+from plant_link import InProcessPlantLink, PlantLinkKind
 from scada_app import ScadaApp
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -36,17 +38,28 @@ class Clock:
 
 class Rig:
     """One pico actor with its sends recorded, those for the scada also
-    delivered to it."""
+    delivered to it, and the plant that shows its channels."""
 
     def __init__(self, app: ScadaApp, actor: PicoActor, clock: Clock, omit: str, channel: str) -> None:
         self.actor = actor
         self.clock = clock
         self.omit = omit
-        """The name the sim source drops from its reading."""
+        """The prefix of the channel names the plant can leave out."""
         self.channel = channel
         """The data channel that goes quiet when it does."""
         self.data = app.scada.data
         self.sent: list = []
+        assert isinstance(app.plant_link, InProcessPlantLink)
+        self.link = app.plant_link
+        self.shown = {
+            ch.Name: 4000
+            for ch in actor.layout.data_channels.values()
+            if ch.CapturedByNodeName == actor.name and not actor.layout.channel_disabled(ch.Name)
+        }
+        self.period_s = actor.layout.capture_tuning_by_channel[channel].CapturePeriodS
+        self.omitting = False
+        self.plant_shows = True
+        self.ran_s = 0
         scada = app.scada
 
         def send_to(dst, payload, src=None) -> None:
@@ -57,18 +70,20 @@ class Rig:
         actor._send_to = send_to
 
     def run(self, seconds: int) -> None:
-        source = self.actor.sim_pico
-        assert source is not None
-        for second in range(seconds):
+        for _ in range(seconds):
             self.clock.now += 1
-            reading = source.tick(self.clock.now)
-            if reading is not None:
-                if isinstance(self.actor, ApiBtuMeter):
-                    self.actor._process_multichannel_snapshot(reading)
-                else:
-                    self.actor._process_microvolts(reading)
-            if second % 10 == 0:
+            if self.plant_shows and self.ran_s % self.period_s == 0:
+                self.link.show(
+                    {
+                        name: value
+                        for name, value in self.shown.items()
+                        if not (self.omitting and name.startswith(self.omit))
+                    },
+                    int(self.clock.now * 1000),
+                )
+            if self.ran_s % 10 == 0:
                 self.actor.check_liveness()
+            self.ran_s += 1
 
     def flatlined(self) -> list[str]:
         return [p.Channel.Name for p in self.sent if isinstance(p, ChannelFlatlined)]
@@ -86,6 +101,7 @@ def make_app(layout: str, ops: str) -> ScadaApp:
     settings.paths.hardware_layout = CONFIG / layout
     settings.paths.operational_params = CONFIG / ops
     settings.paths.mkdirs()
+    settings.plant_link = PlantLinkKind.InProcess
     app = ScadaApp(app_settings=settings)
     app.instantiate()
     return app
@@ -108,10 +124,9 @@ def rig(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> Rig:
 
 
 def test_one_quiet_channel_is_flatlined_and_the_pico_is_not_missing(rig: Rig) -> None:
-    rig.actor.sim_pico.life_s = None
     rig.run(5)
     assert rig.data.latest_channel_values[rig.channel] is not None
-    rig.actor.sim_pico.omitted_names = {rig.omit}
+    rig.omitting = True
     rig.run(rig.quiet_seconds() + 30)
     quiet = [name for name in rig.flatlined() if name.startswith(rig.omit)]
     assert rig.channel in quiet
@@ -122,21 +137,21 @@ def test_one_quiet_channel_is_flatlined_and_the_pico_is_not_missing(rig: Rig) ->
 
 
 def test_a_channel_that_misses_one_post_is_not_flatlined(rig: Rig) -> None:
-    rig.actor.sim_pico.life_s = None
     rig.run(5)
-    rig.actor.sim_pico.omitted_names = {rig.omit}
-    rig.run(rig.actor.sim_pico.capture_period_s)
-    rig.actor.sim_pico.omitted_names = set()
+    rig.omitting = True
+    rig.run(rig.period_s)
+    rig.omitting = False
     rig.run(rig.quiet_seconds())
     assert rig.flatlined() == []
     assert rig.data.latest_channel_values[rig.channel] is not None
 
 
-def test_a_dead_pico_is_reported_once_and_not_channel_by_channel(rig: Rig) -> None:
-    life_s = 20
-    rig.actor.sim_pico.life_s = life_s
-    rig.actor.sim_pico.booted_at = rig.clock.now
-    rig.run(life_s + int(rig.actor.flatline_seconds()) + 40)
+def test_a_plant_that_stops_showing_a_pico_is_reported_once_and_not_channel_by_channel(
+    rig: Rig,
+) -> None:
+    rig.run(20)
+    rig.plant_shows = False
+    rig.run(int(rig.actor.flatline_seconds()) + 40)
     assert len(rig.missing()) == 1
     flatlined = rig.flatlined()
     assert flatlined

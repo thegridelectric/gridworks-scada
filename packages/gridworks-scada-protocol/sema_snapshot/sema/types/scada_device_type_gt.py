@@ -163,14 +163,20 @@ class ScadaDeviceTypeGt(SemaType):
     @model_validator(mode="after")
     def check_axiom_6(self) -> "ScadaDeviceTypeGt":
         """
-        Axiom 6: SingleBus
-        BusList SHALL have exactly one entry: a scada process drives one bus,
-        and the bus actor opens that entry's adapter. (Retired by the
-        multi-bus work, which replaces this axiom with per-bus binding.)
+        Axiom 6: BusUniqueness
+        a. The Name of every BusList entry SHALL be unique within BusList.
+        b. The BusNumber of every BusList entry SHALL be unique within BusList.
         """
-        if len(self.bus_list) != 1:
+        names = [bus.name for bus in self.bus_list]
+        if len(set(names)) != len(names):
             raise ValueError(
-                "Axiom 6 (SingleBus) failed: BusList declares "
-                f"{len(self.bus_list)} buses; exactly one is required."
+                "Axiom 6 (BusUniqueness) clause a failed: BusList names "
+                f"{names} are not unique."
+            )
+        numbers = [bus.bus_number for bus in self.bus_list]
+        if len(set(numbers)) != len(numbers):
+            raise ValueError(
+                "Axiom 6 (BusUniqueness) clause b failed: BusList numbers "
+                f"{numbers} are not unique."
             )
         return self

@@ -15,9 +15,10 @@ from actors.derived_generator import DerivedGenerator
 from actors.sim_sensor import SimSensorActor
 from gwproto.message import Message
 from gwsproto.data_classes.derived_channel import DerivedChannel
-from gwsproto.enums import EmissionMethod, Quantity, Unit
+from gwsproto.enums import EmissionMethod, Quantity, TelemetryName, Unit
 from gwsproto.named_types import ChannelReadings, SingleReading
 from gwsproto.names.core.node_names import CoreNodeNames
+from plant_link import InProcessPlantLink, PlantLinkKind
 from scada_app import ScadaApp
 
 CONFIG = Path(__file__).parent.parent / "config"
@@ -30,12 +31,19 @@ DERIVED_SIEG_FLOW = {
     "house0-orange": ("sieg-send-flow", lambda v: v["primary-flow"] - v["sieg-flow"]),
     "house0-willow": ("primary-flow", lambda v: v["sieg-send-flow"] + v["sieg-flow"]),
 }
+# what the test, playing the plant, shows on a flow sensor's channels
+SHOWN_BY_TELEMETRY = {
+    TelemetryName.GpmTimes100: 400,
+    TelemetryName.MicroHz: 2_000_000,
+}
+READ_TIME_MS = 1_794_300_000_000
 
 
 def make_app(layout: str, ops: str) -> ScadaApp:
     settings = ScadaApp.get_settings()
     settings.paths.hardware_layout = CONFIG / layout
     settings.paths.operational_params = CONFIG / ops
+    settings.plant_link = PlantLinkKind.InProcess
     settings.paths.mkdirs()
     scada_app = ScadaApp(app_settings=settings)
     scada_app.instantiate()
@@ -169,14 +177,16 @@ def test_difference_registers_under_both_inputs(actor: DerivedGenerator) -> None
 
 @pytest.mark.parametrize("pair", sorted(PAIRS))
 def test_each_house_derives_its_missing_sieg_flow_from_its_sim_sensors(pair: str) -> None:
-    """End to end on both simulated House0 fixtures: every sim flow sensor
-    posts its standing readings the way it does on its timer (to the scada,
-    then to the derived generator, whose handlers read the other addend from
-    the scada's latest values), and the derived generator emits exactly the
-    one sieg flow the house does not measure — orange's sieg-send-flow by
-    difference, willow's primary-flow by sum — with the value the sim
-    readings imply."""
+    """End to end on both simulated House0 fixtures: the plant shows a flow
+    on every sim flow sensor, each sensor posts what it was shown (to the
+    scada, then to the derived generator, whose handlers read the other
+    addend from the scada's latest values), and the derived generator emits
+    exactly the one sieg flow the house does not measure — orange's
+    sieg-send-flow by difference, willow's primary-flow by sum — with the
+    value the shown flows imply."""
     app = make_app(*PAIRS[pair])
+    plant = app.plant_link
+    assert isinstance(plant, InProcessPlantLink)
     scada = app.scada
     generator = app.get_communicator_as_type(CoreNodeNames.derived_generator, DerivedGenerator)
     assert generator is not None
@@ -200,16 +210,23 @@ def test_each_house_derives_its_missing_sieg_flow_from_its_sim_sensors(pair: str
         if isinstance(c, SimSensorActor)
     ]
     flow_sensors = [
-        s for s in sensors if any(n.endswith("-flow") for n in s.readings().ChannelNameList)
+        s for s in sensors if any(n.endswith("-flow") for n in s._channel_names)
     ]
     assert len(flow_sensors) == 4, [s.name for s in flow_sensors]
     for sensor in flow_sensors:
         sensor._send_to = route(sensor)
-        sensor.post()
+    plant.show(
+        {
+            name: SHOWN_BY_TELEMETRY[app.hardware_layout.data_channels[name].TelemetryName]
+            for sensor in flow_sensors
+            for name in sensor._channel_names
+        },
+        READ_TIME_MS,
+    )
 
     derived_name, arithmetic = DERIVED_SIEG_FLOW[pair]
     latest = scada.data.latest_channel_values
-    assert latest["sieg-flow"] > 0  # the sim sensors post real flow, not idle zeros
+    assert latest["sieg-flow"] == 400
     assert [r.ChannelName for r in emitted if r.ChannelName.endswith("-flow")] == [derived_name]
     (reading,) = [r for r in emitted if r.ChannelName == derived_name]
     assert reading.Value == arithmetic(latest)

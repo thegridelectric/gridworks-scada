@@ -1,0 +1,14 @@
+{
+  "TypeName": "sim.plant.flux",
+  "Version": "000",
+  "ChannelNameList": [
+    "hp-odu-pwr",
+    "buffer-depth1"
+  ],
+  "ValueList": [
+    3215,
+    48500
+  ],
+  "ScadaReadTimeUnixMs": 1735689600123,
+  "ActualTimeUtc": "2026-06-12T13:20:00.000Z"
+}

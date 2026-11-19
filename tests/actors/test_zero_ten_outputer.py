@@ -11,6 +11,11 @@ addresses on the sim record, no mux either way); the sim pair drives them
 through the real bus actor over SimI2c, and the GP8403 write path is checked
 byte for byte against what the multiplexer used to put on the wire.
 
+The fixtures' boards are simulated, where the app puts a drive that only
+keeps the level behind each output. These tests put the board's DAC drive
+there instead, onto the bus's fake chips; the last tests are the outputer
+as a simulated house runs it.
+
 The Nolan fixture carries `secondary-010v` on Dac2 channel C (power-on code
 76 volts times ten = code 3040).
 """
@@ -24,9 +29,11 @@ from pathlib import Path
 import pytest
 
 from actors.i2c_bus import I2cBus
-from actors.zero_ten_outputer import (
+from actors.zero_ten_outputer import ZeroTenOutputer
+from dac_drives import (
     DAC_FACTS,
-    ZeroTenOutputer,
+    I2cDacDrive,
+    KeptLevelDrive,
     code_from_volts_times_ten,
     volts_times_ten_from_code,
 )
@@ -40,7 +47,9 @@ from gwsproto.named_types import (
     I2cWriteReg,
     SingleReading,
 )
+from plant import LevelDrive, LevelSet, Prepared
 from scada_app import ScadaApp
+from tests.utils.on_bus import outputer_on_bus
 
 CONFIG = Path(__file__).parent.parent / "config"
 NODE = "secondary-010v"
@@ -81,7 +90,7 @@ def make_app(layout: str | Path, ops: str) -> ScadaApp:
 def rig() -> tuple[ZeroTenOutputer, I2cBus, list]:
     app = make_app("gw.nolan.layout.json", "gw.nolan.operational.params.json")
     bus = I2cBus(BUS_NAME, app)
-    out = ZeroTenOutputer(NODE, app)
+    out, _ = outputer_on_bus(app, NODE)
     out.warnings = []
     out.send_warning = lambda summary, details="": out.warnings.append(summary)
     sent: list = []
@@ -131,12 +140,14 @@ def test_registered_actor_instantiates(rig) -> None:
 
 def test_resolves_from_board_record(rig) -> None:
     out, _, _ = rig
-    assert out.dac_address == DAC_ADDRESS
-    assert out.mux_address == MUX_ADDRESS
-    assert out.mux_channel == DAC2_MUX_CHANNEL
-    assert out.channel == CHANNEL_C
-    assert out.power_on_code == C_RAW
-    assert out.target_code == C_RAW
+    at = out.drive.at
+    assert at.dac_address == DAC_ADDRESS
+    assert at.mux_address == MUX_ADDRESS
+    assert at.mux_channel == DAC2_MUX_CHANNEL
+    assert at.channel == CHANNEL_C
+    assert out.power_on_level == C_VOLTS_TIMES_TEN
+    assert out.target_level == C_VOLTS_TIMES_TEN
+    assert out.drive.code(out.power_on_level) == C_RAW
 
 
 def test_assert_target_is_multi_write_only_and_reports(rig) -> None:
@@ -163,15 +174,19 @@ def test_boot_verify_reprograms_then_stays_clean(rig) -> None:
         out.warnings.append(summary),
         details.append(kw.get("details", details_)),
     )
-    assert asyncio.run(out.verify_eeprom())
+    assert asyncio.run(out.prepare_output())
     assert dac.eeprom[CHANNEL_C] == [C_RAW, 1, 0]
     assert dac.register[CHANNEL_C] == [C_RAW, 1, 0]
     assert out.warnings == ["i2c-dac-eeprom-reprogrammed"]
-    # the glitch names what the chip held and what the ops word declares
-    assert f"read (0, 0, 0), ops ({C_RAW}, 1, 0)" in details[0]
+    # the glitch names the output, what the chip held and what the ops word
+    # declares
+    assert details[0] == (
+        f"{NODE}: channel C EEPROM (code, vref, gain) read (0, 0, 0), "
+        f"ops ({C_RAW}, 1, 0); reprogrammed and re-verified"
+    )
     # a chip already carrying the declared defaults verifies silently
     out.warnings.clear()
-    assert asyncio.run(out.verify_eeprom())
+    assert asyncio.run(out.prepare_output())
     assert out.warnings == []
 
 
@@ -179,7 +194,7 @@ def test_dispatch_sets_level_and_heartbeat_holds_it(rig) -> None:
     out, bus, sent = rig
     dac = bus.i2c.dacs[DAC2_MUX_CHANNEL]
     out.process_message(dispatch(out, DISPATCH_VOLTS_TIMES_TEN))
-    assert out.target_code == DISPATCH_RAW
+    assert out.target_level == DISPATCH_VOLTS_TIMES_TEN
     assert out.wake.is_set()
     asyncio.run(out.assert_target())
     assert dac.register[CHANNEL_C] == [DISPATCH_RAW, 1, 0]
@@ -195,7 +210,7 @@ def test_dispatch_sets_level_and_heartbeat_holds_it(rig) -> None:
 def test_dispatch_out_of_range_is_ignored(rig) -> None:
     out, _, _ = rig
     out.process_message(dispatch(out, 101))
-    assert out.target_code == C_RAW
+    assert out.target_level == C_VOLTS_TIMES_TEN
     assert not out.wake.is_set()
 
 
@@ -205,7 +220,7 @@ def test_dispatch_full_scale_holds_at_the_top_code(rig) -> None:
     out, bus, sent = rig
     dac = bus.i2c.dacs[DAC2_MUX_CHANNEL]
     out.process_message(dispatch(out, 100))
-    assert out.target_code == 4000
+    assert out.drive.code(out.target_level) == 4000
     asyncio.run(out.assert_target())
     assert dac.register[CHANNEL_C] == [4000, 1, 0]
     assert sent[-1].Value == 100
@@ -215,10 +230,17 @@ def test_dispatch_full_scale_holds_at_the_top_code(rig) -> None:
 
 
 def test_bus_fault_contained_throttled_and_heals(rig) -> None:
-    out, bus, _ = rig
+    out, bus, sent = rig
+    details: list[str] = []
+    out.send_warning = lambda summary, details_="", **kw: (
+        out.warnings.append(summary),
+        details.append(kw.get("details", details_)),
+    )
     bus.i2c.inject_fault(MUX_ADDRESS, count=None)
     asyncio.run(out.assert_target())
     assert out.warnings == ["i2c-dac-write-failed"]
+    assert details[0].startswith(f"{NODE}: volts x10 {C_VOLTS_TIMES_TEN} (code {C_RAW}): ")
+    assert sent == [], "a set that did not take reports no level"
     asyncio.run(out.assert_target())
     assert len(out.warnings) == 1  # once per failure streak
     bus.i2c.clear_faults()
@@ -232,8 +254,12 @@ def test_bus_fault_contained_throttled_and_heals(rig) -> None:
 def test_verify_read_failure_warns_and_returns_false(rig) -> None:
     out, bus, _ = rig
     bus.i2c.inject_fault(DAC_ADDRESS, count=None)
-    assert not asyncio.run(out.verify_eeprom())
-    assert out.warnings == ["i2c-dac-eeprom-read-failed"]
+    assert not asyncio.run(out.prepare_output())
+    assert not asyncio.run(out.prepare_output())
+    assert out.warnings == ["i2c-dac-eeprom-read-failed"], "once per failure streak"
+    bus.i2c.clear_faults()
+    assert asyncio.run(out.prepare_output())
+    assert out.warnings == ["i2c-dac-eeprom-read-failed", "i2c-dac-eeprom-reprogrammed"]
 
 
 @pytest.mark.parametrize("pair", sorted(HOUSE0_PAIRS))
@@ -243,27 +269,29 @@ def test_every_house0_output_resolves_against_the_krida_record(pair: str) -> Non
     app = make_app(*HOUSE0_PAIRS[pair])
     chip = I2cDacType.Mcp4728
     for name, (address, channel) in HOUSE0_OUTPUTS.items():
-        out = ZeroTenOutputer(name, app)
+        out, drive = outputer_on_bus(app, name)
+        at = drive.at
         assert out.dac is app.hardware_layout.node(name).component
         assert out.dac.board_component is app.hardware_layout.scada_board()
-        assert out.dac_type == chip
-        assert out.dac_address == address
-        assert out.channel == channel
-        assert out.mux_address is None and out.mux_channel is None
-        assert out.bus_node.name == BUS_NAME
+        assert at.dac_type == chip
+        assert at.dac_address == address
+        assert at.channel == channel
+        assert at.mux_address is None and at.mux_channel is None
+        assert at.bus_node.name == BUS_NAME
         assert out.config.ChannelName == name
         level = HOUSE0_POWER_ON[name]
-        assert out.power_on_code == round(
-            level / 10 / out.facts.full_scale_volts * out.facts.codes
+        assert out.power_on_level == level
+        assert drive.code(level) == round(
+            level / 10 / drive.facts.full_scale_volts * drive.facts.codes
         )
-        assert out.target_code == out.power_on_code
+        assert out.target_level == out.power_on_level
         assert out.monitored_names
 
 
 def house0_sim_rig(name: str) -> tuple[ZeroTenOutputer, I2cBus, list]:
     app = make_app(*HOUSE0_PAIRS["house0-orange"])
     bus = I2cBus(BUS_NAME, app)
-    out = ZeroTenOutputer(name, app)
+    out, _ = outputer_on_bus(app, name)
     out.warnings = []
     out.send_warning = lambda summary, details="": out.warnings.append(summary)
     sent: list = []
@@ -292,12 +320,13 @@ def test_house0_sim_drives_muxless_dacs_through_the_bus() -> None:
         assert bus.i2c.mux_address is None and bus.i2c.dacs == {}
         assert set(bus.i2c.muxless_dacs) == {94, 95}
         dac = bus.i2c.muxless_dacs[address]
-        assert asyncio.run(out.verify_eeprom())
-        assert dac.eeprom[channel] == [out.power_on_code, 1, 0]
+        power_on_code = out.drive.code(out.power_on_level)
+        assert asyncio.run(out.prepare_output())
+        assert dac.eeprom[channel] == [power_on_code, 1, 0]
         out.process_message(dispatch(out, DISPATCH_VOLTS_TIMES_TEN))
         asyncio.run(out.assert_target())
         assert dac.register[channel] == [DISPATCH_RAW, 1, 0]
-        assert dac.eeprom[channel] == [out.power_on_code, 1, 0]
+        assert dac.eeprom[channel] == [power_on_code, 1, 0]
         assert sent[-1].ChannelName == name
         assert sent[-1].Value == DISPATCH_VOLTS_TIMES_TEN
         # a fresh sim chip holds no power-on level: verify reprograms it once
@@ -329,7 +358,7 @@ def test_gp8403_writes_the_multiplexer_wire_bytes(tmp_path: Path) -> None:
     the one field the chip arm turns on."""
     layout, ops = HOUSE0_PAIRS["house0-willow"]
     app = make_app(gp8403_board_copy(CONFIG / layout, tmp_path), ops)
-    out = ZeroTenOutputer("primary-010v", app)  # Dfr1 channel B -> reg 0x04
+    out, drive = outputer_on_bus(app, "primary-010v")  # Dfr1 channel B -> reg 0x04
     writes: list[I2cWriteReg] = []
 
     async def bus_ok(payload):
@@ -343,16 +372,14 @@ def test_gp8403_writes_the_multiplexer_wire_bytes(tmp_path: Path) -> None:
             TriggerId=payload.TriggerId,
         )
 
-    out.bus_op = bus_ok
+    drive.bus.op = bus_ok
     out.warnings = []
     out.send_warning = lambda summary, details="": out.warnings.append(summary)
     sent: list = []
     out._send_to = lambda dst, payload, src=None: sent.append(payload)
 
-    assert not out.facts.supports_power_on_store
-    assert asyncio.run(out.verify_eeprom())  # nothing to verify, no bus op
-    assert writes == []
-    assert asyncio.run(out.prepare_chip())
+    assert not drive.facts.supports_power_on_store
+    assert asyncio.run(out.prepare_output())  # no EEPROM to verify: the range alone
     asyncio.run(out.assert_target())  # the ops power-on level: 4.0 V
 
     def wire(w: I2cWriteReg) -> tuple[int, int, int, int]:
@@ -374,7 +401,7 @@ def test_gp8403_writes_the_multiplexer_wire_bytes(tmp_path: Path) -> None:
     # full scale: the top 12-bit code, not 4096 masked to 0 (beech 2026-09-13
     # wrote 0 V for 10 V)
     out.process_message(dispatch(out, 100))
-    assert out.target_code == 4095
+    assert drive.code(out.target_level) == 4095
     asyncio.run(out.assert_target())
     assert wire(writes[-1]) == (94, gp8403.OUTPUT_REG[1], 0xF0, 0xFF)
     assert sent[-1].Value == 100
@@ -425,7 +452,82 @@ def test_verify_reads_the_bench_chip_bytes(rig) -> None:
             TriggerId=payload.TriggerId,
         )
 
-    out.muxed_op = chip_read
-    mismatch, detail = asyncio.run(out.read_eeprom_mismatch())
+    out.drive.muxed_op = chip_read
+    mismatch, detail = asyncio.run(out.drive.read_eeprom_mismatch(C_RAW))
     assert mismatch is True
     assert detail == f"EEPROM (code, vref, gain) read (3020, 1, 0), ops ({C_RAW}, 1, 0)"
+
+
+# --- the outputer as a simulated house runs it --------------------------------
+
+
+@pytest.mark.parametrize(
+    ("layout", "ops", "outputs"),
+    [
+        ("gw.nolan.layout.json", "gw.nolan.operational.params.json", [NODE]),
+        (*HOUSE0_PAIRS["house0-orange"], sorted(HOUSE0_OUTPUTS)),
+    ],
+)
+def test_a_simulated_boards_output_keeps_its_level_and_touches_no_bus(
+    layout: str, ops: str, outputs: list[str]
+) -> None:
+    app = make_app(layout, ops)
+    for name in outputs:
+        assert isinstance(app.plant.device(name, LevelDrive), KeptLevelDrive)
+        out = ZeroTenOutputer(name, app)
+        sent: list = []
+        out._send_to = lambda dst, payload, src=None: sent.append((dst.name, payload))
+        out.send_warning = lambda summary, details="": sent.append(("warning", summary))
+
+        assert asyncio.run(out.prepare_output())
+        asyncio.run(out.assert_target())
+        out.process_message(dispatch(out, DISPATCH_VOLTS_TIMES_TEN))
+        asyncio.run(out.assert_target())
+
+        readings = [p for dst, p in sent if isinstance(p, SingleReading)]
+        assert [(r.ChannelName, r.Value) for r in readings] == [
+            (name, out.power_on_level),
+            (name, DISPATCH_VOLTS_TIMES_TEN),
+        ]
+        assert BUS_NAME not in {dst for dst, _ in sent}
+        assert not [p for dst, p in sent if dst == "warning"]
+
+
+def test_a_board_that_is_not_simulated_has_its_dac_behind_each_output(tmp_path: Path) -> None:
+    layout = tmp_path / "layout.json"
+    layout.write_text(
+        (CONFIG / "gw.nolan.layout.json").read_text().replace('"SimGw108"', '"Gw108RevB"')
+    )
+    settings = ScadaApp.get_settings()
+    settings.paths.hardware_layout = layout
+    settings.paths.operational_params = CONFIG / "gw.nolan.operational.params.json"
+    drive = ScadaApp(app_settings=settings).plant.device(NODE, LevelDrive)
+
+    assert isinstance(drive, I2cDacDrive)
+    assert (drive.at.dac_address, drive.at.mux_address, drive.at.channel) == (
+        DAC_ADDRESS,
+        MUX_ADDRESS,
+        CHANNEL_C,
+    )
+
+
+def test_a_drive_whose_bus_never_answers_says_so_and_does_not_raise(rig) -> None:
+    out, _, _ = rig
+    drive = out.drive
+    drive.bus.timeout_s = 0.01
+    out._send_to = lambda dst, payload, src=None: None
+
+    level_set = asyncio.run(drive.set(DISPATCH_VOLTS_TIMES_TEN))
+    assert level_set.held is None
+    assert [(s.summary, s.details, s.streak) for s in level_set.said] == [
+        (
+            "i2c-dac-write-failed",
+            f"volts x10 {DISPATCH_VOLTS_TIMES_TEN} (code {DISPATCH_RAW}): bus op timeout",
+            True,
+        )
+    ]
+    prepared = asyncio.run(drive.prepare(C_VOLTS_TIMES_TEN))
+    assert prepared == Prepared(
+        False, tuple(prepared.said), ""
+    ) and [s.summary for s in prepared.said] == ["i2c-dac-eeprom-read-failed"]
+    assert asyncio.run(KeptLevelDrive().set(7)) == LevelSet(7, ())

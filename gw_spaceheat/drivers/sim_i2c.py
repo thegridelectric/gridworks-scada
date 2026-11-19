@@ -25,6 +25,8 @@ from drivers import ads1115, mcp4728, tca9555
 # former in-actor sim branch returned, kept so a sim boot classifies the
 # same way it always did.
 SIM_THERMISTOR_VOLTS = 0.2
+# That figure as the conversion register holds it, one LSB being 125 µV.
+SIM_THERMISTOR_RAW = int(SIM_THERMISTOR_VOLTS * 32768 / ads1115.FULL_SCALE_VOLTS)
 
 
 class SimTca9555:
@@ -158,7 +160,7 @@ class SimAds1115:
         if register == ads1115.CONFIG_REG:
             word = self.config
         elif register == ads1115.CONVERSION_REG:
-            word = int(SIM_THERMISTOR_VOLTS * 32768 / ads1115.FULL_SCALE_VOLTS)
+            word = SIM_THERMISTOR_RAW
         else:
             word = 0
         return [(word >> 8) & 0xFF, word & 0xFF][:length]

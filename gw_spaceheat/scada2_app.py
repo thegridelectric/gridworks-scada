@@ -22,6 +22,8 @@ from actors.scada import ScadaCodecFactory
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
 from gwsproto.names.core.node_names import CoreNodeNames
 from clock import Clock, build_clock
+from plant import Plant
+from plant_routes import route_devices
 from weather_source import WeatherSource, build_weather_source
 from scada_app_interface import ScadaAppInterface
 
@@ -109,6 +111,17 @@ class Scada2App(App, ScadaAppInterface):
         self._clock = clock if clock is not None else build_clock(
             self.settings.clock_source, self.is_simulated, self.settings.gridworks_mqtt
         )
+        self._plant = Plant()
+        secondary_scada = self.hardware_layout.node(CoreNodeNames.secondary_scada)
+        if secondary_scada is None:
+            raise ValueError(f"the layout has no {CoreNodeNames.secondary_scada} node")
+        route_devices(
+            self._plant,
+            self.hardware_layout,
+            self.plant_link,
+            self.settings,
+            run_by=secondary_scada,
+        )
         self._weather_source = weather_source if weather_source is not None else build_weather_source(
             self.settings.weather_source,
             load_operational_params(self.settings),
@@ -126,6 +139,14 @@ class Scada2App(App, ScadaAppInterface):
     @property
     def clock(self) -> Clock:
         return self._clock
+
+    @property
+    def plant(self) -> Plant:
+        return self._plant
+
+    @property
+    def plant_link(self) -> None:
+        return None
 
     @property
     def weather_source(self) -> WeatherSource:

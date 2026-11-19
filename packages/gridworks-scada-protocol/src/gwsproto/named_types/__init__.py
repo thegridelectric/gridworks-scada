@@ -157,6 +157,8 @@ from gwsproto.named_types.sim_pico_flow_module_component_gt import (
 from gwsproto.named_types.sim_pico_tank_module_component_gt import (
     SimPicoTankModuleComponentGt,
 )
+from gwsproto.named_types.sim_plant_actuation import SimPlantActuation
+from gwsproto.named_types.sim_plant_flux import SimPlantFlux
 from gwsproto.named_types.sim_sensor_component_gt import SimSensorComponentGt
 from gwsproto.named_types.simple_sim_layout import SimpleSimLayout
 from gwsproto.named_types.single_machine_state import SingleMachineState
@@ -342,6 +344,8 @@ __all__ = [
     "SimPicoBtuMeterComponentGt",
     "SimPicoFlowModuleComponentGt",
     "SimPicoTankModuleComponentGt",
+    "SimPlantActuation",
+    "SimPlantFlux",
     "SimSensorComponentGt",
     "SimpleSimLayout",
     "SingleMachineState",

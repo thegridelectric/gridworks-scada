@@ -1,0 +1,79 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/sim.plant.actuation/000"
+
+title: "sim.plant.actuation"
+type: object
+description: >
+  The actuation event of a single simulated relay, sent to the plant so it can
+  fold the actuation into its physics. The atomic action a relay performs —
+  energize or de-energize (Action) — for the relay named RelayName, at a
+  simulated actuation time (ActuationTimeUnixMs) plus the human-readable
+  wall-clock time it crossed the wire (ActualTimeUtc). The inverse boundary of
+  sim.plant.flux: flux is what the plant emits for a sensor to read; this is what
+  a simulated relay (a SimRelayActor) sends into the plant. This is an EVENT (the
+  i2c multiplexer's atomic pin action), not a state and not the closed/open
+  interpretation — the plant resolves what energizing a given relay *does* (HP on,
+  store charging, pump on, ...) from the layout (the relay's role and wiring).
+
+properties:
+  RelayName:
+    $ref: "https://schemas.electricity.works/formats/spaceheat.name"
+    description: >
+      Node name of the relay that actuated (the plant maps it to physics).
+
+  Action:
+    $ref: "https://schemas.electricity.works/enums/change.relay.pin/000"
+    description: >
+      The pin action the relay performed: Energize or DeEnergize.
+
+  ActuationTimeUnixMs:
+    $ref: "https://schemas.electricity.works/formats/utc.milliseconds"
+    description: >
+      Simulation-time UTC millisecond timestamp at which the relay actuated.
+
+  ActualTimeUtc:
+    $ref: "https://schemas.electricity.works/formats/utc.iso8601.millis"
+    description: >
+      Human-readable wall-clock timestamp (ISO 8601, millisecond precision, Z
+      suffix) at which the actuation crossed the wire. Provenance for humans, not
+      consumed by the plant's physics.
+
+  TypeName:
+    const: "sim.plant.actuation"
+
+  Version:
+    const: "000"
+
+required:
+  - RelayName
+  - Action
+  - ActuationTimeUnixMs
+  - ActualTimeUtc
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "RelayName": "hp-scada-ops-relay",
+      "Action": "Energize",
+      "ActuationTimeUnixMs": 1735689600123,
+      "ActualTimeUtc": "2026-06-12T13:20:00.000Z",
+      "TypeName": "sim.plant.actuation",
+      "Version": "000"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+
+  extended_description: >
+    The controller commands; the relay energizes or de-energizes; the plant
+    responds. Modeled on the i2c relay multiplexer's atomic action — a Krida pin
+    is energized or de-energized — an event, not a state, and not the closed/open
+    interpretation (which depends on the relay's wiring). The relay's logical
+    effect is resolved by the plant from the layout, not carried here. The inverse
+    of sim.plant.flux, which the plant radiates out for a sensor to read. Two
+    timestamps, as with flux: the simulated actuation time the plant advances on,
+    and a human-readable wall-clock time for provenance.

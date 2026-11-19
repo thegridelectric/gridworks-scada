@@ -82,8 +82,16 @@ class I2cBus(ShNodeActor):
         # the register-file init and reset guard apply to those alone; a
         # PCF8575 has no configuration register to clear or watch.
         board = self.layout.scada_board()
-        # The adapter is the record's one BusList entry (axiom 6 SingleBus
-        # holds the record to exactly one), never a literal.
+        # This actor drives one adapter, the record's one BusList entry,
+        # never a literal. A record may declare several buses; until each
+        # bus node binds to its own entry, a board with more than one has
+        # no rule for which this actor opens, so it fails the boot.
+        if len(board.device_type.BusList) != 1:
+            raise ValueError(
+                f"{self.bus_name}: {board.device_type.DeviceType} declares "
+                f"{len(board.device_type.BusList)} buses in BusList; this bus "
+                "actor drives exactly one and has no rule for which to open"
+            )
         self.bus_number: int = board.device_type.BusList[0].BusNumber
         self._expander_types: dict[int, I2cExpanderType] = {
             board.expander_address(expander): expander.ExpanderType

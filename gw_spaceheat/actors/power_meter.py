@@ -1,5 +1,6 @@
 """Implements PowerMeter via SyncThreadActor and PowerMeterDriverThread. A helper class, DriverThreadSetupHelper,
-isolates code used only in PowerMeterDriverThread constructor. """
+isolates code used only in PowerMeterDriverThread constructor. The meter itself is the PowerMeterDriver the plant
+holds for the power meter's node."""
 import logging
 import time
 import typing
@@ -17,14 +18,9 @@ from gwsproto.data_classes.components.electric_meter_component import ElectricMe
 from gwsproto.data_classes.data_channel import DataChannel
 from gwsproto.data_classes.derived_channel import DerivedChannel
 from gwsproto.data_classes.sh_node import ShNode
-from drivers.power_meter.egauge_4030__power_meter_driver import EGuage4030_PowerMeterDriver
-from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
-    GridworksSimPm1_PowerMeterDriver,
-)
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
 from gwproactor.message import InternalShutdownMessage
 from gwproactor.sync_thread import SyncAsyncInteractionThread
-from gwsproto.enums import DeviceType, SimDeviceType
 from gwsproto.named_types import ChannelFlatlined, ElectricMeterChannelConfig, Glitch, PowerWatts, SingleReading, SyncedReadings
 
 from gwsproto.data_classes.hydronic_layout import HydronicLayout
@@ -80,22 +76,6 @@ class DriverThreadSetupHelper:
         self.component = typing.cast(ElectricMeterComponent, node.component)
         self.logger = logger
 
-    def make_power_meter_driver(self) -> PowerMeterDriver:
-        cac = self.component.device_type
-        if cac.DeviceType == SimDeviceType.SimPowerMeter:
-            driver = GridworksSimPm1_PowerMeterDriver(component=self.component, settings=self.settings)
-        elif cac.DeviceType == DeviceType.EgaugePowerMeter:
-            driver = EGuage4030_PowerMeterDriver(
-                component=self.component,
-                settings=self.settings,
-                logger=self.logger,
-            )
-        else:
-            raise NotImplementedError(
-                f"No ElectricMeter driver yet for {cac.DeviceType}"
-            )
-        return driver
-
     def make_eq_reporting_config(self) -> Dict[DataChannel, ElectricMeterChannelConfig]:
         response_dict: Dict[DataChannel, ElectricMeterChannelConfig] = {}
         for config in self.component.gt.ConfigList:
@@ -140,6 +120,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         node: ShNode,
         settings: ScadaSettings,
         hardware_layout: HydronicLayout,
+        driver: PowerMeterDriver,
         responsive_sleep_step_seconds=0.01,
         daemon: bool = True,
         logger: Optional[LoggerOrAdapter] = None,
@@ -158,7 +139,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
             logger=logger
         )
         self.eq_reporting_config = setup_helper.make_eq_reporting_config()
-        self.driver = setup_helper.make_power_meter_driver()
+        self.driver = driver
         self.transactive_nameplate_watts = setup_helper.get_transactive_nameplate_watts()
         self.last_reported_agg_power_w: Optional[int] = None
         component: ElectricMeterComponent = typing.cast(ElectricMeterComponent, node.component)
@@ -502,6 +483,12 @@ class PowerMeter(SyncThreadActor):
         settings: Optional[ScadaSettings] = None,
     ):
         settings = settings or services.settings
+        logger = services.logger.add_category_logger(
+            self.POWER_METER_LOGGER_NAME,
+            level=settings.power_meter_logging_level,
+        )
+        driver = services.plant.device(name, PowerMeterDriver)
+        driver.logger = logger
         super().__init__(
             name=name,
             services=services,
@@ -509,10 +496,8 @@ class PowerMeter(SyncThreadActor):
                 node=services.hardware_layout.node(name),
                 settings=settings,
                 hardware_layout=services.hardware_layout,
-                logger=services.logger.add_category_logger(
-                    self.POWER_METER_LOGGER_NAME,
-                    level=settings.power_meter_logging_level,
-                )
+                driver=driver,
+                logger=logger,
             ),
         )
 

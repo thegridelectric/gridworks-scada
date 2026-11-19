@@ -24,6 +24,9 @@ from actors.unserved_post import UNSERVED_POST_PATH, UnservedPosts
 from sema_to_dc import load_layout
 from gwsproto.names.core.node_names import CoreNodeNames, ScadaWeb
 from clock import Clock, build_clock
+from plant import Plant
+from plant_link import PlantLink
+from plant_routes import build_plant_link, route_devices
 from weather_source import WeatherSource, build_weather_source
 from scada_app_interface import ScadaAppInterface
 from universe import assert_universe_coherence
@@ -59,6 +62,21 @@ class ScadaApp(App, ScadaAppInterface):
         super().__init__(**kwargs)
         self._clock = clock if clock is not None else build_clock(
             self.settings.clock_source, self.is_simulated, self.settings.gridworks_mqtt
+        )
+        self._plant_link = build_plant_link(
+            self.settings.plant_link,
+            self.hardware_layout,
+            simulated=self.is_simulated,
+            mqtt_config=self.settings.gridworks_mqtt,
+            clock=self._clock,
+        )
+        self._plant = Plant()
+        route_devices(
+            self._plant,
+            self.hardware_layout,
+            self._plant_link,
+            self.settings,
+            run_by=self.hardware_layout.primary_scada,
         )
         self._weather_source = weather_source if weather_source is not None else build_weather_source(
             self.settings.weather_source,
@@ -131,6 +149,14 @@ class ScadaApp(App, ScadaAppInterface):
     @property
     def clock(self) -> Clock:
         return self._clock
+
+    @property
+    def plant(self) -> Plant:
+        return self._plant
+
+    @property
+    def plant_link(self) -> Optional[PlantLink]:
+        return self._plant_link
 
     @property
     def weather_source(self) -> WeatherSource:

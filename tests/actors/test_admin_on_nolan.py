@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from actors.zero_ten_outputer import ZeroTenOutputer, code_from_volts_times_ten
+from actors.zero_ten_outputer import ZeroTenOutputer
 from gwsproto.enums import (
     ActorClass,
     FiveVBossState,
@@ -144,10 +144,9 @@ async def test_admin_analog_dispatch_reaches_outputer(
         scada = h.child_app.scada
         out = h.child_app.proactor.get_communicator(DAC_NODE)
         assert isinstance(out, ZeroTenOutputer)
-        expected_code = code_from_volts_times_ten(VOLTS_TIMES_TEN, out.facts)
         scada.process_scada_message(scada.admin, admin_dispatch(VOLTS_TIMES_TEN))
         assert out.node.handle == f"{CoreNodeNames.admin}.{DAC_NODE}"
-        assert out.target_code == expected_code
+        assert out.target_level == VOLTS_TIMES_TEN
         await h.await_for(
             lambda: scada.data.latest_channel_values.get(DAC_NODE) == VOLTS_TIMES_TEN,
             f"ERROR waiting for {DAC_NODE} to report {VOLTS_TIMES_TEN}",

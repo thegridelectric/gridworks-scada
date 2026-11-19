@@ -39,6 +39,7 @@ from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatCha
 from gwsproto.property_format import SpaceheatName
 from gwsproto.type_helpers.command_tree_axioms import LOCAL_CONTROL_STATE_NODES
 
+from plant import DeviceT
 from sema_to_dc import OperationalParams
 from scada_app_interface import ScadaAppInterface
 
@@ -104,6 +105,14 @@ class ShNodeActor(Actor, ABC):
     @property
     def layout(self) -> HydronicLayout:
         return self.services.hardware_layout
+
+    def my_device(self, kind: type[DeviceT]) -> DeviceT:
+        """This node's device, attached to this actor."""
+        device = self.services.plant.device(self.name, kind)
+        # Looked up at each send, so what replaces _send_to on the actor
+        # also carries what its device sends.
+        device.attach(lambda dst, payload: self._send_to(dst, payload))
+        return device
 
     @property
     def data(self) -> ScadaData:

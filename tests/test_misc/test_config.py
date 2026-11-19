@@ -8,6 +8,7 @@ import dotenv
 import pytest
 from gwproactor.config import Paths
 from clock import ClockSource
+from plant_link import PlantLinkKind
 from weather_source import WeatherSourceKind
 from gwproactor.config.mqtt import TLSInfo
 from gwproactor import ProactorSettings
@@ -60,6 +61,7 @@ def test_scada_settings_defaults(default_test_env, clean_test_env, clean_scada_e
         proactor=ProactorSettings().model_dump(),
         paho_logging=False,
         clock_source=ClockSource.Wall,
+        plant_link=PlantLinkKind.Broker,
         weather_source=WeatherSourceKind.Gwwf,
         weather_api_url="https://forecast.electricity.works/hw1-isone-weather",
         weather_pull_timeout_s=20,
