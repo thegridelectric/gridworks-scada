@@ -7,6 +7,7 @@ holds none of it.
 """
 
 import uuid
+import warnings
 from typing import Any, NamedTuple, Optional
 
 from gwsproto.data_classes.components import GpioRelayComponent, I2cRelayComponent
@@ -253,7 +254,16 @@ class GpioRelayDrive(RelayDrive):
 
         self.gpio = GPIO
         self.gpio.setmode(GPIO.BCM)
-        self.gpio.setup(self.bcm_pin, GPIO.OUT)
+        # The pin is expected to be in use: the previous scada process left
+        # it driven on exit, so a restart never drops the relay. RPi.GPIO
+        # warns on every such setup, and the warning cannot tell this from
+        # another process holding the pin, so it says nothing. Only that
+        # warning is dropped, and only here; the sensor pins keep theirs.
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", message="This channel is already in use", category=RuntimeWarning
+            )
+            self.gpio.setup(self.bcm_pin, GPIO.OUT)
 
     async def set(self, action: ChangeRelayPin) -> Optional[str]:
         try:

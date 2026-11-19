@@ -2,7 +2,10 @@
 It routes to whatever was put behind the node and does nothing else."""
 
 import json
+import sys
+import types
 import uuid
+import warnings
 from pathlib import Path
 from typing import Any, Callable, Iterable, Optional
 
@@ -352,6 +355,35 @@ async def test_the_secondary_scada_has_a_plant_with_nothing_behind_it(
     async with ScadaLiveTest(request=request) as h:
         plant = h.child2_app.plant
         assert plant.device_by_node == {}
+
+
+def test_the_relay_pin_in_use_warning_is_dropped_at_setup(monkeypatch: pytest.MonkeyPatch) -> None:
+    """RPi.GPIO warns when a pin is already configured, which a relay pin is
+    after every scada restart because the previous process left it driven.
+    The relay drive drops that one warning at its setup; a sensor pin's
+    setup keeps it."""
+    in_use = "This channel is already in use, continuing anyway.  Use GPIO.setwarnings(False)"
+
+    class FakeGpio:
+        BCM, IN, OUT, HIGH, LOW = "BCM", "IN", "OUT", 1, 0
+
+        def setmode(self, mode: str) -> None:
+            pass
+
+        def setup(self, pin: int, mode: str) -> None:
+            warnings.warn(in_use, RuntimeWarning, stacklevel=2)
+
+    rpi = types.ModuleType("RPi")
+    rpi.GPIO = FakeGpio()  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "RPi", rpi)
+    monkeypatch.setitem(sys.modules, "RPi.GPIO", rpi.GPIO)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        GpioRelayDrive(23).attach(lambda _node, _payload: None)
+
+    with pytest.warns(RuntimeWarning, match="already in use"):
+        GpioPinInput(17).attach(lambda _node, _payload: None)
 
 
 def test_a_device_says_where_it_is_for_the_log() -> None:
