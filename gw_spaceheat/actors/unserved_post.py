@@ -1,6 +1,9 @@
 """A POST the scada's web server answers but no actor serves. The box can
 only learn of it once the sender posts, so it is a Warning glitch: once per
-path per day, with the posted identity, and a log line on every post."""
+path per day, with the posted identity, and a log line on every post. A
+pico's `code-update` post is the exception: every pico announces its
+firmware on each boot, and the pico cycler reboots them on purpose, so the
+post is answered 404 and neither logged nor reported."""
 import json
 import logging
 
@@ -14,6 +17,7 @@ from gwsproto.enums import LogLevel
 from gwsproto.named_types import Glitch
 
 UNSERVED_POST_PATH = "/{tail:.*}"  # registered last, after every actor's routes
+CODE_UPDATE_SUFFIX = "/code-update"  # a pico's firmware announcement on boot
 
 
 def posted_identity(text: str | None) -> str:
@@ -42,6 +46,8 @@ class UnservedPosts:
         self.limit = GlitchLimit(REPEAT_GLITCH_S)
 
     async def handle(self, request: Request) -> Response:
+        if request.path.endswith(CODE_UPDATE_SUFFIX):
+            return Response(status=404)
         try:
             text: str | None = await request.text()
         except Exception:  # noqa: BLE001
