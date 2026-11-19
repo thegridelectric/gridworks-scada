@@ -30,7 +30,6 @@ PRICE_MIN_USD_MWH = -100.0
 
 WATER_KWH_PER_KG_K = 4.184 / 3600
 RSWT_RADIATOR_EXPONENT = 1.3
-MIN_RSWT_F = 100
 
 
 def celsius_to_fahrenheit(celsius: float) -> float:
@@ -219,7 +218,6 @@ def adjust_load_for_buffer(load_kwh: list[float], buffer_available_kwh: float) -
 def rswt_forecast_f(curve: HeatingCurve, load_kwh: Sequence[float], t_room_f: float) -> list[float]:
     # Module constants; candidate heating.curve fields if houses prove to differ.
     n = RSWT_RADIATOR_EXPONENT
-    min_rswt_f = MIN_RSWT_F
     cp = WATER_KWH_PER_KG_K
 
     mdot = float(curve.MassFlowKgH)
@@ -238,7 +236,6 @@ def rswt_forecast_f(curve: HeatingCurve, load_kwh: Sequence[float], t_room_f: fl
         t_supply_c = t_room_c + rad_scale * (q/q_dd)**(1/n) + q/(2*mdot*cp)
         rswt_list_f.append(round(celsius_to_fahrenheit(t_supply_c), 2))
     
-    rswt_list_f = [max(min_rswt_f, rswt) for rswt in rswt_list_f]
     return rswt_list_f
 
 
