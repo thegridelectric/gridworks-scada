@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-11-18T14:45:00Z"
+  last_updated: "2026-11-20T18:50:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -458,7 +458,7 @@ enums:
     versions:
       "000":
         schema_url: "https://schemas.electricity.works/enums/gw1.device.type/000"
-        created: "2026-06-13T21:30:00Z"
+        created: "2026-11-20T18:50:00Z"
         status: "staging"
 
   gw1.emission.method:
