@@ -1,6 +1,6 @@
 {
   "TypeName": "flo.recommendation",
-  "Version": "002",
+  "Version": "003",
   "BidderAlias": "hw1.isone.me.versant.keene.oak",
   "PqPairs": [
     {
@@ -129,16 +129,11 @@
   "PathPenaltiesList": [
     {
       "TypeName": "flo.path.penalties.bruce",
-      "Version": "001",
+      "Version": "002",
       "RswtPenaltyUsdList": [
         0.0,
         0.31,
         0.0
-      ],
-      "UnmetLoadPenaltyUsdList": [
-        0.0,
-        0.0,
-        0.4
       ],
       "StabilityPenaltyUsdList": [
         0.0,
@@ -152,19 +147,21 @@
       ],
       "TerminalCostUsd": 2.14,
       "TerminalCostEmptyStoreUsd": 5.6,
-      "PathCostUsd": 9.1
+      "PathCostUsd": 9.1,
+      "Experimental": {
+        "UnmetLoadPenaltyUsdList": [
+          0.0,
+          0.0,
+          0.4
+        ]
+      }
     },
     {
       "TypeName": "flo.path.penalties.bruce",
-      "Version": "001",
+      "Version": "002",
       "RswtPenaltyUsdList": [
         0.0,
         0.0,
-        0.0
-      ],
-      "UnmetLoadPenaltyUsdList": [
-        0.0,
-        0.2,
         0.0
       ],
       "StabilityPenaltyUsdList": [
@@ -179,7 +176,14 @@
       ],
       "TerminalCostUsd": 1.87,
       "TerminalCostEmptyStoreUsd": 5.6,
-      "PathCostUsd": 8.3
+      "PathCostUsd": 8.3,
+      "Experimental": {
+        "UnmetLoadPenaltyUsdList": [
+          0.0,
+          0.2,
+          0.0
+        ]
+      }
     }
   ],
   "FloName": "bruce",

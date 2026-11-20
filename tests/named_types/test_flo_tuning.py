@@ -36,26 +36,26 @@ def test_flo_tuning_bruce_accepts_the_fleet_tuning() -> None:
     FloTuningBruce.model_validate(bruce())
 
 
-def test_a_001_tuning_in_operational_params_is_refused() -> None:
+def test_a_002_tuning_in_operational_params_is_refused() -> None:
     """The scada speaks one version of each word: a stale ops file fails the
     decode (and so the boot) rather than being lifted to the current version."""
     from sema_to_dc import decode_operational_params
 
     d = json.loads((CONFIG / "gw.house0.orange.operational.params.json").read_text())
     tuning = dict(d["FloTuning"])
-    del tuning["UnmetLoadPenaltyEnabled"]
-    del tuning["UnmetLoadPenaltyWeight"]
-    tuning["Version"] = "001"
+    experimental = tuning.pop("Experimental")
+    tuning["UnmetLoadPenaltyEnabled"] = experimental["UnmetLoadPenaltyEnabled"]
+    tuning["UnmetLoadPenaltyWeight"] = experimental["UnmetLoadPenaltyWeight"]
+    tuning["Version"] = "002"
     d["FloTuning"] = tuning
     with pytest.raises(ValidationError):
         decode_operational_params(d)
 
 
-def test_a_002_tuning_in_operational_params_keeps_its_penalty() -> None:
+def test_a_003_tuning_in_operational_params_keeps_its_experimental_knobs() -> None:
     from sema_to_dc import decode_operational_params
 
     d = json.loads((CONFIG / "gw.house0.orange.operational.params.json").read_text())
     word = decode_operational_params(d)
-    assert word.FloTuning.Version == "002"
-    assert word.FloTuning.UnmetLoadPenaltyEnabled is True
-    assert word.FloTuning.UnmetLoadPenaltyWeight == 10.0
+    assert word.FloTuning.Version == "003"
+    assert word.FloTuning.Experimental == {"UnmetLoadPenaltyEnabled": True, "UnmetLoadPenaltyWeight": 10.0}

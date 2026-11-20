@@ -14,7 +14,7 @@ from sema_snapshot.sema.types.price_quantity_unitless import PriceQuantityUnitle
 
 
 class FloRecommendation(SemaType):
-    """Sema: https://schemas.electricity.works/types/flo.recommendation/002"""
+    """Sema: https://schemas.electricity.works/types/flo.recommendation/003"""
 
     bidder_alias: LeftRightDot
     pq_pairs: list[PriceQuantityUnitless]
@@ -28,7 +28,7 @@ class FloRecommendation(SemaType):
     flo_git_commit: GitCommit
     created_ms: UTCMilliseconds
     type_name: Literal["flo.recommendation"] = "flo.recommendation"
-    version: Literal["002"] = "002"
+    version: Literal["003"] = "003"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:

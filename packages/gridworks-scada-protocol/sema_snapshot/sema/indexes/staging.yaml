@@ -39,6 +39,10 @@ staging_words:
 - type electric.meter.channel.config:000
 - type electric.meter.component.gt:001
 - type electric.meter.device.type.gt:000
+- type flo.params:004
+- type flo.path.penalties.bruce:002
+- type flo.recommendation:003
+- type flo.tuning.bruce:003
 - type gpio.relay.component.gt:000
 - type gpio.sensor.component.gt:000
 - type gw.boiler.backup:000

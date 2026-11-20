@@ -1,4 +1,4 @@
-from typing import List, Literal
+from typing import Any, Dict, List, Literal
 
 from pydantic import NonNegativeInt, PositiveInt, model_validator
 from typing_extensions import Self
@@ -7,7 +7,7 @@ from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
 class FloTuningBruce(GwsprotoSemaType):
-    """Sema: https://schemas.electricity.works/types/flo.tuning.bruce/002"""
+    """Sema: https://schemas.electricity.works/types/flo.tuning.bruce/003"""
 
     NumLayers: PositiveInt
     StorageLossesPercent: float
@@ -24,8 +24,6 @@ class FloTuningBruce(GwsprotoSemaType):
     RswtPenaltyDecay: float
     RswtPenaltyExponentRate: float
     RswtPenaltyDecayMaxHour: NonNegativeInt
-    UnmetLoadPenaltyEnabled: bool
-    UnmetLoadPenaltyWeight: float
     ShortCyclePenaltyEnabled: bool
     ShortCyclePenaltyWeight: float
     StabilityPenaltyEnabled: bool
@@ -36,8 +34,9 @@ class FloTuningBruce(GwsprotoSemaType):
     StabilityPenaltyHorizonHours: NonNegativeInt
     TerminalCostEnabled: bool
     TerminalCostEndWindowHours: NonNegativeInt
+    Experimental: Dict[str, Any]
     TypeName: Literal["flo.tuning.bruce"] = "flo.tuning.bruce"
-    Version: Literal["002"] = "002"
+    Version: Literal["003"] = "003"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
