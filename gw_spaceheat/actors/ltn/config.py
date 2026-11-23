@@ -59,6 +59,11 @@ class LtnSettings(ScadaPathsSettings):
     weather_source: WeatherSourceKind = WeatherSourceKind.Gwwf
     weather_api_url: str = "https://forecast.electricity.works/hw1-isone-weather"
     weather_pull_timeout_s: float = 20
+    # The price service's read route for this LTN. The MarketMaker's own
+    # forecast route retires it.
+    price_forecast_url: str = (
+        "https://price-service.electricity.works/hw1-isone-me-versant-keene-ps/gw0-price-forecast"
+    )
 
     model_config = SettingsConfigDict(env_prefix="LTN_", extra="ignore")
 

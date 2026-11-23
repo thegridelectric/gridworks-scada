@@ -94,10 +94,8 @@ from actors.ltn.flo_request import (
 )
 
 
-# The price service's route for the LTN; the MarketMaker's own forecast
-# route retires it. The kept copy is the word's bytes, read when the
+# The kept copy of the price forecast: the word's bytes, read when the
 # service cannot be reached.
-PRICE_FORECAST_URL = "https://price-service.electricity.works/hw1-isone-me-versant-keene-ps/gw0-price-forecast"
 PRICE_FORECAST_FILE = "latest-gw.price.forecast-000.json"
 
 
@@ -1193,7 +1191,7 @@ class Ltn(PrimeActor):
         kept = Path(f"{self.settings.paths.data_dir}/{PRICE_FORECAST_FILE}")
         try:
             async with httpx.AsyncClient() as client:
-                response = await client.get(PRICE_FORECAST_URL)
+                response = await client.get(self.settings.price_forecast_url)
             if response.status_code != 200:
                 raise ValueError(f"status code {response.status_code}")
             self.price_forecast = PriceForecast.model_validate_json(response.content)
