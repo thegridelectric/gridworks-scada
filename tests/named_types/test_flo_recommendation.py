@@ -45,14 +45,14 @@ def store_state() -> dict:
 def penalties() -> dict:
     return {
         "RswtPenaltyUsdList": [0.0, 0.31, 0.0],
-        "UnmetLoadPenaltyUsdList": [0.0, 0.0, 0.4],
         "StabilityPenaltyUsdList": [0.0, 0.0, 0.0],
         "ShortCyclePenaltyUsdList": [0.0, 0.0, 0.0],
         "TerminalCostUsd": 2.14,
         "TerminalCostEmptyStoreUsd": 5.6,
         "PathCostUsd": 9.1,
+        "Experimental": {"UnmetLoadPenaltyUsdList": [0.0, 0.0, 0.4]},
         "TypeName": "flo.path.penalties.bruce",
-        "Version": "001",
+        "Version": "002",
     }
 
 
@@ -67,7 +67,7 @@ EXAMPLE = {
     "FloGitCommit": "2711f59a0b1c2d3e4f5061728394a5b6c7d8e9f0",
     "CreatedMs": 1762008900000,
     "TypeName": "flo.recommendation",
-    "Version": "002",
+    "Version": "003",
 }
 
 
@@ -167,7 +167,6 @@ def test_flo_recommendation_axiom_7_penalties_have_the_paths_steps() -> None:
     d = annotated()
     for key in (
         "RswtPenaltyUsdList",
-        "UnmetLoadPenaltyUsdList",
         "StabilityPenaltyUsdList",
         "ShortCyclePenaltyUsdList",
     ):
