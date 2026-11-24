@@ -1,6 +1,6 @@
 metadata:
   generated_from: indexes/public_registry.yaml
-  generated_at: '2026-11-19T22:33:52Z'
+  generated_at: '2026-11-24T11:31:56Z'
   note: Transitive closure of initial_targets
 initial_targets:
 - ads.channel.config:000
@@ -37,7 +37,7 @@ initial_targets:
 - glitch:000
 - gpio.relay.component.gt:000
 - gpio.sensor.component.gt:000
-- gw.boiler.backup:000
+- gw.boiler.backup:001
 - gw.command.interface:001
 - gw.command.transition:000
 - gw.dispatch.ack:000
@@ -656,8 +656,8 @@ worklist:
       '000':
         path: definitions/types/gpio.sensor.component.gt/000.yaml
     gw.boiler.backup:
-      '000':
-        path: definitions/types/gw.boiler.backup/000.yaml
+      '001':
+        path: definitions/types/gw.boiler.backup/001.yaml
     gw.circulator:
       '000':
         path: definitions/types/gw.circulator/000.yaml

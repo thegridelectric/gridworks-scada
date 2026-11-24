@@ -38,10 +38,18 @@ def check_backup_relays(
     backup: Optional[Union[BoilerBackup, ElementBackup]],
     axiom: str,
 ) -> None:
-    """Every relay the backup names is an ShNode with ActorClass Relay."""
+    """a. A boiler backup names its FailsafeRelayName: the heat pump falls
+    back to the buffer tank aquastat. b. Every relay the backup names is an
+    ShNode with ActorClass Relay."""
     if backup is None:
         return
     if isinstance(backup, BoilerBackup):
+        if backup.FailsafeRelayName is None:
+            raise ValueError(
+                f"{axiom} failed: Hydronic.Backup is a gw.boiler.backup with no "
+                "FailsafeRelayName; this family's heat pump falls back to the "
+                "buffer tank aquastat."
+            )
         names = [backup.FailsafeRelayName, backup.AquastatCtrlRelayName]
     else:
         names = list(backup.ElementRelayNames)

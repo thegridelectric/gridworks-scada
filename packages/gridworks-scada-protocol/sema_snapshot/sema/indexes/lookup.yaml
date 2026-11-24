@@ -200,10 +200,10 @@ types:
     versions:
       '000': definitions/types/gpio.sensor.component.gt/000.yaml
   gw.boiler.backup:
-    latest_version: '000'
+    latest_version: '001'
     versioning_strategy: literal
     versions:
-      '000': definitions/types/gw.boiler.backup/000.yaml
+      '001': definitions/types/gw.boiler.backup/001.yaml
   gw.circulator:
     latest_version: '000'
     versioning_strategy: literal

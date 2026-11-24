@@ -1,5 +1,5 @@
 $schema: "https://json-schema.org/draft/2020-12/schema"
-$id: "https://schemas.electricity.works/types/gw.boiler.backup/000"
+$id: "https://schemas.electricity.works/types/gw.boiler.backup/001"
 
 title: "gw.boiler.backup"
 type: object
@@ -14,7 +14,8 @@ properties:
     $ref: "https://schemas.electricity.works/formats/spaceheat.name"
     description: >
       The relay that gives control of the heat pump to the scada when
-      energized and to the aquastat when de-energized.
+      energized and to the aquastat when de-energized. Absent where the
+      heat pump has no aquastat to fall back to.
 
   AquastatCtrlRelayName:
     $ref: "https://schemas.electricity.works/formats/spaceheat.name"
@@ -32,10 +33,9 @@ properties:
     const: "gw.boiler.backup"
 
   Version:
-    const: "000"
+    const: "001"
 
 required:
-  - FailsafeRelayName
   - AquastatCtrlRelayName
   - InService
   - TypeName
@@ -50,7 +50,7 @@ examples:
       "AquastatCtrlRelayName": "aquastat-ctrl-relay",
       "InService": true,
       "TypeName": "gw.boiler.backup",
-      "Version": "000"
+      "Version": "001"
     }
 
 x-gridworks:
@@ -59,4 +59,5 @@ x-gridworks:
     - number: 1
       name: "DistinctRelays"
       statement: >
-        FailsafeRelayName SHALL NOT equal AquastatCtrlRelayName.
+        Where FailsafeRelayName is present, it SHALL NOT equal
+        AquastatCtrlRelayName.

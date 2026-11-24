@@ -15,6 +15,9 @@ step() { printf '\n=== %s ===\n' "$1"; shift; "$@"; }
 
 step "uv sync (locked)" uv sync --locked
 step "ruff check" uv run --locked ruff check --no-fix --no-cache .
+step "sema snapshot staging check" uv run --locked python -P \
+  packages/gridworks-scada-protocol/sema_snapshot/sema/check_staging.py \
+  packages/gridworks-scada-protocol/sema_seed_request.yaml
 step "pytest" uv run --locked coverage run -m pytest "$@"
 
 printf '\nAll checks passed.\n'

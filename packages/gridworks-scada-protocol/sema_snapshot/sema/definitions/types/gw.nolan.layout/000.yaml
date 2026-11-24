@@ -475,7 +475,9 @@ x-gridworks:
     - number: 35
       name: "BackupRelays"
       statement: >
-        Where Hydronic.Backup is a gw.boiler.backup, its FailsafeRelayName and
+        a. Where Hydronic.Backup is a gw.boiler.backup, its FailsafeRelayName SHALL be
+        present: the heat pump falls back to the buffer tank aquastat.
+        b. Where Hydronic.Backup is a gw.boiler.backup, its FailsafeRelayName and
         AquastatCtrlRelayName, and where it is a gw.element.backup, each name in its
         ElementRelayNames, SHALL equal the Name of an ShNode in ShNodes whose ActorClass
         is "Relay".

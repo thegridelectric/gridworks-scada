@@ -40,10 +40,12 @@ refuse on the same axiom.
 
 One additional mode, `--cli`, also pushes each clean re-dump through
 `sema validate` in a sibling sema checkout, so the canonical sema runtime is
-the judge rather than the vendored copy. There is no release gate: staging
-vocabulary is allowed on dev brokers only, and the snapshot's
-`indexes/staging.yaml` lists the staging words to check by hand before a
-deploy that talks to a hybrid or production broker.
+the judge rather than the vendored copy. The seed's `staging.allow` list
+names the staging words the snapshot may hold, and `ci.sh` runs the
+snapshot's own `check_staging.py` against the seed, so a staging word the
+seed does not allow fails CI. Staging vocabulary is allowed on dev brokers
+only; the list is what to check before a deploy that talks to a hybrid or
+production broker.
 
 [gridworks-scada]: https://github.com/thegridelectric/gridworks-scada 
 [gridworks-admin]: https://pypi.org/project/gridworks-admin/

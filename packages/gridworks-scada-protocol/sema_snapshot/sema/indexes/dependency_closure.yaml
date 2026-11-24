@@ -384,7 +384,7 @@ types:
       types: []
       versionless_types: []
   gw.boiler.backup:
-    '000':
+    '001':
       enums: []
       formats:
       - spaceheat.name
@@ -536,7 +536,7 @@ types:
       - g.node.gt:006
       - gpio.relay.component.gt:000
       - gpio.sensor.component.gt:000
-      - gw.boiler.backup:000
+      - gw.boiler.backup:001
       - gw.circulator:000
       - gw.element.backup:000
       - gw.hydronic:000
@@ -640,7 +640,7 @@ types:
       - g.node.gt:006
       - gpio.relay.component.gt:000
       - gpio.sensor.component.gt:000
-      - gw.boiler.backup:000
+      - gw.boiler.backup:001
       - gw.circulator:000
       - gw.element.backup:000
       - gw.hydronic:000
@@ -705,7 +705,7 @@ types:
       - spaceheat.name
       - uuid4.str
       types:
-      - gw.boiler.backup:000
+      - gw.boiler.backup:001
       - gw.circulator:000
       - gw.element.backup:000
       - gw.water.store:000
@@ -785,7 +785,7 @@ types:
       - g.node.gt:006
       - gpio.relay.component.gt:000
       - gpio.sensor.component.gt:000
-      - gw.boiler.backup:000
+      - gw.boiler.backup:001
       - gw.circulator:000
       - gw.element.backup:000
       - gw.hydronic:000
