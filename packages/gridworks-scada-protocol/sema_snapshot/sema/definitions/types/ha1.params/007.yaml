@@ -1,5 +1,5 @@
 $schema: "https://json-schema.org/draft/2020-12/schema"
-$id: "https://schemas.electricity.works/types/ha1.params/006"
+$id: "https://schemas.electricity.works/types/ha1.params/007"
 
 title: "ha1.params"
 type: object
@@ -43,18 +43,16 @@ properties:
 
   CopIntercept:
     type: number
+    description: >
+      The heat pump's COP when leaving water is no warmer than outdoor air.
+      The COP model is CopIntercept + CopLwtMinusOatCoeff * max(0, LwtF -
+      OatF).
 
-  CopOatCoeff:
+  CopLwtMinusOatCoeff:
     type: number
-
-  CopLwtCoeff:
-    type: number
-
-  CopMin:
-    type: number
-
-  CopMinOatF:
-    type: number
+    description: >
+      COP change per degree F that leaving water exceeds outdoor air;
+      negative for a real heat pump.
 
   HpTurnOnMinutes:
     type: integer
@@ -63,7 +61,7 @@ properties:
     const: "ha1.params"
 
   Version:
-    const: "006"
+    const: "007"
 
 required:
   - AlphaTimes10
@@ -78,10 +76,7 @@ required:
   - MaxEwtF
   - LoadOverestimationPercent
   - CopIntercept
-  - CopOatCoeff
-  - CopLwtCoeff
-  - CopMin
-  - CopMinOatF
+  - CopLwtMinusOatCoeff
   - HpTurnOnMinutes
   - TypeName
   - Version
@@ -102,15 +97,17 @@ examples:
       "HpMaxKwEl": 6.0,
       "MaxEwtF": 170,
       "LoadOverestimationPercent": 10,
-      "CopIntercept": 1.02,
-      "CopOatCoeff": 0.0257,
-      "CopLwtCoeff": 0.0,
-      "CopMin": 1.4,
-      "CopMinOatF": 15.0,
+      "CopIntercept": 2.96,
+      "CopLwtMinusOatCoeff": -0.00628,
       "HpTurnOnMinutes": 12,
       "TypeName": "ha1.params",
-      "Version": "006"
+      "Version": "007"
     }
 
 x-gridworks:
   owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "NonPositiveCopLiftCoefficient"
+      statement: >
+        CopLwtMinusOatCoeff SHALL be at most zero.

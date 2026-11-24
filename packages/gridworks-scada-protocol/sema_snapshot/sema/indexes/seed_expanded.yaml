@@ -1,6 +1,6 @@
 metadata:
   generated_from: indexes/public_registry.yaml
-  generated_at: '2026-11-24T11:31:56Z'
+  generated_at: '2026-11-24T15:51:53Z'
   note: Transitive closure of initial_targets
 initial_targets:
 - ads.channel.config:000
@@ -12,7 +12,7 @@ initial_targets:
 - bid:000
 - capture.tuning:000
 - channel.readings:002
-- cop.curve:000
+- cop.curve:001
 - dac.output.config:000
 - data.channel.gt:004
 - derived.channel.gt:003
@@ -23,7 +23,7 @@ initial_targets:
 - electric.meter.component.gt:001
 - electric.meter.device.type.gt:000
 - energy.instruction:000
-- flo.params:004
+- flo.params:005
 - gw.price.forecast:000
 - flo.params.house0:007
 - flo.previous.run:000
@@ -77,7 +77,7 @@ initial_targets:
 - gw1.unit.quantity.projection:001
 - gw1.zone.call.circuit:000
 - gw1.zone.thermostat:000
-- ha1.params:006
+- ha1.params:007
 - heating.curve:000
 - heating.forecast:000
 - hp.control.box.device.type.gt:000
@@ -569,8 +569,8 @@ worklist:
       '002':
         path: definitions/types/channel.readings/002.yaml
     cop.curve:
-      '000':
-        path: definitions/types/cop.curve/000.yaml
+      '001':
+        path: definitions/types/cop.curve/001.yaml
     dac.output.config:
       '000':
         path: definitions/types/dac.output.config/000.yaml
@@ -605,8 +605,8 @@ worklist:
       '000':
         path: definitions/types/flo.optimal.path/000.yaml
     flo.params:
-      '004':
-        path: definitions/types/flo.params/004.yaml
+      '005':
+        path: definitions/types/flo.params/005.yaml
     flo.params.house0:
       '007':
         path: definitions/types/flo.params.house0/007.yaml
@@ -782,8 +782,8 @@ worklist:
       '000':
         path: definitions/types/gw1.zone.thermostat/000.yaml
     ha1.params:
-      '006':
-        path: definitions/types/ha1.params/006.yaml
+      '007':
+        path: definitions/types/ha1.params/007.yaml
     heating.curve:
       '000':
         path: definitions/types/heating.curve/000.yaml

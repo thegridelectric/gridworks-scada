@@ -1,5 +1,5 @@
 $schema: "https://json-schema.org/draft/2020-12/schema"
-$id: "https://schemas.electricity.works/types/flo.params/004"
+$id: "https://schemas.electricity.works/types/flo.params/005"
 
 title: "flo.params"
 type: object
@@ -115,32 +115,14 @@ properties:
   CopIntercept:
     type: number
     description: >
-      The heat pump's COP at zero degrees F outdoor air with no leaving
-      water contribution, in the model CopIntercept + CopOatCoeff * OatF +
-      CopLwtCoeff * LwtF floored at CopMin below CopMinOatF. From
-      2026-11-20 senders populate it as the COP when leaving water is no
-      warmer than outdoor air, in the model CopIntercept + CopLwtCoeff *
-      max(0, LwtF - OatF).
-  CopOatCoeff:
+      The heat pump's COP when leaving water is no warmer than outdoor air.
+      The COP model is CopIntercept + CopLwtMinusOatCoeff * max(0, LwtF -
+      OatF).
+  CopLwtMinusOatCoeff:
     type: number
     description: >
-      COP change per degree F of outdoor air temperature. Ignored by
-      senders from 2026-11-20.
-  CopLwtCoeff:
-    type: number
-    description: >
-      COP change per degree F of leaving water temperature. From
-      2026-11-20 senders populate this as the coefficient on max(0, LwtF -
-      OatF) and the model is CopIntercept + CopLwtCoeff * that lift.
-  CopMin:
-    type: number
-    description: >
-      The COP floor. Ignored by senders from 2026-11-20.
-  CopMinOatF:
-    type: number
-    description: >
-      The outdoor air temperature, in degrees F, below which the COP floor
-      applies. Ignored by senders from 2026-11-20.
+      COP change per degree F that leaving water exceeds outdoor air;
+      negative for a real heat pump.
   PriceMaxUsdMwh:
     type: number
     description: >
@@ -169,7 +151,7 @@ properties:
   TypeName:
     const: "flo.params"
   Version:
-    const: "004"
+    const: "005"
 
 required:
   - GNodeAlias
@@ -196,10 +178,7 @@ required:
   - HpMaxKwEl
   - HpTurnOnMinutes
   - CopIntercept
-  - CopOatCoeff
-  - CopLwtCoeff
-  - CopMin
-  - CopMinOatF
+  - CopLwtMinusOatCoeff
   - PriceMaxUsdMwh
   - PriceMinUsdMwh
   - Tuning
@@ -234,11 +213,8 @@ examples:
       "HpCurrentlyOn": false,
       "HpMaxKwEl": 9.66,
       "HpTurnOnMinutes": 12,
-      "CopIntercept": 1.5,
-      "CopOatCoeff": 0.015,
-      "CopLwtCoeff": 0,
-      "CopMin": 1.5,
-      "CopMinOatF": 0,
+      "CopIntercept": 2.731,
+      "CopLwtMinusOatCoeff": -0.007403,
       "PriceMaxUsdMwh": 2000,
       "PriceMinUsdMwh": -100,
       "Tuning": {
@@ -272,7 +248,7 @@ examples:
         "Version": "003"
       },
       "TypeName": "flo.params",
-      "Version": "004"
+      "Version": "005"
     }
 
 x-gridworks:
@@ -302,3 +278,7 @@ x-gridworks:
       statement: >
         PreviousOptimalPath and PreviousEstimateElecUsdMwhNow SHALL be
         both present or both absent.
+    - number: 6
+      name: "NonPositiveCopLiftCoefficient"
+      statement: >
+        CopLwtMinusOatCoeff SHALL be at most zero.

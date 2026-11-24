@@ -12,7 +12,7 @@ from gwsproto.type_helpers.gwsproto_sema_type import GwsprotoSemaType
 
 
 class FloParams(GwsprotoSemaType):
-    """Sema: https://schemas.electricity.works/types/flo.params/004"""
+    """Sema: https://schemas.electricity.works/types/flo.params/005"""
 
     GNodeAlias: LeftRightDotStr
     CreatedMs: UTCMilliseconds
@@ -38,10 +38,7 @@ class FloParams(GwsprotoSemaType):
     HpMaxKwEl: float
     HpTurnOnMinutes: PositiveInt
     CopIntercept: float
-    CopOatCoeff: float
-    CopLwtCoeff: float
-    CopMin: float
-    CopMinOatF: float
+    CopLwtMinusOatCoeff: float
     PriceMaxUsdMwh: float
     PriceMinUsdMwh: float
     PreviousOptimalPath: Optional[FloOptimalPath] = None
@@ -51,7 +48,7 @@ class FloParams(GwsprotoSemaType):
         Field(discriminator="TypeName"),
     ]
     TypeName: Literal["flo.params"] = "flo.params"
-    Version: Literal["004"] = "004"
+    Version: Literal["005"] = "005"
 
     @model_validator(mode="after")
     def check_axiom_1(self) -> Self:
@@ -129,5 +126,18 @@ class FloParams(GwsprotoSemaType):
             raise ValueError(
                 "Axiom 5 (PreviousRunTogether) failed: PreviousOptimalPath and "
                 "PreviousEstimateElecUsdMwhNow must be both present or both absent."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def check_axiom_6(self) -> Self:
+        """
+        Axiom 6: NonPositiveCopLiftCoefficient.
+        CopLwtMinusOatCoeff SHALL be at most zero.
+        """
+        if self.CopLwtMinusOatCoeff > 0:
+            raise ValueError(
+                "Axiom 6 (NonPositiveCopLiftCoefficient) failed: "
+                f"CopLwtMinusOatCoeff must be at most zero, got {self.CopLwtMinusOatCoeff}."
             )
         return self

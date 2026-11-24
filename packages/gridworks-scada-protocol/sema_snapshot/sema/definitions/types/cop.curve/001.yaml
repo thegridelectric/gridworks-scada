@@ -1,0 +1,53 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/types/cop.curve/001"
+
+title: "cop.curve"
+type: object
+description: >
+  A heat pump's coefficient of performance as a function of the lift from
+  outdoor air to leaving water:
+  COP = Intercept + LwtMinusOatCoeff * max(0, LwtF - OatF).
+
+properties:
+
+  Intercept:
+    type: number
+    description: >
+      The COP when leaving water is no warmer than outdoor air.
+
+  LwtMinusOatCoeff:
+    type: number
+    description: >
+      COP change per degree F that leaving water exceeds outdoor air;
+      negative for a real heat pump.
+
+  TypeName:
+    const: "cop.curve"
+
+  Version:
+    const: "001"
+
+required:
+  - Intercept
+  - LwtMinusOatCoeff
+  - TypeName
+  - Version
+
+additionalProperties: false
+
+examples:
+  - |
+    {
+      "Intercept": 2.731,
+      "LwtMinusOatCoeff": -0.007403,
+      "TypeName": "cop.curve",
+      "Version": "001"
+    }
+
+x-gridworks:
+  owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "NonPositiveLiftCoefficient"
+      statement: >
+        LwtMinusOatCoeff SHALL be at most zero.

@@ -38,6 +38,7 @@ Staging words in this snapshot:
 - type ads111x.based.component.gt:000
 - type ads111x.based.device.type.gt:000
 - type capture.tuning:000
+- type cop.curve:001
 - type dac.output.config:000
 - type device.component.gt:000
 - type dfr.config:000
@@ -45,6 +46,7 @@ Staging words in this snapshot:
 - type electric.meter.channel.config:000
 - type electric.meter.component.gt:001
 - type electric.meter.device.type.gt:000
+- type flo.params:005
 - type gpio.relay.component.gt:000
 - type gpio.sensor.component.gt:000
 - type gw.boiler.backup:001
@@ -69,6 +71,7 @@ Staging words in this snapshot:
 - type gw1.tank.temp.calibration:001
 - type gw1.zone.call.circuit:000
 - type gw1.zone.thermostat:000
+- type ha1.params:007
 - type heating.curve:000
 - type hp.control.box.device.type.gt:000
 - type hp.device.type.gt:000

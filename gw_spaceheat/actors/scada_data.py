@@ -171,10 +171,7 @@ class ScadaData:
             MaxEwtF=ops.HeatingCurve.MaxEwtF,
             LoadOverestimationPercent=ops.LoadOverestimationPercent,
             CopIntercept=ops.CopCurve.Intercept,
-            CopOatCoeff=ops.CopCurve.OatCoeff,
-            CopLwtCoeff=ops.CopCurve.LwtCoeff,
-            CopMin=ops.CopCurve.Min,
-            CopMinOatF=ops.CopCurve.MinOatF,
+            CopLwtMinusOatCoeff=ops.CopCurve.LwtMinusOatCoeff,
             HpTurnOnMinutes=ops.HpTurnOnMinutes,
         )
 

@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-11-24T11:20:00Z"
+  last_updated: "2026-11-24T15:40:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -1314,17 +1314,17 @@ types:
             - "utc.milliseconds"
 
   cop.curve:
-    latest_version: "000"
+    latest_version: "001"
     owner: gridworks-energy
     versioning_strategy: "literal"
     description: "A heat pump's coefficient-of-performance model, as the version states it."
 
     versions:
-      "000":
-        schema_url: "https://schemas.electricity.works/types/cop.curve/000"
-        created: "2026-11-23T21:45:00Z"
-        status: "published"
-        summary: "Initial version (Intercept, OatCoeff, LwtCoeff, Min, MinOatF) — the COP model migrated out of scada deployment config into operational params."
+      "001":
+        schema_url: "https://schemas.electricity.works/types/cop.curve/001"
+        created: "2026-11-24T00:20:00Z"
+        status: "staging"
+        summary: "- Lift-based model: Intercept + LwtMinusOatCoeff * max(0, LwtF - OatF); OatCoeff, LwtCoeff, Min, MinOatF dropped. A 000 is a different fit and does not upgrade."
         direct_dependencies:
           structural: []
 
@@ -1534,17 +1534,17 @@ types:
             - "utc.seconds"
 
   flo.params:
-    latest_version: "004"
+    latest_version: "005"
     owner: gridworks-energy
     versioning_strategy: "literal"
     description: "One request to a FLO for one market slot: bidder, step grid, price and weather forecasts, the modeled store and its state, heat pump facts, market price bounds, and the tuning whose TypeName names the optimizer."
 
     versions:
-      "004":
-        schema_url: "https://schemas.electricity.works/types/flo.params/004"
-        created: "2026-11-19T14:00:00Z"
-        status: "published"
-        summary: "- Tuning: flo.tuning.bruce 002 -> 003"
+      "005":
+        schema_url: "https://schemas.electricity.works/types/flo.params/005"
+        created: "2026-11-23T20:50:00Z"
+        status: "staging"
+        summary: "- COP model is lift-based: CopLwtCoeff -> CopLwtMinusOatCoeff; CopOatCoeff, CopMin, CopMinOatF dropped"
         direct_dependencies:
           structural:
             - "flo.optimal.path:000"
@@ -2280,13 +2280,13 @@ types:
     versions:
       "000":
         schema_url: "https://schemas.electricity.works/types/gw.operational.params/000"
-        created: "2026-11-23T21:45:00Z"
+        created: "2026-11-24T15:20:00Z"
         status: "staging"
         summary: "Initial version: the operator-set parameters of one house, applied by its scada and copied by its LTN into each flo.params request."
         direct_dependencies:
           structural:
             - "capture.tuning:000"
-            - "cop.curve:000"
+            - "cop.curve:001"
             - "flo.tuning.alice:000"
             - "flo.tuning.bruce:003"
             - "gw.dispatch.hold:000"
@@ -2751,17 +2751,17 @@ types:
             - "uuid4.str"
 
   ha1.params:
-    latest_version: "006"
+    latest_version: "007"
     owner: gridworks-energy
     versioning_strategy: "literal"
     description: "Parameter set used by Spaceheat SCADA and LTN runtime logic for the HA1 heating model."
 
     versions:
-      "006":
-        schema_url: "https://schemas.electricity.works/types/ha1.params/006"
-        created: "2026-02-25T14:23:00Z"
-        status: "published"
-        summary: "HpMaxKwEl replaces HpMaxKwTh, required; the five Cop fields required; HpTurnOnMinutes added, required (the shape every scada has published at this version)"
+      "007":
+        schema_url: "https://schemas.electricity.works/types/ha1.params/007"
+        created: "2026-11-24T15:40:00Z"
+        status: "staging"
+        summary: "- COP model is lift-based: CopLwtCoeff -> CopLwtMinusOatCoeff; CopOatCoeff, CopMin, CopMinOatF dropped"
         direct_dependencies:
           structural: []
 

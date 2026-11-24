@@ -1197,7 +1197,7 @@ class DerivedGenerator(ShNodeActor):
                 if 12<=t.hour<=15
             ])
             midday_expected_lwt = min(midday_highest_rswt*1.3, self.params.MaxEwtF) # Assume 30% higher water temperature than highest rswt
-            midday_cop = self.params.CopIntercept + self.params.CopLwtCoeff*max(0, midday_expected_lwt - midday_oat)
+            midday_cop = self.params.CopIntercept + self.params.CopLwtMinusOatCoeff*max(0, midday_expected_lwt - midday_oat)
             afternoon_missing_kWh = afternoon_kWh - (0.8*4*self.params.HpMaxKwEl*midday_cop - midday_kWh) # assume 80% of max power (defrosts, turn on)
             if afternoon_missing_kWh<0:
                 required = morning_kWh

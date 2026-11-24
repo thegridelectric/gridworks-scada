@@ -29,7 +29,9 @@ vendor_dir: sema_snapshot/sema
 # it stabilizes against the installed fleet, so this is a dev-only snapshot:
 # `staging.allow` names every staging word the closure reaches. A word
 # leaves the list when it is published; the snapshot's `check_staging.py`
-# (run by ci.sh) fails on a staging word the list does not name.
+# (run by ci.sh) fails on a staging word the list does not name. On this
+# branch flo.params 005, ha1.params 007 and cop.curve 001 are staging too;
+# flo.params and ha1.params leave the list when those versions are promoted.
 staging:
   allow:
     - ads.channel.config
@@ -46,6 +48,7 @@ staging:
     - electric.meter.channel.config
     - electric.meter.component.gt
     - electric.meter.device.type.gt
+    - flo.params
     - gpio.relay.component.gt
     - gpio.sense.mode
     - gpio.sensor.component.gt
@@ -78,6 +81,7 @@ staging:
     - gw1.tank.temp.calibration.map
     - gw1.zone.call.circuit
     - gw1.zone.thermostat
+    - ha1.params
     - heating.curve
     - hp.control.box.device.type.gt
     - hp.device.type.gt
@@ -161,7 +165,7 @@ initial_targets:
     channel.readings:
       versions: ["002"]
     cop.curve:
-      versions: ["000"]
+      versions: ["001"]
     dac.output.config:
       versions: ["000"]
     data.channel.gt:
@@ -183,7 +187,7 @@ initial_targets:
     energy.instruction:
       versions: ["000"]
     flo.params:
-      versions: ["004"]
+      versions: ["005"]
     gw.price.forecast:
       versions: ["000"]
     flo.params.house0:
@@ -291,7 +295,7 @@ initial_targets:
     gw1.zone.thermostat:
       versions: ["000"]
     ha1.params:
-      versions: ["006"]
+      versions: ["007"]
     heating.curve:
       versions: ["000"]
     heating.forecast:

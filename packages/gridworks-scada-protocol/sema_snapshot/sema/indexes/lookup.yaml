@@ -55,10 +55,10 @@ types:
     versions:
       '002': definitions/types/channel.readings/002.yaml
   cop.curve:
-    latest_version: '000'
+    latest_version: '001'
     versioning_strategy: literal
     versions:
-      '000': definitions/types/cop.curve/000.yaml
+      '001': definitions/types/cop.curve/001.yaml
   dac.output.config:
     latest_version: '000'
     versioning_strategy: literal
@@ -115,10 +115,10 @@ types:
     versions:
       '000': definitions/types/flo.optimal.path/000.yaml
   flo.params:
-    latest_version: '004'
+    latest_version: '005'
     versioning_strategy: literal
     versions:
-      '004': definitions/types/flo.params/004.yaml
+      '005': definitions/types/flo.params/005.yaml
   flo.params.house0:
     latest_version: '007'
     versioning_strategy: literal
@@ -410,10 +410,10 @@ types:
     versions:
       '000': definitions/types/gw1.zone.thermostat/000.yaml
   ha1.params:
-    latest_version: '006'
+    latest_version: '007'
     versioning_strategy: literal
     versions:
-      '006': definitions/types/ha1.params/006.yaml
+      '007': definitions/types/ha1.params/007.yaml
   heating.curve:
     latest_version: '000'
     versioning_strategy: literal

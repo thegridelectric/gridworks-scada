@@ -1,4 +1,4 @@
-"""flo.params 003: the twin agrees with the snapshot on the word's example
+"""flo.params 005: the twin agrees with the snapshot on the word's example
 and refuses each axiom's violation."""
 
 import copy
@@ -43,15 +43,12 @@ EXAMPLE = {
     "HpCurrentlyOn": False,
     "HpMaxKwEl": 9.66,
     "HpTurnOnMinutes": 12,
-    "CopIntercept": 1.5,
-    "CopOatCoeff": 0.015,
-    "CopLwtCoeff": 0.0,
-    "CopMin": 1.5,
-    "CopMinOatF": 0.0,
+    "CopIntercept": 2.731,
+    "CopLwtMinusOatCoeff": -0.007403,
     "PriceMaxUsdMwh": 2000.0,
     "PriceMinUsdMwh": -100.0,
     "TypeName": "flo.params",
-    "Version": "004",
+    "Version": "005",
 }
 
 
@@ -112,3 +109,9 @@ def test_flo_params_axiom_5_previous_run_together() -> None:
     d = example()
     d["PreviousOptimalPath"] = copy.deepcopy(PREVIOUS_PATH)
     assert_refused(FloParams, d, match="Axiom 5 \\(PreviousRunTogether\\)")
+
+
+def test_flo_params_axiom_6_non_positive_cop_lift_coefficient() -> None:
+    d = example()
+    d["CopLwtMinusOatCoeff"] = 0.001
+    assert_refused(FloParams, d, match="Axiom 6 \\(NonPositiveCopLiftCoefficient\\)")

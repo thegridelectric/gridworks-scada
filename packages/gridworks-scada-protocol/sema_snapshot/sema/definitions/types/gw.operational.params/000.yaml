@@ -87,7 +87,7 @@ properties:
       are the others.
 
   CopCurve:
-    $ref: "https://schemas.electricity.works/types/cop.curve/000"
+    $ref: "https://schemas.electricity.works/types/cop.curve/001"
     description: >
       The heat pump's coefficient-of-performance model.
 
@@ -227,13 +227,10 @@ examples:
         "Version": "000"
       },
       "CopCurve": {
-        "Intercept": 1.02,
-        "OatCoeff": 0.0257,
-        "LwtCoeff": 0,
-        "Min": 1.4,
-        "MinOatF": 15,
+        "Intercept": 2.96,
+        "LwtMinusOatCoeff": -0.00628,
         "TypeName": "cop.curve",
-        "Version": "000"
+        "Version": "001"
       },
       "HeatingCurve": {
         "BaselineAlphaTimes10": 55,
