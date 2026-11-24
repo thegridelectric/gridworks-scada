@@ -40,7 +40,6 @@ staging:
     - capture.tuning
     - change.valve.state
     - change.zone.call.source
-    - cop.curve
     - dac.output.config
     - device.component.gt
     - dfr.config
@@ -48,7 +47,6 @@ staging:
     - electric.meter.channel.config
     - electric.meter.component.gt
     - electric.meter.device.type.gt
-    - flo.params
     - gpio.relay.component.gt
     - gpio.sense.mode
     - gpio.sensor.component.gt
@@ -81,7 +79,6 @@ staging:
     - gw1.tank.temp.calibration.map
     - gw1.zone.call.circuit
     - gw1.zone.thermostat
-    - ha1.params
     - heating.curve
     - hp.control.box.device.type.gt
     - hp.device.type.gt

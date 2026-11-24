@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-11-24T15:40:00Z"
+  last_updated: "2026-11-24T18:40:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -1323,7 +1323,7 @@ types:
       "001":
         schema_url: "https://schemas.electricity.works/types/cop.curve/001"
         created: "2026-11-24T00:20:00Z"
-        status: "staging"
+        status: "published"
         summary: "- Lift-based model: Intercept + LwtMinusOatCoeff * max(0, LwtF - OatF); OatCoeff, LwtCoeff, Min, MinOatF dropped. A 000 is a different fit and does not upgrade."
         direct_dependencies:
           structural: []
@@ -1543,7 +1543,7 @@ types:
       "005":
         schema_url: "https://schemas.electricity.works/types/flo.params/005"
         created: "2026-11-23T20:50:00Z"
-        status: "staging"
+        status: "published"
         summary: "- COP model is lift-based: CopLwtCoeff -> CopLwtMinusOatCoeff; CopOatCoeff, CopMin, CopMinOatF dropped"
         direct_dependencies:
           structural:
@@ -2760,7 +2760,7 @@ types:
       "007":
         schema_url: "https://schemas.electricity.works/types/ha1.params/007"
         created: "2026-11-24T15:40:00Z"
-        status: "staging"
+        status: "published"
         summary: "- COP model is lift-based: CopLwtCoeff -> CopLwtMinusOatCoeff; CopOatCoeff, CopMin, CopMinOatF dropped"
         direct_dependencies:
           structural: []
