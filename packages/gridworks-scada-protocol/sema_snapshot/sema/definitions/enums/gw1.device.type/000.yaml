@@ -40,6 +40,7 @@ enum:
 - SamsungAM048TXMDCH
 - SamsungAM048CNBFCB
 - ArcticMAHRW030ZA
+- Gw108RevC
 default: EgaugePowerMeter
 x-gridworks:
   owner: gridworks-energy
@@ -61,6 +62,11 @@ x-gridworks:
     GridworksTankModule3: GridWorks Tank Module 3. (was MakeModel GRIDWORKS__TANKMODULE3)
     Gw101: GridWorks GW101 device. (was MakeModel GRIDWORKS__GW101)
     Gw108RevB: GridWorks SCADA GW108 board, rev B. (was GridworksScadaGw108; originally MakeModel GRIDWORKS__SCADA_GW108)
+    Gw108RevC: >
+      GridWorks SCADA GW108 board, rev C (2026-09-28). Valve 4 driven on native
+      GPIO with its energized state sensed on a native input; eight thermistor
+      inputs over two ADCs; the CT ADC behind the DAC mux. Category-level data
+      on its gw1.scada.device.type.gt record.
     AbstractWebServer: An abstract (generic) web server — a service component, not a hardware make/model;
       defined by its component config. Replaces the UNKNOWNMAKE web-server hack.
     Gw108I2cRelay: >

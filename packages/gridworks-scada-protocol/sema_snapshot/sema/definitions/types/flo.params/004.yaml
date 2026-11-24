@@ -114,14 +114,33 @@ properties:
       Minutes from a call for heat until the heat pump delivers it.
   CopIntercept:
     type: number
+    description: >
+      The heat pump's COP at zero degrees F outdoor air with no leaving
+      water contribution, in the model CopIntercept + CopOatCoeff * OatF +
+      CopLwtCoeff * LwtF floored at CopMin below CopMinOatF. From
+      2026-11-20 senders populate it as the COP when leaving water is no
+      warmer than outdoor air, in the model CopIntercept + CopLwtCoeff *
+      max(0, LwtF - OatF).
   CopOatCoeff:
     type: number
+    description: >
+      COP change per degree F of outdoor air temperature. Ignored by
+      senders from 2026-11-20.
   CopLwtCoeff:
     type: number
+    description: >
+      COP change per degree F of leaving water temperature. From
+      2026-11-20 senders populate this as the coefficient on max(0, LwtF -
+      OatF) and the model is CopIntercept + CopLwtCoeff * that lift.
   CopMin:
     type: number
+    description: >
+      The COP floor. Ignored by senders from 2026-11-20.
   CopMinOatF:
     type: number
+    description: >
+      The outdoor air temperature, in degrees F, below which the COP floor
+      applies. Ignored by senders from 2026-11-20.
   PriceMaxUsdMwh:
     type: number
     description: >

@@ -48,7 +48,7 @@ properties:
 
   Backup:
     oneOf:
-      - $ref: "https://schemas.electricity.works/types/gw.boiler.backup/000"
+      - $ref: "https://schemas.electricity.works/types/gw.boiler.backup/001"
       - $ref: "https://schemas.electricity.works/types/gw.element.backup/000"
     description: >
       The second source of heat the local control can run when the house

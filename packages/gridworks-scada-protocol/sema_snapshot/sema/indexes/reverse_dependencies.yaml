@@ -125,7 +125,7 @@ types:
       - gw.house0.no.sieg:000
       - gw.nolan.layout:000
   gw.boiler.backup:
-    '000':
+    '001':
       used_by:
       - gw.house0.layout:000
       - gw.house0.no.sieg:000
@@ -989,7 +989,7 @@ formats:
     - flow.hall.params:101
     - fsm.full.report:001
     - glitch:000
-    - gw.boiler.backup:000
+    - gw.boiler.backup:001
     - gw.circulator:000
     - gw.command.interface:001
     - gw.element.backup:000

@@ -1023,10 +1023,12 @@ class NolanLayout(GwsprotoSemaType):
     def check_axiom_35(self) -> "NolanLayout":
         """Axiom 35: BackupRelays.
 
-        Where Hydronic.Backup is a gw.boiler.backup, its FailsafeRelayName and
-        AquastatCtrlRelayName, and where it is a gw.element.backup, each name
-        in its ElementRelayNames, SHALL equal the Name of an ShNode in ShNodes
-        whose ActorClass is "Relay".
+        a. Where Hydronic.Backup is a gw.boiler.backup, its FailsafeRelayName SHALL be
+        present: the heat pump falls back to the buffer tank aquastat.
+        b. Where Hydronic.Backup is a gw.boiler.backup, its FailsafeRelayName and
+        AquastatCtrlRelayName, and where it is a gw.element.backup, each name in its
+        ElementRelayNames, SHALL equal the Name of an ShNode in ShNodes whose ActorClass
+        is "Relay".
         """
         check_backup_relays(self.ShNodes, self.Hydronic.Backup, "Axiom 35 (BackupRelays)")
         return self

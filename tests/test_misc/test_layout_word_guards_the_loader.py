@@ -144,7 +144,7 @@ def test_a_nolan_house_using_backup_when_cold_needs_an_element_backup(tmp_path: 
     def boiler_backup(d: dict) -> None:
         d["Hydronic"]["Backup"] = {
             "TypeName": "gw.boiler.backup",
-            "Version": "000",
+            "Version": "001",
             "FailsafeRelayName": "zone1-bedrooms-failsafe-relay",
             "AquastatCtrlRelayName": "zone1-bedrooms-ops-relay",
             "InService": True,

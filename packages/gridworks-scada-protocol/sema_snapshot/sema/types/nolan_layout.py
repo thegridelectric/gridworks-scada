@@ -1329,15 +1329,22 @@ class NolanLayout(SemaType):
     @model_validator(mode="after")
     def check_axiom_35(self) -> "NolanLayout":
         """
-        Axiom 35: BackupRelays Where Hydronic.Backup is a gw.boiler.backup, its
-        FailsafeRelayName and AquastatCtrlRelayName, and where it is a
-        gw.element.backup, each name in its ElementRelayNames, SHALL equal the Name of
-        an ShNode in ShNodes whose ActorClass is "Relay".
+        Axiom 35: BackupRelays a. Where Hydronic.Backup is a gw.boiler.backup, its
+        FailsafeRelayName SHALL be present: the heat pump falls back to the buffer tank
+        aquastat. b. Where Hydronic.Backup is a gw.boiler.backup, its FailsafeRelayName
+        and AquastatCtrlRelayName, and where it is a gw.element.backup, each name in its
+        ElementRelayNames, SHALL equal the Name of an ShNode in ShNodes whose ActorClass
+        is "Relay".
         """
         backup = self.hydronic.backup
         if backup is None:
             return self
         if backup.type_name == "gw.boiler.backup":
+            if backup.failsafe_relay_name is None:
+                raise ValueError(
+                    "Axiom 35 (BackupRelays) clause a failed: a boiler backup in this "
+                    "layout SHALL name its FailsafeRelayName."
+                )
             names = [backup.failsafe_relay_name, backup.aquastat_ctrl_relay_name]
         else:
             names = list(backup.element_relay_names)
@@ -1347,7 +1354,7 @@ class NolanLayout(SemaType):
         for name in names:
             if name not in relays:
                 raise ValueError(
-                    f"Axiom 35 (BackupRelays) failed: the backup names {name!r}, "
+                    f"Axiom 35 (BackupRelays) clause b failed: the backup names {name!r}, "
                     "which is not an ShNode with ActorClass Relay."
                 )
         return self
