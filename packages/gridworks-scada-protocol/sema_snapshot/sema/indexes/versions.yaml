@@ -71,11 +71,13 @@ types:
           - additionalProperties: true -> false
 
   cop.curve:
-    latest_version: "000"
+    latest_version: "001"
     versioning_strategy: "literal"
     versions:
-      "000":
-        summary: "Initial version (Intercept, OatCoeff, LwtCoeff, Min, MinOatF) — the COP model migrated out of scada deployment config into operational params."
+      "001":
+        summary: >
+          - Lift-based model: Intercept + LwtMinusOatCoeff * max(0, LwtF
+          - OatF); OatCoeff, LwtCoeff, Min, MinOatF dropped. A 000 is a different fit and does not upgrade.
 
   dac.output.config:
     latest_version: "000"
@@ -160,11 +162,11 @@ types:
         summary: "StartUnixS, StepDurationMinutes, HpAvgWList (W), StoreWhList (Wh); axiom StepListLengths."
 
   flo.params:
-    latest_version: "004"
+    latest_version: "005"
     versioning_strategy: "literal"
     versions:
-      "004":
-        summary: "- Tuning: flo.tuning.bruce 002 -> 003"
+      "005":
+        summary: "- COP model is lift-based: CopLwtCoeff -> CopLwtMinusOatCoeff; CopOatCoeff, CopMin, CopMinOatF dropped"
 
   flo.params.house0:
     latest_version: "007"
@@ -600,11 +602,11 @@ types:
         summary: "Thermostat record (Kind, optional ComponentId); NoComponentOnDumbStat axiom."
 
   ha1.params:
-    latest_version: "006"
+    latest_version: "007"
     versioning_strategy: "literal"
     versions:
-      "006":
-        summary: "HpMaxKwEl replaces HpMaxKwTh, required; the five Cop fields required; HpTurnOnMinutes added, required (the shape every scada has published at this version)"
+      "007":
+        summary: "- COP model is lift-based: CopLwtCoeff -> CopLwtMinusOatCoeff; CopOatCoeff, CopMin, CopMinOatF dropped"
 
   heating.curve:
     latest_version: "000"

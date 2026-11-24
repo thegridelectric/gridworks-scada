@@ -1,6 +1,6 @@
 {
   "TypeName": "flo.params",
-  "Version": "004",
+  "Version": "005",
   "GNodeAlias": "hw1.isone.me.versant.keene.oak",
   "CreatedMs": 1762008900000,
   "StartUnixS": 1762009200,
@@ -44,11 +44,8 @@
   "HpCurrentlyOn": false,
   "HpMaxKwEl": 9.66,
   "HpTurnOnMinutes": 12,
-  "CopIntercept": 1.5,
-  "CopOatCoeff": 0.015,
-  "CopLwtCoeff": 0.0,
-  "CopMin": 1.5,
-  "CopMinOatF": 0.0,
+  "CopIntercept": 2.731,
+  "CopLwtMinusOatCoeff": -0.007403,
   "PriceMaxUsdMwh": 2000.0,
   "PriceMinUsdMwh": -100.0,
   "Tuning": {

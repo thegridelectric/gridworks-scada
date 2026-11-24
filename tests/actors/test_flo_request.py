@@ -112,8 +112,8 @@ def test_the_request_is_the_houses_facts() -> None:
     assert params.HpMaxKwEl == o.HpMaxKwEl
     assert params.HpTurnOnMinutes == o.HpTurnOnMinutes
     assert params.MaxTankTempF == o.HeatingCurve.MaxEwtF
-    assert (params.CopIntercept, params.CopOatCoeff, params.CopLwtCoeff, params.CopMin, params.CopMinOatF) == (
-        o.CopCurve.Intercept, o.CopCurve.OatCoeff, o.CopCurve.LwtCoeff, o.CopCurve.Min, o.CopCurve.MinOatF
+    assert (params.CopIntercept, params.CopLwtMinusOatCoeff) == (
+        o.CopCurve.Intercept, o.CopCurve.LwtMinusOatCoeff
     )
     assert params.Tuning == o.FloTuning
     assert (params.PriceMaxUsdMwh, params.PriceMinUsdMwh) == (PRICE_MAX_USD_MWH, PRICE_MIN_USD_MWH)

@@ -106,7 +106,6 @@ staging_allow:
 - capture.tuning
 - change.valve.state
 - change.zone.call.source
-- cop.curve
 - dac.output.config
 - device.component.gt
 - dfr.config

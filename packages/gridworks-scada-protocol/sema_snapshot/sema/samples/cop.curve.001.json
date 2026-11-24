@@ -1,0 +1,6 @@
+{
+  "TypeName": "cop.curve",
+  "Version": "001",
+  "Intercept": 2.731,
+  "LwtMinusOatCoeff": -0.007403
+}

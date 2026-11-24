@@ -94,12 +94,3 @@ class FloParamsHouse0(GwsprotoSemaType):
         return [rp + dp + lmp for rp, dp, lmp in zip(
             reg_usd_per_mwh, dist_usd_per_mwh, lmp_usd_per_mwh, strict=True
         )]
-
-    def COP(self, oat: float) -> float:
-        """
-        Coefficient of Performance as function of Outside Air Temp in F
-        """
-        if oat < self.CopMinOatF:
-            return self.CopMin
-        else:
-            return self.CopIntercept + self.CopOatCoeff * oat
