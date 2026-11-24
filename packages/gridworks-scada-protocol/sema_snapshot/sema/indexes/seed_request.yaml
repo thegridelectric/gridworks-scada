@@ -7,6 +7,9 @@
 #
 #   scripts/regen_sema_snapshot.sh
 #
+# (one call to `sema snapshot regen` on this file; `package_name` and
+# `vendor_dir` below tell it where the snapshot goes).
+#
 # EVERY type and every versioned enum is pinned to ONE version: the version
 # the scada speaks. A scada (the proactor) speaks exactly one version of
 # each word, so the snapshot must hold exactly one; `{}` (registry latest)
@@ -18,6 +21,117 @@
 # is in sema, not here. Versionless enums take `{}` (nothing to pin).
 # A twin with no sema word is on the conformance test's NO_WORD allowlist;
 # a snapshot word with no twin fails that test.
+
+package_name: sema_snapshot
+vendor_dir: sema_snapshot/sema
+
+# The contract, layout and operational-params vocabulary is staging until
+# it stabilizes against the installed fleet, so this is a dev-only snapshot:
+# `staging.allow` names every staging word the closure reaches. A word
+# leaves the list when it is published; the snapshot's `check_staging.py`
+# (run by ci.sh) fails on a staging word the list does not name.
+staging:
+  allow:
+    - ads.channel.config
+    - ads111x.based.component.gt
+    - ads111x.based.device.type.gt
+    - capture.tuning
+    - change.valve.state
+    - change.zone.call.source
+    - cop.curve
+    - dac.output.config
+    - device.component.gt
+    - dfr.config
+    - egauge.register.config
+    - electric.meter.channel.config
+    - electric.meter.component.gt
+    - electric.meter.device.type.gt
+    - gpio.relay.component.gt
+    - gpio.sense.mode
+    - gpio.sensor.component.gt
+    - gw.boiler.backup
+    - gw.circulator
+    - gw.circulator.role
+    - gw.dispatch.hold
+    - gw.element.backup
+    - gw.house0.family.params
+    - gw.house0.layout
+    - gw.house0.no.sieg
+    - gw.house0.no.sieg.family.params
+    - gw.hydronic
+    - gw.native.gpio.pin
+    - gw.nolan.family.params
+    - gw.nolan.layout
+    - gw.operational.params
+    - gw.primary.flow.source
+    - gw.primary.pump.owner
+    - gw.recorded.setpoints
+    - gw.refrigerant.cycle
+    - gw.water.store
+    - gw.zone.emitter.type
+    - gw1.device.type
+    - gw1.hvac.zone
+    - gw1.scada.device.type.gt
+    - gw1.sim.device.type
+    - gw1.simple.sim.layout
+    - gw1.tank.temp.calibration
+    - gw1.tank.temp.calibration.map
+    - gw1.zone.call.circuit
+    - gw1.zone.thermostat
+    - heating.curve
+    - hp.control.box.device.type.gt
+    - hp.device.type.gt
+    - hubitat.component.gt
+    - hubitat.poller.component.gt
+    - hubitat.poller.gt
+    - i2c.adc.channel
+    - i2c.adc.type
+    - i2c.bus
+    - i2c.ct.interface.capability
+    - i2c.dac.capability
+    - i2c.dac.channel
+    - i2c.dac.output.component.gt
+    - i2c.dac.type
+    - i2c.expander
+    - i2c.expander.type
+    - i2c.mux
+    - i2c.mux.type
+    - i2c.operation
+    - i2c.read.bytes
+    - i2c.relay.capability
+    - i2c.relay.component.gt
+    - i2c.result
+    - i2c.thermistor.channel.config
+    - i2c.thermistor.interface.capability
+    - i2c.thermistor.reader.component.gt
+    - i2c.write.byte
+    - linear.one.dimensional.calibration
+    - maker.api.attribute.gt
+    - move.sieg.valve
+    - pico.btu.meter.component.gt
+    - pico.flow.module.component.gt
+    - pico.tank.module.component.gt
+    - relay.control.config
+    - scada.board.component.gt
+    - setpoint.belief
+    - setpoint.phase
+    - sieg.loop.strategy
+    - sim.pico.btu.meter.component.gt
+    - sim.pico.flow.module.component.gt
+    - sim.pico.tank.module.component.gt
+    - sim.plant.actuation
+    - sim.plant.flux
+    - sim.sensor.component.gt
+    - thermistor.data.method
+    - thermostat.kind
+    - web.server.component.gt
+    - zero.ten.power.on
+    - zone.call.circuit.event
+    - zone.call.circuit.state
+    - zone.circuit.governance.cmd
+    - zone.circuit.governance.event
+    - zone.circuit.governance.state
+    - zone.setpoint.source
 
 # Local class names mirror gwsproto's conventions: strip a leading
 # gw1./gw2./gw. segment, plus per-word overrides where gwsproto diverges.
@@ -69,7 +183,7 @@ initial_targets:
     energy.instruction:
       versions: ["000"]
     flo.params:
-      versions: ["003"]
+      versions: ["004"]
     gw.price.forecast:
       versions: ["000"]
     flo.params.house0:
@@ -77,7 +191,7 @@ initial_targets:
     flo.previous.run:
       versions: ["000"]
     flo.recommendation:
-      versions: ["002"]
+      versions: ["003"]
     flo.refusal:
       versions: ["000"]
     flow.hall.params:
@@ -97,7 +211,7 @@ initial_targets:
     gpio.sensor.component.gt:
       versions: ["000"]
     gw.boiler.backup:
-      versions: ["000"]
+      versions: ["001"]
     gw.command.interface:
       versions: ["001"]
     gw.command.transition:

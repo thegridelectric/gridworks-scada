@@ -115,30 +115,30 @@ types:
     versions:
       '000': definitions/types/flo.optimal.path/000.yaml
   flo.params:
-    latest_version: '003'
+    latest_version: '004'
     versioning_strategy: literal
     versions:
-      '003': definitions/types/flo.params/003.yaml
+      '004': definitions/types/flo.params/004.yaml
   flo.params.house0:
     latest_version: '007'
     versioning_strategy: literal
     versions:
       '007': definitions/types/flo.params.house0/007.yaml
   flo.path.penalties.bruce:
-    latest_version: '001'
+    latest_version: '002'
     versioning_strategy: literal
     versions:
-      '001': definitions/types/flo.path.penalties.bruce/001.yaml
+      '002': definitions/types/flo.path.penalties.bruce/002.yaml
   flo.previous.run:
     latest_version: '000'
     versioning_strategy: literal
     versions:
       '000': definitions/types/flo.previous.run/000.yaml
   flo.recommendation:
-    latest_version: '002'
+    latest_version: '003'
     versioning_strategy: literal
     versions:
-      '002': definitions/types/flo.recommendation/002.yaml
+      '003': definitions/types/flo.recommendation/003.yaml
   flo.refusal:
     latest_version: '000'
     versioning_strategy: literal
@@ -155,10 +155,10 @@ types:
     versions:
       '000': definitions/types/flo.tuning.alice/000.yaml
   flo.tuning.bruce:
-    latest_version: '002'
+    latest_version: '003'
     versioning_strategy: literal
     versions:
-      '002': definitions/types/flo.tuning.bruce/002.yaml
+      '003': definitions/types/flo.tuning.bruce/003.yaml
   flow.hall.params:
     latest_version: '101'
     versioning_strategy: literal
@@ -200,10 +200,10 @@ types:
     versions:
       '000': definitions/types/gpio.sensor.component.gt/000.yaml
   gw.boiler.backup:
-    latest_version: '000'
+    latest_version: '001'
     versioning_strategy: literal
     versions:
-      '000': definitions/types/gw.boiler.backup/000.yaml
+      '001': definitions/types/gw.boiler.backup/001.yaml
   gw.circulator:
     latest_version: '000'
     versioning_strategy: literal

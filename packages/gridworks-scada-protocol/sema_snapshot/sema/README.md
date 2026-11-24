@@ -38,7 +38,6 @@ Staging words in this snapshot:
 - type ads111x.based.component.gt:000
 - type ads111x.based.device.type.gt:000
 - type capture.tuning:000
-- type cop.curve:000
 - type dac.output.config:000
 - type device.component.gt:000
 - type dfr.config:000
@@ -48,7 +47,7 @@ Staging words in this snapshot:
 - type electric.meter.device.type.gt:000
 - type gpio.relay.component.gt:000
 - type gpio.sensor.component.gt:000
-- type gw.boiler.backup:000
+- type gw.boiler.backup:001
 - type gw.circulator:000
 - type gw.dispatch.hold:000
 - type gw.element.backup:000
@@ -108,13 +107,19 @@ Staging words in this snapshot:
 - type zero.ten.power.on:000
 - type zone.circuit.governance.cmd:000
 
-When these words promote to published, rebuild without `--allow-staged` to
-get a publication-grade snapshot (and this section disappears).
+The seed's `staging.allow` list names the words whose staging versions this
+snapshot may hold. When a word promotes to published, drop it from the list
+and regenerate; the section disappears when the list is empty.
 
 This directory is a **vendored Sema snapshot**: a self-contained, generated
 subset of the Sema vocabulary. **Never hand-edit it.** To change it, edit the
 seed (`../sema_seed_request.yaml`) or the definitions in the sema repo, then
-re-run the repo's `scripts/regen_sema_snapshot.sh`.
+re-run `uv run sema snapshot regen <seed>` in the sema repo. `check_staging.py`
+here is the consumer's CI check, run as `python -P check_staging.py <seed>`
+(`-P` keeps this directory's `types/` package from shadowing the standard
+library): it fails when this snapshot holds a staging word the seed does not
+allow, or when the seed changed since the build. With `--deploy-branch <name>`
+it also fails on that branch whenever this snapshot holds any staging word.
 
 ## What Sema is
 

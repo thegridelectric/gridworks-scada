@@ -1,6 +1,6 @@
 metadata:
   generated_from: indexes/public_registry.yaml
-  generated_at: '2026-11-20T20:39:06Z'
+  generated_at: '2026-11-24T11:31:56Z'
   note: Transitive closure of initial_targets
 initial_targets:
 - ads.channel.config:000
@@ -23,11 +23,11 @@ initial_targets:
 - electric.meter.component.gt:001
 - electric.meter.device.type.gt:000
 - energy.instruction:000
-- flo.params:003
+- flo.params:004
 - gw.price.forecast:000
 - flo.params.house0:007
 - flo.previous.run:000
-- flo.recommendation:002
+- flo.recommendation:003
 - flo.refusal:000
 - flow.hall.params:101
 - fsm.atomic.report:001
@@ -37,7 +37,7 @@ initial_targets:
 - glitch:000
 - gpio.relay.component.gt:000
 - gpio.sensor.component.gt:000
-- gw.boiler.backup:000
+- gw.boiler.backup:001
 - gw.command.interface:001
 - gw.command.transition:000
 - gw.dispatch.ack:000
@@ -605,20 +605,20 @@ worklist:
       '000':
         path: definitions/types/flo.optimal.path/000.yaml
     flo.params:
-      '003':
-        path: definitions/types/flo.params/003.yaml
+      '004':
+        path: definitions/types/flo.params/004.yaml
     flo.params.house0:
       '007':
         path: definitions/types/flo.params.house0/007.yaml
     flo.path.penalties.bruce:
-      '001':
-        path: definitions/types/flo.path.penalties.bruce/001.yaml
+      '002':
+        path: definitions/types/flo.path.penalties.bruce/002.yaml
     flo.previous.run:
       '000':
         path: definitions/types/flo.previous.run/000.yaml
     flo.recommendation:
-      '002':
-        path: definitions/types/flo.recommendation/002.yaml
+      '003':
+        path: definitions/types/flo.recommendation/003.yaml
     flo.refusal:
       '000':
         path: definitions/types/flo.refusal/000.yaml
@@ -629,8 +629,8 @@ worklist:
       '000':
         path: definitions/types/flo.tuning.alice/000.yaml
     flo.tuning.bruce:
-      '002':
-        path: definitions/types/flo.tuning.bruce/002.yaml
+      '003':
+        path: definitions/types/flo.tuning.bruce/003.yaml
     flow.hall.params:
       '101':
         path: definitions/types/flow.hall.params/101.yaml
@@ -656,8 +656,8 @@ worklist:
       '000':
         path: definitions/types/gpio.sensor.component.gt/000.yaml
     gw.boiler.backup:
-      '000':
-        path: definitions/types/gw.boiler.backup/000.yaml
+      '001':
+        path: definitions/types/gw.boiler.backup/001.yaml
     gw.circulator:
       '000':
         path: definitions/types/gw.circulator/000.yaml

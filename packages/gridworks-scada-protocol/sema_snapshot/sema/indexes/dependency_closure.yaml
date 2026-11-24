@@ -199,7 +199,7 @@ types:
       types: []
       versionless_types: []
   flo.params:
-    '003':
+    '004':
       enums:
       - gw1.seasonal.storage.mode:000
       formats:
@@ -212,7 +212,7 @@ types:
       types:
       - flo.optimal.path:000
       - flo.tuning.alice:000
-      - flo.tuning.bruce:002
+      - flo.tuning.bruce:003
       versionless_types: []
   flo.params.house0:
     '007':
@@ -226,7 +226,7 @@ types:
       types: []
       versionless_types: []
   flo.path.penalties.bruce:
-    '001':
+    '002':
       enums: []
       formats: []
       types: []
@@ -246,7 +246,7 @@ types:
       - price.quantity.unitless:001
       versionless_types: []
   flo.recommendation:
-    '002':
+    '003':
       enums:
       - market.price.unit:000
       - market.quantity.unit:000
@@ -259,7 +259,7 @@ types:
       - utc.seconds
       types:
       - flo.optimal.path:000
-      - flo.path.penalties.bruce:001
+      - flo.path.penalties.bruce:002
       - flo.tank.store.path:000
       - price.quantity.unitless:001
       versionless_types: []
@@ -288,7 +288,7 @@ types:
       types: []
       versionless_types: []
   flo.tuning.bruce:
-    '002':
+    '003':
       enums: []
       formats:
       - non.negative.int
@@ -384,7 +384,7 @@ types:
       types: []
       versionless_types: []
   gw.boiler.backup:
-    '000':
+    '001':
       enums: []
       formats:
       - spaceheat.name
@@ -536,7 +536,7 @@ types:
       - g.node.gt:006
       - gpio.relay.component.gt:000
       - gpio.sensor.component.gt:000
-      - gw.boiler.backup:000
+      - gw.boiler.backup:001
       - gw.circulator:000
       - gw.element.backup:000
       - gw.hydronic:000
@@ -640,7 +640,7 @@ types:
       - g.node.gt:006
       - gpio.relay.component.gt:000
       - gpio.sensor.component.gt:000
-      - gw.boiler.backup:000
+      - gw.boiler.backup:001
       - gw.circulator:000
       - gw.element.backup:000
       - gw.hydronic:000
@@ -705,7 +705,7 @@ types:
       - spaceheat.name
       - uuid4.str
       types:
-      - gw.boiler.backup:000
+      - gw.boiler.backup:001
       - gw.circulator:000
       - gw.element.backup:000
       - gw.water.store:000
@@ -785,7 +785,7 @@ types:
       - g.node.gt:006
       - gpio.relay.component.gt:000
       - gpio.sensor.component.gt:000
-      - gw.boiler.backup:000
+      - gw.boiler.backup:001
       - gw.circulator:000
       - gw.element.backup:000
       - gw.hydronic:000
@@ -842,7 +842,7 @@ types:
       - capture.tuning:000
       - cop.curve:000
       - flo.tuning.alice:000
-      - flo.tuning.bruce:002
+      - flo.tuning.bruce:003
       - gw.dispatch.hold:000
       - gw.house0.family.params:000
       - gw.house0.no.sieg.family.params:000

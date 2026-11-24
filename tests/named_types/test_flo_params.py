@@ -51,7 +51,7 @@ EXAMPLE = {
     "PriceMaxUsdMwh": 2000.0,
     "PriceMinUsdMwh": -100.0,
     "TypeName": "flo.params",
-    "Version": "003",
+    "Version": "004",
 }
 
 

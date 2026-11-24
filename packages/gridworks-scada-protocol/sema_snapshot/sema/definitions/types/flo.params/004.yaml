@@ -1,5 +1,5 @@
 $schema: "https://json-schema.org/draft/2020-12/schema"
-$id: "https://schemas.electricity.works/types/flo.params/003"
+$id: "https://schemas.electricity.works/types/flo.params/004"
 
 title: "flo.params"
 type: object
@@ -114,14 +114,33 @@ properties:
       Minutes from a call for heat until the heat pump delivers it.
   CopIntercept:
     type: number
+    description: >
+      The heat pump's COP at zero degrees F outdoor air with no leaving
+      water contribution, in the model CopIntercept + CopOatCoeff * OatF +
+      CopLwtCoeff * LwtF floored at CopMin below CopMinOatF. From
+      2026-11-20 senders populate it as the COP when leaving water is no
+      warmer than outdoor air, in the model CopIntercept + CopLwtCoeff *
+      max(0, LwtF - OatF).
   CopOatCoeff:
     type: number
+    description: >
+      COP change per degree F of outdoor air temperature. Ignored by
+      senders from 2026-11-20.
   CopLwtCoeff:
     type: number
+    description: >
+      COP change per degree F of leaving water temperature. From
+      2026-11-20 senders populate this as the coefficient on max(0, LwtF -
+      OatF) and the model is CopIntercept + CopLwtCoeff * that lift.
   CopMin:
     type: number
+    description: >
+      The COP floor. Ignored by senders from 2026-11-20.
   CopMinOatF:
     type: number
+    description: >
+      The outdoor air temperature, in degrees F, below which the COP floor
+      applies. Ignored by senders from 2026-11-20.
   PriceMaxUsdMwh:
     type: number
     description: >
@@ -143,14 +162,14 @@ properties:
   Tuning:
     oneOf:
       - $ref: "https://schemas.electricity.works/types/flo.tuning.alice/000"
-      - $ref: "https://schemas.electricity.works/types/flo.tuning.bruce/002"
+      - $ref: "https://schemas.electricity.works/types/flo.tuning.bruce/003"
     description: >
       The tuning of the optimizer this house runs; its TypeName selects the
       optimizer.
   TypeName:
     const: "flo.params"
   Version:
-    const: "003"
+    const: "004"
 
 required:
   - GNodeAlias
@@ -238,8 +257,6 @@ examples:
         "RswtPenaltyDecay": 0.9,
         "RswtPenaltyExponentRate": 0.15,
         "RswtPenaltyDecayMaxHour": 12,
-        "UnmetLoadPenaltyEnabled": true,
-        "UnmetLoadPenaltyWeight": 10.0,
         "ShortCyclePenaltyEnabled": true,
         "ShortCyclePenaltyWeight": 6.0,
         "StabilityPenaltyEnabled": true,
@@ -250,11 +267,12 @@ examples:
         "StabilityPenaltyHorizonHours": 20,
         "TerminalCostEnabled": true,
         "TerminalCostEndWindowHours": 24,
+        "Experimental": {"UnmetLoadPenaltyEnabled": true, "UnmetLoadPenaltyWeight": 10.0},
         "TypeName": "flo.tuning.bruce",
-        "Version": "002"
+        "Version": "003"
       },
       "TypeName": "flo.params",
-      "Version": "003"
+      "Version": "004"
     }
 
 x-gridworks:

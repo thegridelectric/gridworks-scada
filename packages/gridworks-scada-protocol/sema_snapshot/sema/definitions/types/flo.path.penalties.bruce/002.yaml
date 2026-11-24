@@ -1,5 +1,5 @@
 $schema: "https://json-schema.org/draft/2020-12/schema"
-$id: "https://schemas.electricity.works/types/flo.path.penalties.bruce/001"
+$id: "https://schemas.electricity.works/types/flo.path.penalties.bruce/002"
 
 title: "flo.path.penalties.bruce"
 type: object
@@ -19,14 +19,6 @@ properties:
     description: >
       The penalty charged in each step for the store being unable to meet
       the required source water temperature, in USD.
-
-  UnmetLoadPenaltyUsdList:
-    type: array
-    items:
-      type: number
-    description: >
-      The penalty charged in each step for a discharge that the store's
-      floor state cannot deliver, in USD.
 
   StabilityPenaltyUsdList:
     type: array
@@ -62,20 +54,29 @@ properties:
       The optimizer's total cost of the path, in USD: the electricity cost
       of every step, the penalties and the terminal cost.
 
+  Experimental:
+    type: object
+    description: >
+      Per-step penalty series in USD for penalties the bruce optimizer is
+      still tuning, keyed by penalty name; each has the step count of
+      RswtPenaltyUsdList. The bruce commit the recommendation names defines
+      the keys. A penalty that settles becomes a declared list in the next
+      version.
+
   TypeName:
     const: "flo.path.penalties.bruce"
 
   Version:
-    const: "001"
+    const: "002"
 
 required:
   - RswtPenaltyUsdList
-  - UnmetLoadPenaltyUsdList
   - StabilityPenaltyUsdList
   - ShortCyclePenaltyUsdList
   - TerminalCostUsd
   - TerminalCostEmptyStoreUsd
   - PathCostUsd
+  - Experimental
   - TypeName
   - Version
 
@@ -85,14 +86,14 @@ examples:
   - |
     {
       "RswtPenaltyUsdList": [0.0, 0.0, 0.42],
-      "UnmetLoadPenaltyUsdList": [0.0, 0.0, 1.2],
       "StabilityPenaltyUsdList": [0.0, 0.15, 0.0],
       "ShortCyclePenaltyUsdList": [0.0, 0.0, 0.0],
       "TerminalCostUsd": 1.87,
       "TerminalCostEmptyStoreUsd": 5.6,
       "PathCostUsd": 8.3,
+      "Experimental": {"UnmetLoadPenaltyUsdList": [0.0, 0.0, 1.2]},
       "TypeName": "flo.path.penalties.bruce",
-      "Version": "001"
+      "Version": "002"
     }
 
 x-gridworks:
@@ -101,9 +102,8 @@ x-gridworks:
     - number: 1
       name: "PenaltyListLengths"
       statement: >
-        RswtPenaltyUsdList, UnmetLoadPenaltyUsdList,
-        StabilityPenaltyUsdList and ShortCyclePenaltyUsdList SHALL
-        have the same length.
+        RswtPenaltyUsdList, StabilityPenaltyUsdList and
+        ShortCyclePenaltyUsdList SHALL have the same length.
     - number: 2
       name: "TerminalCostBound"
       statement: >

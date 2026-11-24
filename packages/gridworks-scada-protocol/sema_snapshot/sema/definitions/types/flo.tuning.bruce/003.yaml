@@ -1,14 +1,15 @@
 $schema: "https://json-schema.org/draft/2020-12/schema"
-$id: "https://schemas.electricity.works/types/flo.tuning.bruce/002"
+$id: "https://schemas.electricity.works/types/flo.tuning.bruce/003"
 
 title: "flo.tuning.bruce"
 type: object
 description: >
   The tuning knobs of the bruce Forward Looking Optimizer, one heat pump
   charging one stratified water store: the plant model constants bruce
-  needs that no house word states, the resolution of its store model, and
-  the weights of its penalties. Authored once per house in its operational
-  params and copied into each flo.params request.
+  needs that no house word states, the resolution of its store model,
+  the weights of its penalties, and the knobs still under tuning. Authored
+  once per house in its operational params and copied into each flo.params
+  request.
 
 properties:
   NumLayers:
@@ -71,16 +72,6 @@ properties:
     type: number
   RswtPenaltyDecayMaxHour:
     $ref: "https://schemas.electricity.works/formats/non.negative.int"
-  UnmetLoadPenaltyEnabled:
-    type: boolean
-    description: >
-      Whether a discharge that would take the store below the coldest
-      state in the model is charged for the load it cannot supply.
-  UnmetLoadPenaltyWeight:
-    type: number
-    description: >
-      Weight on that unmet load, as a multiple of the most expensive heat
-      pump heat over the horizon.
   ShortCyclePenaltyEnabled:
     type: boolean
   ShortCyclePenaltyWeight:
@@ -101,10 +92,16 @@ properties:
     type: boolean
   TerminalCostEndWindowHours:
     $ref: "https://schemas.electricity.works/formats/non.negative.int"
+  Experimental:
+    type: object
+    description: >
+      Knobs the bruce optimizer reads while they are being tuned, keyed by
+      name. The bruce commit a recommendation names defines the keys. A
+      knob that settles becomes a declared field in the next version.
   TypeName:
     const: "flo.tuning.bruce"
   Version:
-    const: "002"
+    const: "003"
 
 required:
   - NumLayers
@@ -122,8 +119,6 @@ required:
   - RswtPenaltyDecay
   - RswtPenaltyExponentRate
   - RswtPenaltyDecayMaxHour
-  - UnmetLoadPenaltyEnabled
-  - UnmetLoadPenaltyWeight
   - ShortCyclePenaltyEnabled
   - ShortCyclePenaltyWeight
   - StabilityPenaltyEnabled
@@ -134,6 +129,7 @@ required:
   - StabilityPenaltyHorizonHours
   - TerminalCostEnabled
   - TerminalCostEndWindowHours
+  - Experimental
   - TypeName
   - Version
 
@@ -157,8 +153,6 @@ examples:
       "RswtPenaltyDecay": 0.9,
       "RswtPenaltyExponentRate": 0.15,
       "RswtPenaltyDecayMaxHour": 12,
-      "UnmetLoadPenaltyEnabled": true,
-      "UnmetLoadPenaltyWeight": 10.0,
       "ShortCyclePenaltyEnabled": true,
       "ShortCyclePenaltyWeight": 6.0,
       "StabilityPenaltyEnabled": true,
@@ -169,8 +163,9 @@ examples:
       "StabilityPenaltyHorizonHours": 20,
       "TerminalCostEnabled": true,
       "TerminalCostEndWindowHours": 24,
+      "Experimental": {"UnmetLoadPenaltyEnabled": true, "UnmetLoadPenaltyWeight": 10.0},
       "TypeName": "flo.tuning.bruce",
-      "Version": "002"
+      "Version": "003"
     }
 
 x-gridworks:
