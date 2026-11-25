@@ -476,8 +476,8 @@ wheels = [
 
 [[package]]
 name = "gridworks-proactor"
-version = "4.1.13+jm3"
-source = { git = "https://github.com/thegridelectric/gridworks-proactor.git?tag=v4.1.13%2Bjm3#400466d9eb1d7b399c8e95cefc03e637f4c90e0c" }
+version = "4.1.13+jm4"
+source = { git = "https://github.com/thegridelectric/gridworks-proactor.git?tag=v4.1.13%2Bjm4#4cb7e79b80d90027558b7a3a30deb94886ffa6a4" }
 dependencies = [
     { name = "aiohttp" },
     { name = "gridworks-protocol" },
@@ -575,7 +575,7 @@ drivers = [
 [package.metadata]
 requires-dist = [
     { name = "click", specifier = "<8.3" },
-    { name = "gridworks-proactor", git = "https://github.com/thegridelectric/gridworks-proactor.git?tag=v4.1.13%2Bjm3" },
+    { name = "gridworks-proactor", git = "https://github.com/thegridelectric/gridworks-proactor.git?tag=v4.1.13%2Bjm4" },
     { name = "gridworks-protocol", specifier = ">=1.3.3" },
     { name = "gridworks-scada-protocol", editable = "packages/gridworks-scada-protocol" },
     { name = "httpx" },
@@ -606,7 +606,7 @@ dev = [
     { name = "coverage" },
     { name = "gridworks-admin", editable = "packages/gridworks-admin" },
     { name = "gridworks-cert", specifier = ">=0.4.4" },
-    { name = "gridworks-proactor", extras = ["tests"], git = "https://github.com/thegridelectric/gridworks-proactor.git?tag=v4.1.13%2Bjm3" },
+    { name = "gridworks-proactor", extras = ["tests"], git = "https://github.com/thegridelectric/gridworks-proactor.git?tag=v4.1.13%2Bjm4" },
     { name = "isort" },
     { name = "memray" },
     { name = "mypy", specifier = ">=1.15.0" },

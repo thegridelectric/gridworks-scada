@@ -73,7 +73,7 @@ required-environments = [
 ]
 
 [tool.uv.sources]
-gridworks-proactor = { git = "https://github.com/thegridelectric/gridworks-proactor.git", tag = "v4.1.13+jm3" }
+gridworks-proactor = { git = "https://github.com/thegridelectric/gridworks-proactor.git", tag = "v4.1.13+jm4" }
 gridworks-scada-protocol = { path = "packages/gridworks-scada-protocol", editable = true }
 gridworks-admin = { path = "packages/gridworks-admin", editable = true }
 
