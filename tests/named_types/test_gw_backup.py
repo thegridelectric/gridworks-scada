@@ -9,7 +9,7 @@ from gwsproto.named_types import BoilerBackup, ElementBackup
 def test_gw_boiler_backup_validates() -> None:
     b = BoilerBackup(
         FailsafeRelayName="hp-failsafe-relay",
-        AquastatCtrlRelayName="aquastat-ctrl-relay",
+        InterceptRelayName="aquastat-ctrl-relay",
         InService=True,
     )
     assert b.InService
@@ -20,7 +20,7 @@ def test_gw_boiler_backup_axiom_1() -> None:
     with pytest.raises(ValidationError, match=r"Axiom 1 \(DistinctRelays\)"):
         BoilerBackup(
             FailsafeRelayName="hp-failsafe-relay",
-            AquastatCtrlRelayName="hp-failsafe-relay",
+            InterceptRelayName="hp-failsafe-relay",
             InService=True,
         )
 

@@ -1436,7 +1436,7 @@ class House0NoSieg(SemaType):
         Axiom 37: BackupRelays a. Where Hydronic.Backup is a gw.boiler.backup, its
         FailsafeRelayName SHALL be present: the heat pump falls back to the buffer tank
         aquastat. b. Where Hydronic.Backup is a gw.boiler.backup, its FailsafeRelayName
-        and AquastatCtrlRelayName, and where it is a gw.element.backup, each name in its
+        and InterceptRelayName, and where it is a gw.element.backup, each name in its
         ElementRelayNames, SHALL equal the Name of an ShNode in ShNodes whose ActorClass
         is "Relay".
         """
@@ -1449,7 +1449,7 @@ class House0NoSieg(SemaType):
                     "Axiom 37 (BackupRelays) clause a failed: a boiler backup in this "
                     "layout SHALL name its FailsafeRelayName."
                 )
-            names = [backup.failsafe_relay_name, backup.aquastat_ctrl_relay_name]
+            names = [backup.failsafe_relay_name, backup.intercept_relay_name]
         else:
             names = list(backup.element_relay_names)
         relays = {

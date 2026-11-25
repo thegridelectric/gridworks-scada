@@ -50,7 +50,7 @@ def check_backup_relays(
                 "FailsafeRelayName; this family's heat pump falls back to the "
                 "buffer tank aquastat."
             )
-        names = [backup.FailsafeRelayName, backup.AquastatCtrlRelayName]
+        names = [backup.FailsafeRelayName, backup.InterceptRelayName]
     else:
         names = list(backup.ElementRelayNames)
     relays = {n.Name for n in nodes if n.ActorClass == ActorClass.Relay}

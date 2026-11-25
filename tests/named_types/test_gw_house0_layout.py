@@ -910,7 +910,7 @@ def test_gw_house0_layout_axiom_3_c_backup_node_without_a_backup(assembled: dict
 def test_gw_house0_layout_axiom_38(assembled: dict) -> None:
     """A boiler relay that is not a Relay ShNode."""
     def mutate(d: dict) -> None:
-        d["Hydronic"]["Backup"]["AquastatCtrlRelayName"] = "backup"
+        d["Hydronic"]["Backup"]["InterceptRelayName"] = "backup"
 
     reject(assembled, mutate, r"Axiom 38 \(BackupRelays\)")
 
