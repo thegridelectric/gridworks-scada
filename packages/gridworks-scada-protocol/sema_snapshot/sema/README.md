@@ -47,7 +47,6 @@ Staging words in this snapshot:
 - type electric.meter.device.type.gt:000
 - type gpio.relay.component.gt:000
 - type gpio.sensor.component.gt:000
-- type gw.boiler.backup:001
 - type gw.circulator:000
 - type gw.dispatch.hold:000
 - type gw.element.backup:000
