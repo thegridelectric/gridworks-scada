@@ -3,9 +3,13 @@
 import time
 from typing import TYPE_CHECKING
 
+from gwsproto.enums import CirculatorRole, LogLevel
+from gwsproto.named_types import Glitch
 from gwsproto.names.hydronic_spaceheat.channel_names import (
     HydronicSpaceheatChannelNames as HCN,
 )
+
+from actors.procedural.pump_power import is_running, meter_node_name, power_channel_name
 
 if TYPE_CHECKING:
     from actors.procedural.procedural_host import ProceduralHost
@@ -18,19 +22,26 @@ class DistPumpMonitor:
     Decides whether a recovery procedure should run based on:
       - zone calls
       - flow
+      - dist pump power: a pump drawing power is running, whatever the
+        flow meter says, and a meter that reads no flow under a running
+        pump gets a Warning glitch of its own
       - zone-controller startup delay
 
     Owns diagnostic timing state but does not actuate.
     """
     ZONE_CONTROL_DELAY_SECONDS = 50
     THRESHOLD_FLOW_GPM_X100 = 50
+    METER_SILENCE_SECONDS = 60
 
     def __init__(self, *, host: "ProceduralHost", doctor):
         self.host = host
         self.doctor = doctor
+        self.power_channel = power_channel_name(host.layout, CirculatorRole.Dist)
 
         # Diagnostic timing state
         self.zone_controller_triggered_at: float | None = None
+        self.running_without_flow_s: float | None = None
+        self.meter_warned = False
 
     # ------------------------------------------------------------
     # Public API
@@ -60,6 +71,8 @@ class DistPumpMonitor:
             if self.zone_controller_triggered_at is not None:
                 h.log("[DistPumpCheck] No zones calling; clearing trigger timer")
             self.zone_controller_triggered_at = None
+            self.running_without_flow_s = None
+            self.meter_warned = False
             return False
 
         # --------------------------------------------------------
@@ -81,8 +94,47 @@ class DistPumpMonitor:
                 )
 
             self.zone_controller_triggered_at = None
+            self.running_without_flow_s = None
+            self.meter_warned = False
             self.doctor.reset()
             return False
+
+        # --------------------------------------------------------
+        # No flow but the pump draws power → the meter, not the pump
+        # --------------------------------------------------------
+        power_w = None
+        if self.power_channel is not None:
+            power_w = h.data.latest_channel_values.get(self.power_channel)
+        if is_running(power_w):
+            now = time.monotonic()
+            if self.running_without_flow_s is None:
+                self.running_without_flow_s = now
+            elif (
+                not self.meter_warned
+                and now - self.running_without_flow_s > self.METER_SILENCE_SECONDS
+            ):
+                self.meter_warned = True
+                h.log(
+                    f"[DistPumpCheck] Dist pump draws {power_w} W with "
+                    f"GPM={flow_gpm_x100 / 100}: the flow meter reads zero under a running pump"
+                )
+                h._send_to(
+                    h.ltn,
+                    Glitch(
+                        FromGNodeAlias=h.layout.scada_g_node_alias,
+                        Node=meter_node_name(h.layout, HCN.dist_flow),
+                        Type=LogLevel.Warning,
+                        Summary="Dist flow meter reads zero under a running pump",
+                        Details=(
+                            f"{self.power_channel} {power_w} W, {HCN.dist_flow} "
+                            f"{flow_gpm_x100 / 100} gpm for over "
+                            f"{self.METER_SILENCE_SECONDS} s; the pump is left running"
+                        ),
+                    ),
+                )
+            self.zone_controller_triggered_at = None
+            return False
+        self.running_without_flow_s = None
 
         # --------------------------------------------------------
         # Pump OFF but zones calling → apply startup delay

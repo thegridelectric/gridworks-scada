@@ -1,8 +1,10 @@
 from typing import TYPE_CHECKING
 import time
-from gwsproto.enums import LogLevel
+from gwsproto.enums import CirculatorRole, LogLevel
 from gwsproto.named_types import Glitch
 from gwsproto.names.hydronic_spaceheat.channel_names import HydronicSpaceheatChannelNames as HCN
+
+from actors.procedural.pump_power import is_running, power_channel_name
 
 
 if TYPE_CHECKING:
@@ -20,6 +22,7 @@ class StorePumpDoctor:
 
     def __init__(self, host: "ProceduralHost"):
         self.host = host
+        self.power_channel = power_channel_name(host.layout, CirculatorRole.Store)
         self.running = False
         self.attempts = 0
         self.exhausted = False
@@ -121,14 +124,22 @@ class StorePumpDoctor:
         poll_s: float = 2.0,
     ) -> bool:
         """
-        Wait up to MAX_WAIT_SECONDS for storage flow to exceed threshold.
-        Returns True if flow is detected, False on timeout.
+        Wait up to MAX_WAIT_SECONDS for the pump to start: storage flow
+        above threshold, or the pump drawing running power on two
+        consecutive polls (the flow meter may be the thing that is dead).
+        Returns True if the pump started, False on timeout.
         """
         deadline = time.monotonic() + self.MAX_WAIT_SECONDS
+        running_polls = 0
 
         while time.monotonic() < deadline:
-            flow = self.host.data.latest_channel_values.get(HCN.store_flow)
+            values = self.host.data.latest_channel_values
+            flow = values.get(HCN.store_flow)
             if flow is not None and flow > self.THRESHOLD_FLOW_GPM_X100:
+                return True
+            power_w = None if self.power_channel is None else values.get(self.power_channel)
+            running_polls = running_polls + 1 if is_running(power_w) else 0
+            if running_polls >= 2:
                 return True
 
             await self.host.await_with_watchdog(poll_s)
