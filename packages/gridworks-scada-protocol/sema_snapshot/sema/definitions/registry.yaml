@@ -1,6 +1,6 @@
 metadata:
   registry_version: "1.0"
-  last_updated: "2026-11-25T18:20:00Z"
+  last_updated: "2026-11-25T21:20:00Z"
   maintainer: "gridworks-energy"
 
 formats:
@@ -1866,7 +1866,7 @@ types:
       "001":
         schema_url: "https://schemas.electricity.works/types/gw.boiler.backup/001"
         created: "2026-11-25T18:20:00Z"
-        status: "staging"
+        status: "published"
         summary: "- FailsafeRelayName becomes optional - AquastatCtrlRelayName becomes InterceptRelayName"
         direct_dependencies:
           structural:

@@ -50,7 +50,6 @@ staging:
     - gpio.relay.component.gt
     - gpio.sense.mode
     - gpio.sensor.component.gt
-    - gw.boiler.backup
     - gw.circulator
     - gw.circulator.role
     - gw.dispatch.hold

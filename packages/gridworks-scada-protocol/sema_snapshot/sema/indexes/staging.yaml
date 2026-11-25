@@ -40,7 +40,6 @@ staging_words:
 - type electric.meter.device.type.gt:000
 - type gpio.relay.component.gt:000
 - type gpio.sensor.component.gt:000
-- type gw.boiler.backup:001
 - type gw.circulator:000
 - type gw.dispatch.hold:000
 - type gw.element.backup:000
@@ -116,7 +115,6 @@ staging_allow:
 - gpio.relay.component.gt
 - gpio.sense.mode
 - gpio.sensor.component.gt
-- gw.boiler.backup
 - gw.circulator
 - gw.circulator.role
 - gw.dispatch.hold
