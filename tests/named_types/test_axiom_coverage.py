@@ -80,7 +80,6 @@ KNOWN_UNTESTED_AXIOMS: set[str] = {
     "gw1.scada.device.type.gt/000:1",
     "gw1.scada.device.type.gt/000:2",
     "gw1.scada.device.type.gt/000:3",
-    "gw1.scada.device.type.gt/000:4",
     "gw1.unit.quantity.projection/001:1",
     "gw1.zone.call.circuit/000:1",
     "gw1.zone.call.circuit/000:2",
