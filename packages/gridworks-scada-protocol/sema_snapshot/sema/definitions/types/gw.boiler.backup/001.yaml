@@ -4,10 +4,11 @@ $id: "https://schemas.electricity.works/types/gw.boiler.backup/001"
 title: "gw.boiler.backup"
 type: object
 description: >
-  A boiler that heats the house as backup to the heat pump, held by its
-  aquastat. The fuel does not change the control: the local control hands
-  the heat pump to the aquastat and the aquastat to the boiler through two
-  relays.
+  A boiler that heats the house as backup to the heat pump, fired by an
+  aquastat. The fuel does not change the control: the scada holds the
+  boiler off through an intercept relay, and where the plant has a
+  failsafe relay the local control hands the heat pump to the aquastat
+  through it.
 
 properties:
   FailsafeRelayName:
@@ -17,11 +18,12 @@ properties:
       energized and to the aquastat when de-energized. Absent where the
       heat pump has no aquastat to fall back to.
 
-  AquastatCtrlRelayName:
+  InterceptRelayName:
     $ref: "https://schemas.electricity.works/formats/spaceheat.name"
     description: >
-      The relay that gives control of the aquastat to the scada when
-      energized and to the boiler when de-energized.
+      The relay in the aquastat's signal to the boiler. De-energized it
+      passes the signal and the aquastat fires the boiler; energized it
+      gives the signal to the scada, which can hold the boiler off.
 
   InService:
     type: boolean
@@ -36,7 +38,7 @@ properties:
     const: "001"
 
 required:
-  - AquastatCtrlRelayName
+  - InterceptRelayName
   - InService
   - TypeName
   - Version
@@ -47,7 +49,7 @@ examples:
   - |
     {
       "FailsafeRelayName": "hp-failsafe-relay",
-      "AquastatCtrlRelayName": "aquastat-ctrl-relay",
+      "InterceptRelayName": "aquastat-ctrl-relay",
       "InService": true,
       "TypeName": "gw.boiler.backup",
       "Version": "001"
@@ -60,4 +62,4 @@ x-gridworks:
       name: "DistinctRelays"
       statement: >
         Where FailsafeRelayName is present, it SHALL NOT equal
-        AquastatCtrlRelayName.
+        InterceptRelayName.

@@ -291,7 +291,9 @@ types:
     versioning_strategy: "literal"
     versions:
       "001":
-        summary: "- FailsafeRelayName becomes optional"
+        summary: >
+          - FailsafeRelayName becomes optional
+          - AquastatCtrlRelayName becomes InterceptRelayName
 
   gw.circulator:
     latest_version: "000"

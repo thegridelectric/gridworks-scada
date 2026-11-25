@@ -11,7 +11,7 @@ class BoilerBackup(GwsprotoSemaType):
     """Sema: https://schemas.electricity.works/types/gw.boiler.backup/001"""
 
     FailsafeRelayName: Optional[SpaceheatName] = None
-    AquastatCtrlRelayName: SpaceheatName
+    InterceptRelayName: SpaceheatName
     InService: bool
     TypeName: Literal["gw.boiler.backup"] = "gw.boiler.backup"
     Version: Literal["001"] = "001"
@@ -20,14 +20,14 @@ class BoilerBackup(GwsprotoSemaType):
     def check_axiom_1(self) -> Self:
         """
         Axiom 1: DistinctRelays. Where FailsafeRelayName is present, it SHALL
-        NOT equal AquastatCtrlRelayName.
+        NOT equal InterceptRelayName.
         """
         if (
             self.FailsafeRelayName is not None
-            and self.FailsafeRelayName == self.AquastatCtrlRelayName
+            and self.FailsafeRelayName == self.InterceptRelayName
         ):
             raise ValueError(
                 "Axiom 1 (DistinctRelays) failed: FailsafeRelayName and "
-                f"AquastatCtrlRelayName are both {self.FailsafeRelayName}."
+                f"InterceptRelayName are both {self.FailsafeRelayName}."
             )
         return self

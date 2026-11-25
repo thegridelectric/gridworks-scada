@@ -2628,7 +2628,7 @@
       "TypeName": "gw.boiler.backup",
       "Version": "001",
       "FailsafeRelayName": "hp-failsafe-relay",
-      "AquastatCtrlRelayName": "aquastat-ctrl-relay",
+      "InterceptRelayName": "aquastat-ctrl-relay",
       "InService": true
     },
     "PrimaryFlowSource": "Measured",
