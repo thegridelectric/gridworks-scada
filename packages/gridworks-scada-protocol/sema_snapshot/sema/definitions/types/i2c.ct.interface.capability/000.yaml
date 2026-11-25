@@ -43,6 +43,17 @@ properties:
     description: >
       The number of CT input channels this ADC exposes.
 
+  MuxName:
+    $ref: "https://schemas.electricity.works/formats/pascal.case"
+    description: >
+      The name of the board mux this ADC sits behind, when it does not sit
+      directly on its bus.
+
+  MuxChannel:
+    $ref: "https://schemas.electricity.works/formats/non.negative.int"
+    description: >
+      The downstream channel of that mux the ADC is reached through.
+
   TypeName:
     const: "i2c.ct.interface.capability"
 
@@ -76,11 +87,16 @@ examples:
 
 x-gridworks:
   owner: "gridworks-energy"
+  axioms:
+    - number: 1
+      name: "MuxPairing"
+      statement: >
+        MuxName and MuxChannel SHALL be both present or both absent.
 
   extended_description: >
     The CT sibling of i2c.thermistor.interface.capability in the board-resident model.
-    Still to land here as the board's circuit facts are extracted from the schematic:
-    the per-channel burden/conditioning values and the CT the circuit expects (output
-    kind — current-output needing an external burden vs voltage-output with internal
-    burden — and rating), which pair with a future ct device-type word describing the
-    clamp itself. This word is staging and evolves in place as those facts arrive.
+    Still to come as the board's circuit facts are extracted from the schematic:
+    the per-channel burden and conditioning values and the CT the circuit expects
+    (output kind, current-output needing an external burden or voltage-output with
+    an internal burden, and rating), which pair with a ct device-type word describing
+    the clamp itself. This word is staging and evolves in place as those facts arrive.

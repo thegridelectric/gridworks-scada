@@ -683,7 +683,7 @@ types:
     versioning_strategy: "literal"
     versions:
       "000":
-        summary: "- Initial version. CT sibling of i2c.thermistor.interface.capability: Name, I2cBus, I2cAddress, AdcType, AdcReferenceVolts, Channels. Replaces the generic i2c.adc.capability (deleted; staging-only, single referrer)."
+        summary: "- Initial version. CT sibling of i2c.thermistor.interface.capability: Name, I2cBus, I2cAddress, AdcType, AdcReferenceVolts, Channels, optional MuxName and MuxChannel for an ADC behind a board mux (axiom MuxPairing). Replaces the generic i2c.adc.capability (deleted; staging-only, single referrer)."
 
   i2c.dac.capability:
     latest_version: "000"

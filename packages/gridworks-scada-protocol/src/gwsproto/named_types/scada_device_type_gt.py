@@ -111,35 +111,39 @@ class ScadaDeviceTypeGt(GwsprotoSemaType):
     def check_axiom_4(self) -> Self:
         """
         Axiom 4: MuxConsistency.
-        a. Every MuxName referenced by an entry in Dacs SHALL appear as a
-        MuxName in Muxes. b. Every Dacs entry carrying MuxChannel SHALL satisfy
-        MuxChannel less than the Channels of the mux named by its MuxName.
-        c. Every Dacs entry carrying MuxName SHALL have an I2cBus equal to
-        that mux's I2cBus.
+        a. Every MuxName referenced by an entry in Dacs or by CtAdc SHALL
+        appear as a MuxName in Muxes. b. Every Dacs entry or CtAdc carrying
+        MuxChannel SHALL satisfy MuxChannel less than the Channels of the mux
+        named by its MuxName. c. Every Dacs entry or CtAdc carrying MuxName
+        SHALL have an I2cBus equal to that mux's I2cBus.
         """
         muxes = {m.MuxName: m for m in self.Muxes}
-        for dac in self.Dacs:
-            if dac.MuxName is None:
+        behind_mux: list[tuple[str, str, I2cDacCapability | I2cCtInterfaceCapability]]
+        behind_mux = [("Dacs entry", d.DacName, d) for d in self.Dacs]
+        if self.CtAdc is not None:
+            behind_mux.append(("CtAdc", self.CtAdc.Name, self.CtAdc))
+        for kind, name, dev in behind_mux:
+            if dev.MuxName is None:
                 continue
-            mux = muxes.get(dac.MuxName)
+            mux = muxes.get(dev.MuxName)
             if mux is None:
                 raise ValueError(
-                    "Axiom 4 (MuxConsistency) failed: Dacs entry "
-                    f"{dac.DacName} references MuxName {dac.MuxName}, "
+                    f"Axiom 4 (MuxConsistency) failed: {kind} "
+                    f"{name} references MuxName {dev.MuxName}, "
                     "which is not declared in Muxes."
                 )
-            if dac.MuxChannel is not None and dac.MuxChannel >= mux.Channels:
+            if dev.MuxChannel is not None and dev.MuxChannel >= mux.Channels:
                 raise ValueError(
-                    "Axiom 4 (MuxConsistency) failed: Dacs entry "
-                    f"{dac.DacName} has MuxChannel {dac.MuxChannel}, not "
+                    f"Axiom 4 (MuxConsistency) failed: {kind} "
+                    f"{name} has MuxChannel {dev.MuxChannel}, not "
                     f"less than the {mux.Channels} Channels of mux "
-                    f"{dac.MuxName}."
+                    f"{dev.MuxName}."
                 )
-            if dac.I2cBus != mux.I2cBus:
+            if dev.I2cBus != mux.I2cBus:
                 raise ValueError(
-                    "Axiom 4 (MuxConsistency) failed: Dacs entry "
-                    f"{dac.DacName} has I2cBus {dac.I2cBus} but its mux "
-                    f"{dac.MuxName} is on {mux.I2cBus}."
+                    f"Axiom 4 (MuxConsistency) failed: {kind} "
+                    f"{name} has I2cBus {dev.I2cBus} but its mux "
+                    f"{dev.MuxName} is on {mux.I2cBus}."
                 )
         return self
 
