@@ -250,7 +250,7 @@ class Ltn(PrimeActor):
         self.accepts_dispatch: bool = False
         self.service_mode: ServiceMode = ServiceMode.Heating
         self.seasonal_storage_mode: SeasonalStorageMode = SeasonalStorageMode.AllTanks
-        self.keep_buffer_full: bool = self.settings.keep_buffer_full
+        self.keep_buffer_full: bool = self.ops.FamilyParams.KeepBufferFull
 
     @classmethod
     def get_codec_factory(cls) -> LtnCodecFactory:

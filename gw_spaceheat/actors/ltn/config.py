@@ -53,8 +53,6 @@ class LtnSettings(ScadaPathsSettings):
     # store, asks the FLO and bids for that slot. Less than one slot, so
     # each slot gets exactly one request.
     bid_lead_s: PositiveInt = 180
-    # Count no buffer energy when true.
-    keep_buffer_full: bool = False
     clock_source: ClockSource = ClockSource.Wall
     weather_source: WeatherSourceKind = WeatherSourceKind.Gwwf
     weather_api_url: str = "https://forecast.electricity.works/hw1-isone-weather"
