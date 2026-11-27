@@ -52,7 +52,7 @@ class LtnSettings(ScadaPathsSettings):
     # How many seconds before a market slot starts the LTN measures the
     # store, asks the FLO and bids for that slot. Less than one slot, so
     # each slot gets exactly one request.
-    bid_lead_s: PositiveInt = 180
+    bid_lead_s: PositiveInt = 300
     clock_source: ClockSource = ClockSource.Wall
     weather_source: WeatherSourceKind = WeatherSourceKind.Gwwf
     weather_api_url: str = "https://forecast.electricity.works/hw1-isone-weather"

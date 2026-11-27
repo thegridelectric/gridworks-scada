@@ -14,8 +14,8 @@ def no_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("LTN_PRICE_FORECAST_URL", raising=False)
 
 
-def test_bid_lead_defaults_to_three_minutes() -> None:
-    assert LtnSettings(_env_file=None).bid_lead_s == 180
+def test_bid_lead_defaults_to_minute_55() -> None:
+    assert LtnSettings(_env_file=None).bid_lead_s == 300
 
 
 def test_bid_lead_reads_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
